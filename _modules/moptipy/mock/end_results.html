@@ -1,0 +1,314 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.mock.end_results — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/mock/end_results.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.mock.end_results</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.mock.end_results</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Compute the end result of one mock run."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>dataclasses</span><span class=w> </span><span class=kn>import</span> <span class=n>dataclass</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>ceil</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.console</span><span class=w> </span><span class=kn>import</span> <span class=n>logger</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_results</span><span class=w> </span><span class=kn>import</span> <span class=n>EndResult</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.mock.components</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>Algorithm</span><span class=p>,</span>
+    <span class=n>BasePerformance</span><span class=p>,</span>
+    <span class=n>Experiment</span><span class=p>,</span>
+    <span class=n>Instance</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>rand_generator</span>
+
+
+<div class=viewcode-block id=end_result>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.end_results.end_result>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>end_result</span><span class=p>(</span><span class=n>performance</span><span class=p>:</span> <span class=n>BasePerformance</span><span class=p>,</span> <span class=n>seed</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+               <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+               <span class=n>max_time_millis</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=n>EndResult</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the end result of a mock run.</span>
+
+<span class=sd>    :param performance: the performance record</span>
+<span class=sd>    :param seed: the random seed</span>
+<span class=sd>    :param max_fes: the maximum number of FEs</span>
+<span class=sd>    :param max_time_millis: the maximum time</span>
+<span class=sd>    :returns: the end result record</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>performance</span><span class=p>,</span> <span class=n>BasePerformance</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>performance</span><span class=p>,</span> <span class=s2>"performance"</span><span class=p>,</span> <span class=n>BasePerformance</span><span class=p>)</span>
+
+    <span class=n>limit_time</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1_000_000_000_000</span>
+    <span class=n>limit_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1_000_000_000_000</span>
+    <span class=k>if</span> <span class=n>max_time_millis</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>limit_time</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>max_time_millis</span><span class=p>,</span> <span class=s2>"max_time_millis"</span><span class=p>,</span> <span class=mi>11</span><span class=p>,</span> <span class=mi>1_000_000_000_000</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>max_fes</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>limit_fes</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>max_fes</span><span class=p>,</span> <span class=s2>"max_fes"</span><span class=p>,</span> <span class=mi>11</span><span class=p>,</span> <span class=mi>1_000_000_000_000</span><span class=p>)</span>
+
+    <span class=c1># The random number generator is determined by the seed.</span>
+    <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand_generator</span><span class=p>(</span><span class=n>seed</span><span class=p>)</span>
+
+    <span class=c1># The speed also has some slight jitter.</span>
+    <span class=n>jitter</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>performance</span><span class=o>.</span><span class=n>jitter</span>
+    <span class=n>speed</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+    <span class=k>while</span> <span class=p>(</span><span class=n>speed</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>speed</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>):</span>
+        <span class=n>speed</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=n>performance</span><span class=o>.</span><span class=n>speed</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=mf>0.01</span> <span class=o>*</span> <span class=n>jitter</span><span class=p>)</span>
+
+    <span class=c1># total_time ~ total_fes * (performance.speed ** 3)</span>
+    <span class=n>total_time</span><span class=p>:</span> <span class=nb>int</span>
+    <span class=n>total_fes</span><span class=p>:</span> <span class=nb>int</span>
+    <span class=n>trials</span><span class=p>:</span> <span class=nb>int</span>
+    <span class=k>if</span> <span class=n>max_time_millis</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>total_time</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>max_time_millis</span> <span class=o>+</span> <span class=nb>abs</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span>
+            <span class=n>loc</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=mi>5</span> <span class=o>*</span> <span class=n>jitter</span><span class=p>)))</span>
+        <span class=n>total_fes</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>while</span> <span class=p>((</span><span class=n>total_fes</span> <span class=o><=</span> <span class=mi>100</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>total_fes</span> <span class=o>></span> <span class=n>limit_fes</span><span class=p>))</span> \
+                <span class=ow>and</span> <span class=p>(</span><span class=n>trials</span> <span class=o><</span> <span class=mi>10000</span><span class=p>):</span>
+            <span class=n>trials</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=n>total_fes</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span>
+                <span class=n>loc</span><span class=o>=</span><span class=nb>max</span><span class=p>(</span><span class=mf>10.0</span><span class=p>,</span> <span class=n>total_time</span> <span class=o>/</span> <span class=p>(</span><span class=n>speed</span> <span class=o>**</span> <span class=mi>3</span><span class=p>)),</span>
+                <span class=n>scale</span><span class=o>=</span><span class=nb>max</span><span class=p>(</span><span class=mf>100.0</span><span class=p>,</span> <span class=mf>200.0</span> <span class=o>/</span> <span class=n>speed</span><span class=p>)))</span>
+        <span class=k>if</span> <span class=n>trials</span> <span class=o>>=</span> <span class=mi>10000</span><span class=p>:</span>
+            <span class=n>total_fes</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=nb>min</span><span class=p>(</span><span class=n>limit_fes</span><span class=p>,</span> <span class=mf>10000.0</span><span class=p>))</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=n>total_fes</span> <span class=o>=</span> <span class=n>max_fes</span> <span class=k>if</span> <span class=n>max_fes</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=k>else</span> <span class=mi>1_000_000</span>
+        <span class=n>total_time</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>while</span> <span class=p>((</span><span class=n>total_time</span> <span class=o><=</span> <span class=mi>10</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>total_time</span> <span class=o>></span> <span class=n>limit_time</span><span class=p>))</span> \
+                <span class=ow>and</span> <span class=p>(</span><span class=n>trials</span> <span class=o><</span> <span class=mi>10000</span><span class=p>):</span>
+            <span class=n>total_time</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span>
+                <span class=n>loc</span><span class=o>=</span><span class=nb>max</span><span class=p>(</span><span class=mf>10.0</span><span class=p>,</span> <span class=n>total_fes</span> <span class=o>*</span> <span class=p>(</span><span class=n>speed</span> <span class=o>**</span> <span class=mi>3</span><span class=p>)),</span>
+                <span class=n>scale</span><span class=o>=</span><span class=nb>max</span><span class=p>(</span><span class=mf>10.0</span><span class=p>,</span> <span class=mf>100.0</span> <span class=o>/</span> <span class=n>speed</span><span class=p>)))</span>
+        <span class=k>if</span> <span class=n>trials</span> <span class=o>>=</span> <span class=mi>10000</span><span class=p>:</span>
+            <span class=n>total_time</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=nb>min</span><span class=p>(</span><span class=n>limit_time</span><span class=p>,</span> <span class=mi>10000</span><span class=p>))</span>
+
+    <span class=c1># We now look for the vicinity of the local optimum that will be found.</span>
+    <span class=c1># We use the quality to determine which attractor to use.</span>
+    <span class=c1># Then we will sample a solution between the next lower and next higher</span>
+    <span class=c1># attractor, again using the jitter and quality.</span>
+
+    <span class=c1># First, add some jitter to the quality.</span>
+    <span class=n>qual</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+    <span class=k>while</span> <span class=p>(</span><span class=n>qual</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>qual</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>):</span>
+        <span class=n>qual</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=n>performance</span><span class=o>.</span><span class=n>performance</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=mf>0.02</span> <span class=o>*</span> <span class=n>jitter</span><span class=p>)</span>
+
+    <span class=c1># Second, find the right attractor and remember it in base.</span>
+    <span class=n>att</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=n>performance</span><span class=o>.</span><span class=n>instance</span><span class=o>.</span><span class=n>attractors</span>
+    <span class=n>attn</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>att</span><span class=p>)</span>
+    <span class=n>att_index</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+    <span class=n>best</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>performance</span><span class=o>.</span><span class=n>instance</span><span class=o>.</span><span class=n>best</span>
+    <span class=n>worst</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>performance</span><span class=o>.</span><span class=n>instance</span><span class=o>.</span><span class=n>worst</span>
+    <span class=n>att_trials</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1000</span>
+    <span class=k>while</span> <span class=p>(</span><span class=n>att_index</span> <span class=o><</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>att_index</span> <span class=o>>=</span> <span class=p>(</span><span class=n>attn</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)):</span>
+        <span class=n>att_trials</span> <span class=o>-=</span> <span class=mi>1</span>
+        <span class=k>if</span> <span class=n>att_trials</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>att_index</span> <span class=o>=</span> <span class=n>attn</span> <span class=o>//</span> <span class=mi>2</span>
+            <span class=k>break</span>
+        <span class=n>att_index</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=n>attn</span> <span class=o>*</span> <span class=p>(</span><span class=n>qual</span> <span class=o>**</span> <span class=mf>1.7</span><span class=p>),</span>
+                                      <span class=n>scale</span><span class=o>=</span><span class=n>jitter</span> <span class=o>**</span> <span class=mf>0.9</span><span class=p>))</span>
+    <span class=n>base</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>att</span><span class=p>[</span><span class=n>att_index</span><span class=p>]</span>
+
+    <span class=c1># Third, choose the ends of the intervals in which we can jitter.</span>
+    <span class=n>jit_end</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>base</span> <span class=o>+</span> <span class=mf>0.6</span> <span class=o>*</span> <span class=p>(</span><span class=n>att</span><span class=p>[</span><span class=n>att_index</span> <span class=o>+</span> <span class=mi>1</span><span class=p>]</span> <span class=o>-</span> <span class=n>base</span><span class=p>)),</span> <span class=n>worst</span><span class=p>)</span>
+    <span class=n>jit_start</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>base</span>
+    <span class=k>if</span> <span class=n>att_index</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+        <span class=n>jit_start</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=mf>0.5</span> <span class=o>+</span> <span class=n>ceil</span><span class=p>(</span><span class=n>base</span> <span class=o>-</span> <span class=mf>0.6</span> <span class=o>*</span> <span class=p>(</span><span class=n>base</span> <span class=o>-</span> <span class=n>att</span><span class=p>[</span><span class=n>att_index</span> <span class=o>-</span> <span class=mi>1</span><span class=p>])))</span>
+    <span class=n>jit_start</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>jit_start</span><span class=p>,</span> <span class=n>best</span><span class=p>)</span>
+
+    <span class=c1># Now determine best_f.</span>
+    <span class=n>best_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+    <span class=k>while</span> <span class=p>(</span><span class=n>best_f</span> <span class=o><</span> <span class=n>jit_start</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>best_f</span> <span class=o>></span> <span class=n>jit_end</span><span class=p>)</span> \
+            <span class=ow>or</span> <span class=p>(</span><span class=n>best_f</span> <span class=o><</span> <span class=n>best</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>best_f</span> <span class=o>></span> <span class=n>worst</span><span class=p>):</span>
+        <span class=n>uni</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=k>while</span> <span class=p>(</span><span class=n>uni</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>uni</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=n>uni</span> <span class=o>=</span> <span class=nb>abs</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=n>jitter</span><span class=p>))</span>
+        <span class=n>best_f</span> <span class=o>=</span> <span class=nb>round</span><span class=p>(</span><span class=n>base</span> <span class=o>-</span> <span class=n>uni</span> <span class=o>*</span> <span class=p>(</span><span class=n>base</span> <span class=o>-</span> <span class=n>jit_start</span><span class=p>))</span> \
+            <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=n>low</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>high</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span> <span class=o><</span> <span class=n>qual</span> <span class=k>else</span> \
+            <span class=nb>round</span><span class=p>(</span><span class=n>base</span> <span class=o>+</span> <span class=n>uni</span> <span class=o>*</span> <span class=p>(</span><span class=n>jit_end</span> <span class=o>-</span> <span class=n>base</span><span class=p>))</span>
+
+    <span class=c1># Finally, we need to compute the time we have used.</span>
+    <span class=n>fact</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+    <span class=k>while</span> <span class=p>(</span><span class=n>fact</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>fact</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>):</span>
+        <span class=n>fact</span> <span class=o>=</span> <span class=mi>1</span> <span class=o>-</span> <span class=n>random</span><span class=o>.</span><span class=n>exponential</span><span class=p>(</span><span class=n>scale</span><span class=o>=</span><span class=p>(</span><span class=n>att_index</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>/</span> <span class=p>(</span><span class=n>attn</span> <span class=o>+</span> <span class=mi>1</span><span class=p>))</span>
+
+    <span class=n>last_improvement_fe</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+    <span class=k>while</span> <span class=p>(</span><span class=n>last_improvement_fe</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>last_improvement_fe</span> <span class=o>>=</span> <span class=n>total_fes</span><span class=p>):</span>
+        <span class=n>last_improvement_fe</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span>
+            <span class=n>loc</span><span class=o>=</span><span class=n>total_fes</span> <span class=o>*</span> <span class=n>fact</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=n>total_fes</span> <span class=o>*</span> <span class=mf>0.05</span> <span class=o>*</span> <span class=n>jitter</span><span class=p>))</span>
+
+    <span class=n>last_improvement_time</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+    <span class=k>while</span> <span class=p>(</span><span class=n>last_improvement_time</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> \
+            <span class=ow>or</span> <span class=p>(</span><span class=n>last_improvement_time</span> <span class=o>>=</span> <span class=n>total_time</span><span class=p>):</span>
+        <span class=n>last_improvement_time</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span>
+            <span class=n>loc</span><span class=o>=</span><span class=n>total_time</span> <span class=o>*</span> <span class=n>fact</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=n>total_time</span> <span class=o>*</span> <span class=mf>0.05</span> <span class=o>*</span> <span class=n>jitter</span><span class=p>))</span>
+
+    <span class=k>return</span> <span class=n>EndResult</span><span class=p>(</span>
+        <span class=n>algorithm</span><span class=o>=</span><span class=n>performance</span><span class=o>.</span><span class=n>algorithm</span><span class=o>.</span><span class=n>name</span><span class=p>,</span>
+        <span class=n>instance</span><span class=o>=</span><span class=n>performance</span><span class=o>.</span><span class=n>instance</span><span class=o>.</span><span class=n>name</span><span class=p>,</span>
+        <span class=n>objective</span><span class=o>=</span><span class=s2>"f"</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s2>"e"</span><span class=p>,</span>
+        <span class=n>rand_seed</span><span class=o>=</span><span class=n>seed</span><span class=p>,</span>
+        <span class=n>best_f</span><span class=o>=</span><span class=n>best_f</span><span class=p>,</span>
+        <span class=n>last_improvement_fe</span><span class=o>=</span><span class=n>last_improvement_fe</span><span class=p>,</span>
+        <span class=n>last_improvement_time_millis</span><span class=o>=</span><span class=n>last_improvement_time</span><span class=p>,</span>
+        <span class=n>total_fes</span><span class=o>=</span><span class=n>total_fes</span><span class=p>,</span>
+        <span class=n>total_time_millis</span><span class=o>=</span><span class=n>total_time</span><span class=p>,</span>
+        <span class=n>goal_f</span><span class=o>=</span><span class=n>performance</span><span class=o>.</span><span class=n>instance</span><span class=o>.</span><span class=n>best</span><span class=p>,</span>
+        <span class=n>max_fes</span><span class=o>=</span><span class=n>max_fes</span><span class=p>,</span>
+        <span class=n>max_time_millis</span><span class=o>=</span><span class=n>max_time_millis</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=EndResults>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.end_results.EndResults>[docs]</a>
+<span class=nd>@dataclass</span><span class=p>(</span><span class=n>frozen</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>init</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>order</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>class</span><span class=w> </span><span class=nc>EndResults</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""An immutable set of end results."""</span>
+
+    <span class=c1>#: The experiment.</span>
+    <span class=n>experiment</span><span class=p>:</span> <span class=n>Experiment</span>
+    <span class=c1>#: The end results.</span>
+    <span class=n>results</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>EndResult</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span>
+    <span class=c1>#: The maximum permitted FEs.</span>
+    <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span>
+    <span class=c1>#: The maximum permitted milliseconds.</span>
+    <span class=n>max_time_millis</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span>
+    <span class=c1>#: the results per algorithm</span>
+    <span class=n>__results_for_algo</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=n>Algorithm</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>EndResult</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span>
+    <span class=c1>#: the results per instance</span>
+    <span class=n>__results_for_inst</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=n>Instance</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>EndResult</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                 <span class=n>experiment</span><span class=p>:</span> <span class=n>Experiment</span><span class=p>,</span>
+                 <span class=n>results</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>EndResult</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span>
+                 <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>max_time_millis</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a mock results of an experiment.</span>
+
+<span class=sd>        :param experiment: the experiment</span>
+<span class=sd>        :param results: the end results</span>
+<span class=sd>        :param max_fes: the maximum permitted FEs</span>
+<span class=sd>        :param max_time_millis: the maximum permitted milliseconds.</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>experiment</span><span class=p>,</span> <span class=n>Experiment</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>experiment</span><span class=p>,</span> <span class=s2>"experiment"</span><span class=p>,</span> <span class=n>Experiment</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"experiment"</span><span class=p>,</span> <span class=n>experiment</span><span class=p>)</span>
+
+        <span class=n>per_algo</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=n>Algorithm</span><span class=p>,</span> <span class=nb>list</span><span class=p>[</span><span class=n>EndResult</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=n>per_inst</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=n>Instance</span><span class=p>,</span> <span class=nb>list</span><span class=p>[</span><span class=n>EndResult</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>results</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>results</span><span class=p>,</span> <span class=s2>"results"</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>results</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"end_results must not be empty."</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>a</span> <span class=ow>in</span> <span class=n>results</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=s2>"element of results"</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>)</span>
+            <span class=n>aa</span> <span class=o>=</span> <span class=n>experiment</span><span class=o>.</span><span class=n>get_algorithm</span><span class=p>(</span><span class=n>a</span><span class=o>.</span><span class=n>algorithm</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>aa</span> <span class=ow>in</span> <span class=n>per_algo</span><span class=p>:</span>
+                <span class=n>per_algo</span><span class=p>[</span><span class=n>aa</span><span class=p>]</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>a</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>per_algo</span><span class=p>[</span><span class=n>aa</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=n>a</span><span class=p>]</span>
+            <span class=n>ii</span> <span class=o>=</span> <span class=n>experiment</span><span class=o>.</span><span class=n>get_instance</span><span class=p>(</span><span class=n>a</span><span class=o>.</span><span class=n>instance</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>ii</span> <span class=ow>in</span> <span class=n>per_inst</span><span class=p>:</span>
+                <span class=n>per_inst</span><span class=p>[</span><span class=n>ii</span><span class=p>]</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>a</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>per_inst</span><span class=p>[</span><span class=n>ii</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=n>a</span><span class=p>]</span>
+
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"results"</span><span class=p>,</span> <span class=n>results</span><span class=p>)</span>
+
+        <span class=n>pa</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=n>Algorithm</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>EndResult</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=k>for</span> <span class=n>ax</span> <span class=ow>in</span> <span class=n>experiment</span><span class=o>.</span><span class=n>algorithms</span><span class=p>:</span>
+            <span class=n>lax</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>EndResult</span><span class=p>]</span> <span class=o>=</span> <span class=n>per_algo</span><span class=p>[</span><span class=n>ax</span><span class=p>]</span>
+            <span class=n>lax</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+            <span class=n>pa</span><span class=p>[</span><span class=n>ax</span><span class=o>.</span><span class=n>name</span><span class=p>]</span> <span class=o>=</span> <span class=n>pa</span><span class=p>[</span><span class=n>ax</span><span class=p>]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>lax</span><span class=p>)</span>
+        <span class=n>pi</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=n>Instance</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>EndResult</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=k>for</span> <span class=n>ix</span> <span class=ow>in</span> <span class=n>experiment</span><span class=o>.</span><span class=n>instances</span><span class=p>:</span>
+            <span class=n>lix</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>EndResult</span><span class=p>]</span> <span class=o>=</span> <span class=n>per_inst</span><span class=p>[</span><span class=n>ix</span><span class=p>]</span>
+            <span class=n>lix</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+            <span class=n>pi</span><span class=p>[</span><span class=n>ix</span><span class=o>.</span><span class=n>name</span><span class=p>]</span> <span class=o>=</span> <span class=n>pi</span><span class=p>[</span><span class=n>ix</span><span class=p>]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>lix</span><span class=p>)</span>
+
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"_EndResults__results_for_algo"</span><span class=p>,</span> <span class=n>pa</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"_EndResults__results_for_inst"</span><span class=p>,</span> <span class=n>pi</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>max_fes</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>check_int_range</span><span class=p>(</span><span class=n>max_fes</span><span class=p>,</span> <span class=s2>"max_fes"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000_000</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"max_fes"</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>max_time_millis</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>check_int_range</span><span class=p>(</span>
+                <span class=n>max_time_millis</span><span class=p>,</span> <span class=s2>"max_time_millis"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000_000_000</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"max_time_millis"</span><span class=p>,</span> <span class=n>max_time_millis</span><span class=p>)</span>
+
+<div class=viewcode-block id=EndResults.create>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.end_results.EndResults.create>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=n>experiment</span><span class=p>:</span> <span class=n>Experiment</span><span class=p>,</span>
+               <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+               <span class=n>max_time_millis</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"EndResults"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the end results for a given experiment.</span>
+
+<span class=sd>        :param experiment: the experiment</span>
+<span class=sd>        :param max_fes: the maximum number of FEs</span>
+<span class=sd>        :param max_time_millis: the maximum time</span>
+<span class=sd>        :returns: the end results</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>experiment</span><span class=p>,</span> <span class=n>Experiment</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>experiment</span><span class=p>,</span> <span class=s2>"experiment"</span><span class=p>,</span> <span class=n>Experiment</span><span class=p>)</span>
+        <span class=n>logger</span><span class=p>(</span>
+            <span class=s2>"now creating all end results for an experiment with "</span>
+            <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>experiment</span><span class=o>.</span><span class=n>algorithms</span><span class=p>)</span><span class=si>}</span><span class=s2> algorithms, "</span>
+            <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>experiment</span><span class=o>.</span><span class=n>instances</span><span class=p>)</span><span class=si>}</span><span class=s2> instances, and "</span>
+            <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>experiment</span><span class=o>.</span><span class=n>per_instance_seeds</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span><span class=si>}</span><span class=s2> runs per setup."</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>max_fes</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>check_int_range</span><span class=p>(</span><span class=n>max_fes</span><span class=p>,</span> <span class=s2>"max_fes"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000_000</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>max_time_millis</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>check_int_range</span><span class=p>(</span>
+                <span class=n>max_time_millis</span><span class=p>,</span> <span class=s2>"max_time_millis"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000_000_000</span><span class=p>)</span>
+        <span class=n>results</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>EndResult</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span>
+            <span class=n>end_result</span><span class=p>(</span><span class=n>performance</span><span class=o>=</span><span class=n>per</span><span class=p>,</span>
+                       <span class=n>seed</span><span class=o>=</span><span class=n>seed</span><span class=p>,</span>
+                       <span class=n>max_fes</span><span class=o>=</span><span class=n>max_fes</span><span class=p>,</span>
+                       <span class=n>max_time_millis</span><span class=o>=</span><span class=n>max_time_millis</span><span class=p>)</span>
+            <span class=k>for</span> <span class=n>per</span> <span class=ow>in</span> <span class=n>experiment</span><span class=o>.</span><span class=n>applications</span>
+            <span class=k>for</span> <span class=n>seed</span> <span class=ow>in</span> <span class=n>experiment</span><span class=o>.</span><span class=n>seeds_for_instance</span><span class=p>(</span><span class=n>per</span><span class=o>.</span><span class=n>instance</span><span class=p>)]</span>
+        <span class=n>results</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+
+        <span class=n>res</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>EndResults</span><span class=p>]</span> <span class=o>=</span> <span class=n>EndResults</span><span class=p>(</span><span class=n>experiment</span><span class=o>=</span><span class=n>experiment</span><span class=p>,</span>
+                                            <span class=n>results</span><span class=o>=</span><span class=nb>tuple</span><span class=p>(</span><span class=n>results</span><span class=p>),</span>
+                                            <span class=n>max_fes</span><span class=o>=</span><span class=n>max_fes</span><span class=p>,</span>
+                                            <span class=n>max_time_millis</span><span class=o>=</span><span class=n>max_time_millis</span><span class=p>)</span>
+        <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"finished creating all </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>res</span><span class=o>.</span><span class=n>results</span><span class=p>)</span><span class=si>}</span><span class=s2> end results."</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>res</span></div>
+
+
+<div class=viewcode-block id=EndResults.results_for_algorithm>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.end_results.EndResults.results_for_algorithm>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>results_for_algorithm</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>algorithm</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=n>Algorithm</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=n>EndResult</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the end results per algorithm.</span>
+
+<span class=sd>        :param algorithm: the algorithm</span>
+<span class=sd>        :returns: the end results</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__results_for_algo</span><span class=p>[</span><span class=n>algorithm</span><span class=p>]</span></div>
+
+
+<div class=viewcode-block id=EndResults.results_for_instance>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.end_results.EndResults.results_for_instance>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>results_for_instance</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>instance</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=n>Instance</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=n>EndResult</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the end results per instance.</span>
+
+<span class=sd>        :param instance: the instance</span>
+<span class=sd>        :returns: the end results</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__results_for_inst</span><span class=p>[</span><span class=n>instance</span><span class=p>]</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.mock.end_results</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

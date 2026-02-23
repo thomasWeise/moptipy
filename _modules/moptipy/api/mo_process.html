@@ -1,0 +1,144 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.api.mo_process — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/api/mo_process.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.mo_process</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.api.mo_process</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Processes offer data to both the user and the optimization algorithm.</span>
+
+<span class=sd>They provide the information about the optimization process and its current</span>
+<span class=sd>state as handed to the optimization algorithm and, after the algorithm has</span>
+<span class=sd>finished, to the user.</span>
+<span class=sd>This is the multi-objective version of the :class:`~moptipy.api.process.\</span>
+<span class=sd>Process`-API.</span>
+<span class=sd>It supports having multiple objective functions.</span>
+<span class=sd>It also provides a single core objective value, which is the scalarized</span>
+<span class=sd>result of several objective values.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>Self</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_archive</span><span class=w> </span><span class=kn>import</span> <span class=n>MORecord</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>MOProblem</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+
+
+<div class=viewcode-block id=MOProcess>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_process.MOProcess>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>MOProcess</span><span class=p>(</span><span class=n>MOProblem</span><span class=p>,</span> <span class=n>Process</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A multi-objective :class:`~moptipy.api.process.Process` API variant.</span>
+
+<span class=sd>    This class encapsulates an optimization process using multiple objective</span>
+<span class=sd>    functions. It inherits all of its methods from the single-objective</span>
+<span class=sd>    process :class:`~moptipy.api.process.Process` and extends its API towards</span>
+<span class=sd>    multi-objective optimization by providing the functionality of the class</span>
+<span class=sd>    :class:`~moptipy.api.mo_problem.MOProblem`.</span>
+<span class=sd>    """</span>
+
+<div class=viewcode-block id=MOProcess.register>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_process.MOProcess.register>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>register</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Unavailable during multi-objective optimization."""</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=s2>"register is not available during multi-objective optimization."</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=MOProcess.get_archive>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_process.MOProcess.get_archive>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_archive</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=n>MORecord</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the archive of non-dominated solutions.</span>
+
+<span class=sd>        :returns: a list containing all non-dominated solutions currently in</span>
+<span class=sd>            the archive</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=MOProcess.check_in>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_process.MOProcess.check_in>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>check_in</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>Any</span><span class=p>,</span> <span class=n>fs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                 <span class=n>prune_if_necessary</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Check a solution into the archive.</span>
+
+<span class=sd>        This method is intended for being invoked after the optimization</span>
+<span class=sd>        algorithm has finished its work. The algorithm should, by itself,</span>
+<span class=sd>        maintain the set of interesting solutions during its course. Once</span>
+<span class=sd>        it has completed all of its computations, it should flush these</span>
+<span class=sd>        solutions to the process using this method. All the non-dominated</span>
+<span class=sd>        solutions preserved in the archive will then become available via</span>
+<span class=sd>        :meth:`get_archive` to the code starting the optimization procedure.</span>
+
+<span class=sd>        If you have a sequence of :class:`~moptipy.api.mo_archive.MORecord`</span>
+<span class=sd>        instances that you want to flush into the archive, you can use the</span>
+<span class=sd>        convenience method :meth:`~check_in_all` for that purpose.</span>
+
+<span class=sd>        :param x: the point in the search space</span>
+<span class=sd>        :param fs: the vector of objective values</span>
+<span class=sd>        :param prune_if_necessary: should we prune the archive if it becomes</span>
+<span class=sd>            too large? `False` means that the archive may grow unbounded</span>
+<span class=sd>        :returns: `True` if the solution was non-dominated and has actually</span>
+<span class=sd>            entered the archive, `False` if it has not entered the archive</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=MOProcess.check_in_all>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_process.MOProcess.check_in_all>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>check_in_all</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>recs</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>MORecord</span><span class=p>],</span>
+                     <span class=n>prune_if_necessary</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Check in all the elements of an `Iterable` of `MORecord` instances.</span>
+
+<span class=sd>        This is a convenience wrapper around :meth:`~check_in`.</span>
+
+<span class=sd>        :param recs: an iterable sequence of solution + quality vector records</span>
+<span class=sd>        :param prune_if_necessary: should we prune the archive if it becomes</span>
+<span class=sd>            too large? `False` means that the archive may grow unbounded</span>
+<span class=sd>        """</span>
+        <span class=n>sci</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=nb>bool</span><span class=p>],</span> <span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>check_in</span>
+        <span class=k>for</span> <span class=n>r</span> <span class=ow>in</span> <span class=n>recs</span><span class=p>:</span>
+            <span class=n>sci</span><span class=p>(</span><span class=n>r</span><span class=o>.</span><span class=n>x</span><span class=p>,</span> <span class=n>r</span><span class=o>.</span><span class=n>fs</span><span class=p>,</span> <span class=n>prune_if_necessary</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=MOProcess.get_copy_of_best_fs>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_process.MOProcess.get_copy_of_best_fs>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_copy_of_best_fs</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>fs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get a copy of the objective vector of the current best solution.</span>
+
+<span class=sd>        This always corresponds to the best-so-far solution based on the</span>
+<span class=sd>        scalarization of the objective vector. It is the best solution that</span>
+<span class=sd>        the process has seen *so far*, the current best solution.</span>
+
+<span class=sd>        You should only call this method if you are either sure that you</span>
+<span class=sd>        have invoked :meth:`~moptipy.api.process.Process.evaluate`, have</span>
+<span class=sd>        invoked :meth:`~moptipy.api.mo_problem.MOProblem.f_evaluate`, or</span>
+<span class=sd>        have called :meth:`~moptipy.api.process.Process.has_best` before</span>
+<span class=sd>        and it returned `True`.</span>
+
+<span class=sd>        :param fs: the destination vector to be overwritten</span>
+
+<span class=sd>        See Also</span>
+<span class=sd>            - :meth:`~moptipy.api.process.Process.has_best`</span>
+<span class=sd>            - :meth:`~moptipy.api.process.Process.get_best_f`</span>
+<span class=sd>            - :meth:`~moptipy.api.process.Process.get_copy_of_best_x`</span>
+<span class=sd>            - :meth:`~moptipy.api.process.Process.get_copy_of_best_y`</span>
+<span class=sd>            - :meth:`~moptipy.api.mo_problem.MOProblem.f_evaluate`</span>
+<span class=sd>        """</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this process implementation.</span>
+
+<span class=sd>        :return: "mo_process"</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"mo_process"</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__enter__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Begin a `with` statement.</span>
+
+<span class=sd>        :return: this process itself</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.mo_process</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

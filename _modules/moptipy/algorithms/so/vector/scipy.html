@@ -1,0 +1,445 @@
+<!doctype html><html data-content_root=../../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.vector.scipy — moptipy 0.9.172 documentation</title><link href="../../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/vector/scipy.html rel=canonical><link href=../../../../../genindex.html rel=index title=Index><link href=../../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.vector.scipy</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.vector.scipy</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>A set of numerical optimization algorithms from SciPy.</span>
+
+<span class=sd>The function :func:`scipy.optimize.minimize` provides a set of very</span>
+<span class=sd>efficient numerical/continuous optimization methods. Here we wrap a set of</span>
+<span class=sd>them into our `moptipy` :class:`~moptipy.api.process.Process` API. All</span>
+<span class=sd>algorithms provided in this module are imported and wrapped from SciPy</span>
+<span class=sd>(https://scipy.org).</span>
+
+<span class=sd>By using the :func:`~moptipy.api.subprocesses.without_should_terminate`</span>
+<span class=sd>tool, we can enforce the termination criteria set via the</span>
+<span class=sd>:class:`~moptipy.api.execution.Execution` builder on external algorithms</span>
+<span class=sd>while piping all their function evaluations through the</span>
+<span class=sd>:meth:`~moptipy.api.process.Process.evaluate` routine of the optimization</span>
+<span class=sd>:meth:`~moptipy.api.process.Process`. This way, we can make these external</span>
+<span class=sd>algorithms usable within `moptipy` in a transparent manner.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>cast</span>  <span class=c1># pylint: disable=W0611</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=kn>import</span> <span class=n>ndarray</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>scipy.optimize</span><span class=w> </span><span class=kn>import</span> <span class=n>Bounds</span>  <span class=c1># type: ignore</span>
+
+<span class=c1># isort: off</span>
+<span class=c1># noinspection PyProtectedMember</span>
+<span class=c1># pylint: disable=C0412</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>scipy.optimize._differentialevolution</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>  <span class=c1># type: ignore  # noqa</span>
+    <span class=n>differential_evolution</span><span class=p>,</span>  <span class=c1># type: ignore  # pylint: disable=C0412  # noqa</span>
+<span class=p>)</span>
+<span class=c1># isort: on</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=c1># noinspection PyProtectedMember</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>scipy.optimize._optimize</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>  <span class=c1># type: ignore  # noqa: PLC2701</span>
+    <span class=n>_minimize_bfgs</span><span class=p>,</span>  <span class=c1># type: ignore  # noqa: PLC2701</span>
+    <span class=n>_minimize_cg</span><span class=p>,</span>  <span class=c1># type: ignore  # noqa: PLC2701</span>
+    <span class=n>_minimize_neldermead</span><span class=p>,</span>  <span class=c1># type: ignore  # noqa: PLC2701</span>
+    <span class=n>_minimize_powell</span><span class=p>,</span>  <span class=c1># type: ignore  # noqa: PLC2701</span>
+<span class=p>)</span>
+
+<span class=c1># noinspection PyProtectedMember</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>scipy.optimize._slsqp_py</span><span class=w> </span><span class=kn>import</span> <span class=n>_minimize_slsqp</span>  <span class=c1># type: ignore  # noqa</span>
+
+<span class=c1># noinspection PyProtectedMember</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>scipy.optimize._tnc</span><span class=w> </span><span class=kn>import</span> <span class=n>_minimize_tnc</span>  <span class=c1># type: ignore  # noqa: PLC2701</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm</span><span class=p>,</span> <span class=n>Algorithm0</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.subprocesses</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>get_remaining_fes</span><span class=p>,</span>
+    <span class=n>without_should_terminate</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.vectorspace</span><span class=w> </span><span class=kn>import</span> <span class=n>VectorSpace</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+
+
+<div class=viewcode-block id=SciPyAlgorithmWrapper>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.SciPyAlgorithmWrapper>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>SciPyAlgorithmWrapper</span><span class=p>(</span><span class=n>Algorithm0</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A wrapper for the Sci-Py API.</span>
+
+<span class=sd>    An instance of this class may be re-used, but it must only be used for</span>
+<span class=sd>    problems of the same dimension.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>space</span><span class=p>:</span> <span class=n>VectorSpace</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the algorithm importer from scipy.</span>
+
+<span class=sd>        :param name: the name of the algorithm</span>
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param space: the vector space</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=n>op0</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>space</span><span class=p>,</span> <span class=n>VectorSpace</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>space</span><span class=p>,</span> <span class=s2>"space"</span><span class=p>,</span> <span class=n>VectorSpace</span><span class=p>)</span>
+        <span class=c1>#: the vector space defining the dimensions and bounds</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>space</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>VectorSpace</span><span class=p>]</span> <span class=o>=</span> <span class=n>space</span>
+        <span class=c1>#: the bounds to be used for the internal function call</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__bounds</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Bounds</span><span class=p>]</span> <span class=o>=</span> <span class=n>Bounds</span><span class=p>(</span><span class=n>space</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>,</span>
+                                              <span class=n>space</span><span class=o>.</span><span class=n>upper_bound</span><span class=p>)</span>
+        <span class=c1>#: the cache for starting points</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__x0</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>space</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_call</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>func</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+              <span class=n>x0</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>bounds</span><span class=p>:</span> <span class=n>Bounds</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Invoke the SciPi Algorithm.</span>
+
+<span class=sd>        This function will be overwritten to call the SciPi Algorithm.</span>
+
+<span class=sd>        :param func: the function to minimize</span>
+<span class=sd>        :param x0: the starting point</span>
+<span class=sd>        :param max_fes: the maximum FEs</span>
+<span class=sd>        :param bounds: the bounds</span>
+<span class=sd>        """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>__run</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Execute the algorithm.</span>
+
+<span class=sd>        :param process: the process</span>
+<span class=sd>        """</span>
+        <span class=n>x0</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__x0</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>op0</span><span class=o>.</span><span class=n>op0</span><span class=p>(</span><span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>(),</span> <span class=n>x0</span><span class=p>)</span>  <span class=c1># create first solution</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_call</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>space</span><span class=o>.</span><span class=n>clipped</span><span class=p>(</span><span class=n>process</span><span class=o>.</span><span class=n>evaluate</span><span class=p>),</span>
+                   <span class=n>x0</span><span class=p>,</span> <span class=n>get_remaining_fes</span><span class=p>(</span><span class=n>process</span><span class=p>),</span>
+                   <span class=bp>self</span><span class=o>.</span><span class=n>__bounds</span><span class=p>)</span>  <span class=c1># invoke the algorithm</span>
+
+<div class=viewcode-block id=SciPyAlgorithmWrapper.solve>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.SciPyAlgorithmWrapper.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the algorithm from SciPy to an optimization problem.</span>
+
+<span class=sd>        Basically, this wraps a specific configuration of</span>
+<span class=sd>        :func:`scipy.optimize.minimize` into our process API and</span>
+<span class=sd>        invokes it.</span>
+
+<span class=sd>        :param process: the black-box process object</span>
+<span class=sd>        """</span>
+        <span class=c1># invoke the SciPy algorithm implementation</span>
+        <span class=n>without_should_terminate</span><span class=p>(</span>
+            <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[Process], Any]"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__run</span><span class=p>),</span> <span class=n>process</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=SciPyAlgorithmWrapper.log_parameters_to>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.SciPyAlgorithmWrapper.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of the algorithm to a logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>  <span class=c1># log algorithm/operator</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>space</span><span class=o>.</span><span class=n>log_bounds</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>  <span class=c1># log bounds</span></div>
+</div>
+
+
+
+<span class=c1># noinspection PyProtectedMember</span>
+<span class=k>def</span><span class=w> </span><span class=nf>_call_powell</span><span class=p>(</span><span class=n>func</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+                 <span class=n>x0</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>bounds</span><span class=p>:</span> <span class=n>Bounds</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+    <span class=n>_minimize_powell</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>x0</span><span class=p>,</span> <span class=n>bounds</span><span class=o>=</span><span class=n>bounds</span><span class=p>,</span> <span class=n>xtol</span><span class=o>=</span><span class=mf>0.0</span><span class=p>,</span> <span class=n>ftol</span><span class=o>=</span><span class=mf>0.0</span><span class=p>,</span>
+                     <span class=n>maxiter</span><span class=o>=</span><span class=n>max_fes</span><span class=p>,</span> <span class=n>maxfev</span><span class=o>=</span><span class=n>max_fes</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=Powell>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.Powell>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Powell</span><span class=p>(</span><span class=n>SciPyAlgorithmWrapper</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Powell's Algorithm.</span>
+
+<span class=sd>    The function :func:`scipy.optimize.minimize` with parameter</span>
+<span class=sd>    "Powell" for continuous optimization.</span>
+
+<span class=sd>    1. Michael James David Powell. An Efficient Method for Finding the Minimum</span>
+<span class=sd>       of a Function of Several Variables without Calculating Derivatives. The</span>
+<span class=sd>       Computer Journal. 7(2):155-162. 1964.</span>
+<span class=sd>       https://doi.org/10.1093/comjnl/7.2.155</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>space</span><span class=p>:</span> <span class=n>VectorSpace</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create Powell's algorithm importer from scipy.</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param space: the vector space</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=s2>"powell_scipy"</span><span class=p>,</span> <span class=n>op0</span><span class=p>,</span> <span class=n>space</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_call</span> <span class=o>=</span> <span class=n>_call_powell</span>  <span class=c1># type: ignore</span></div>
+
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_call_nelder_mead</span><span class=p>(</span><span class=n>func</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+                      <span class=n>x0</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>bounds</span><span class=p>:</span> <span class=n>Bounds</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+    <span class=n>_minimize_neldermead</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>x0</span><span class=p>,</span> <span class=n>bounds</span><span class=o>=</span><span class=n>bounds</span><span class=p>,</span> <span class=n>xatol</span><span class=o>=</span><span class=mf>0.0</span><span class=p>,</span> <span class=n>fatol</span><span class=o>=</span><span class=mf>0.0</span><span class=p>,</span>
+                         <span class=n>maxiter</span><span class=o>=</span><span class=n>max_fes</span><span class=p>,</span> <span class=n>maxfev</span><span class=o>=</span><span class=n>max_fes</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=NelderMead>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.NelderMead>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>NelderMead</span><span class=p>(</span><span class=n>SciPyAlgorithmWrapper</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The Downhill Simplex aka. the Nelder-Mead Algorithm.</span>
+
+<span class=sd>    The function :func:`scipy.optimize.minimize` with parameter</span>
+<span class=sd>    "Nelder-Mead" for continuous optimization  by using the Downhill Simplex</span>
+<span class=sd>    algorithm a.k.a., the Nelder-Mead algorithm. Here we wrap it into our API.</span>
+
+<span class=sd>    Scipy provides the following reference:</span>
+
+<span class=sd>    1. Fuchang Gao and Lixing Han. Implementing the Nelder-Mead Simplex</span>
+<span class=sd>       Algorithm with Adaptive Parameters. *Computational Optimization and</span>
+<span class=sd>       Applications*. 51(1):259-277. January 2012.</span>
+<span class=sd>       https://doi.org/10.1007/s10589-010-932</span>
+<span class=sd>    2. J. A. Nelder and R. Mead. A Simplex Method for Function Minimization.</span>
+<span class=sd>       *The Computer Journal*. 7(4):308-313. January 1965. Oxford University</span>
+<span class=sd>       Press (OUP). http://dx.doi.org/10.1093/COMJNL/7.4.308</span>
+<span class=sd>       https://people.duke.edu/~hpgavin/cee201/Nelder+Mead-\</span>
+<span class=sd>ComputerJournal-1965.pdf</span>
+<span class=sd>    3. M. H. Wright. Direct Search Methods: Once Scorned, Now Respectable.</span>
+<span class=sd>       In D.F. Griffiths and G.A. Watson (Eds.) *Proceedings of the 1995</span>
+<span class=sd>       Dundee Biennial Conference in Numerical Analysis*. Harlow, UK:</span>
+<span class=sd>       Addison Wesley Longman, pp. 191-208.</span>
+<span class=sd>    4. Jorge Nocedal and Stephen J. Wright. *Numerical Optimization*. In</span>
+<span class=sd>       Springer Series in Operations Research and Financial Engineering.</span>
+<span class=sd>       New York, NY, USA: Springer. 2006. Second Edition.</span>
+<span class=sd>       ISBN: 978-0-387-30303-1. Chapter 9.5, Page 238.</span>
+<span class=sd>       https://doi.org/10.1007/978-0-387-40065-5.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>space</span><span class=p>:</span> <span class=n>VectorSpace</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the Nelder-Mead Downhill Simplex importer from scipy.</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param space: the vector space</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=s2>"nelderMead_scipy"</span><span class=p>,</span> <span class=n>op0</span><span class=p>,</span> <span class=n>space</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_call</span> <span class=o>=</span> <span class=n>_call_nelder_mead</span>  <span class=c1># type: ignore</span></div>
+
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_call_bgfs</span><span class=p>(</span><span class=n>func</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+               <span class=n>x0</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>_</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+    <span class=n>_minimize_bfgs</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>x0</span><span class=p>,</span> <span class=n>gtol</span><span class=o>=</span><span class=mf>0.0</span><span class=p>,</span> <span class=n>maxiter</span><span class=o>=</span><span class=n>max_fes</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=BGFS>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.BGFS>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>BGFS</span><span class=p>(</span><span class=n>SciPyAlgorithmWrapper</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The wrapper for the BGFS algorithm in SciPy.</span>
+
+<span class=sd>    This is the quasi-Newton method by C. G. Broyden, Roger Fletcher,</span>
+<span class=sd>    D. Goldfarb, and David F. Shanno (BFGS).</span>
+
+<span class=sd>    1. Jorge Nocedal and Stephen J. Wright. *Numerical Optimization*. In</span>
+<span class=sd>       Springer Series in Operations Research and Financial Engineering.</span>
+<span class=sd>       New York, NY, USA: Springer. 2006. Second Edition.</span>
+<span class=sd>       ISBN: 978-0-387-30303-1. Chapter 6, Page 136.</span>
+<span class=sd>       https://doi.org/10.1007/978-0-387-40065-5.</span>
+<span class=sd>    2. Roger Fletcher. *Practical Methods of Optimization* (2nd ed.),</span>
+<span class=sd>       New York: John Wiley & Sons. 1987. ISBN 978-0-471-91547-8.</span>
+<span class=sd>    3. C. G. Broyden. The convergence of a class of double-rank minimization</span>
+<span class=sd>       algorithms. *Journal of the Institute of Mathematics and Its</span>
+<span class=sd>       Applications*. 6(1):76-90. March 1970.</span>
+<span class=sd>       http://dx.doi.org/10.1093/imamat/6.1.76</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>space</span><span class=p>:</span> <span class=n>VectorSpace</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create BGFS algorithm importer from scipy.</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param space: the vector space</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=s2>"bgfs_scipy"</span><span class=p>,</span> <span class=n>op0</span><span class=p>,</span> <span class=n>space</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_call</span> <span class=o>=</span> <span class=n>_call_bgfs</span>  <span class=c1># type: ignore</span></div>
+
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_call_cg</span><span class=p>(</span><span class=n>func</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+             <span class=n>x0</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>_</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+    <span class=n>_minimize_cg</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>x0</span><span class=p>,</span> <span class=n>gtol</span><span class=o>=</span><span class=mf>0.0</span><span class=p>,</span> <span class=n>maxiter</span><span class=o>=</span><span class=n>max_fes</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=CG>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.CG>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>CG</span><span class=p>(</span><span class=n>SciPyAlgorithmWrapper</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The wrapper for the Conjugate Gradient algorithm in SciPy.</span>
+
+<span class=sd>    1. Jorge Nocedal and Stephen J. Wright. *Numerical Optimization*. In</span>
+<span class=sd>       Springer Series in Operations Research and Financial Engineering.</span>
+<span class=sd>       New York, NY, USA: Springer. 2006. Second Edition.</span>
+<span class=sd>       ISBN: 978-0-387-30303-1. Chapter 5, Page 101.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>space</span><span class=p>:</span> <span class=n>VectorSpace</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create Conjugate Gradient algorithm importer from scipy.</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param space: the vector space</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=s2>"cg_scipy"</span><span class=p>,</span> <span class=n>op0</span><span class=p>,</span> <span class=n>space</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_call</span> <span class=o>=</span> <span class=n>_call_cg</span>  <span class=c1># type: ignore</span></div>
+
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_call_slsqp</span><span class=p>(</span><span class=n>func</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+                <span class=n>x0</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>_</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+    <span class=n>_minimize_slsqp</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>x0</span><span class=p>,</span> <span class=n>ftol</span><span class=o>=</span><span class=mf>0.0</span><span class=p>,</span> <span class=n>maxiter</span><span class=o>=</span><span class=n>max_fes</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=SLSQP>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.SLSQP>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>SLSQP</span><span class=p>(</span><span class=n>SciPyAlgorithmWrapper</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The Sequential Least Squares Programming (SLSQP) algorithm in SciPy.</span>
+
+<span class=sd>    1. Dieter Kraft. Algorithm 733: TOMP-Fortran modules for optimal control</span>
+<span class=sd>       calculations. *ACM Transactions on Mathematical Software.*</span>
+<span class=sd>       20(3):262-281. September 1994. https://doi.org/10.1145/192115.192124</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>space</span><span class=p>:</span> <span class=n>VectorSpace</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the SLSQP algorithm importer from scipy.</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param space: the vector space</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=s2>"slsqp_scipy"</span><span class=p>,</span> <span class=n>op0</span><span class=p>,</span> <span class=n>space</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_call</span> <span class=o>=</span> <span class=n>_call_slsqp</span>  <span class=c1># type: ignore</span></div>
+
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_call_tnc</span><span class=p>(</span><span class=n>func</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+              <span class=n>x0</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>bounds</span><span class=p>:</span> <span class=n>Bounds</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+    <span class=n>_minimize_tnc</span><span class=p>(</span>
+        <span class=n>func</span><span class=p>,</span> <span class=n>x0</span><span class=p>,</span>
+        <span class=n>bounds</span><span class=o>=</span><span class=p>[(</span><span class=n>lb</span><span class=p>,</span> <span class=n>bounds</span><span class=o>.</span><span class=n>ub</span><span class=p>[</span><span class=n>i</span><span class=p>])</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>lb</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>bounds</span><span class=o>.</span><span class=n>lb</span><span class=p>)],</span>
+        <span class=n>ftol</span><span class=o>=</span><span class=mf>0.0</span><span class=p>,</span> <span class=n>xtol</span><span class=o>=</span><span class=mf>0.0</span><span class=p>,</span> <span class=n>gtol</span><span class=o>=</span><span class=mf>0.0</span><span class=p>,</span> <span class=n>maxfun</span><span class=o>=</span><span class=n>max_fes</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=TNC>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.TNC>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>TNC</span><span class=p>(</span><span class=n>SciPyAlgorithmWrapper</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The Truncated Newton Method from SciPy.</span>
+
+<span class=sd>    1. Stephen G. Nash. Newton-Type Minimization via the Lanczos Method.</span>
+<span class=sd>       *SIAM Journal on Numerical Analysis*. 21(4):770-783. August 1984.</span>
+<span class=sd>       https://dx.doi.org/10.1137/0721052.</span>
+<span class=sd>    2. Jorge Nocedal and Stephen J. Wright. *Numerical Optimization*. In</span>
+<span class=sd>       Springer Series in Operations Research and Financial Engineering.</span>
+<span class=sd>       New York, NY, USA: Springer. 2006. Second Edition.</span>
+<span class=sd>       ISBN: 978-0-387-30303-1. https://doi.org/10.1007/978-0-387-40065-5.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>space</span><span class=p>:</span> <span class=n>VectorSpace</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the TNC algorithm importer from scipy.</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param space: the vector space</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=s2>"tnc_scipy"</span><span class=p>,</span> <span class=n>op0</span><span class=p>,</span> <span class=n>space</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_call</span> <span class=o>=</span> <span class=n>_call_tnc</span>  <span class=c1># type: ignore</span></div>
+
+
+
+<div class=viewcode-block id=DE>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.DE>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>DE</span><span class=p>(</span><span class=n>Algorithm</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The Differential Evolution Algorithm as implemented by SciPy.</span>
+
+<span class=sd>    At this point, we do not expose the many parameters of the function</span>
+<span class=sd>    :func:`scipy.optimize.differential_evolution`.</span>
+<span class=sd>    We only use the default settings. This may change in future releases.</span>
+
+<span class=sd>    1. Rainer Storn and Kenneth Price. Differential Evolution - A Simple and</span>
+<span class=sd>       Efficient Heuristic for global Optimization over Continuous Spaces.</span>
+<span class=sd>       *Journal of Global Optimization* 11(4):341-359. December 1997.</span>
+<span class=sd>       https://doi.org/10.1023/A:1008202821328.</span>
+<span class=sd>       https://www.researchgate.net/publication/227242104</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>space</span><span class=p>:</span> <span class=n>VectorSpace</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the Differential Evolution Algorithm from SciPy.</span>
+
+<span class=sd>        :param space: the vector space</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>space</span><span class=p>,</span> <span class=n>VectorSpace</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>space</span><span class=p>,</span> <span class=s2>"space"</span><span class=p>,</span> <span class=n>VectorSpace</span><span class=p>)</span>
+        <span class=c1>#: the vector space defining the dimensions and bounds</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>space</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>VectorSpace</span><span class=p>]</span> <span class=o>=</span> <span class=n>space</span>
+        <span class=c1>#: the bounds of the search space, derived from :attr:`space`</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__bounds</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>]]]</span> <span class=o>=</span> \
+            <span class=p>[(</span><span class=n>lb</span><span class=p>,</span> <span class=n>space</span><span class=o>.</span><span class=n>upper_bound</span><span class=p>[</span><span class=n>i</span><span class=p>])</span>
+             <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>lb</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>space</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>)]</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>__run</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Execute the algorithm.</span>
+
+<span class=sd>        :param process: the process</span>
+<span class=sd>        """</span>
+        <span class=n>mf</span> <span class=o>=</span> <span class=n>get_remaining_fes</span><span class=p>(</span><span class=n>process</span><span class=p>)</span>  <span class=c1># get the number of available FEs</span>
+
+        <span class=n>differential_evolution</span><span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>space</span><span class=o>.</span><span class=n>clipped</span><span class=p>(</span><span class=n>process</span><span class=o>.</span><span class=n>evaluate</span><span class=p>),</span>
+            <span class=n>bounds</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>__bounds</span><span class=p>,</span>
+            <span class=n>maxiter</span><span class=o>=</span><span class=nb>int</span><span class=p>(</span><span class=n>mf</span> <span class=o>/</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__bounds</span><span class=p>))</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span>
+            <span class=n>tol</span><span class=o>=</span><span class=mf>0.0</span><span class=p>,</span> <span class=n>seed</span><span class=o>=</span><span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>(),</span> <span class=n>atol</span><span class=o>=</span><span class=mf>0.0</span><span class=p>)</span>
+
+<div class=viewcode-block id=DE.solve>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.DE.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the algorithm from SciPy to an optimization problem.</span>
+
+<span class=sd>        Basically, this wraps a specific configuration of</span>
+<span class=sd>        :func:`scipy.optimize.minimize` into our process API and</span>
+<span class=sd>        invokes it.</span>
+
+<span class=sd>        :param process: the black-box process object</span>
+<span class=sd>        """</span>
+        <span class=c1># invoke the SciPy algorithm implementation</span>
+        <span class=n>without_should_terminate</span><span class=p>(</span>
+            <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[Process], Any]"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__run</span><span class=p>),</span> <span class=n>process</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=DE.log_parameters_to>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.scipy.DE.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of the algorithm to a logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>  <span class=c1># log algorithm/operator</span>
+        <span class=k>with</span> <span class=n>logger</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=s2>"space"</span><span class=p>)</span> <span class=k>as</span> <span class=n>sp</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>space</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>sp</span><span class=p>)</span>  <span class=c1># log space</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this algorithm.</span>
+
+<span class=sd>        :returns: the name of this differential evolution algorithm</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"de_scipy"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.vector.scipy</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

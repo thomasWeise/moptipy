@@ -1,0 +1,973 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.base — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/base.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.base</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.base</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Some internal helper functions and base classes."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>dataclasses</span><span class=w> </span><span class=kn>import</span> <span class=n>dataclass</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=n>FILE_SUFFIX</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>rand_seed_check</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>sanitize_name</span><span class=p>,</span>
+    <span class=n>sanitize_names</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.version</span><span class=w> </span><span class=kn>import</span> <span class=n>__version__</span> <span class=k>as</span> <span class=n>moptipy_version</span>
+
+<span class=c1>#: The key for the total number of runs.</span>
+<span class=n>KEY_N</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"n"</span>
+<span class=c1>#: a key for the objective function name</span>
+<span class=n>KEY_OBJECTIVE_FUNCTION</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"objective"</span>
+<span class=c1>#: a key for the encoding name</span>
+<span class=n>KEY_ENCODING</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"encoding"</span>
+
+<span class=c1>#: The unit of the time axis if time is measured in milliseconds.</span>
+<span class=n>TIME_UNIT_MILLIS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"ms"</span>
+<span class=c1>#: The unit of the time axis of time is measured in FEs</span>
+<span class=n>TIME_UNIT_FES</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"FEs"</span>
+
+<span class=c1>#: The name of the raw objective values data.</span>
+<span class=n>F_NAME_RAW</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"plainF"</span>
+<span class=c1>#: The name of the scaled objective values data.</span>
+<span class=n>F_NAME_SCALED</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"scaledF"</span>
+<span class=c1>#: The name of the normalized objective values data.</span>
+<span class=n>F_NAME_NORMALIZED</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"normalizedF"</span>
+
+
+<div class=viewcode-block id=check_time_unit>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.base.check_time_unit>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>check_time_unit</span><span class=p>(</span><span class=n>time_unit</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check that the time unit is OK.</span>
+
+<span class=sd>    :param time_unit: the time unit</span>
+<span class=sd>    :return: the time unit string</span>
+
+<span class=sd>    >>> check_time_unit("FEs")</span>
+<span class=sd>    'FEs'</span>
+<span class=sd>    >>> check_time_unit("ms")</span>
+<span class=sd>    'ms'</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_time_unit(1)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    time_unit should be an instance of str but is int, namely 1.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_time_unit("blabedibla")</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Invalid time unit 'blabedibla', only 'FEs' and 'ms' are permitted.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>time_unit</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>time_unit</span><span class=p>,</span> <span class=s2>"time_unit"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>time_unit</span> <span class=ow>in</span> <span class=p>{</span><span class=n>TIME_UNIT_FES</span><span class=p>,</span> <span class=n>TIME_UNIT_MILLIS</span><span class=p>}:</span>
+        <span class=k>return</span> <span class=n>time_unit</span>
+    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+        <span class=sa>f</span><span class=s2>"Invalid time unit </span><span class=si>{</span><span class=n>time_unit</span><span class=si>!r}</span><span class=s2>, only </span><span class=si>{</span><span class=n>TIME_UNIT_FES</span><span class=si>!r}</span><span class=s2> "</span>
+        <span class=sa>f</span><span class=s2>"and </span><span class=si>{</span><span class=n>TIME_UNIT_MILLIS</span><span class=si>!r}</span><span class=s2> are permitted."</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=check_f_name>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.base.check_f_name>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>check_f_name</span><span class=p>(</span><span class=n>f_name</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether an objective value name is valid.</span>
+
+<span class=sd>    :param f_name: the name of the objective function dimension</span>
+<span class=sd>    :return: the name of the objective function dimension</span>
+
+<span class=sd>    >>> check_f_name("plainF")</span>
+<span class=sd>    'plainF'</span>
+<span class=sd>    >>> check_f_name("scaledF")</span>
+<span class=sd>    'scaledF'</span>
+<span class=sd>    >>> check_f_name("normalizedF")</span>
+<span class=sd>    'normalizedF'</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_f_name(1.0)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    f_name should be an instance of str but is float, namely 1.0.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_f_name("oops")</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Invalid f name 'oops', only 'plainF', 'scaledF', and 'normalizedF' \</span>
+<span class=sd>are permitted.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>f_name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>f_name</span><span class=p>,</span> <span class=s2>"f_name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>f_name</span> <span class=ow>in</span> <span class=p>{</span><span class=n>F_NAME_RAW</span><span class=p>,</span> <span class=n>F_NAME_SCALED</span><span class=p>,</span> <span class=n>F_NAME_NORMALIZED</span><span class=p>}:</span>
+        <span class=k>return</span> <span class=n>f_name</span>
+    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+        <span class=sa>f</span><span class=s2>"Invalid f name </span><span class=si>{</span><span class=n>f_name</span><span class=si>!r}</span><span class=s2>, only </span><span class=si>{</span><span class=n>F_NAME_RAW</span><span class=si>!r}</span><span class=s2>, "</span>
+        <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>F_NAME_SCALED</span><span class=si>!r}</span><span class=s2>, and </span><span class=si>{</span><span class=n>F_NAME_NORMALIZED</span><span class=si>!r}</span><span class=s2> are permitted."</span><span class=p>)</span></div>
+
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_set_name</span><span class=p>(</span><span class=n>dest</span><span class=p>:</span> <span class=nb>object</span><span class=p>,</span> <span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>what</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+              <span class=n>none_allowed</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+              <span class=n>empty_to_none</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check and set a name.</span>
+
+<span class=sd>    :param dest: the destination</span>
+<span class=sd>    :param name: the name to set</span>
+<span class=sd>    :param what: the name's type</span>
+<span class=sd>    :param none_allowed: is `None` allowed?</span>
+<span class=sd>    :param empty_to_none: If both `none_allowed` and `empty_to_none` are</span>
+<span class=sd>        `True`, then empty strings are converted to `None`</span>
+
+<span class=sd>    >>> class TV:</span>
+<span class=sd>    ...     algorithm: str</span>
+<span class=sd>    ...     instance: str | None</span>
+<span class=sd>    >>> t = TV()</span>
+<span class=sd>    >>> _set_name(t, "bla", "algorithm", False)</span>
+<span class=sd>    >>> t.algorithm</span>
+<span class=sd>    'bla'</span>
+<span class=sd>    >>> _set_name(t, "xbla", "instance", True)</span>
+<span class=sd>    >>> t.instance</span>
+<span class=sd>    'xbla'</span>
+<span class=sd>    >>> _set_name(t, None, "instance", True)</span>
+<span class=sd>    >>> print(t.instance)</span>
+<span class=sd>    None</span>
+<span class=sd>    >>> t.instance = "x"</span>
+<span class=sd>    >>> _set_name(t, "  ", "instance", True)</span>
+<span class=sd>    >>> print(t.instance)</span>
+<span class=sd>    None</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     _set_name(t, 1, "algorithm")</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    algorithm name should be an instance of str but is int, namely 1.</span>
+
+<span class=sd>    >>> t.algorithm</span>
+<span class=sd>    'bla'</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     _set_name(t, "  ", "algorithm")</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    algorithm name cannot be empty of just consist of white space, but \</span>
+<span class=sd>'  ' does.</span>
+
+<span class=sd>    >>> t.algorithm</span>
+<span class=sd>    'bla'</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     _set_name(t, "a a", "instance")</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Invalid instance name 'a a'.</span>
+
+<span class=sd>    >>> print(t.instance)</span>
+<span class=sd>    None</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     _set_name(t, " ", "instance", True, False)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    instance name cannot be empty of just consist of white space, but \</span>
+<span class=sd>' ' does.</span>
+
+<span class=sd>    >>> print(t.instance)</span>
+<span class=sd>    None</span>
+<span class=sd>    """</span>
+    <span class=n>use_name</span> <span class=o>=</span> <span class=n>name</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=n>use_name</span> <span class=o>=</span> <span class=n>use_name</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>use_name</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>empty_to_none</span> <span class=ow>and</span> <span class=n>none_allowed</span><span class=p>:</span>
+                <span class=n>use_name</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>what</span><span class=si>}</span><span class=s2> name cannot be empty of just cons"</span>
+                                 <span class=sa>f</span><span class=s2>"ist of white space, but </span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2> does."</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=n>use_name</span> <span class=o>!=</span> <span class=n>sanitize_name</span><span class=p>(</span><span class=n>use_name</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid </span><span class=si>{</span><span class=n>what</span><span class=si>}</span><span class=s2> name </span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>elif</span> <span class=ow>not</span> <span class=p>((</span><span class=n>name</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=n>none_allowed</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>what</span><span class=si>}</span><span class=s2> name"</span><span class=p>,</span>
+                         <span class=p>(</span><span class=nb>str</span><span class=p>,</span> <span class=kc>None</span><span class=p>)</span> <span class=k>if</span> <span class=n>none_allowed</span> <span class=k>else</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=n>dest</span><span class=p>,</span> <span class=n>what</span><span class=p>,</span> <span class=n>use_name</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=EvaluationDataElement>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.base.EvaluationDataElement>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>EvaluationDataElement</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""A base class for all the data classes in this module."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_tuple</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=n>Any</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a tuple with all the data of this data class for comparison.</span>
+
+<span class=sd>        All the relevant data of an instance of this class is stored in a</span>
+<span class=sd>        tuple. The tuple is then used in the dunder methods for comparisons.</span>
+<span class=sd>        The returned tuple *must* be based on the scheme</span>
+<span class=sd>        `tuple[str, str, str, str, str, int, int, str, str]`.</span>
+<span class=sd>        They can be shorter than this and they can be longer, but they must</span>
+<span class=sd>        adhere to this basic scheme:</span>
+
+<span class=sd>        1. class name</span>
+<span class=sd>        2. algorithm name, or `""` if algorithm name is `None`</span>
+<span class=sd>        3. instance name, or `""` if instance name is `None`</span>
+<span class=sd>        4. objective name, `""` objective name is `None`</span>
+<span class=sd>        5. encoding name, or `""` encoding name is `None`</span>
+<span class=sd>        6. number of runs, or `0` if no number of runs is specified or `1` if</span>
+<span class=sd>           the data concerns exactly one run</span>
+<span class=sd>        7. the random seed, or `-1` if no random seed is specified</span>
+<span class=sd>        8. the string time unit, or `""` if no time unit is given</span>
+<span class=sd>        9. the scaling name of the objective function, or `""` if no scaling</span>
+<span class=sd>           name is given</span>
+
+<span class=sd>        If the tuples are longer, then all values following after this must be</span>
+<span class=sd>        integers or floats.</span>
+
+<span class=sd>        >>> EvaluationDataElement()._tuple()</span>
+<span class=sd>        ('EvaluationDataElement',)</span>
+
+<span class=sd>        :returns: a tuple with all the data of this class, where `None` values</span>
+<span class=sd>            are masked out</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=vm>__class__</span><span class=o>.</span><span class=vm>__name__</span><span class=p>,</span> <span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__hash__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compute the hash code of this object.</span>
+
+<span class=sd>        :returns: the hash code</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=nb>hash</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_tuple</span><span class=p>())</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__eq__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>other</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compare for `==` with another object based on the `_tuple()` value.</span>
+
+<span class=sd>        :param other: the other object to compare to, must be an instance of</span>
+<span class=sd>            :class:`EvaluationDataElement`</span>
+<span class=sd>        :retval `True`: if the `other` object's `_tuple()` representation is</span>
+<span class=sd>            `==` with this object's `_tuple()` representation</span>
+<span class=sd>        :retval `False`: otherwise</span>
+<span class=sd>        :raises NotImplementedError: if the other object is not an instance of</span>
+<span class=sd>            :class:`EvaluationDataElement` and therefore cannot be compared.</span>
+
+<span class=sd>        >>> PerRunData("a", "i", "f", "e", 234) == PerRunData(</span>
+<span class=sd>        ...     "a", "i", "f", "e", 234)</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> PerRunData("a", "i", "f", "e", 234) == PerRunData(</span>
+<span class=sd>        ...     "a", "j", "f", "e", 234)</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> try:</span>
+<span class=sd>        ...     PerRunData("a", "i", "f", "e", 234) == 3</span>
+<span class=sd>        ... except NotImplementedError as ni:</span>
+<span class=sd>        ...     print(ni)</span>
+<span class=sd>        Cannot compare PerRunData(algorithm='a', instance='i', \</span>
+<span class=sd>objective='f', encoding='e', rand_seed=234) with 3 for ==.</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>other</span><span class=p>,</span> <span class=n>EvaluationDataElement</span><span class=p>):</span>
+            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>_tuple</span><span class=p>()</span> <span class=o>==</span> <span class=n>other</span><span class=o>.</span><span class=n>_tuple</span><span class=p>()</span>
+        <span class=k>raise</span> <span class=ne>NotImplementedError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"Cannot compare </span><span class=si>{</span><span class=bp>self</span><span class=si>}</span><span class=s2> with </span><span class=si>{</span><span class=n>other</span><span class=si>}</span><span class=s2> for ==."</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__ne__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>other</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compare for `!=` with another object based on the `_tuple()` value.</span>
+
+<span class=sd>        :param other: the other object to compare to, must be an instance of</span>
+<span class=sd>            :class:`EvaluationDataElement`</span>
+<span class=sd>        :retval `True`: if the `other` object's `_tuple()` representation is</span>
+<span class=sd>            `!=` with this object's `_tuple()` representation</span>
+<span class=sd>        :retval `False`: otherwise</span>
+<span class=sd>        :raises NotImplementedError: if the other object is not an instance of</span>
+<span class=sd>            :class:`EvaluationDataElement` and therefore cannot be compared.</span>
+
+<span class=sd>        >>> PerRunData("a", "i", "f", "e", 234) != PerRunData(</span>
+<span class=sd>        ...     "a", "i", "f", "e", 234)</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> PerRunData("a", "i", "f", "e", 234) != PerRunData(</span>
+<span class=sd>        ...     "a", "j", "f", "e", 234)</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> try:</span>
+<span class=sd>        ...     PerRunData("a", "i", "f", "e", 234) != 3</span>
+<span class=sd>        ... except NotImplementedError as ni:</span>
+<span class=sd>        ...     print(ni)</span>
+<span class=sd>        Cannot compare PerRunData(algorithm='a', instance='i', \</span>
+<span class=sd>objective='f', encoding='e', rand_seed=234) with 3 for !=.</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>other</span><span class=p>,</span> <span class=n>EvaluationDataElement</span><span class=p>):</span>
+            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>_tuple</span><span class=p>()</span> <span class=o>!=</span> <span class=n>other</span><span class=o>.</span><span class=n>_tuple</span><span class=p>()</span>
+        <span class=k>raise</span> <span class=ne>NotImplementedError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"Cannot compare </span><span class=si>{</span><span class=bp>self</span><span class=si>}</span><span class=s2> with </span><span class=si>{</span><span class=n>other</span><span class=si>}</span><span class=s2> for !=."</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__lt__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>other</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compare for `<` with another object based on the `_tuple()` value.</span>
+
+<span class=sd>        :param other: the other object to compare to, must be an instance of</span>
+<span class=sd>            :class:`EvaluationDataElement`</span>
+<span class=sd>        :retval `True`: if the `other` object's `_tuple()` representation is</span>
+<span class=sd>            `<` with this object's `_tuple()` representation</span>
+<span class=sd>        :retval `False`: otherwise</span>
+<span class=sd>        :raises NotImplementedError: if the other object is not an instance of</span>
+<span class=sd>            :class:`EvaluationDataElement` and therefore cannot be compared.</span>
+
+<span class=sd>        >>> PerRunData("a", "i", "f", "e", 234) < PerRunData(</span>
+<span class=sd>        ...     "a", "i", "f", "e", 234)</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> PerRunData("a", "i", "f", "e", 234) < PerRunData(</span>
+<span class=sd>        ...     "a", "j", "f", "e", 234)</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> PerRunData("a", "j", "f", "e", 234) < PerRunData(</span>
+<span class=sd>        ...     "a", "i", "f", "e", 234)</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> try:</span>
+<span class=sd>        ...     PerRunData("a", "i", "f", "e", 234) < 3</span>
+<span class=sd>        ... except NotImplementedError as ni:</span>
+<span class=sd>        ...     print(ni)</span>
+<span class=sd>        Cannot compare PerRunData(algorithm='a', instance='i', \</span>
+<span class=sd>objective='f', encoding='e', rand_seed=234) with 3 for <.</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>other</span><span class=p>,</span> <span class=n>EvaluationDataElement</span><span class=p>):</span>
+            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>_tuple</span><span class=p>()</span> <span class=o><</span> <span class=n>other</span><span class=o>.</span><span class=n>_tuple</span><span class=p>()</span>
+        <span class=k>raise</span> <span class=ne>NotImplementedError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"Cannot compare </span><span class=si>{</span><span class=bp>self</span><span class=si>}</span><span class=s2> with </span><span class=si>{</span><span class=n>other</span><span class=si>}</span><span class=s2> for <."</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__le__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>other</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compare for `<=` with another object based on the `_tuple()` value.</span>
+
+<span class=sd>        :param other: the other object to compare to, must be an instance of</span>
+<span class=sd>            :class:`EvaluationDataElement`</span>
+<span class=sd>        :retval `True`: if the `other` object's `_tuple()` representation is</span>
+<span class=sd>            `<=` with this object's `_tuple()` representation</span>
+<span class=sd>        :retval `False`: otherwise</span>
+<span class=sd>        :raises NotImplementedError: if the other object is not an instance of</span>
+<span class=sd>            :class:`EvaluationDataElement` and therefore cannot be compared.</span>
+
+<span class=sd>        >>> PerRunData("a", "i", "f", "e", 234) <= PerRunData(</span>
+<span class=sd>        ...     "a", "i", "f", "e", 234)</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> PerRunData("a", "i", "f", "e", 234) <= PerRunData(</span>
+<span class=sd>        ...     "a", "j", "f", "e", 234)</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> PerRunData("a", "j", "f", "e", 234) < PerRunData(</span>
+<span class=sd>        ...     "a", "i", "f", "e", 234)</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> try:</span>
+<span class=sd>        ...     PerRunData("a", "i", "f", "e", 234) <= 3</span>
+<span class=sd>        ... except NotImplementedError as ni:</span>
+<span class=sd>        ...     print(ni)</span>
+<span class=sd>        Cannot compare PerRunData(algorithm='a', instance='i', \</span>
+<span class=sd>objective='f', encoding='e', rand_seed=234) with 3 for <=.</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>other</span><span class=p>,</span> <span class=n>EvaluationDataElement</span><span class=p>):</span>
+            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>_tuple</span><span class=p>()</span> <span class=o><=</span> <span class=n>other</span><span class=o>.</span><span class=n>_tuple</span><span class=p>()</span>
+        <span class=k>raise</span> <span class=ne>NotImplementedError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"Cannot compare </span><span class=si>{</span><span class=bp>self</span><span class=si>}</span><span class=s2> with </span><span class=si>{</span><span class=n>other</span><span class=si>}</span><span class=s2> for <=."</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__gt__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>other</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compare for `>` with another object based on the `_tuple()` value.</span>
+
+<span class=sd>        :param other: the other object to compare to, must be an instance of</span>
+<span class=sd>            :class:`EvaluationDataElement`</span>
+<span class=sd>        :retval `True`: if the `other` object's `_tuple()` representation is</span>
+<span class=sd>            `>` with this object's `_tuple()` representation</span>
+<span class=sd>        :retval `False`: otherwise</span>
+<span class=sd>        :raises NotImplementedError: if the other object is not an instance of</span>
+<span class=sd>            :class:`EvaluationDataElement` and therefore cannot be compared.</span>
+
+<span class=sd>        >>> PerRunData("a", "i", "f", "e", 234) > PerRunData(</span>
+<span class=sd>        ...     "a", "i", "f", "e", 234)</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> PerRunData("a", "i", "f", "e", 234) > PerRunData(</span>
+<span class=sd>        ...     "a", "j", "f", "e", 234)</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> PerRunData("a", "j", "f", "e", 234) > PerRunData(</span>
+<span class=sd>        ...     "a", "i", "f", "e", 234)</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> try:</span>
+<span class=sd>        ...     PerRunData("a", "i", "f", "e", 234) > 3</span>
+<span class=sd>        ... except NotImplementedError as ni:</span>
+<span class=sd>        ...     print(ni)</span>
+<span class=sd>        Cannot compare PerRunData(algorithm='a', instance='i', \</span>
+<span class=sd>objective='f', encoding='e', rand_seed=234) with 3 for >.</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>other</span><span class=p>,</span> <span class=n>EvaluationDataElement</span><span class=p>):</span>
+            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>_tuple</span><span class=p>()</span> <span class=o>></span> <span class=n>other</span><span class=o>.</span><span class=n>_tuple</span><span class=p>()</span>
+        <span class=k>raise</span> <span class=ne>NotImplementedError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"Cannot compare </span><span class=si>{</span><span class=bp>self</span><span class=si>}</span><span class=s2> with </span><span class=si>{</span><span class=n>other</span><span class=si>}</span><span class=s2> for >."</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__ge__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>other</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compare for `>=` with another object based on the `_tuple()` value.</span>
+
+<span class=sd>        :param other: the other object to compare to, must be an instance of</span>
+<span class=sd>            :class:`EvaluationDataElement`</span>
+<span class=sd>        :retval `True`: if the `other` object's `_tuple()` representation is</span>
+<span class=sd>            `>=` with this object's `_tuple()` representation</span>
+<span class=sd>        :retval `False`: otherwise</span>
+<span class=sd>        :raises NotImplementedError: if the other object is not an instance of</span>
+<span class=sd>            :class:`EvaluationDataElement` and therefore cannot be compared.</span>
+
+<span class=sd>        >>> PerRunData("a", "i", "f", "e", 234) >= PerRunData(</span>
+<span class=sd>        ...     "a", "i", "f", "e", 234)</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> PerRunData("a", "i", "f", "e", 234) >= PerRunData(</span>
+<span class=sd>        ...     "a", "j", "f", "e", 234)</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> PerRunData("a", "j", "f", "e", 234) >= PerRunData(</span>
+<span class=sd>        ...     "a", "i", "f", "e", 234)</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> try:</span>
+<span class=sd>        ...     PerRunData("a", "i", "f", "e", 234) >= 3</span>
+<span class=sd>        ... except NotImplementedError as ni:</span>
+<span class=sd>        ...     print(ni)</span>
+<span class=sd>        Cannot compare PerRunData(algorithm='a', instance='i', \</span>
+<span class=sd>objective='f', encoding='e', rand_seed=234) with 3 for >=.</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>other</span><span class=p>,</span> <span class=n>EvaluationDataElement</span><span class=p>):</span>
+            <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>_tuple</span><span class=p>()</span> <span class=o>>=</span> <span class=n>other</span><span class=o>.</span><span class=n>_tuple</span><span class=p>()</span>
+        <span class=k>raise</span> <span class=ne>NotImplementedError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"Cannot compare </span><span class=si>{</span><span class=bp>self</span><span class=si>}</span><span class=s2> with </span><span class=si>{</span><span class=n>other</span><span class=si>}</span><span class=s2> for >=."</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=PerRunData>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.base.PerRunData>[docs]</a>
+<span class=nd>@dataclass</span><span class=p>(</span><span class=n>frozen</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>init</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>order</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>eq</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>class</span><span class=w> </span><span class=nc>PerRunData</span><span class=p>(</span><span class=n>EvaluationDataElement</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    An immutable record of information over a single run.</span>
+
+<span class=sd>    >>> p = PerRunData("a", "i", "f", None, 234)</span>
+<span class=sd>    >>> p.instance</span>
+<span class=sd>    'i'</span>
+<span class=sd>    >>> p.algorithm</span>
+<span class=sd>    'a'</span>
+<span class=sd>    >>> p.objective</span>
+<span class=sd>    'f'</span>
+<span class=sd>    >>> print(p.encoding)</span>
+<span class=sd>    None</span>
+<span class=sd>    >>> p.rand_seed</span>
+<span class=sd>    234</span>
+<span class=sd>    >>> p = PerRunData("a", "i", "f", "e", 234)</span>
+<span class=sd>    >>> p.instance</span>
+<span class=sd>    'i'</span>
+<span class=sd>    >>> p.algorithm</span>
+<span class=sd>    'a'</span>
+<span class=sd>    >>> p.objective</span>
+<span class=sd>    'f'</span>
+<span class=sd>    >>> p.encoding</span>
+<span class=sd>    'e'</span>
+<span class=sd>    >>> p.rand_seed</span>
+<span class=sd>    234</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     PerRunData(3, "i", "f", "e", 234)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    algorithm name should be an instance of str but is int, namely 3.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     PerRunData("@1 2", "i", "f", "e", 234)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Invalid algorithm name '@1 2'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     PerRunData("x", 3.2, "f", "e", 234)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    instance name should be an instance of str but is float, namely 3.2.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     PerRunData("x", "sdf i", "f", "e", 234)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Invalid instance name 'sdf i'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     PerRunData("a", "i", True, "e", 234)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    objective name should be an instance of str but is bool, namely True.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     PerRunData("x", "i", "d-f", "e", 234)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Invalid objective name 'd-f'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     PerRunData("x", "i", "f", 54.2, 234)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    encoding name should be an instance of any in {None, str} but is float, \</span>
+<span class=sd>namely 54.2.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     PerRunData("y", "i", "f", "x  x", 234)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Invalid encoding name 'x  x'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     PerRunData("x", "i", "f", "e", 3.3)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    rand_seed should be an instance of int but is float, namely 3.3.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     PerRunData("x", "i", "f", "e", -234)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    rand_seed=-234 is invalid, must be in 0..18446744073709551615.</span>
+<span class=sd>    """</span>
+
+    <span class=c1>#: The algorithm that was applied.</span>
+    <span class=n>algorithm</span><span class=p>:</span> <span class=nb>str</span>
+    <span class=c1>#: The problem instance that was solved.</span>
+    <span class=n>instance</span><span class=p>:</span> <span class=nb>str</span>
+    <span class=c1>#: the name of the objective function</span>
+    <span class=n>objective</span><span class=p>:</span> <span class=nb>str</span>
+    <span class=c1>#: the encoding, if any, or `None` if no encoding was used</span>
+    <span class=n>encoding</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span>
+    <span class=c1>#: The seed of the random number generator.</span>
+    <span class=n>rand_seed</span><span class=p>:</span> <span class=nb>int</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>algorithm</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>instance</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>objective</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>encoding</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span> <span class=n>rand_seed</span><span class=p>:</span> <span class=nb>int</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a per-run data record.</span>
+
+<span class=sd>        :param algorithm: the algorithm name</span>
+<span class=sd>        :param instance: the instance name</span>
+<span class=sd>        :param objective: the name of the objective function</span>
+<span class=sd>        :param encoding: the name of the encoding that was used, if any, or</span>
+<span class=sd>            `None` if no encoding was used</span>
+<span class=sd>        :param rand_seed: the random seed</span>
+<span class=sd>        """</span>
+        <span class=n>_set_name</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>algorithm</span><span class=p>,</span> <span class=s2>"algorithm"</span><span class=p>)</span>
+        <span class=n>_set_name</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>instance</span><span class=p>,</span> <span class=s2>"instance"</span><span class=p>)</span>
+        <span class=n>_set_name</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>objective</span><span class=p>,</span> <span class=s2>"objective"</span><span class=p>)</span>
+        <span class=n>_set_name</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>encoding</span><span class=p>,</span> <span class=s2>"encoding"</span><span class=p>,</span> <span class=kc>True</span><span class=p>,</span> <span class=kc>False</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"rand_seed"</span><span class=p>,</span> <span class=n>rand_seed_check</span><span class=p>(</span><span class=n>rand_seed</span><span class=p>))</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_tuple</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=n>Any</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the tuple representation of this object used in comparisons.</span>
+
+<span class=sd>        :return: the comparison-relevant data of this object in a tuple</span>
+
+<span class=sd>        >>> PerRunData("a", "i", "f", "e", 234)._tuple()</span>
+<span class=sd>        ('PerRunData', 'a', 'i', 'f', 'e', 1, 234)</span>
+<span class=sd>        >>> PerRunData("a", "i", "f", None, 234)._tuple()</span>
+<span class=sd>        ('PerRunData', 'a', 'i', 'f', '', 1, 234)</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=vm>__class__</span><span class=o>.</span><span class=vm>__name__</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>objective</span><span class=p>,</span>
+                <span class=s2>""</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoding</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoding</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>rand_seed</span><span class=p>)</span>
+
+<div class=viewcode-block id=PerRunData.path_to_file>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.base.PerRunData.path_to_file>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>path_to_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>base_dir</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=n>Path</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the path that would correspond to the log file of this end result.</span>
+
+<span class=sd>        Obtain a path that would correspond to the log file of this end</span>
+<span class=sd>        result, resolved from a base directory `base_dir`.</span>
+
+<span class=sd>        :param base_dir: the base directory</span>
+<span class=sd>        :returns: the path to a file corresponding to the end result record</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>Path</span><span class=p>(</span><span class=n>base_dir</span><span class=p>)</span><span class=o>.</span><span class=n>resolve_inside</span><span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span><span class=p>)</span><span class=o>.</span><span class=n>resolve_inside</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=p>)</span><span class=o>.</span><span class=n>resolve_inside</span><span class=p>(</span>
+            <span class=n>sanitize_names</span><span class=p>([</span><span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span>
+                            <span class=nb>hex</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>rand_seed</span><span class=p>)])</span> <span class=o>+</span> <span class=n>FILE_SUFFIX</span><span class=p>)</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=MultiRunData>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.base.MultiRunData>[docs]</a>
+<span class=nd>@dataclass</span><span class=p>(</span><span class=n>frozen</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>init</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>order</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>eq</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>class</span><span class=w> </span><span class=nc>MultiRunData</span><span class=p>(</span><span class=n>EvaluationDataElement</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A class that represents statistics over a set of runs.</span>
+
+<span class=sd>    If one algorithm*instance is used, then `algorithm` and `instance` are</span>
+<span class=sd>    defined. Otherwise, only the parameter which is the same over all recorded</span>
+<span class=sd>    runs is defined.</span>
+
+<span class=sd>    >>> p = MultiRunData("a", "i", "f", None, 3)</span>
+<span class=sd>    >>> p.instance</span>
+<span class=sd>    'i'</span>
+<span class=sd>    >>> p.algorithm</span>
+<span class=sd>    'a'</span>
+<span class=sd>    >>> p.objective</span>
+<span class=sd>    'f'</span>
+<span class=sd>    >>> print(p.encoding)</span>
+<span class=sd>    None</span>
+<span class=sd>    >>> p.n</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> p = MultiRunData(None, None, None, "x", 3)</span>
+<span class=sd>    >>> print(p.instance)</span>
+<span class=sd>    None</span>
+<span class=sd>    >>> print(p.algorithm)</span>
+<span class=sd>    None</span>
+<span class=sd>    >>> print(p.objective)</span>
+<span class=sd>    None</span>
+<span class=sd>    >>> p.encoding</span>
+<span class=sd>    'x'</span>
+<span class=sd>    >>> p.n</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     MultiRunData(1, "i", "f", "e", 234)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    algorithm name should be an instance of any in {None, str} but is int, \</span>
+<span class=sd>namely 1.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     MultiRunData("x x", "i", "f", "e", 234)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Invalid algorithm name 'x x'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     MultiRunData("a", 5.5, "f", "e", 234)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    instance name should be an instance of any in {None, str} but is float, \</span>
+<span class=sd>namely 5.5.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     MultiRunData("x", "a-i", "f", "e", 234)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Invalid instance name 'a-i'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     MultiRunData("a", "i", True, "e", 234)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    objective name should be an instance of any in {None, str} but is bool, \</span>
+<span class=sd>namely True.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     MultiRunData("xx", "i", "d'@f", "e", 234)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Invalid objective name "d'@f".</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     MultiRunData("yy", "i", "f", -9.4, 234)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    encoding name should be an instance of any in {None, str} but is float, \</span>
+<span class=sd>namely -9.4.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     MultiRunData("xx", "i", "f", "e-{a", 234)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Invalid encoding name 'e-{a'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     MultiRunData("x", "i", "f", "e", -1.234)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    n should be an instance of int but is float, namely -1.234.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     MultiRunData("xx", "i", "f", "e", 1_000_000_000_000_000_000_000)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    n=1000000000000000000000 is invalid, must be in 1..1000000000000000.</span>
+<span class=sd>    """</span>
+
+    <span class=c1>#: The algorithm that was applied, if the same over all runs.</span>
+    <span class=n>algorithm</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span>
+    <span class=c1>#: The problem instance that was solved, if the same over all runs.</span>
+    <span class=n>instance</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span>
+    <span class=c1>#: the name of the objective function, if the same over all runs</span>
+    <span class=n>objective</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span>
+    <span class=c1>#: the encoding, if any, or `None` if no encoding was used or if it was</span>
+    <span class=c1>#: not the same over all runs</span>
+    <span class=n>encoding</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span>
+    <span class=c1>#: The number of runs over which the statistic information is computed.</span>
+    <span class=n>n</span><span class=p>:</span> <span class=nb>int</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>algorithm</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span> <span class=n>instance</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>objective</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span> <span class=n>encoding</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the dataset of an experiment-setup combination.</span>
+
+<span class=sd>        :param algorithm: the algorithm name, if all runs are with the same</span>
+<span class=sd>            algorithm, `None` otherwise</span>
+<span class=sd>        :param instance: the instance name, if all runs are on the same</span>
+<span class=sd>            instance, `None` otherwise</span>
+<span class=sd>        :param objective: the objective name, if all runs are on the same</span>
+<span class=sd>            objective function, `None` otherwise</span>
+<span class=sd>        :param encoding: the encoding name, if all runs are on the same</span>
+<span class=sd>            encoding and an encoding was actually used, `None` otherwise</span>
+<span class=sd>        :param n: the total number of runs</span>
+<span class=sd>        """</span>
+        <span class=n>_set_name</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>algorithm</span><span class=p>,</span> <span class=s2>"algorithm"</span><span class=p>,</span> <span class=kc>True</span><span class=p>,</span> <span class=kc>False</span><span class=p>)</span>
+        <span class=n>_set_name</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>instance</span><span class=p>,</span> <span class=s2>"instance"</span><span class=p>,</span> <span class=kc>True</span><span class=p>,</span> <span class=kc>False</span><span class=p>)</span>
+        <span class=n>_set_name</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>objective</span><span class=p>,</span> <span class=s2>"objective"</span><span class=p>,</span> <span class=kc>True</span><span class=p>,</span> <span class=kc>False</span><span class=p>)</span>
+        <span class=n>_set_name</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>encoding</span><span class=p>,</span> <span class=s2>"encoding"</span><span class=p>,</span> <span class=kc>True</span><span class=p>,</span> <span class=kc>False</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000_000_000</span><span class=p>))</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_tuple</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=n>Any</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the tuple representation of this object used in comparisons.</span>
+
+<span class=sd>        :return: the comparison-relevant data of this object in a tuple</span>
+
+<span class=sd>        >>> MultiRunData("a", "i", "f", None, 3)._tuple()</span>
+<span class=sd>        ('MultiRunData', 'a', 'i', 'f', '', 3, -1)</span>
+<span class=sd>        >>> MultiRunData(None, "i", "f", "e", 31)._tuple()</span>
+<span class=sd>        ('MultiRunData', '', 'i', 'f', 'e', 31, -1)</span>
+<span class=sd>        >>> MultiRunData("x", None, "fy", "e1", 131)._tuple()</span>
+<span class=sd>        ('MultiRunData', 'x', '', 'fy', 'e1', 131, -1)</span>
+<span class=sd>        >>> MultiRunData("yx", "z", None, "xe1", 2131)._tuple()</span>
+<span class=sd>        ('MultiRunData', 'yx', 'z', '', 'xe1', 2131, -1)</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=vm>__class__</span><span class=o>.</span><span class=vm>__name__</span><span class=p>,</span>
+                <span class=s2>""</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span>
+                <span class=s2>""</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>instance</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span>
+                <span class=s2>""</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>objective</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>objective</span><span class=p>,</span>
+                <span class=s2>""</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoding</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoding</span><span class=p>,</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=MultiRun2DData>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.base.MultiRun2DData>[docs]</a>
+<span class=nd>@dataclass</span><span class=p>(</span><span class=n>frozen</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>init</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>order</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>eq</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>class</span><span class=w> </span><span class=nc>MultiRun2DData</span><span class=p>(</span><span class=n>MultiRunData</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A multi-run data based on one time and one objective dimension.</span>
+
+<span class=sd>    >>> p = MultiRun2DData("a", "i", "f", None, 3,</span>
+<span class=sd>    ...                    TIME_UNIT_FES, F_NAME_SCALED)</span>
+<span class=sd>    >>> p.instance</span>
+<span class=sd>    'i'</span>
+<span class=sd>    >>> p.algorithm</span>
+<span class=sd>    'a'</span>
+<span class=sd>    >>> p.objective</span>
+<span class=sd>    'f'</span>
+<span class=sd>    >>> print(p.encoding)</span>
+<span class=sd>    None</span>
+<span class=sd>    >>> p.n</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> print(p.time_unit)</span>
+<span class=sd>    FEs</span>
+<span class=sd>    >>> print(p.f_name)</span>
+<span class=sd>    scaledF</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     MultiRun2DData("a", "i", "f", None, 3,</span>
+<span class=sd>    ...                    3, F_NAME_SCALED)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    time_unit should be an instance of str but is int, namely 3.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     MultiRun2DData("a", "i", "f", None, 3,</span>
+<span class=sd>    ...                    "sdfjsdf", F_NAME_SCALED)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Invalid time unit 'sdfjsdf', only 'FEs' and 'ms' are permitted.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     MultiRun2DData("a", "i", "f", None, 3,</span>
+<span class=sd>    ...                    TIME_UNIT_FES, True)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    f_name should be an instance of str but is bool, namely True.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     MultiRun2DData("a", "i", "f", None, 3,</span>
+<span class=sd>    ...                    TIME_UNIT_FES, "blablue")</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Invalid f name 'blablue', only 'plainF', 'scaledF', and 'normalizedF' \</span>
+<span class=sd>are permitted.</span>
+<span class=sd>    """</span>
+
+    <span class=c1>#: The unit of the time axis.</span>
+    <span class=n>time_unit</span><span class=p>:</span> <span class=nb>str</span>
+    <span class=c1>#: the name of the objective value axis.</span>
+    <span class=n>f_name</span><span class=p>:</span> <span class=nb>str</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>algorithm</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span> <span class=n>instance</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>objective</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span> <span class=n>encoding</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>time_unit</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>f_name</span><span class=p>:</span> <span class=nb>str</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create multi-run data based on one time and one objective dimension.</span>
+
+<span class=sd>        :param algorithm: the algorithm name, if all runs are with the same</span>
+<span class=sd>            algorithm</span>
+<span class=sd>        :param instance: the instance name, if all runs are on the same</span>
+<span class=sd>            instance</span>
+<span class=sd>        :param objective: the objective name, if all runs are on the same</span>
+<span class=sd>            objective function, `None` otherwise</span>
+<span class=sd>        :param encoding: the encoding name, if all runs are on the same</span>
+<span class=sd>            encoding and an encoding was actually used, `None` otherwise</span>
+<span class=sd>        :param n: the total number of runs</span>
+<span class=sd>        :param time_unit: the time unit</span>
+<span class=sd>        :param f_name: the objective dimension name</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>instance</span><span class=p>,</span> <span class=n>objective</span><span class=p>,</span> <span class=n>encoding</span><span class=p>,</span> <span class=n>n</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"time_unit"</span><span class=p>,</span> <span class=n>check_time_unit</span><span class=p>(</span><span class=n>time_unit</span><span class=p>))</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"f_name"</span><span class=p>,</span> <span class=n>check_f_name</span><span class=p>(</span><span class=n>f_name</span><span class=p>))</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_tuple</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=n>Any</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the tuple representation of this object used in comparisons.</span>
+
+<span class=sd>        :return: the comparison-relevant data of this object in a tuple</span>
+
+<span class=sd>        >>> MultiRun2DData("a", "i", "f", None, 3,</span>
+<span class=sd>        ...                TIME_UNIT_FES, F_NAME_SCALED)._tuple()</span>
+<span class=sd>        ('MultiRun2DData', 'a', 'i', 'f', '', 3, -1, 'FEs', 'scaledF')</span>
+<span class=sd>        >>> MultiRun2DData(None, "ix", None, "x", 43,</span>
+<span class=sd>        ...                TIME_UNIT_MILLIS, F_NAME_RAW)._tuple()</span>
+<span class=sd>        ('MultiRun2DData', '', 'ix', '', 'x', 43, -1, 'ms', 'plainF')</span>
+<span class=sd>        >>> MultiRun2DData("xa", None, None, None, 143,</span>
+<span class=sd>        ...                TIME_UNIT_MILLIS, F_NAME_NORMALIZED)._tuple()</span>
+<span class=sd>        ('MultiRun2DData', 'xa', '', '', '', 143, -1, 'ms', 'normalizedF')</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=vm>__class__</span><span class=o>.</span><span class=vm>__name__</span><span class=p>,</span>
+                <span class=s2>""</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span>
+                <span class=s2>""</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>instance</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span>
+                <span class=s2>""</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>objective</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>objective</span><span class=p>,</span>
+                <span class=s2>""</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoding</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoding</span><span class=p>,</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>time_unit</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>f_name</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=get_instance>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.base.get_instance>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>get_instance</span><span class=p>(</span><span class=n>obj</span><span class=p>:</span> <span class=n>PerRunData</span> <span class=o>|</span> <span class=n>MultiRunData</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the instance of a given object.</span>
+
+<span class=sd>    :param obj: the object</span>
+<span class=sd>    :return: the instance string, or `None` if no instance is specified</span>
+
+<span class=sd>    >>> p1 = MultiRunData("a", "i1", None, "x", 3)</span>
+<span class=sd>    >>> get_instance(p1)</span>
+<span class=sd>    'i1'</span>
+<span class=sd>    >>> p2 = PerRunData("a", "i2", "f", "x", 31)</span>
+<span class=sd>    >>> get_instance(p2)</span>
+<span class=sd>    'i2'</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>obj</span><span class=o>.</span><span class=n>instance</span></div>
+
+
+
+<div class=viewcode-block id=get_algorithm>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.base.get_algorithm>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>get_algorithm</span><span class=p>(</span><span class=n>obj</span><span class=p>:</span> <span class=n>PerRunData</span> <span class=o>|</span> <span class=n>MultiRunData</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the algorithm of a given object.</span>
+
+<span class=sd>    :param obj: the object</span>
+<span class=sd>    :return: the algorithm string, or `None` if no algorithm is specified</span>
+
+<span class=sd>    >>> p1 = MultiRunData("a1", "i1", "f", "y", 3)</span>
+<span class=sd>    >>> get_algorithm(p1)</span>
+<span class=sd>    'a1'</span>
+<span class=sd>    >>> p2 = PerRunData("a2", "i2", "y", None, 31)</span>
+<span class=sd>    >>> get_algorithm(p2)</span>
+<span class=sd>    'a2'</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>obj</span><span class=o>.</span><span class=n>algorithm</span></div>
+
+
+
+<div class=viewcode-block id=sort_key>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.base.sort_key>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>sort_key</span><span class=p>(</span><span class=n>obj</span><span class=p>:</span> <span class=n>PerRunData</span> <span class=o>|</span> <span class=n>MultiRunData</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=n>Any</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the default sort key for the given object.</span>
+
+<span class=sd>    The sort key is a tuple with well-defined field elements that should</span>
+<span class=sd>    allow for a default and consistent sorting over many different elements of</span>
+<span class=sd>    the experiment evaluation data API. Sorting should work also for lists</span>
+<span class=sd>    containing elements of different classes.</span>
+
+<span class=sd>    :param obj: the object</span>
+<span class=sd>    :return: the sort key</span>
+
+<span class=sd>    >>> p1 = MultiRunData("a1", "i1", "f", None, 3)</span>
+<span class=sd>    >>> p2 = PerRunData("a2", "i2", "f", None, 31)</span>
+<span class=sd>    >>> sort_key(p1) < sort_key(p2)</span>
+<span class=sd>    True</span>
+<span class=sd>    >>> sort_key(p1) >= sort_key(p2)</span>
+<span class=sd>    False</span>
+<span class=sd>    >>> p3 = MultiRun2DData("a", "i", "f", None, 3,</span>
+<span class=sd>    ...                     TIME_UNIT_FES, F_NAME_SCALED)</span>
+<span class=sd>    >>> sort_key(p3) < sort_key(p1)</span>
+<span class=sd>    True</span>
+<span class=sd>    >>> sort_key(p3) >= sort_key(p1)</span>
+<span class=sd>    False</span>
+<span class=sd>    """</span>
+    <span class=c1># noinspection PyProtectedMember</span>
+    <span class=k>return</span> <span class=n>obj</span><span class=o>.</span><span class=n>_tuple</span><span class=p>()</span></div>
+
+
+
+<div class=viewcode-block id=motipy_footer_bottom_comments>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.base.motipy_footer_bottom_comments>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>motipy_footer_bottom_comments</span><span class=p>(</span>
+        <span class=n>_</span><span class=p>:</span> <span class=n>Any</span><span class=p>,</span> <span class=n>additional</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Print the standard csv footer for moptipy.</span>
+
+<span class=sd>    :param _: the setup object, ignored</span>
+<span class=sd>    :param dest: the destination callable</span>
+<span class=sd>    :param additional: any additional output string</span>
+<span class=sd>    :returns: the iterable with the footer comments</span>
+
+<span class=sd>    >>> for s in motipy_footer_bottom_comments(None, "bla"):</span>
+<span class=sd>    ...     print(s[:49])</span>
+<span class=sd>    This data has been generated with moptipy version</span>
+<span class=sd>    bla</span>
+<span class=sd>    You can find moptipy at https://thomasweise.githu</span>
+
+<span class=sd>    >>> for s in motipy_footer_bottom_comments(None, None):</span>
+<span class=sd>    ...     print(s[:49])</span>
+<span class=sd>    This data has been generated with moptipy version</span>
+<span class=sd>    You can find moptipy at https://thomasweise.githu</span>
+<span class=sd>    """</span>
+    <span class=k>yield</span> <span class=p>(</span><span class=s2>"This data has been generated with moptipy version "</span>
+           <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>moptipy_version</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>additional</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>additional</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>):</span>
+        <span class=k>yield</span> <span class=n>additional</span>
+    <span class=k>yield</span> <span class=s2>"You can find moptipy at https://thomasweise.github.io/mopitpy."</span></div>
+
+
+
+<span class=c1>#: a description of the algorithm field</span>
+<span class=n>DESC_ALGORITHM</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"the name of the algorithm setup that was used."</span>
+<span class=c1>#: a description of the instance field</span>
+<span class=n>DESC_INSTANCE</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=s2>"the name of the problem instance to which the "</span>
+                             <span class=s2>"algorithm was applied."</span><span class=p>)</span>
+<span class=c1>#: a description of the objective function field</span>
+<span class=n>DESC_OBJECTIVE_FUNCTION</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> \
+    <span class=p>(</span><span class=s2>"the name of the objective function (often also called fitness function "</span>
+     <span class=s2>"or cost function) that was used to rate the solution quality."</span><span class=p>)</span>
+<span class=c1>#: a description of the encoding field</span>
+<span class=n>DESC_ENCODING</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> \
+    <span class=p>(</span><span class=s2>"the name of the encoding, often also called genotype-phenotype mapping"</span>
+     <span class=s2>", used. In some problems, the search space on which the algorithm "</span>
+     <span class=s2>"works is different from the space of possible solutions. For example, "</span>
+     <span class=s2>"when solving a scheduling problem, maybe our optimization algorithm "</span>
+     <span class=s2>"navigates in the space of permutations, but the solutions are Gantt "</span>
+     <span class=s2>"charts. The encoding is the function that translates the points in "</span>
+     <span class=s2>"the search space (e.g., permutations) to the points in the solution "</span>
+     <span class=s2>"space (e.g., Gantt charts). Nothing if no encoding was used."</span><span class=p>)</span>
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.base</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

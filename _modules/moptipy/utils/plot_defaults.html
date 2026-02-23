@@ -1,0 +1,427 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.utils.plot_defaults — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/utils/plot_defaults.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.plot_defaults</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.utils.plot_defaults</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Default styles for plots."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>matplotlib.cm</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>mplcm</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>matplotlib.pyplot</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>plt</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib</span><span class=w> </span><span class=kn>import</span> <span class=n>colors</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=c1>#: The internal color black.</span>
+<span class=n>COLOR_BLACK</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span><span class=mf>0.0</span><span class=p>,</span> <span class=mf>0.0</span><span class=p>,</span> <span class=mf>0.0</span><span class=p>)</span>
+<span class=c1>#: The internal color white.</span>
+<span class=n>COLOR_WHITE</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span><span class=mf>1.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=str_to_palette>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_defaults.str_to_palette>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>str_to_palette</span><span class=p>(</span><span class=n>palette</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Obtain a palette from a string.</span>
+
+<span class=sd>    :param palette: the string with all the color data.</span>
+<span class=sd>    :returns: the palette</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>colors</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>colors</span><span class=p>,</span> <span class=s2>"colors"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=n>result</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>end</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+    <span class=n>length</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>palette</span><span class=p>)</span>
+    <span class=k>while</span> <span class=n>end</span> <span class=o><</span> <span class=n>length</span><span class=p>:</span>
+        <span class=n>start</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>end</span> <span class=o>+</span> <span class=mi>1</span>
+        <span class=n>end</span> <span class=o>=</span> <span class=n>length</span>
+        <span class=k>for</span> <span class=n>ch</span> <span class=ow>in</span> <span class=s2>"</span><span class=se>\n\r\t</span><span class=s2> ,;"</span><span class=p>:</span>
+            <span class=n>end_new</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>palette</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>ch</span><span class=p>,</span> <span class=n>start</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>start</span> <span class=o><</span> <span class=n>end_new</span> <span class=o><</span> <span class=n>end</span><span class=p>:</span>
+                <span class=n>end</span> <span class=o>=</span> <span class=n>end_new</span>
+        <span class=n>color</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>palette</span><span class=p>[</span><span class=n>start</span><span class=p>:</span><span class=n>end</span><span class=p>]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+        <span class=k>if</span> <span class=n>color</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=s2>"#"</span><span class=p>):</span>
+            <span class=n>color</span> <span class=o>=</span> <span class=n>color</span><span class=p>[</span><span class=mi>1</span><span class=p>:]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>color</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>color</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>6</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid color: </span><span class=si>{</span><span class=n>color</span><span class=si>!r}</span><span class=s2> in </span><span class=si>{</span><span class=n>palette</span><span class=si>!r}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>result</span><span class=o>.</span><span class=n>append</span><span class=p>((</span><span class=nb>int</span><span class=p>(</span><span class=n>color</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=mi>2</span><span class=p>],</span> <span class=mi>16</span><span class=p>)</span> <span class=o>/</span> <span class=mi>255</span><span class=p>,</span>
+                           <span class=nb>int</span><span class=p>(</span><span class=n>color</span><span class=p>[</span><span class=mi>2</span><span class=p>:</span><span class=mi>4</span><span class=p>],</span> <span class=mi>16</span><span class=p>)</span> <span class=o>/</span> <span class=mi>255</span><span class=p>,</span>
+                           <span class=nb>int</span><span class=p>(</span><span class=n>color</span><span class=p>[</span><span class=mi>4</span><span class=p>:</span><span class=mi>6</span><span class=p>],</span> <span class=mi>16</span><span class=p>)</span> <span class=o>/</span> <span class=mi>255</span><span class=p>))</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>result</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"empty colors: </span><span class=si>{</span><span class=n>palette</span><span class=si>!r}</span><span class=s2>"</span><span class=p>)</span>
+    <span class=k>return</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>result</span><span class=p>)</span></div>
+
+
+
+<span class=c1>#: A palette with 11 distinct colors.</span>
+<span class=n>__PALETTE_11</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=n>str_to_palette</span><span class=p>(</span>
+    <span class=s2>"ff0000 0000ff 00d900 a32626 ffa500 008833 7788ff cf00ff 770066 cccc00 "</span>
+    <span class=s2>"a0a9a0"</span><span class=p>)</span>
+
+<span class=c1>#: A palette with 21 distinct colors.</span>
+<span class=n>__PALETTE_21</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=n>str_to_palette</span><span class=p>(</span>
+    <span class=s2>"e6194b 3cb44b ffe119 0082c8 f58231 911eb4 46f0f0 f032e6 d2f53c fabebe "</span>
+    <span class=s2>"008080 e6beff aa6e28 cfca08 800000 aaffc3 808000 ffd8b1 000080 505000 "</span>
+    <span class=s2>"90a0a0"</span><span class=p>)</span>
+
+<span class=c1>#: A palette with 25 distinct colors.</span>
+<span class=n>__PALETTE_25</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=n>str_to_palette</span><span class=p>(</span>
+    <span class=s2>"20b2aa f0e68c b8860b ff00ff 00fa9a ee82ee 9acd32 dcdcdc 556b2f db7093 "</span>
+    <span class=s2>"00bfff 1e90ff 8a2be2 ff1493 008000 ffd700 000080 800000 7fff00 8b008b "</span>
+    <span class=s2>"0000ff 483d8b ff0000 696969 ff7f50"</span><span class=p>)</span>
+
+<span class=c1>#: A palette with 28 distinct colors.</span>
+<span class=n>__PALETTE_28</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=n>str_to_palette</span><span class=p>(</span>
+    <span class=s2>"545454 550000 b0b0ff bababa 878787 005500 550055 b000b0 e4e400 00b0b0 "</span>
+    <span class=s2>"00ffff 00ff00 878700 870087 005555 ff0000 0000ff baba00 00b000 ff00ff "</span>
+    <span class=s2>"870000 4949ff 008700 8484ff 008787 e4e4e4 545400 b00000"</span><span class=p>)</span>
+
+<span class=c1>#: A palette with 30 distinct colors.</span>
+<span class=n>__PALETTE_30</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=n>str_to_palette</span><span class=p>(</span>
+    <span class=s2>"00bfff ff1493 7f007f 8a2be2 1e90ff adff2f ffb6c1 fa8072 ffff54 90ee90 "</span>
+    <span class=s2>"ff4500 00ff00 483d8b ffa500 696969 add8e6 ff00ff 7f0000 8fbc8f da70d6 "</span>
+    <span class=s2>"006400 dc143c 00ff7f 008b8b 808000 b03060 00ffff 0000ff 000080 deb887 "</span><span class=p>)</span>
+
+<span class=c1>#: A palette with 35 distinct colors.</span>
+<span class=n>__PALETTE_35</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=n>str_to_palette</span><span class=p>(</span>
+    <span class=s2>"228b22 808080 9acd32 008080 483d8b 7f0000 d2b48c 00ff00 00008b 808000 "</span>
+    <span class=s2>"00ced1 8fbc8f 556b2f ffc0cb 1e90ff ffff54 800080 00bfff ff00ff 7b68ee "</span>
+    <span class=s2>"ff6347 9400d3 ffa500 7fffd4 b03060 ff0000 f08080 f4a460 00ff7f 98fb98 "</span>
+    <span class=s2>"f0e68c ff1493 0000ff b0e0e6 dda0dd"</span><span class=p>)</span>
+
+<span class=c1>#: A palette with 40 distinct colors.</span>
+<span class=n>__PALETTE_40</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=n>str_to_palette</span><span class=p>(</span>
+    <span class=s2>"ff00ff 7f007f a9a9a9 0000ff daa520 2f4f4f da70d6 ff8c00 ffc0cb afeeee "</span>
+    <span class=s2>"00008b 20b2aa 00ff00 f4a460 8b0000 008000 f08080 a0522d ff6347 808000 "</span>
+    <span class=s2>"bdb76b 98fb98 191970 ffe4c4 ffff00 4682b4 32cd32 1e90ff 3cb371 ff1493 "</span>
+    <span class=s2>"b03060 7fffd4 556b2f dda0dd adff2f 7b68ee 9acd32 ff0000 00bfff 9400d3 "</span><span class=p>)</span>
+
+<span class=c1>#: A palette with 45 distinct colors.</span>
+<span class=n>__PALETTE_45</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=n>str_to_palette</span><span class=p>(</span>
+    <span class=s2>"ffb60c 00008b 8b4513 e9967a a020f0 ff0000 6a5acd 808080 008b8b 00ff00 "</span>
+    <span class=s2>"90ee90 4682b4 daa520 7f007f ffd700 00bfff 00ced1 556b2f c0c0c0 008000 "</span>
+    <span class=s2>"ff69b4 dda0dd adff2f 3cb371 8b0000 0000ff f5deb3 32cd32 1e90ff b03060 "</span>
+    <span class=s2>"ff7f50 cd5c5c ff00ff 7fffd4 6b8e23 dc143c 9acd32 afeeee 2f4f4f 00fa9a "</span>
+    <span class=s2>"191970 8fbc8f ba55d3 ff8c00 bdb76b"</span><span class=p>)</span>
+
+<span class=c1>#: A palette with 50 distinct colors.</span>
+<span class=n>__PALETTE_50</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=n>str_to_palette</span><span class=p>(</span>
+    <span class=s2>"7fffd4 000080 00ff7f 483d8b 008000 afeeee ffc0cb daa520 ffd700 ff8c00 "</span>
+    <span class=s2>"87cefa ff00ff c0c0c0 cd5c5c 00ff00 adff2f e9967a ffff00 dc143c cd853f "</span>
+    <span class=s2>"9932cc 98fb98 708090 800000 ee82ee 800080 8fbc8f 4682b4 dda0dd 32cd32 "</span>
+    <span class=s2>"a020f0 48d1cc a0522d ff1493 ff69b4 f0e68c 9370db 2f4f4f ff0000 6b8e23 "</span>
+    <span class=s2>"556b2f ff6347 f5deb3 008b8b db7093 0000cd 9acd32 3cb371 0000ff 6495ed"</span><span class=p>)</span>
+
+<span class=c1>#: A palette with 60 distinct colors.</span>
+<span class=n>__PALETTE_60</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=n>str_to_palette</span><span class=p>(</span>
+    <span class=s2>"d2b48c 191970 000080 20b2aa bc8f8f 2f4f4f 8b4513 ff4500 dc143c afeeee "</span>
+    <span class=s2>"db7093 c71585 bdb76b b03060 708090 00ffff 6495ed 808000 f08080 b8860b "</span>
+    <span class=s2>"cd853f 556b2f ffa07a 008080 eee8aa dda0dd ee82ee 7fffd4 9370db 7f007f "</span>
+    <span class=s2>"d8bfd8 9acd32 4682b4 98fb98 00ff00 9932cc 0000cd d2691e 00fa9a ff8c00 "</span>
+    <span class=s2>"663399 a9a9a9 ffff00 32cd32 8b0000 4169e1 8fbc8f 0000ff ff69b4 008000 "</span>
+    <span class=s2>"ffb6c1 00bfff ffd700 ff1493 ff00ff 3cb371 a020f0 87ceeb ff6347 adff2f"</span><span class=p>)</span>
+
+<span class=c1>#: A palette with 70 distinct colors.</span>
+<span class=n>__PALETTE_70</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=n>str_to_palette</span><span class=p>(</span>
+    <span class=s2>"b8860b a52a2a ffe4c4 663399 da70d6 a020f0 eee8aa 9acd32 ba55d3 ff8c00 "</span>
+    <span class=s2>"00008b 2e8b57 66cdaa 2f4f4f 0000cd 32cd32 556b2f adff2f 7fffd4 00ff00 "</span>
+    <span class=s2>"008b8b 4b0082 ffd700 00bfff 6b8e23 48d1cc b03060 778899 ffff54 ff0000 "</span>
+    <span class=s2>"00ff7f d2b48c 3cb371 bc8f8f b0e0e6 ffc0cb dcdcdc ff00ff cd5c5c 6495ed "</span>
+    <span class=s2>"0000ff 9370db dc143c a9a9a9 bdb76b f4a460 c71585 e9967a 4682b4 db7093 "</span>
+    <span class=s2>"483d8b 8b008b 87cefa 7fff00 dda0dd 006400 9932cc 808000 ff1493 191970 "</span>
+    <span class=s2>"4169e1 ff6347 b0c4de ff69b4 d2691e 00ffff 98fb98 ffff00 a0522d 8fbc8f"</span><span class=p>)</span>
+
+<span class=c1>#: A palette with 80 distinct colors.</span>
+<span class=n>__PALETTE_80</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=n>str_to_palette</span><span class=p>(</span>
+    <span class=s2>"eee8aa bdb76b 2e8b57 0000ff 1e90ff cd5c5c ffd700 90ee90 00ffff ba55d3 "</span>
+    <span class=s2>"d3d3d3 40e0d0 ff0000 b0c4de 008000 0000cd 00bfff ffa07a ff00ff 778899 "</span>
+    <span class=s2>"dc143c cd853f 556b2f 9acd32 9400d3 663399 b03060 ffdab9 b22222 ffa500 "</span>
+    <span class=s2>"7fffd4 4169e1 dda0dd 8fbc8f ffff00 ff1493 191970 00008b 9932cc 006400 "</span>
+    <span class=s2>"483d8b 808000 696969 00ff7f d8bfd8 d2691e 4682b4 a9a9a9 c71585 5f9ea0 "</span>
+    <span class=s2>"ffc0cb 7f0000 800080 ee82ee 008080 4b0082 ffff54 9370db 8b4513 ff6347 "</span>
+    <span class=s2>"daa520 87cefa adff2f ff8c00 6b8e23 deb887 00fa9a 66cdaa 7b68ee fa8072 "</span>
+    <span class=s2>"ff69b4 db7093 b0e0e6 00ff00 2f4f4f bc8f8f 32cd32 3cb371 20b2aa 7cfc00"</span><span class=p>)</span>
+
+<span class=c1>#: A palette with 90 distinct colors.</span>
+<span class=n>__PALETTE_90</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=n>str_to_palette</span><span class=p>(</span>
+    <span class=s2>"fa8072 ffff54 0000cd 32cd32 dc143c 40e0d0 ff8c00 9932cc 7b68ee 800000 "</span>
+    <span class=s2>"4b0082 008000 afeeee ee82ee ffd700 6a5acd 2e8b57 eee8aa a9a9a9 ff69b4 "</span>
+    <span class=s2>"b8860b c71585 ff4500 7fff00 2f4f4f 00ff7f ffa500 add8e6 008b8b bdb76b "</span>
+    <span class=s2>"ff00ff cd853f f0e68c 808080 db7093 800080 a0522d 87ceeb 3cb371 9400d3 "</span>
+    <span class=s2>"b0c4de daa520 b03060 dda0dd 66cdaa 6b8e23 d3d3d3 4682b4 9acd32 4169e1 "</span>
+    <span class=s2>"ff7f50 5f9ea0 f08080 00fa9a 00ced1 808000 adff2f 0000ff d2691e ff1493 "</span>
+    <span class=s2>"ff6347 ffdead 20b2aa 006400 7fffd4 483d8b cd5c5c f4a460 8fbc8f 663399 "</span>
+    <span class=s2>"d8bfd8 9370db b22222 d2b48c ffff00 ba55d3 bc8f8f ffb6c1 6495ed e9967a "</span>
+    <span class=s2>"ff0000 000080 00ff00 191970 90ee90 00ffff 778899 1e90ff 00bfff 556b2f"</span><span class=p>)</span>
+
+<span class=c1>#: A palette with 100 distinct colors.</span>
+<span class=n>__PALETTE_100</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=n>str_to_palette</span><span class=p>(</span>
+    <span class=s2>"bdb76b 8a2be2 bc8f8f eee8aa 8fbc8f a020f0 ff4500 2f4f4f 000080 ff6347 "</span>
+    <span class=s2>"6b8e23 808080 663399 afeeee dcdcdc ff8c00 3cb371 191970 4682b4 7cfc00 "</span>
+    <span class=s2>"ee82ee 32cd32 9370db ff1493 00ff00 6a5acd adff2f 006400 00fa9a ffd700 "</span>
+    <span class=s2>"d2691e c0c0c0 00ff7f ba55d3 add8e6 ffff00 6495ed 8b008b 48d1cc 87cefa "</span>
+    <span class=s2>"fa8072 deb887 b22222 7b68ee b8860b 90ee90 8b4513 9acd32 cd853f f08080 "</span>
+    <span class=s2>"ff00ff da70d6 9400d3 ff69b4 ffe4b5 556b2f 8b0000 1e90ff e9967a 696969 "</span>
+    <span class=s2>"c71585 ffa07a f0e68c a9a9a9 20b2aa a0522d 87ceeb 0000ff 008000 daa520 "</span>
+    <span class=s2>"00ffff b03060 483d8b ffb6c1 dda0dd ff0000 9932cc 708090 cd5c5c 4b0082 "</span>
+    <span class=s2>"ffa500 0000cd dc143c a52a2a 008080 7fffd4 5f9ea0 b0c4de d8bfd8 808000 "</span>
+    <span class=s2>"db7093 f4a460 2e8b57 ffff54 40e0d0 66cdaa ffe4c4 ff7f50 4169e1 00bfff"</span><span class=p>)</span>
+
+<span class=c1>#: A palette with 110 distinct colors.</span>
+<span class=n>__PALETTE_110</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=n>str_to_palette</span><span class=p>(</span>
+    <span class=s2>"0000ff 556b2f ff4500 000080 f5deb3 ff1493 00008b 0000cd ff8c00 ffc0cb "</span>
+    <span class=s2>"fa8072 696969 da70d6 8b4513 d2691e 00fa9a 008080 c71585 bdb76b 40e0d0 "</span>
+    <span class=s2>"6495ed daa520 5f9ea0 ffe4c4 f4a460 ba55d3 228b22 00ced1 00ffff 66cdaa "</span>
+    <span class=s2>"b03060 9400d3 f08080 dc143c adff2f 00ff00 9932cc ee82ee 8a2be2 32cd32 "</span>
+    <span class=s2>"afeeee 191970 808080 9acd32 90ee90 b22222 a0522d ff00ff 006400 c0c0c0 "</span>
+    <span class=s2>"2f4f4f d3d3d3 cd853f 98fb98 9370db 4169e1 4b0082 00ff7f ff7f50 8fbc8f "</span>
+    <span class=s2>"8b0000 eee8aa dda0dd 008000 ffa500 ff6347 ff69b4 d8bfd8 ffa07a 4682b4 "</span>
+    <span class=s2>"b0c4de 2e8b57 ff0000 00bfff f0e68c 7f0000 b8860b d2b48c ffff54 1e90ff "</span>
+    <span class=s2>"e9967a 3cb371 87cefa 87ceeb 6a5acd ffd700 708090 bc8f8f 7b68ee 6b8e23 "</span>
+    <span class=s2>"a52a2a 7fffd4 ffdead ffdab9 808000 483d8b 20b2aa a020f0 48d1cc db7093 "</span>
+    <span class=s2>"a9a9a9 663399 b0e0e6 deb887 7f007f 7fff00 8b008b ffff00 cd5c5c add8e6"</span><span class=p>)</span>
+
+
+<span class=c1>#: A set of predefined uniquely-looking colors.</span>
+<span class=n>__FIXED_COLORS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span>
+    <span class=n>__PALETTE_11</span><span class=p>,</span> <span class=n>__PALETTE_21</span><span class=p>,</span> <span class=n>__PALETTE_25</span><span class=p>,</span> <span class=n>__PALETTE_28</span><span class=p>,</span> <span class=n>__PALETTE_30</span><span class=p>,</span>
+    <span class=n>__PALETTE_35</span><span class=p>,</span> <span class=n>__PALETTE_40</span><span class=p>,</span> <span class=n>__PALETTE_45</span><span class=p>,</span> <span class=n>__PALETTE_50</span><span class=p>,</span> <span class=n>__PALETTE_60</span><span class=p>,</span>
+    <span class=n>__PALETTE_70</span><span class=p>,</span> <span class=n>__PALETTE_80</span><span class=p>,</span> <span class=n>__PALETTE_90</span><span class=p>,</span> <span class=n>__PALETTE_100</span><span class=p>,</span> <span class=n>__PALETTE_110</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=distinct_colors>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_defaults.distinct_colors>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>distinct_colors</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Obtain a set of `n` distinct colors.</span>
+
+<span class=sd>    :param n: the number of colors required</span>
+<span class=sd>    :return: a tuple of colors</span>
+<span class=sd>    """</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1000</span><span class=p>)</span>
+
+    <span class=c1># First, let us see if we can cover the range with hand-picked colors.</span>
+    <span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=n>__FIXED_COLORS</span><span class=p>:</span>
+        <span class=n>lk</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>k</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>lk</span> <span class=o>>=</span> <span class=n>n</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>lk</span> <span class=o>==</span> <span class=n>n</span><span class=p>:</span>
+                <span class=k>return</span> <span class=n>k</span>
+            <span class=k>return</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>k</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=n>n</span><span class=p>])</span>
+
+    <span class=c1># Second, let's see whether the method from</span>
+    <span class=c1># https://stackoverflow.com/questions/8389636</span>
+    <span class=c1># works.</span>
+    <span class=c1># This method does not seem to make good use of the available color space.</span>
+    <span class=c1># Since we use it only for cases with more than 110 colors, that's OK.</span>
+    <span class=n>cm</span> <span class=o>=</span> <span class=n>plt</span><span class=o>.</span><span class=n>get_cmap</span><span class=p>(</span><span class=s2>"gist_rainbow"</span><span class=p>)</span>
+    <span class=n>c_norm</span> <span class=o>=</span> <span class=n>colors</span><span class=o>.</span><span class=n>Normalize</span><span class=p>(</span><span class=n>vmin</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>vmax</span><span class=o>=</span><span class=n>n</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span>
+    <span class=n>scalar_map</span> <span class=o>=</span> <span class=n>mplcm</span><span class=o>.</span><span class=n>ScalarMappable</span><span class=p>(</span><span class=n>norm</span><span class=o>=</span><span class=n>c_norm</span><span class=p>,</span> <span class=n>cmap</span><span class=o>=</span><span class=n>cm</span><span class=p>)</span>
+    <span class=n>qq</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"list[tuple[float, float, float]]"</span><span class=p>,</span>
+              <span class=p>[</span><span class=nb>tuple</span><span class=p>(</span><span class=n>scalar_map</span><span class=o>.</span><span class=n>to_rgba</span><span class=p>(</span><span class=n>cast</span><span class=p>(</span><span class=s2>"np.ndarray"</span><span class=p>,</span> <span class=n>i</span><span class=p>))[</span><span class=mi>0</span><span class=p>:</span><span class=mi>3</span><span class=p>])</span>
+               <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>np</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=n>n</span><span class=p>)])</span>
+    <span class=n>ss</span> <span class=o>=</span> <span class=nb>set</span><span class=p>(</span><span class=n>qq</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>ss</span><span class=p>)</span> <span class=o>==</span> <span class=n>n</span><span class=p>:</span>
+        <span class=k>return</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>qq</span><span class=p>)</span>
+
+    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Could not obtain </span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2> distinct colors."</span><span class=p>)</span></div>
+
+
+
+<span class=c1>#: The solid line dash</span>
+<span class=n>LINE_DASH_SOLID</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"solid"</span>
+
+<span class=c1>#: An internal array of fixed line styles.</span>
+<span class=n>__FIXED_LINE_DASHES</span><span class=p>:</span> \
+    <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> \
+    <span class=p>(</span><span class=n>LINE_DASH_SOLID</span><span class=p>,</span>
+     <span class=s2>"dashed"</span><span class=p>,</span>
+     <span class=s2>"dashdot"</span><span class=p>,</span>
+     <span class=s2>"dotted"</span><span class=p>,</span>
+     <span class=p>(</span><span class=mf>0.0</span><span class=p>,</span> <span class=p>(</span><span class=mf>3.0</span><span class=p>,</span> <span class=mf>5.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>,</span> <span class=mf>5.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>,</span> <span class=mf>5.0</span><span class=p>)),</span>  <span class=c1># dashdotdotted</span>
+     <span class=p>(</span><span class=mf>0.0</span><span class=p>,</span> <span class=p>(</span><span class=mf>3.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>)),</span>  <span class=c1># densely dashdotted</span>
+     <span class=p>(</span><span class=mf>0.0</span><span class=p>,</span> <span class=p>(</span><span class=mf>5.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>)),</span>  <span class=c1># densely dashed</span>
+     <span class=p>(</span><span class=mf>0.0</span><span class=p>,</span> <span class=p>(</span><span class=mf>1.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>)),</span>  <span class=c1># densely dotted</span>
+     <span class=p>(</span><span class=mf>0.0</span><span class=p>,</span> <span class=p>(</span><span class=mf>3.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>)),</span>  <span class=c1># densely dashdotdotted</span>
+     <span class=p>(</span><span class=mf>0.0</span><span class=p>,</span> <span class=p>(</span><span class=mf>1.0</span><span class=p>,</span> <span class=mf>10.0</span><span class=p>)),</span>  <span class=c1># loosely dotted</span>
+     <span class=p>(</span><span class=mf>0.0</span><span class=p>,</span> <span class=p>(</span><span class=mf>5.0</span><span class=p>,</span> <span class=mf>10.0</span><span class=p>)),</span>  <span class=c1># loosely dashed</span>
+     <span class=p>(</span><span class=mf>0.0</span><span class=p>,</span> <span class=p>(</span><span class=mf>3.0</span><span class=p>,</span> <span class=mf>10.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>,</span> <span class=mf>10.0</span><span class=p>)),</span>  <span class=c1># loosely dashdotted</span>
+     <span class=p>(</span><span class=mf>0.0</span><span class=p>,</span> <span class=p>(</span><span class=mf>3.0</span><span class=p>,</span> <span class=mf>10.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>,</span> <span class=mf>10.0</span><span class=p>,</span> <span class=mf>1.0</span><span class=p>,</span> <span class=mf>10.0</span><span class=p>)))</span>  <span class=c1># loosely dashdotdotted</span>
+
+
+<div class=viewcode-block id=distinct_line_dashes>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_defaults.distinct_line_dashes>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>distinct_line_dashes</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> \
+        <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]],</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create a sequence of distinct line dashes.</span>
+
+<span class=sd>    :param n: the number of styles</span>
+<span class=sd>    :return: the styles</span>
+<span class=sd>    """</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>__FIXED_LINE_DASHES</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>n</span> <span class=o>==</span> <span class=n>__FIXED_LINE_DASHES</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>__FIXED_LINE_DASHES</span>
+    <span class=k>return</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>__FIXED_LINE_DASHES</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=n>n</span><span class=p>])</span></div>
+
+
+
+<span class=c1>#: The fixed predefined distinct markers</span>
+<span class=n>__FIXED_MARKERS</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=s2>"o"</span><span class=p>,</span> <span class=s2>"^"</span><span class=p>,</span> <span class=s2>"s"</span><span class=p>,</span> <span class=s2>"P"</span><span class=p>,</span> <span class=s2>"X"</span><span class=p>,</span> <span class=s2>"D"</span><span class=p>,</span> <span class=s2>"*"</span><span class=p>,</span> <span class=s2>"p"</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=distinct_markers>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_defaults.distinct_markers>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>distinct_markers</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create a sequence of distinct markers.</span>
+
+<span class=sd>    :param n: the number of markers</span>
+<span class=sd>    :return: the markers</span>
+<span class=sd>    """</span>
+    <span class=n>lfm</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>__FIXED_MARKERS</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=n>lfm</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>n</span> <span class=o>==</span> <span class=n>lfm</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>__FIXED_MARKERS</span>
+    <span class=k>return</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>__FIXED_MARKERS</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=n>n</span><span class=p>])</span></div>
+
+
+
+<div class=viewcode-block id=importance_to_line_width>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_defaults.importance_to_line_width>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>importance_to_line_width</span><span class=p>(</span><span class=n>importance</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Transform an importance value to a line width.</span>
+
+<span class=sd>    Basically, an importance of `0` indicates a normal line in a normal</span>
+<span class=sd>    plot that does not need to be emphasized.</span>
+<span class=sd>    A positive importance means that the line should be emphasized.</span>
+<span class=sd>    A negative importance means that the line should be de-emphasized.</span>
+
+<span class=sd>    :param importance: a value between -9 and 9</span>
+<span class=sd>    :return: the line width</span>
+<span class=sd>    """</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>importance</span><span class=p>,</span> <span class=s2>"importance"</span><span class=p>,</span> <span class=o>-</span><span class=mi>9</span><span class=p>,</span> <span class=mi>9</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>importance</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>return</span> <span class=mf>2.0</span> <span class=o>*</span> <span class=p>(</span><span class=mf>0.5</span> <span class=o>+</span> <span class=n>importance</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>importance</span> <span class=o>==</span> <span class=o>-</span><span class=mi>1</span><span class=p>:</span>
+        <span class=k>return</span> <span class=mf>2.0</span> <span class=o>/</span> <span class=mf>3.0</span>
+    <span class=k>if</span> <span class=n>importance</span> <span class=o>==</span> <span class=o>-</span><span class=mi>2</span><span class=p>:</span>
+        <span class=k>return</span> <span class=mf>0.5</span>
+    <span class=k>return</span> <span class=mf>0.7</span> <span class=o>**</span> <span class=p>(</span><span class=o>-</span><span class=n>importance</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=importance_to_alpha>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_defaults.importance_to_alpha>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>importance_to_alpha</span><span class=p>(</span><span class=n>importance</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Transform an importance value to an alpha value.</span>
+
+<span class=sd>    Basically, an importance of `0` indicates a normal line in a normal</span>
+<span class=sd>    plot that does not need to be emphasized.</span>
+<span class=sd>    A positive importance means that the line should be emphasized.</span>
+<span class=sd>    A negative importance means that the line should be de-emphasized.</span>
+
+<span class=sd>    :param importance: a value between -9 and 9</span>
+<span class=sd>    :return: the alpha</span>
+<span class=sd>    """</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>importance</span><span class=p>,</span> <span class=s2>"importance"</span><span class=p>,</span> <span class=o>-</span><span class=mi>9</span><span class=p>,</span> <span class=mi>9</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>importance</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>return</span> <span class=mf>1.0</span>
+    <span class=k>if</span> <span class=n>importance</span> <span class=o>==</span> <span class=o>-</span><span class=mi>1</span><span class=p>:</span>
+        <span class=k>return</span> <span class=mf>2.0</span> <span class=o>/</span> <span class=mf>3.0</span>
+    <span class=k>if</span> <span class=n>importance</span> <span class=o>==</span> <span class=o>-</span><span class=mi>2</span><span class=p>:</span>
+        <span class=k>return</span> <span class=mf>0.5</span>
+    <span class=k>return</span> <span class=mf>1.0</span> <span class=o>/</span> <span class=mf>3.0</span></div>
+
+
+
+<span class=c1>#: The internal default basic style</span>
+<span class=n>__BASE_LINE_STYLE</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>object</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{</span>
+    <span class=s2>"alpha"</span><span class=p>:</span> <span class=mf>1.0</span><span class=p>,</span>
+    <span class=s2>"antialiased"</span><span class=p>:</span> <span class=kc>True</span><span class=p>,</span>
+    <span class=s2>"color"</span><span class=p>:</span> <span class=n>COLOR_BLACK</span><span class=p>,</span>
+    <span class=s2>"dash_capstyle"</span><span class=p>:</span> <span class=s2>"butt"</span><span class=p>,</span>
+    <span class=s2>"dash_joinstyle"</span><span class=p>:</span> <span class=s2>"round"</span><span class=p>,</span>
+    <span class=s2>"linestyle"</span><span class=p>:</span> <span class=n>LINE_DASH_SOLID</span><span class=p>,</span>
+    <span class=s2>"linewidth"</span><span class=p>:</span> <span class=mf>1.0</span><span class=p>,</span>
+    <span class=s2>"solid_capstyle"</span><span class=p>:</span> <span class=s2>"round"</span><span class=p>,</span>
+    <span class=s2>"solid_joinstyle"</span><span class=p>:</span> <span class=s2>"round"</span><span class=p>,</span>
+<span class=p>}</span>
+
+
+<div class=viewcode-block id=create_line_style>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_defaults.create_line_style>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>create_line_style</span><span class=p>(</span><span class=o>**</span><span class=n>kwargs</span><span class=p>)</span> <span class=o>-></span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>object</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Obtain the basic style for lines in diagrams.</span>
+
+<span class=sd>    :param kwargs: any additional overrides</span>
+<span class=sd>    :return: a dictionary with the style elements</span>
+<span class=sd>    """</span>
+    <span class=n>res</span> <span class=o>=</span> <span class=nb>dict</span><span class=p>(</span><span class=n>__BASE_LINE_STYLE</span><span class=p>)</span>
+    <span class=n>res</span><span class=o>.</span><span class=n>update</span><span class=p>(</span><span class=n>kwargs</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>res</span></div>
+
+
+
+<div class=viewcode-block id=importance_to_font_size>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_defaults.importance_to_font_size>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>importance_to_font_size</span><span class=p>(</span><span class=n>importance</span><span class=p>:</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Transform an importance value to a font size.</span>
+
+<span class=sd>    :param importance: the importance value</span>
+<span class=sd>    :return: the font size</span>
+<span class=sd>    """</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>importance</span><span class=p>,</span> <span class=s2>"importance"</span><span class=p>,</span> <span class=o>-</span><span class=mi>9</span><span class=p>,</span> <span class=mi>9</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>importance</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>return</span> <span class=mf>7.5</span>
+    <span class=k>if</span> <span class=n>importance</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>return</span> <span class=mf>8.0</span>
+    <span class=k>if</span> <span class=n>importance</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+        <span class=k>return</span> <span class=mf>8.5</span>
+    <span class=k>if</span> <span class=n>importance</span> <span class=o>==</span> <span class=mi>2</span><span class=p>:</span>
+        <span class=k>return</span> <span class=mf>9.0</span>
+    <span class=k>if</span> <span class=n>importance</span> <span class=o>==</span> <span class=mi>3</span><span class=p>:</span>
+        <span class=k>return</span> <span class=mf>10.0</span>
+    <span class=k>return</span> <span class=mf>11.0</span></div>
+
+
+
+<span class=c1>#: The default grid color</span>
+<span class=n>GRID_COLOR</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> \
+    <span class=p>(</span><span class=mf>7.0</span> <span class=o>/</span> <span class=mf>11.0</span><span class=p>,</span> <span class=mf>7.0</span> <span class=o>/</span> <span class=mf>11.0</span><span class=p>,</span> <span class=mf>7.0</span> <span class=o>/</span> <span class=mf>11.0</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=rgb_to_gray>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_defaults.rgb_to_gray>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>rgb_to_gray</span><span class=p>(</span><span class=n>r</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>g</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>b</span><span class=p>:</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Convert RGB values to gray scale.</span>
+
+<span class=sd>    :param r: the red value</span>
+<span class=sd>    :param g: the green value</span>
+<span class=sd>    :param b: the blue value</span>
+<span class=sd>    :return: the gray value</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=p>(</span><span class=mf>0.2989</span> <span class=o>*</span> <span class=n>r</span><span class=p>)</span> <span class=o>+</span> <span class=p>(</span><span class=mf>0.5870</span> <span class=o>*</span> <span class=n>g</span><span class=p>)</span> <span class=o>+</span> <span class=p>(</span><span class=mf>0.1140</span> <span class=o>*</span> <span class=n>b</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=text_color_for_background>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_defaults.text_color_for_background>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>text_color_for_background</span><span class=p>(</span><span class=n>background</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>])</span> \
+        <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get a reasonable text color for a given background color.</span>
+
+<span class=sd>    :param background: the background color</span>
+<span class=sd>    :return: the text color</span>
+<span class=sd>    """</span>
+    <span class=n>br</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>background</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+    <span class=n>bg</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>background</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span>
+    <span class=n>bb</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>background</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span>
+    <span class=n>bgg</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>rgb_to_gray</span><span class=p>(</span><span class=n>br</span><span class=p>,</span> <span class=n>bg</span><span class=p>,</span> <span class=n>bb</span><span class=p>)</span>
+
+    <span class=k>return</span> <span class=n>COLOR_WHITE</span> <span class=k>if</span> <span class=n>bgg</span> <span class=o><</span> <span class=mf>0.3</span> <span class=k>else</span> <span class=n>COLOR_BLACK</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.plot_defaults</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

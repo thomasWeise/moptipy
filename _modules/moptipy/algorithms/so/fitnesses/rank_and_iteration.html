@@ -1,0 +1,94 @@
+<!doctype html><html data-content_root=../../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.fitnesses.rank_and_iteration — moptipy 0.9.172 documentation</title><link href="../../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/fitnesses/rank_and_iteration.html rel=canonical><link href=../../../../../genindex.html rel=index title=Index><link href=../../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.fitnesses.rank_and_iteration</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.fitnesses.rank_and_iteration</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>A fitness combining the rank of a solution with the iteration of its creation.</span>
+
+<span class=sd>This fitness assignment process is compatible with the simple (mu+lambda)</span>
+<span class=sd>Evolutionary Algorithm implemented in :class:`~moptipy.algorithms.so.ea.EA`.</span>
+<span class=sd>It will assign a better fitness to a solution which has a better objective</span>
+<span class=sd>value. Ties will be broken based on the iteration counter</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.record.Record.it` of the solution records</span>
+<span class=sd>:class:`~moptipy.algorithms.so.record.Record`.</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.fitness</span><span class=w> </span><span class=kn>import</span> <span class=n>Fitness</span><span class=p>,</span> <span class=n>FRecord</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=RankAndIteration>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.fitnesses.html#moptipy.algorithms.so.fitnesses.rank_and_iteration.RankAndIteration>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>RankAndIteration</span><span class=p>(</span><span class=n>Fitness</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A fitness joining objective rank and creation iteration.</span>
+
+<span class=sd>    The fitness assignment strategy will use two pieces of information to</span>
+<span class=sd>    determine the fitness of a solution:</span>
+
+<span class=sd>    1. the rank the solutions by their objective values</span>
+<span class=sd>       (:attr:`~moptipy.algorithms.so.record.Record.f`). If two solutions have</span>
+<span class=sd>       the same fitness, they get the same rank, but the next-worst solution</span>
+<span class=sd>       will then get a rank with is larger by 2.</span>
+<span class=sd>    2. the iteration index (:attr:`~moptipy.algorithms.so.record.Record.it`)</span>
+<span class=sd>       relative to the maximum and minimum iteration index.</span>
+
+<span class=sd>    It will multiply the rank of the solution with the range of the iteration</span>
+<span class=sd>    index in the population and then add the maximum iteration index minus the</span>
+<span class=sd>    iteration index of the solution, i.e.,</span>
+
+<span class=sd>    `fitness(x) = rank(f(x)) * (max_it - min_it + 1)  +  (max_it - it(x))`</span>
+
+<span class=sd>    This way, better solutions receive better fitness and ties are broken such</span>
+<span class=sd>    that younger solutions (with higher iteration index) are preferred.</span>
+<span class=sd>    In combination with best selection</span>
+<span class=sd>    (:class:`moptipy.algorithms.modules.selections.best.Best`),</span>
+<span class=sd>    this replicates the behavior of our simple (mu+lambda) Evolutionary</span>
+<span class=sd>    Algorithm (:class:`~moptipy.algorithms.so.ea.EA`).</span>
+<span class=sd>    """</span>
+
+<div class=viewcode-block id=RankAndIteration.assign_fitness>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.fitnesses.html#moptipy.algorithms.so.fitnesses.rank_and_iteration.RankAndIteration.assign_fitness>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>assign_fitness</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>p</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>FRecord</span><span class=p>],</span> <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Assign the rank and iteration fitness.</span>
+
+<span class=sd>        :param p: the list of records</span>
+<span class=sd>        :param random: ignored</span>
+<span class=sd>        """</span>
+        <span class=n>min_it</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>9_223_372_036_854_775_808</span>  <span class=c1># minimum iteration index</span>
+        <span class=n>max_it</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>  <span class=c1># the maximum iteration index</span>
+
+        <span class=c1># In the first iteration, we assign objective value as fitness</span>
+        <span class=c1># (for sorting) and get the bounds of the iteration indices.</span>
+        <span class=k>for</span> <span class=n>rec</span> <span class=ow>in</span> <span class=n>p</span><span class=p>:</span>  <span class=c1># iterate over list p</span>
+            <span class=n>rec</span><span class=o>.</span><span class=n>fitness</span> <span class=o>=</span> <span class=n>rec</span><span class=o>.</span><span class=n>f</span>  <span class=c1># set f as fitness for sorting</span>
+            <span class=n>it</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>rec</span><span class=o>.</span><span class=n>it</span>  <span class=c1># get iteration index from record</span>
+            <span class=n>min_it</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>min_it</span><span class=p>,</span> <span class=n>it</span><span class=p>)</span>
+            <span class=n>max_it</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>max_it</span><span class=p>,</span> <span class=n>it</span><span class=p>)</span>
+        <span class=n>p</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>  <span class=c1># sort based on objective values</span>
+
+        <span class=n>it_range</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>max_it</span> <span class=o>-</span> <span class=n>min_it</span> <span class=o>+</span> <span class=mi>1</span>  <span class=c1># range of it index</span>
+        <span class=n>rank</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>  <span class=c1># the variable for storing the current rank</span>
+        <span class=n>last_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span>  <span class=c1># the previous objective value</span>
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>rec</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>p</span><span class=p>):</span>  <span class=c1># iterate over list</span>
+            <span class=n>v</span> <span class=o>=</span> <span class=n>rec</span><span class=o>.</span><span class=n>fitness</span>  <span class=c1># get the current objective value</span>
+            <span class=k>if</span> <span class=n>v</span> <span class=o>></span> <span class=n>last_f</span><span class=p>:</span>  <span class=c1># only increase rank if objective f changes</span>
+                <span class=n>rank</span> <span class=o>=</span> <span class=n>i</span> <span class=o>+</span> <span class=mi>1</span>  <span class=c1># +1 so smallest-possible fitness is 1</span>
+                <span class=n>last_f</span> <span class=o>=</span> <span class=n>v</span>  <span class=c1># remember objective value for comparison</span>
+            <span class=n>rec</span><span class=o>.</span><span class=n>fitness</span> <span class=o>=</span> <span class=p>(</span><span class=n>rank</span> <span class=o>*</span> <span class=n>it_range</span><span class=p>)</span> <span class=o>+</span> <span class=n>max_it</span> <span class=o>-</span> <span class=n>rec</span><span class=o>.</span><span class=n>it</span></div>
+
+<span class=c1># end book</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this fitness assignment.</span>
+
+<span class=sd>        :return: the name of this fitness assignment strategy</span>
+<span class=sd>        :retval "rankAndIt": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"rankAndIt"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.fitnesses.rank_and_iteration</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

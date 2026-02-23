@@ -1,0 +1,34 @@
+moptipy.algorithms.modules package
+==================================
+
+.. automodule:: moptipy.algorithms.modules
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   moptipy.algorithms.modules.selections
+
+Submodules
+----------
+
+moptipy.algorithms.modules.selection module
+-------------------------------------------
+
+.. automodule:: moptipy.algorithms.modules.selection
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.modules.temperature\_schedule module
+-------------------------------------------------------
+
+.. automodule:: moptipy.algorithms.modules.temperature_schedule
+   :members:
+   :show-inheritance:
+   :undoc-members:

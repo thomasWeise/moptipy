@@ -1,0 +1,132 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.bitstrings — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/bitstrings.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.bitstrings</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Example for bit-string based objective functions.</span>
+
+<span class=sd>The problems noted here are mainly well-known benchmark problems from the</span>
+<span class=sd>discrete optimization community. For these problems, we designed the dedicated</span>
+<span class=sd>base class :class:`~moptipy.examples.bitstrings.bitstring_problem.\</span>
+<span class=sd>BitStringProblem`.</span>
+
+<span class=sd>The following benchmark problems are provided:</span>
+
+<span class=sd>1.  The :mod:`~moptipy.examples.bitstrings.onemax` problem, where the</span>
+<span class=sd>    goal is to find a bit string with the maximum number of ones.</span>
+<span class=sd>2.  The :mod:`~moptipy.examples.bitstrings.leadingones` problem,</span>
+<span class=sd>    where the goal is to find a bit string with the maximum number of leading</span>
+<span class=sd>    ones.</span>
+<span class=sd>3.  The :mod:`~moptipy.examples.bitstrings.linearharmonic` problem,</span>
+<span class=sd>    where the goal is to find a bit string with the all ones, like in</span>
+<span class=sd>    :mod:`~moptipy.examples.bitstrings.onemax`, but this time all bits have</span>
+<span class=sd>    a different weight (namely their index, starting at 1).</span>
+<span class=sd>4.  The :mod:`~moptipy.examples.bitstrings.binint` problem,</span>
+<span class=sd>    is again similar to :mod:`~moptipy.examples.bitstrings.onemax`, but the</span>
+<span class=sd>    bits have exponential weight. Basically, we just decode the bit string</span>
+<span class=sd>    into an integer.</span>
+<span class=sd>5.  The :mod:`~moptipy.examples.bitstrings.trap` problem, which is like</span>
+<span class=sd>    OneMax, but with the optimum and worst-possible solution swapped. This</span>
+<span class=sd>    problem is therefore highly deceptive.</span>
+<span class=sd>6.  The :mod:`~moptipy.examples.bitstrings.twomax` problem has the global</span>
+<span class=sd>    optimum at the string of all `1` bits and a local optimum at the string</span>
+<span class=sd>    of all `0` bits. Both have basins of attraction of about the same size.</span>
+<span class=sd>7.  :mod:`~moptipy.examples.bitstrings.ising1d`, the one-dimensional</span>
+<span class=sd>    Ising model, where the goal is that all bits should have the same value as</span>
+<span class=sd>    their neighbors in a ring.</span>
+<span class=sd>8.  :mod:`~moptipy.examples.bitstrings.ising2d`, the two-dimensional</span>
+<span class=sd>    Ising model, where the goal is that all bits should have the same value as</span>
+<span class=sd>    their neighbors on a torus.</span>
+<span class=sd>9.  The :mod:`~moptipy.examples.bitstrings.jump` problem is equivalent</span>
+<span class=sd>    to :mod:`~moptipy.examples.bitstrings.onemax`, but has a deceptive</span>
+<span class=sd>    region right before the optimum.</span>
+<span class=sd>10. The :mod:`~moptipy.examples.bitstrings.plateau` problem similar to the</span>
+<span class=sd>    :mod:`~moptipy.examples.bitstrings.jump` problem, but this time the</span>
+<span class=sd>    optimum is surrounded by a region of neutrality.</span>
+<span class=sd>11. The :mod:`~moptipy.examples.bitstrings.nqueens`, where the goal is to</span>
+<span class=sd>    place `k` queens on a `k * k`-sized chess board such that no queen can</span>
+<span class=sd>    beat any other queen.</span>
+<span class=sd>12. The :mod:`~moptipy.examples.bitstrings.labs`, where the goal is to</span>
+<span class=sd>    find a sequence with low autocorrelation and, thus, high merit factor.</span>
+<span class=sd>    This problem is different from the others, because here, only for low</span>
+<span class=sd>    values of `n`, the optimal solutions are actually known.</span>
+<span class=sd>13. The :mod:`~moptipy.examples.bitstrings.w_model`, a benchmark</span>
+<span class=sd>    problem with tunable epistasis, uniform neutrality, and</span>
+<span class=sd>    ruggedness/deceptiveness.</span>
+<span class=sd>14. The :mod:`~moptipy.examples.bitstrings.zeromax` problem, where the</span>
+<span class=sd>    goal is to find a bit string with the maximum number of zeros. This is the</span>
+<span class=sd>    opposite of the OneMax problem.</span>
+
+<span class=sd>Parts of the code here are related to the research work of</span>
+<span class=sd>Mr. Jiazheng ZENG (曾嘉政), a Master's student at the Institute of Applied</span>
+<span class=sd>Optimization (应用优化研究所) of the School of</span>
+<span class=sd>Artificial Intelligence and Big Data (人工智能与大数据学院) at</span>
+<span class=sd>Hefei University (合肥大学) in</span>
+<span class=sd>Hefei, Anhui, China (中国安徽省合肥市) under the supervision of</span>
+<span class=sd>Prof. Dr. Thomas Weise (汤卫思教授).</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>itertools</span><span class=w> </span><span class=kn>import</span> <span class=n>chain</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>Iterator</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.binint</span><span class=w> </span><span class=kn>import</span> <span class=n>BinInt</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.bitstring_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>BitStringProblem</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.ising1d</span><span class=w> </span><span class=kn>import</span> <span class=n>Ising1d</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.ising2d</span><span class=w> </span><span class=kn>import</span> <span class=n>Ising2d</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.jump</span><span class=w> </span><span class=kn>import</span> <span class=n>Jump</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.labs</span><span class=w> </span><span class=kn>import</span> <span class=n>LABS</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.leadingones</span><span class=w> </span><span class=kn>import</span> <span class=n>LeadingOnes</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.linearharmonic</span><span class=w> </span><span class=kn>import</span> <span class=n>LinearHarmonic</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.nqueens</span><span class=w> </span><span class=kn>import</span> <span class=n>NQueens</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.onemax</span><span class=w> </span><span class=kn>import</span> <span class=n>OneMax</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.plateau</span><span class=w> </span><span class=kn>import</span> <span class=n>Plateau</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.trap</span><span class=w> </span><span class=kn>import</span> <span class=n>Trap</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.twomax</span><span class=w> </span><span class=kn>import</span> <span class=n>TwoMax</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.w_model</span><span class=w> </span><span class=kn>import</span> <span class=n>WModel</span>
+
+
+<div class=viewcode-block id=default_instances>
+<a class=viewcode-back href=../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.default_instances>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>default_instances</span><span class=p>(</span>  <span class=c1># noqa: RUF067</span>
+        <span class=n>class_scales</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span>
+            <span class=nb>type</span><span class=p>],</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>_</span><span class=p>:</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Iterable[int]"</span><span class=p>,</span> <span class=p>()))</span> \
+        <span class=o>-></span> <span class=n>Iterator</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=n>BitStringProblem</span><span class=p>]]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the default bit-string based benchmark instances.</span>
+
+<span class=sd>    :param class_scales: a function that can override the minimum and</span>
+<span class=sd>        maximimum problem scales on a per-benchmark-function-class</span>
+<span class=sd>        basis. If this function returns an empty iterator, then the default</span>
+<span class=sd>        scales are used.</span>
+<span class=sd>    :return: an :class:`Iterable` with the default bit-string</span>
+<span class=sd>        benchmark instances</span>
+
+<span class=sd>    >>> len(list(default_instances()))</span>
+<span class=sd>    1059</span>
+
+<span class=sd>    >>> from moptipy.examples.bitstrings.binint import BinInt</span>
+<span class=sd>    >>> from moptipy.examples.bitstrings.bitstring_problem import \</span>
+<span class=sd>BitStringNKProblem</span>
+<span class=sd>    >>> def clazz_scales(clazz) -> tuple[int, int]:</span>
+<span class=sd>    ...     if issubclass(clazz, BinInt):</span>
+<span class=sd>    ...         return 2, 30</span>
+<span class=sd>    ...     if issubclass(clazz, BitStringNKProblem):</span>
+<span class=sd>    ...         return 6, 16</span>
+<span class=sd>    ...     return 8, 48</span>
+<span class=sd>    >>> len(list(default_instances(clazz_scales)))</span>
+<span class=sd>    331</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>chain</span><span class=p>(</span>
+        <span class=n>BinInt</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span><span class=o>*</span><span class=n>class_scales</span><span class=p>(</span><span class=n>BinInt</span><span class=p>)),</span>  <span class=c1># type: ignore</span>
+        <span class=n>Ising1d</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span><span class=o>*</span><span class=n>class_scales</span><span class=p>(</span><span class=n>Ising1d</span><span class=p>)),</span>  <span class=c1># type: ignore</span>
+        <span class=n>Ising2d</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span><span class=o>*</span><span class=n>class_scales</span><span class=p>(</span><span class=n>Ising2d</span><span class=p>)),</span>  <span class=c1># type: ignore</span>
+        <span class=n>Jump</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span><span class=o>*</span><span class=n>class_scales</span><span class=p>(</span><span class=n>Jump</span><span class=p>)),</span>  <span class=c1># type: ignore</span>
+        <span class=n>LeadingOnes</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span>  <span class=c1># type: ignore</span>
+            <span class=o>*</span><span class=n>class_scales</span><span class=p>(</span><span class=n>LeadingOnes</span><span class=p>)),</span>
+        <span class=n>LinearHarmonic</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span>  <span class=c1># type: ignore</span>
+            <span class=o>*</span><span class=n>class_scales</span><span class=p>(</span><span class=n>LinearHarmonic</span><span class=p>)),</span>
+        <span class=n>NQueens</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span><span class=o>*</span><span class=n>class_scales</span><span class=p>(</span><span class=n>NQueens</span><span class=p>)),</span>  <span class=c1># type: ignore</span>
+        <span class=n>OneMax</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span><span class=o>*</span><span class=n>class_scales</span><span class=p>(</span><span class=n>OneMax</span><span class=p>)),</span>  <span class=c1># type: ignore</span>
+        <span class=n>Plateau</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span><span class=o>*</span><span class=n>class_scales</span><span class=p>(</span><span class=n>Plateau</span><span class=p>)),</span>  <span class=c1># type: ignore</span>
+        <span class=n>Trap</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span><span class=o>*</span><span class=n>class_scales</span><span class=p>(</span><span class=n>Trap</span><span class=p>)),</span>  <span class=c1># type: ignore</span>
+        <span class=n>TwoMax</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span><span class=o>*</span><span class=n>class_scales</span><span class=p>(</span><span class=n>TwoMax</span><span class=p>)),</span>  <span class=c1># type: ignore</span>
+        <span class=n>LABS</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span><span class=o>*</span><span class=n>class_scales</span><span class=p>(</span><span class=n>LABS</span><span class=p>)),</span>  <span class=c1># type: ignore</span>
+        <span class=n>WModel</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span><span class=o>*</span><span class=n>class_scales</span><span class=p>(</span><span class=n>WModel</span><span class=p>)))</span>  <span class=c1># type: ignore</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

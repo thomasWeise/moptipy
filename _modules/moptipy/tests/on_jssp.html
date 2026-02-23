@@ -1,0 +1,262 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.tests.on_jssp — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/tests/on_jssp.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.on_jssp</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.tests.on_jssp</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Perform tests on the Job Shop Scheduling Problem."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>default_rng</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>MOAlgorithm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>MOProblem</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>Objective</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.gantt</span><span class=w> </span><span class=kn>import</span> <span class=n>Gantt</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.gantt_space</span><span class=w> </span><span class=kn>import</span> <span class=n>GanttSpace</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.instance</span><span class=w> </span><span class=kn>import</span> <span class=n>Instance</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.makespan</span><span class=w> </span><span class=kn>import</span> <span class=n>Makespan</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.ob_encoding</span><span class=w> </span><span class=kn>import</span> <span class=n>OperationBasedEncoding</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.worktime</span><span class=w> </span><span class=kn>import</span> <span class=n>Worktime</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.mo.problem.weighted_sum</span><span class=w> </span><span class=kn>import</span> <span class=n>WeightedSum</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.operators.permutations.op0_shuffle</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0Shuffle</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.permutations</span><span class=w> </span><span class=kn>import</span> <span class=n>Permutations</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_algorithm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.mo_algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_mo_algorithm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_objective</span>
+
+
+<div class=viewcode-block id=jssp_instances_for_tests>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_jssp.jssp_instances_for_tests>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>jssp_instances_for_tests</span><span class=p>()</span> <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get a sequence of JSSP instances to test on.</span>
+
+<span class=sd>    :returns: an iterable of JSSP instance names</span>
+<span class=sd>    """</span>
+    <span class=n>r</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>()</span>
+    <span class=n>ri</span> <span class=o>=</span> <span class=n>r</span><span class=o>.</span><span class=n>integers</span>
+    <span class=n>insts</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span>
+        <span class=s2>"demo"</span><span class=p>,</span> <span class=s2>"ft06"</span><span class=p>,</span> <span class=s2>"ft10"</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"abz</span><span class=si>{</span><span class=n>ri</span><span class=p>(</span><span class=mi>5</span><span class=p>,</span><span class=w> </span><span class=mi>10</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"dmu</span><span class=si>{</span><span class=n>ri</span><span class=p>(</span><span class=mi>10</span><span class=p>,</span><span class=w> </span><span class=mi>81</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+        <span class=sa>f</span><span class=s2>"orb0</span><span class=si>{</span><span class=n>ri</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=mi>10</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"swv</span><span class=si>{</span><span class=n>ri</span><span class=p>(</span><span class=mi>10</span><span class=p>,</span><span class=w> </span><span class=mi>21</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"ta</span><span class=si>{</span><span class=n>ri</span><span class=p>(</span><span class=mi>10</span><span class=p>,</span><span class=w> </span><span class=mi>65</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+        <span class=sa>f</span><span class=s2>"ta</span><span class=si>{</span><span class=n>ri</span><span class=p>(</span><span class=mi>65</span><span class=p>,</span><span class=w> </span><span class=mi>70</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"ta</span><span class=si>{</span><span class=n>ri</span><span class=p>(</span><span class=mi>70</span><span class=p>,</span><span class=w> </span><span class=mi>75</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"yn</span><span class=si>{</span><span class=n>ri</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=mi>5</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>]</span>
+    <span class=n>r</span><span class=o>.</span><span class=n>shuffle</span><span class=p>(</span><span class=n>cast</span><span class=p>(</span><span class=s2>"list"</span><span class=p>,</span> <span class=n>insts</span><span class=p>))</span>
+    <span class=k>return</span> <span class=n>insts</span></div>
+
+
+
+<div class=viewcode-block id=make_gantt_valid>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_jssp.make_gantt_valid>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>make_gantt_valid</span><span class=p>(</span><span class=n>inst</span><span class=p>:</span> <span class=n>Instance</span><span class=p>)</span> <span class=o>-></span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Generator</span><span class=p>,</span> <span class=n>Gantt</span><span class=p>],</span> <span class=n>Gantt</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Make a function that creates valid Gantt charts.</span>
+
+<span class=sd>    :param inst: the JSSP instance</span>
+<span class=sd>    :returns: a function that can make gantt charts valid</span>
+<span class=sd>    """</span>
+    <span class=n>pr</span> <span class=o>=</span> <span class=n>Permutations</span><span class=o>.</span><span class=n>with_repetitions</span><span class=p>(</span><span class=n>inst</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span> <span class=n>inst</span><span class=o>.</span><span class=n>machines</span><span class=p>)</span>
+    <span class=n>op0</span> <span class=o>=</span> <span class=n>Op0Shuffle</span><span class=p>(</span><span class=n>pr</span><span class=p>)</span>
+    <span class=n>oe</span> <span class=o>=</span> <span class=n>OperationBasedEncoding</span><span class=p>(</span><span class=n>inst</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>__make_valid</span><span class=p>(</span><span class=n>prnd</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>Gantt</span><span class=p>,</span> <span class=n>ppr</span><span class=o>=</span><span class=n>pr</span><span class=p>,</span>
+                     <span class=n>pop0</span><span class=o>=</span><span class=n>op0</span><span class=p>,</span> <span class=n>poe</span><span class=o>=</span><span class=n>oe</span><span class=p>)</span> <span class=o>-></span> <span class=n>Gantt</span><span class=p>:</span>
+        <span class=n>xx</span> <span class=o>=</span> <span class=n>ppr</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>
+        <span class=n>pop0</span><span class=o>.</span><span class=n>op0</span><span class=p>(</span><span class=n>prnd</span><span class=p>,</span> <span class=n>xx</span><span class=p>)</span>
+        <span class=n>poe</span><span class=o>.</span><span class=n>decode</span><span class=p>(</span><span class=n>xx</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>x</span>
+
+    <span class=k>return</span> <span class=n>__make_valid</span></div>
+
+
+
+<div class=viewcode-block id=validate_algorithm_on_1_jssp>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_jssp.validate_algorithm_on_1_jssp>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_algorithm_on_1_jssp</span><span class=p>(</span>
+        <span class=n>algorithm</span><span class=p>:</span> <span class=n>Algorithm</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=n>Instance</span><span class=p>,</span> <span class=n>Permutations</span><span class=p>,</span> <span class=n>Objective</span><span class=p>],</span> <span class=n>Algorithm</span><span class=p>],</span>
+        <span class=n>instance</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>100</span><span class=p>,</span>
+        <span class=n>required_result</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>post</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Algorithm</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check the validity of a black-box algorithm on the JSSP.</span>
+
+<span class=sd>    :param algorithm: the algorithm or algorithm factory</span>
+<span class=sd>    :param instance: the instance name, or `None` to randomly pick one</span>
+<span class=sd>    :param max_fes: the maximum number of FEs</span>
+<span class=sd>    :param required_result: the optional required result quality</span>
+<span class=sd>    :param post: a check to run after each execution of the algorithm,</span>
+<span class=sd>        receiving the algorithm and the number of consumed FEs as parameter</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>)</span> <span class=ow>or</span> <span class=nb>callable</span><span class=p>(</span><span class=n>algorithm</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=s2>"algorithm"</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>instance</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>instance</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>default_rng</span><span class=p>()</span><span class=o>.</span><span class=n>choice</span><span class=p>(</span><span class=n>Instance</span><span class=o>.</span><span class=n>list_resources</span><span class=p>()))</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=s2>"JSSP instance name"</span><span class=p>,</span> <span class=p>(</span><span class=nb>str</span><span class=p>,</span> <span class=kc>None</span><span class=p>))</span>
+    <span class=n>inst</span> <span class=o>=</span> <span class=n>Instance</span><span class=o>.</span><span class=n>from_resource</span><span class=p>(</span><span class=n>instance</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>inst</span><span class=p>,</span> <span class=n>Instance</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>inst</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"loaded JSSP instance </span><span class=si>{</span><span class=n>instance</span><span class=si>!r}</span><span class=s2>"</span><span class=p>,</span> <span class=n>Instance</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>post</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>post</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>post</span><span class=p>,</span> <span class=s2>"post"</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=n>search_space</span> <span class=o>=</span> <span class=n>Permutations</span><span class=o>.</span><span class=n>with_repetitions</span><span class=p>(</span><span class=n>inst</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span>
+                                                 <span class=n>inst</span><span class=o>.</span><span class=n>machines</span><span class=p>)</span>
+    <span class=n>solution_space</span> <span class=o>=</span> <span class=n>GanttSpace</span><span class=p>(</span><span class=n>inst</span><span class=p>)</span>
+    <span class=n>encoding</span> <span class=o>=</span> <span class=n>OperationBasedEncoding</span><span class=p>(</span><span class=n>inst</span><span class=p>)</span>
+    <span class=n>objective</span> <span class=o>=</span> <span class=n>Makespan</span><span class=p>(</span><span class=n>inst</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>algorithm</span><span class=p>):</span>
+        <span class=n>algorithm</span> <span class=o>=</span> <span class=n>algorithm</span><span class=p>(</span><span class=n>inst</span><span class=p>,</span> <span class=n>search_space</span><span class=p>,</span> <span class=n>objective</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=s2>"algorithm"</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=n>goal</span><span class=p>:</span> <span class=nb>int</span>
+    <span class=k>if</span> <span class=n>required_result</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>lb</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>objective</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>()</span>
+        <span class=n>ub</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>objective</span><span class=o>.</span><span class=n>upper_bound</span><span class=p>()</span>
+        <span class=n>goal</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>lb</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=nb>min</span><span class=p>(</span><span class=n>ub</span> <span class=o>-</span> <span class=mi>1</span><span class=p>,</span> <span class=nb>int</span><span class=p>(</span><span class=mf>0.5</span> <span class=o>+</span> <span class=p>(</span><span class=n>lb</span> <span class=o>+</span> <span class=p>(</span><span class=mf>0.96</span> <span class=o>*</span> <span class=p>(</span><span class=n>ub</span> <span class=o>-</span> <span class=n>lb</span><span class=p>))))))</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=n>goal</span> <span class=o>=</span> <span class=n>required_result</span>
+
+    <span class=n>validate_algorithm</span><span class=p>(</span><span class=n>algorithm</span><span class=o>=</span><span class=n>algorithm</span><span class=p>,</span>
+                       <span class=n>solution_space</span><span class=o>=</span><span class=n>solution_space</span><span class=p>,</span>
+                       <span class=n>objective</span><span class=o>=</span><span class=n>objective</span><span class=p>,</span>
+                       <span class=n>search_space</span><span class=o>=</span><span class=n>search_space</span><span class=p>,</span>
+                       <span class=n>encoding</span><span class=o>=</span><span class=n>encoding</span><span class=p>,</span>
+                       <span class=n>max_fes</span><span class=o>=</span><span class=n>max_fes</span><span class=p>,</span>
+                       <span class=n>required_result</span><span class=o>=</span><span class=n>goal</span><span class=p>,</span>
+                       <span class=n>post</span><span class=o>=</span><span class=n>post</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_algorithm_on_jssp>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_jssp.validate_algorithm_on_jssp>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_algorithm_on_jssp</span><span class=p>(</span>
+        <span class=n>algorithm</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Instance</span><span class=p>,</span> <span class=n>Permutations</span><span class=p>,</span>
+                             <span class=n>Objective</span><span class=p>],</span> <span class=n>Algorithm</span><span class=p>],</span>
+        <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>100</span><span class=p>,</span>
+        <span class=n>post</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Algorithm</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Validate an algorithm on a set of JSSP instances.</span>
+
+<span class=sd>    :param algorithm: the algorithm factory</span>
+<span class=sd>    :param max_fes: the maximum FEs</span>
+<span class=sd>    :param post: a check to run after each execution of the algorithm,</span>
+<span class=sd>        receiving the algorithm and the number of consumed FEs as parameter</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>jssp_instances_for_tests</span><span class=p>():</span>
+        <span class=n>validate_algorithm_on_1_jssp</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>i</span><span class=p>,</span> <span class=n>max_fes</span><span class=o>=</span><span class=n>max_fes</span><span class=p>,</span> <span class=n>post</span><span class=o>=</span><span class=n>post</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_objective_on_1_jssp>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_jssp.validate_objective_on_1_jssp>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_objective_on_1_jssp</span><span class=p>(</span>
+        <span class=n>objective</span><span class=p>:</span> <span class=n>Objective</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Instance</span><span class=p>],</span> <span class=n>Objective</span><span class=p>],</span>
+        <span class=n>instance</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>is_deterministic</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Validate an objective function on 1 JSSP instance.</span>
+
+<span class=sd>    :param objective: the objective function or a factory creating it</span>
+<span class=sd>    :param instance: the instance name</span>
+<span class=sd>    :param is_deterministic: is the objective function deterministic?</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=n>instance</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>instance</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>default_rng</span><span class=p>()</span><span class=o>.</span><span class=n>choice</span><span class=p>(</span><span class=n>Instance</span><span class=o>.</span><span class=n>list_resources</span><span class=p>()))</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=s2>"JSSP instance name"</span><span class=p>,</span> <span class=p>(</span><span class=nb>str</span><span class=p>,</span> <span class=kc>None</span><span class=p>))</span>
+    <span class=n>inst</span> <span class=o>=</span> <span class=n>Instance</span><span class=o>.</span><span class=n>from_resource</span><span class=p>(</span><span class=n>instance</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>inst</span><span class=p>,</span> <span class=n>Instance</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>inst</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"loaded JSSP instance </span><span class=si>{</span><span class=n>instance</span><span class=si>!r}</span><span class=s2>"</span><span class=p>,</span> <span class=n>Instance</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>objective</span><span class=p>):</span>
+        <span class=n>objective</span> <span class=o>=</span> <span class=n>objective</span><span class=p>(</span><span class=n>inst</span><span class=p>)</span>
+
+    <span class=n>validate_objective</span><span class=p>(</span>
+        <span class=n>objective</span><span class=o>=</span><span class=n>objective</span><span class=p>,</span>
+        <span class=n>solution_space</span><span class=o>=</span><span class=n>GanttSpace</span><span class=p>(</span><span class=n>inst</span><span class=p>),</span>
+        <span class=n>make_solution_space_element_valid</span><span class=o>=</span><span class=n>make_gantt_valid</span><span class=p>(</span><span class=n>inst</span><span class=p>),</span>
+        <span class=n>is_deterministic</span><span class=o>=</span><span class=n>is_deterministic</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_objective_on_jssp>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_jssp.validate_objective_on_jssp>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_objective_on_jssp</span><span class=p>(</span>
+        <span class=n>objective</span><span class=p>:</span> <span class=n>Objective</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Instance</span><span class=p>],</span> <span class=n>Objective</span><span class=p>],</span>
+        <span class=n>is_deterministic</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Validate an objective function on JSSP instances.</span>
+
+<span class=sd>    :param objective: the objective function or a factory creating it</span>
+<span class=sd>    :param is_deterministic: is the objective function deterministic?</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>jssp_instances_for_tests</span><span class=p>():</span>
+        <span class=n>validate_objective_on_1_jssp</span><span class=p>(</span><span class=n>objective</span><span class=p>,</span> <span class=n>i</span><span class=p>,</span> <span class=n>is_deterministic</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_mo_algorithm_on_1_jssp>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_jssp.validate_mo_algorithm_on_1_jssp>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_mo_algorithm_on_1_jssp</span><span class=p>(</span>
+        <span class=n>algorithm</span><span class=p>:</span> <span class=n>MOAlgorithm</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=n>Instance</span><span class=p>,</span> <span class=n>Permutations</span><span class=p>,</span> <span class=n>MOProblem</span><span class=p>],</span> <span class=n>MOAlgorithm</span><span class=p>],</span>
+        <span class=n>instance</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>100</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check the validity of a black-box multi-objective algorithm on the JSSP.</span>
+
+<span class=sd>    :param algorithm: the algorithm or algorithm factory</span>
+<span class=sd>    :param instance: the instance name, or `None` to randomly pick one</span>
+<span class=sd>    :param max_fes: the maximum number of FEs</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>MOAlgorithm</span><span class=p>)</span> <span class=ow>or</span> <span class=nb>callable</span><span class=p>(</span><span class=n>algorithm</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=s2>"algorithm"</span><span class=p>,</span> <span class=n>MOAlgorithm</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+
+    <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>()</span>
+    <span class=k>if</span> <span class=n>instance</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>instance</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>choice</span><span class=p>(</span><span class=n>Instance</span><span class=o>.</span><span class=n>list_resources</span><span class=p>()))</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=s2>"JSSP instance name"</span><span class=p>,</span> <span class=p>(</span><span class=nb>str</span><span class=p>,</span> <span class=kc>None</span><span class=p>))</span>
+    <span class=n>inst</span> <span class=o>=</span> <span class=n>Instance</span><span class=o>.</span><span class=n>from_resource</span><span class=p>(</span><span class=n>instance</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>inst</span><span class=p>,</span> <span class=n>Instance</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>inst</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"loaded JSSP instance '</span><span class=si>{</span><span class=n>instance</span><span class=si>}</span><span class=s2>'"</span><span class=p>,</span> <span class=n>Instance</span><span class=p>)</span>
+
+    <span class=n>search_space</span> <span class=o>=</span> <span class=n>Permutations</span><span class=o>.</span><span class=n>with_repetitions</span><span class=p>(</span><span class=n>inst</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span>
+                                                 <span class=n>inst</span><span class=o>.</span><span class=n>machines</span><span class=p>)</span>
+    <span class=n>solution_space</span> <span class=o>=</span> <span class=n>GanttSpace</span><span class=p>(</span><span class=n>inst</span><span class=p>)</span>
+    <span class=n>encoding</span> <span class=o>=</span> <span class=n>OperationBasedEncoding</span><span class=p>(</span><span class=n>inst</span><span class=p>)</span>
+
+    <span class=n>weights</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[</span><span class=nb>float</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mf>0.01</span><span class=p>,</span> <span class=mi>10</span><span class=p>)),</span>
+                                         <span class=nb>float</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mf>0.01</span><span class=p>,</span> <span class=mi>10</span><span class=p>))]</span> \
+        <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span> <span class=k>else</span> \
+        <span class=p>[</span><span class=mi>1</span> <span class=o>+</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>1</span> <span class=o><<</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>40</span><span class=p>))),</span>
+         <span class=mi>1</span> <span class=o>+</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>1</span> <span class=o><<</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>40</span><span class=p>)))]</span>
+    <span class=n>problem</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>MOProblem</span><span class=p>]</span> <span class=o>=</span> <span class=n>WeightedSum</span><span class=p>(</span>
+        <span class=p>[</span><span class=n>Makespan</span><span class=p>(</span><span class=n>inst</span><span class=p>),</span> <span class=n>Worktime</span><span class=p>(</span><span class=n>inst</span><span class=p>)],</span> <span class=n>weights</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>algorithm</span><span class=p>):</span>
+        <span class=n>algorithm</span> <span class=o>=</span> <span class=n>algorithm</span><span class=p>(</span><span class=n>inst</span><span class=p>,</span> <span class=n>search_space</span><span class=p>,</span> <span class=n>problem</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>MOAlgorithm</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=s2>"algorithm"</span><span class=p>,</span> <span class=n>MOAlgorithm</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=n>validate_mo_algorithm</span><span class=p>(</span><span class=n>algorithm</span><span class=o>=</span><span class=n>algorithm</span><span class=p>,</span>
+                          <span class=n>solution_space</span><span class=o>=</span><span class=n>solution_space</span><span class=p>,</span>
+                          <span class=n>problem</span><span class=o>=</span><span class=n>problem</span><span class=p>,</span>
+                          <span class=n>search_space</span><span class=o>=</span><span class=n>search_space</span><span class=p>,</span>
+                          <span class=n>encoding</span><span class=o>=</span><span class=n>encoding</span><span class=p>,</span>
+                          <span class=n>max_fes</span><span class=o>=</span><span class=n>max_fes</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_mo_algorithm_on_jssp>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_jssp.validate_mo_algorithm_on_jssp>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_mo_algorithm_on_jssp</span><span class=p>(</span>
+        <span class=n>algorithm</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=n>Instance</span><span class=p>,</span> <span class=n>Permutations</span><span class=p>,</span> <span class=n>MOProblem</span><span class=p>],</span> <span class=n>MOAlgorithm</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Validate a multi-objective algorithm on a set of JSSP instances.</span>
+
+<span class=sd>    :param algorithm: the algorithm factory</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>jssp_instances_for_tests</span><span class=p>():</span>
+        <span class=n>validate_mo_algorithm_on_1_jssp</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>i</span><span class=p>,</span> <span class=mi>100</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.on_jssp</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

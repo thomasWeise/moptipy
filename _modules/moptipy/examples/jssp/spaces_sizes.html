@@ -1,0 +1,615 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.jssp.spaces_sizes — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/jssp/spaces_sizes.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.spaces_sizes</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.jssp.spaces_sizes</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Computations regarding the size of the solution spaces in a JSSP.</span>
+
+<span class=sd>We represent solutions for a Job Shop Scheduling Problems (JSSPs) as Gantt</span>
+<span class=sd>diagrams.</span>
+<span class=sd>Assume that we look at JSSPs with n jobs and m machines.</span>
+<span class=sd>The number of possible Gantt charts (without useless delays) is</span>
+<span class=sd>(jobs!)**machines.</span>
+
+<span class=sd>However, not all of them are necessarily feasible.</span>
+<span class=sd>If all jobs pass through all machines in the same order, then all of the</span>
+<span class=sd>possible Gantt charts are also feasible.</span>
+<span class=sd>However, if, say job 0 first goes to machine 0 and then to machine 1 and</span>
+<span class=sd>job 1 first goes to machine 1 and then to machine 0, there are possible</span>
+<span class=sd>Gantt charts with deadlocks: If we put the second operation of job 0 to</span>
+<span class=sd>be the first operation to be done by machine 1 and put the second operation</span>
+<span class=sd>of job 1 to be the first operation to be done by machine 0, we end up with</span>
+<span class=sd>an infeasible Gantt chart, i.e., one that cannot be executed.</span>
+<span class=sd>Thus, the question arises: "For a given number n of jobs and m of machines,</span>
+<span class=sd>what is the instance with the fewest feasible Gantt charts?"</span>
+
+<span class=sd>Well, I am sure that there are clever algorithms to compute this. Maybe we</span>
+<span class=sd>can even ave an elegant combinatorial formula.</span>
+<span class=sd>But I do not want to spend much time on this subject (and maybe would not</span>
+<span class=sd>be able to figure it out even if I wanted to...).</span>
+<span class=sd>So we try to find this information using a somewhat brute force approach:</span>
+<span class=sd>By enumerating instances and, for each instance, the Gantt charts, and</span>
+<span class=sd>count how many of them are feasible.</span>
+<span class=sd>"""</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>sys</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>factorial</span><span class=p>,</span> <span class=n>log10</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Iterable</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span><span class=p>,</span> <span class=n>write_lines</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp</span><span class=w> </span><span class=kn>import</span> <span class=n>experiment</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.gantt_space</span><span class=w> </span><span class=kn>import</span> <span class=n>gantt_space_size</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.instance</span><span class=w> </span><span class=kn>import</span> <span class=n>Instance</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.lang</span><span class=w> </span><span class=kn>import</span> <span class=n>Lang</span>
+
+
+<div class=viewcode-block id=permutations_with_repetitions_space_size>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.spaces_sizes.permutations_with_repetitions_space_size>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>permutations_with_repetitions_space_size</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>m</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the number of n-permutations with m repetitions.</span>
+
+<span class=sd>    :param n: the number of different values</span>
+<span class=sd>    :param m: the number of repetitions</span>
+<span class=sd>    :returns: the space size</span>
+<span class=sd>    :rtype: int</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>factorial</span><span class=p>(</span><span class=n>n</span> <span class=o>*</span> <span class=n>m</span><span class=p>)</span> <span class=o>//</span> <span class=p>(</span><span class=n>factorial</span><span class=p>(</span><span class=n>m</span><span class=p>)</span> <span class=o>**</span> <span class=n>n</span><span class=p>)</span></div>
+
+
+
+<span class=c1>#: the pre-computed values</span>
+<span class=n>__PRE_COMPUTED</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span>
+                            <span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span> <span class=o>...</span><span class=p>]],</span> <span class=o>...</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span>
+    <span class=p>(</span><span class=mi>3</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>22</span><span class=p>,</span> <span class=p>((</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>))),</span>
+    <span class=p>(</span><span class=mi>3</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>63</span><span class=p>,</span> <span class=p>((</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>2</span><span class=p>),</span> <span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>))),</span>
+    <span class=p>(</span><span class=mi>3</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=mi>147</span><span class=p>,</span> <span class=p>((</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>3</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>2</span><span class=p>),</span> <span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>))),</span>
+    <span class=p>(</span><span class=mi>3</span><span class=p>,</span> <span class=mi>5</span><span class=p>,</span> <span class=mi>317</span><span class=p>,</span> <span class=p>((</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>4</span><span class=p>),</span> <span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=mi>3</span><span class=p>),</span> <span class=p>(</span><span class=mi>3</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>1</span><span class=p>))),</span>
+    <span class=p>(</span><span class=mi>4</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>244</span><span class=p>,</span> <span class=p>((</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>))),</span>
+    <span class=p>(</span><span class=mi>4</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>1630</span><span class=p>,</span> <span class=p>((</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>2</span><span class=p>),</span> <span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>))),</span>
+    <span class=p>(</span><span class=mi>4</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=mi>7451</span><span class=p>,</span> <span class=p>((</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>3</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>2</span><span class=p>),</span> <span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>),</span> <span class=p>(</span><span class=mi>3</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>))),</span>
+    <span class=p>(</span><span class=mi>5</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>4548</span><span class=p>,</span> <span class=p>((</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>))),</span>
+    <span class=p>(</span><span class=mi>5</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>91461</span><span class=p>,</span> <span class=p>((</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>),</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>2</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>0</span><span class=p>),</span> <span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>))),</span>
+    <span class=p>(</span><span class=mi>6</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>108828</span><span class=p>,</span> <span class=p>((</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>))),</span>
+    <span class=p>(</span><span class=mi>7</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>3771792</span><span class=p>,</span> <span class=p>((</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>))),</span>
+    <span class=p>(</span><span class=mi>8</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>156073536</span><span class=p>,</span>
+     <span class=p>((</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>))),</span>
+<span class=p>)</span>
+
+
+<div class=viewcode-block id=gantt_min_feasible>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.spaces_sizes.gantt_min_feasible>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>gantt_min_feasible</span><span class=p>(</span><span class=n>jobs</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>machines</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span> <span class=o>...</span><span class=p>]]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Find the minimum number of feasible gantt charts.</span>
+
+<span class=sd>    :param jobs: the number of jobs</span>
+<span class=sd>    :param machines: the number of machines</span>
+<span class=sd>    :return: the minimum number of feasible solutions for any instance</span>
+<span class=sd>        of the given configuration and one example of such an instance</span>
+<span class=sd>    """</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>jobs</span><span class=p>,</span> <span class=s2>"jobs"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>127</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>machines</span><span class=p>,</span> <span class=s2>"machines"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>127</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>machines</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>factorial</span><span class=p>(</span><span class=n>jobs</span><span class=p>),</span> <span class=p>(</span><span class=nb>tuple</span><span class=p>([</span><span class=mi>0</span><span class=p>]</span> <span class=o>*</span> <span class=n>jobs</span><span class=p>),</span> <span class=p>)</span>
+    <span class=k>if</span> <span class=n>jobs</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>
+        <span class=k>return</span> <span class=mi>1</span><span class=p>,</span> <span class=p>(</span><span class=nb>tuple</span><span class=p>(</span><span class=nb>range</span><span class=p>(</span><span class=n>machines</span><span class=p>)),</span> <span class=p>)</span>
+    <span class=k>if</span> <span class=n>jobs</span> <span class=o><=</span> <span class=mi>2</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>machines</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=p>(</span>
+            <span class=p>(</span><span class=o>*</span><span class=nb>list</span><span class=p>(</span><span class=nb>range</span><span class=p>(</span><span class=n>machines</span> <span class=o>-</span> <span class=mi>2</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>)),</span> <span class=n>machines</span> <span class=o>-</span> <span class=mi>1</span><span class=p>),</span>
+            <span class=p>(</span><span class=n>machines</span> <span class=o>-</span> <span class=mi>1</span><span class=p>,</span> <span class=o>*</span><span class=nb>list</span><span class=p>(</span><span class=nb>range</span><span class=p>(</span><span class=n>machines</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))))</span>
+
+    <span class=k>for</span> <span class=n>tup</span> <span class=ow>in</span> <span class=n>__PRE_COMPUTED</span><span class=p>:</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>tup</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>==</span> <span class=n>jobs</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>tup</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>==</span> <span class=n>machines</span><span class=p>):</span>
+            <span class=k>return</span> <span class=n>tup</span><span class=p>[</span><span class=mi>2</span><span class=p>],</span> <span class=n>tup</span><span class=p>[</span><span class=mi>3</span><span class=p>]</span>
+
+    <span class=k>if</span> <span class=n>machines</span> <span class=o><=</span> <span class=mi>2</span><span class=p>:</span>  <span class=c1># if there are two machines, we know the shape</span>
+        <span class=n>lst</span> <span class=o>=</span> <span class=p>[[</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>]]</span> <span class=o>*</span> <span class=p>(</span><span class=n>jobs</span> <span class=o>-</span> <span class=p>(</span><span class=n>jobs</span> <span class=o>//</span> <span class=mi>2</span><span class=p>))</span>
+        <span class=n>lst</span><span class=o>.</span><span class=n>extend</span><span class=p>([[</span><span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>]]</span> <span class=o>*</span> <span class=p>(</span><span class=n>jobs</span> <span class=o>//</span> <span class=mi>2</span><span class=p>))</span>
+        <span class=n>dest</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>lst</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>uint8</span><span class=p>)</span>
+        <span class=n>res</span> <span class=o>=</span> <span class=n>__enumerate_feasible_for</span><span class=p>(</span><span class=n>jobs</span><span class=p>,</span> <span class=n>machines</span><span class=p>,</span> <span class=n>dest</span><span class=p>)</span>
+    <span class=k>else</span><span class=p>:</span>  <span class=c1># more than two machines: need to enumerate</span>
+        <span class=n>dest</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>(</span><span class=n>shape</span><span class=o>=</span><span class=p>(</span><span class=n>jobs</span><span class=p>,</span> <span class=n>machines</span><span class=p>),</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>uint8</span><span class=p>)</span>
+        <span class=n>res</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>__find_min_feasible</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>(</span><span class=n>jobs</span><span class=p>),</span>
+                                      <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>(</span><span class=n>machines</span><span class=p>),</span> <span class=n>dest</span><span class=p>))</span>
+
+    <span class=c1># turn the result into a tuple</span>
+    <span class=n>arr</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=nb>sorted</span><span class=p>(</span><span class=nb>tuple</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>dest</span><span class=p>[</span><span class=n>i</span><span class=p>,</span> <span class=n>j</span><span class=p>])</span> <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>machines</span><span class=p>))</span>
+                       <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>jobs</span><span class=p>)))</span>
+    <span class=k>return</span> <span class=n>res</span><span class=p>,</span> <span class=n>arr</span></div>
+
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__copy</span><span class=p>(</span><span class=n>dest</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>source</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Copy an array.</span>
+
+<span class=sd>    :param dest: the destination</span>
+<span class=sd>    :param source: the source</span>
+<span class=sd>    :param n: the number of elements to copy</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>a</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>):</span>
+        <span class=n>dest</span><span class=p>[</span><span class=n>a</span><span class=p>]</span> <span class=o>=</span> <span class=n>source</span><span class=p>[</span><span class=n>a</span><span class=p>]</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__copy_instance</span><span class=p>(</span><span class=n>dest</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>source</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                    <span class=n>jobs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>,</span> <span class=n>machines</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Copy an instance.</span>
+
+<span class=sd>    :param dest: the destination</span>
+<span class=sd>    :param source: the source</span>
+<span class=sd>    :param jobs: the number of jobs</span>
+<span class=sd>    :param machines: the machines</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>a</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>jobs</span><span class=p>):</span>
+        <span class=n>__copy</span><span class=p>(</span><span class=n>dest</span><span class=p>[</span><span class=n>a</span><span class=p>],</span> <span class=n>source</span><span class=p>[</span><span class=n>a</span><span class=p>],</span> <span class=n>machines</span><span class=p>)</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__find_min_feasible</span><span class=p>(</span><span class=n>jobs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>,</span> <span class=n>machines</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>,</span>
+                        <span class=n>dest</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Find the minimum number of feasible gantt charts.</span>
+
+<span class=sd>    :param jobs: the number of jobs</span>
+<span class=sd>    :param machines: the number of machines</span>
+<span class=sd>    :param dest: the destination array</span>
+<span class=sd>    :return: the minimum number of feasible solutions for any instance</span>
+<span class=sd>        of the given configuration</span>
+<span class=sd>    """</span>
+    <span class=n>instance</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=n>shape</span><span class=o>=</span><span class=p>(</span><span class=n>jobs</span><span class=p>,</span> <span class=n>machines</span><span class=p>),</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>uint8</span><span class=p>)</span>
+    <span class=n>gantt</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=n>shape</span><span class=o>=</span><span class=p>(</span><span class=n>machines</span><span class=p>,</span> <span class=n>jobs</span><span class=p>),</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>uint8</span><span class=p>)</span>
+    <span class=n>gantt_index</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>machines</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>)</span>
+    <span class=n>inst_index</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>jobs</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>)</span>
+    <span class=n>job_state</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>jobs</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>)</span>
+    <span class=n>gantt_state</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>machines</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>)</span>
+    <span class=n>upper_bound</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>(</span><span class=mi>9223372036854775807</span><span class=p>)</span>
+
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>jobs</span><span class=p>):</span>
+        <span class=n>__first_perm</span><span class=p>(</span><span class=n>instance</span><span class=p>[</span><span class=n>i</span><span class=p>],</span> <span class=n>inst_index</span><span class=p>,</span> <span class=n>i</span><span class=p>,</span> <span class=n>machines</span><span class=p>)</span>
+
+    <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>__check_sorted</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=n>jobs</span><span class=p>,</span> <span class=n>machines</span><span class=p>):</span>
+            <span class=n>upper_bound</span> <span class=o>=</span> <span class=n>__enumerate_feasible</span><span class=p>(</span>
+                <span class=n>instance</span><span class=p>,</span> <span class=n>gantt</span><span class=p>,</span> <span class=n>job_state</span><span class=p>,</span> <span class=n>gantt_state</span><span class=p>,</span> <span class=n>jobs</span><span class=p>,</span> <span class=n>machines</span><span class=p>,</span>
+                <span class=n>upper_bound</span><span class=p>,</span> <span class=n>gantt_index</span><span class=p>,</span> <span class=n>dest</span><span class=p>)</span>
+
+        <span class=n>k</span> <span class=o>=</span> <span class=n>jobs</span> <span class=o>-</span> <span class=mi>1</span>
+        <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>__next_perm</span><span class=p>(</span><span class=n>instance</span><span class=p>[</span><span class=n>k</span><span class=p>],</span> <span class=n>inst_index</span><span class=p>,</span> <span class=n>k</span><span class=p>,</span> <span class=n>machines</span><span class=p>):</span>
+                <span class=k>break</span>
+            <span class=n>k</span> <span class=o>-=</span> <span class=mi>1</span>
+            <span class=k>if</span> <span class=n>k</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>return</span> <span class=n>upper_bound</span>
+        <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>k</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>jobs</span><span class=p>):</span>
+            <span class=n>__first_perm</span><span class=p>(</span><span class=n>instance</span><span class=p>[</span><span class=n>j</span><span class=p>],</span> <span class=n>inst_index</span><span class=p>,</span> <span class=n>j</span><span class=p>,</span> <span class=n>machines</span><span class=p>)</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__check_sorted</span><span class=p>(</span><span class=n>instance</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                   <span class=n>jobs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>,</span>
+                   <span class=n>machines</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check if the instance is such that all jobs are sorted.</span>
+
+<span class=sd>    :param instance: the instance</span>
+<span class=sd>    :param jobs: the number of jobs</span>
+<span class=sd>    :param machines: the number of machines</span>
+<span class=sd>    :return: `True` if the instance is sorted, `False` otherwise</span>
+<span class=sd>    """</span>
+    <span class=n>i</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span> <span class=o>=</span> <span class=n>jobs</span> <span class=o>-</span> <span class=mi>1</span>
+    <span class=n>arr1</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>=</span> <span class=n>instance</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+    <span class=k>while</span> <span class=n>i</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+        <span class=n>arr2</span> <span class=o>=</span> <span class=n>arr1</span>
+        <span class=n>i</span> <span class=o>-=</span> <span class=mi>1</span>
+        <span class=n>arr1</span> <span class=o>=</span> <span class=n>instance</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+        <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>machines</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>arr1</span><span class=p>[</span><span class=n>j</span><span class=p>]</span> <span class=o>></span> <span class=n>arr2</span><span class=p>[</span><span class=n>j</span><span class=p>]:</span>
+                <span class=k>return</span> <span class=kc>True</span>
+            <span class=k>if</span> <span class=n>arr1</span><span class=p>[</span><span class=n>j</span><span class=p>]</span> <span class=o><</span> <span class=n>arr2</span><span class=p>[</span><span class=n>j</span><span class=p>]:</span>
+                <span class=k>return</span> <span class=kc>False</span>
+    <span class=k>return</span> <span class=kc>True</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__is_feasible</span><span class=p>(</span><span class=n>instance</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                  <span class=n>gantt</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                  <span class=n>job_state</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                  <span class=n>gantt_state</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                  <span class=n>jobs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>,</span>
+                  <span class=n>machines</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>,</span>
+                  <span class=n>row</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check if a Gantt diagram populated until a given row is feasible.</span>
+
+<span class=sd>    :param instance: the JSSP instance, size jobs*machines</span>
+<span class=sd>    :param gantt: the gantt chart, size machines*jobs</span>
+<span class=sd>    :param job_state: the job state, of length jobs</span>
+<span class=sd>    :param gantt_state: the machine state, of length machines</span>
+<span class=sd>    :param jobs: the number of jobs</span>
+<span class=sd>    :param machines: the number of machines</span>
+<span class=sd>    :param row: the number of valid rows of the Gantt chart</span>
+<span class=sd>    :return: `True` if the chart is feasible so far, `False` otherwise</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=n>row</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>
+        <span class=k>return</span> <span class=kc>True</span>
+    <span class=n>job_state</span><span class=o>.</span><span class=n>fill</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>  <span class=c1># all jobs start at the 0'th operations</span>
+    <span class=n>gantt_state</span><span class=o>.</span><span class=n>fill</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>  <span class=c1># all machines start at op 0</span>
+    <span class=n>found</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+    <span class=n>needed_jobs</span> <span class=o>=</span> <span class=n>jobs</span>  <span class=c1># the number of required jobs</span>
+
+    <span class=k>while</span> <span class=n>found</span><span class=p>:</span>
+        <span class=n>found</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=k>for</span> <span class=n>job</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>jobs</span><span class=p>):</span>  <span class=c1># check all jobs</span>
+            <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>  <span class=c1># we process each job as long as we can</span>
+                <span class=n>js</span> <span class=o>=</span> <span class=n>job_state</span><span class=p>[</span><span class=n>job</span><span class=p>]</span>  <span class=c1># which operation is required?</span>
+                <span class=k>if</span> <span class=n>js</span> <span class=o>>=</span> <span class=n>machines</span><span class=p>:</span>
+                    <span class=k>break</span>  <span class=c1># the job is already finished</span>
+                <span class=n>nm</span> <span class=o>=</span> <span class=n>instance</span><span class=p>[</span><span class=n>job</span><span class=p>,</span> <span class=n>js</span><span class=p>]</span>  <span class=c1># the machine that the operation needs</span>
+                <span class=k>if</span> <span class=n>nm</span> <span class=o>>=</span> <span class=n>row</span><span class=p>:</span>  <span class=c1># ok, this machine is outside of the chart</span>
+                    <span class=n>js</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># so we assume it's ok</span>
+                    <span class=n>job_state</span><span class=p>[</span><span class=n>job</span><span class=p>]</span> <span class=o>=</span> <span class=n>js</span>  <span class=c1># and step forward the state</span>
+                    <span class=n>found</span> <span class=o>=</span> <span class=kc>True</span>  <span class=c1># we did something!</span>
+                    <span class=k>if</span> <span class=n>js</span> <span class=o>>=</span> <span class=n>machines</span><span class=p>:</span>  <span class=c1># oh, we finished the job?</span>
+                        <span class=n>needed_jobs</span> <span class=o>-=</span> <span class=mi>1</span>  <span class=c1># one less jobs to do</span>
+                        <span class=k>if</span> <span class=n>needed_jobs</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>  <span class=c1># no more jobs to do?</span>
+                            <span class=k>return</span> <span class=kc>True</span>  <span class=c1># the chart is feasible!</span>
+                        <span class=k>break</span>  <span class=c1># quit handling this job, as its finished</span>
+                    <span class=k>continue</span>  <span class=c1># move to next operation, as job is not finished</span>
+                <span class=n>ms</span> <span class=o>=</span> <span class=n>gantt_state</span><span class=p>[</span><span class=n>nm</span><span class=p>]</span>  <span class=c1># get next item in gantt chart</span>
+                <span class=n>mj</span> <span class=o>=</span> <span class=n>gantt</span><span class=p>[</span><span class=n>nm</span><span class=p>,</span> <span class=n>ms</span><span class=p>]</span>  <span class=c1># next job on this machine?</span>
+                <span class=k>if</span> <span class=n>mj</span> <span class=o>==</span> <span class=n>job</span><span class=p>:</span>  <span class=c1># great, this job!</span>
+                    <span class=n>gantt_state</span><span class=p>[</span><span class=n>nm</span><span class=p>]</span> <span class=o>=</span> <span class=n>ms</span> <span class=o>+</span> <span class=mi>1</span>  <span class=c1># advance gantt state</span>
+                    <span class=n>js</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># so we can perform the operation</span>
+                    <span class=n>job_state</span><span class=p>[</span><span class=n>job</span><span class=p>]</span> <span class=o>=</span> <span class=n>js</span>  <span class=c1># and step forward the state</span>
+                    <span class=n>found</span> <span class=o>=</span> <span class=kc>True</span>  <span class=c1># we did something!</span>
+                    <span class=k>if</span> <span class=n>js</span> <span class=o>>=</span> <span class=n>machines</span><span class=p>:</span>  <span class=c1># oh, we finished the job?</span>
+                        <span class=n>needed_jobs</span> <span class=o>-=</span> <span class=mi>1</span>  <span class=c1># one less jobs to do</span>
+                        <span class=k>if</span> <span class=n>needed_jobs</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>  <span class=c1># no more jobs to do?</span>
+                            <span class=k>return</span> <span class=kc>True</span>  <span class=c1># the chart is feasible!</span>
+                        <span class=k>break</span>  <span class=c1># quit handling this job, as its finished</span>
+                    <span class=k>continue</span>  <span class=c1># move to next operation, as job is not finished</span>
+                <span class=k>break</span>  <span class=c1># no, we cannot handle this job now</span>
+
+    <span class=k>return</span> <span class=kc>False</span>  <span class=c1># we ended one round without being able to proceed</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__first_perm</span><span class=p>(</span><span class=n>arr</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                 <span class=n>index</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                 <span class=n>pi</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>,</span>
+                 <span class=n>n</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create the first permutation for a given array of values.</span>
+
+<span class=sd>    :param arr: the array to permute over</span>
+<span class=sd>    :param index: the array with the index</span>
+<span class=sd>    :param pi: the index of the index to use in pi</span>
+<span class=sd>    :param n: the length of arr</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>):</span>
+        <span class=n>arr</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>i</span>
+    <span class=n>index</span><span class=p>[</span><span class=n>pi</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__next_perm</span><span class=p>(</span><span class=n>arr</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                <span class=n>index</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                <span class=n>pi</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>,</span>
+                <span class=n>n</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the next permutation for a given array of values.</span>
+
+<span class=sd>    :param arr: the array to permute over</span>
+<span class=sd>    :param index: the array with the index</span>
+<span class=sd>    :param pi: the index of the index to use in pi</span>
+<span class=sd>    :param n: the length of arr</span>
+<span class=sd>    :returns: `True` if there is a next permutation, `False` if not</span>
+<span class=sd>    """</span>
+    <span class=n>idx</span> <span class=o>=</span> <span class=n>index</span><span class=p>[</span><span class=n>pi</span><span class=p>]</span>
+    <span class=k>if</span> <span class=n>idx</span> <span class=o>>=</span> <span class=n>n</span> <span class=o>-</span> <span class=mi>1</span><span class=p>:</span>
+        <span class=k>return</span> <span class=kc>False</span>
+
+    <span class=n>nidx</span> <span class=o>=</span> <span class=n>idx</span> <span class=o>+</span> <span class=mi>1</span>
+
+    <span class=k>if</span> <span class=n>idx</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>  <span class=c1># increase is at the very beginning</span>
+        <span class=n>arr</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>arr</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>=</span> <span class=n>arr</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span> <span class=n>arr</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>  <span class=c1># swap</span>
+        <span class=n>idx</span> <span class=o>=</span> <span class=n>nidx</span>
+        <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>  <span class=c1># update index to the next increase</span>
+            <span class=n>nidx</span> <span class=o>=</span> <span class=n>idx</span> <span class=o>+</span> <span class=mi>1</span>
+            <span class=k>if</span> <span class=n>nidx</span> <span class=o>>=</span> <span class=n>n</span><span class=p>:</span>
+                <span class=k>break</span>  <span class=c1># reached end</span>
+            <span class=k>if</span> <span class=n>arr</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span> <span class=o><=</span> <span class=n>arr</span><span class=p>[</span><span class=n>nidx</span><span class=p>]:</span>
+                <span class=k>break</span>  <span class=c1># found increase</span>
+            <span class=n>idx</span> <span class=o>=</span> <span class=n>nidx</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>arr</span><span class=p>[</span><span class=n>nidx</span><span class=p>]</span> <span class=o>></span> <span class=n>arr</span><span class=p>[</span><span class=mi>0</span><span class=p>]:</span>  <span class=c1># value at arr[idx + 1] is greater than arr[0]</span>
+            <span class=c1># no need for binary search, just swap arr[idx + 1] and arr[0]</span>
+            <span class=n>arr</span><span class=p>[</span><span class=n>nidx</span><span class=p>],</span> <span class=n>arr</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>=</span> <span class=n>arr</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>arr</span><span class=p>[</span><span class=n>nidx</span><span class=p>]</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=c1># binary search to find the greatest value which is less</span>
+            <span class=c1># than arr[idx + 1]</span>
+            <span class=n>start</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+            <span class=n>end</span> <span class=o>=</span> <span class=n>idx</span>
+            <span class=n>mid</span> <span class=o>=</span> <span class=p>(</span><span class=n>start</span> <span class=o>+</span> <span class=n>end</span><span class=p>)</span> <span class=o>//</span> <span class=mi>2</span>
+            <span class=n>t_value</span> <span class=o>=</span> <span class=n>arr</span><span class=p>[</span><span class=n>nidx</span><span class=p>]</span>
+            <span class=k>while</span> <span class=ow>not</span> <span class=p>(</span><span class=n>arr</span><span class=p>[</span><span class=n>mid</span><span class=p>]</span> <span class=o><</span> <span class=n>t_value</span> <span class=o><</span> <span class=n>arr</span><span class=p>[</span><span class=n>mid</span> <span class=o>-</span> <span class=mi>1</span><span class=p>]):</span>
+                <span class=k>if</span> <span class=n>arr</span><span class=p>[</span><span class=n>mid</span><span class=p>]</span> <span class=o><</span> <span class=n>t_value</span><span class=p>:</span>
+                    <span class=n>end</span> <span class=o>=</span> <span class=n>mid</span> <span class=o>-</span> <span class=mi>1</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>start</span> <span class=o>=</span> <span class=n>mid</span> <span class=o>+</span> <span class=mi>1</span>
+                <span class=n>mid</span> <span class=o>=</span> <span class=p>(</span><span class=n>start</span> <span class=o>+</span> <span class=n>end</span><span class=p>)</span> <span class=o>//</span> <span class=mi>2</span>
+            <span class=n>arr</span><span class=p>[</span><span class=n>nidx</span><span class=p>],</span> <span class=n>arr</span><span class=p>[</span><span class=n>mid</span><span class=p>]</span> <span class=o>=</span> <span class=n>arr</span><span class=p>[</span><span class=n>mid</span><span class=p>],</span> <span class=n>arr</span><span class=p>[</span><span class=n>nidx</span><span class=p>]</span>  <span class=c1># swap</span>
+
+        <span class=c1># invert 0 to increase</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>((</span><span class=n>idx</span> <span class=o>//</span> <span class=mi>2</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=n>arr</span><span class=p>[</span><span class=n>i</span><span class=p>],</span> <span class=n>arr</span><span class=p>[</span><span class=n>idx</span> <span class=o>-</span> <span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>arr</span><span class=p>[</span><span class=n>idx</span> <span class=o>-</span> <span class=n>i</span><span class=p>],</span> <span class=n>arr</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+        <span class=n>idx</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># reset increase</span>
+
+    <span class=n>index</span><span class=p>[</span><span class=n>pi</span><span class=p>]</span> <span class=o>=</span> <span class=n>idx</span>
+    <span class=k>return</span> <span class=kc>True</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__enumerate_feasible</span><span class=p>(</span><span class=n>instance</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                         <span class=n>gantt</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                         <span class=n>job_state</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                         <span class=n>gantt_state</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                         <span class=n>jobs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>,</span>
+                         <span class=n>machines</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>,</span>
+                         <span class=n>upper_bound</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>,</span>
+                         <span class=n>index</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                         <span class=n>dest</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Enumerate the feasible gantt charts for an instance.</span>
+
+<span class=sd>    :param instance: the JSSP instance, size jobs*machines</span>
+<span class=sd>    :param gantt: the gantt chart array, size machines*jobs</span>
+<span class=sd>    :param job_state: the job state, of length jobs</span>
+<span class=sd>    :param gantt_state: the machine state, of length machines</span>
+<span class=sd>    :param jobs: the number of jobs</span>
+<span class=sd>    :param machines: the number of machines</span>
+<span class=sd>    :param upper_bound: the upper bound - we won't enumerate more</span>
+<span class=sd>        charts than this.</span>
+<span class=sd>    :param index: the index array</span>
+<span class=sd>    :param dest: the destination array</span>
+<span class=sd>    :returns: the number of enumerated feasible gantt charts</span>
+<span class=sd>    """</span>
+    <span class=n>counter</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+    <span class=k>for</span> <span class=n>z</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>machines</span><span class=p>):</span>
+        <span class=n>__first_perm</span><span class=p>(</span><span class=n>gantt</span><span class=p>[</span><span class=n>z</span><span class=p>],</span> <span class=n>index</span><span class=p>,</span> <span class=n>z</span><span class=p>,</span> <span class=n>jobs</span><span class=p>)</span>
+
+    <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>__is_feasible</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=n>gantt</span><span class=p>,</span> <span class=n>job_state</span><span class=p>,</span> <span class=n>gantt_state</span><span class=p>,</span>
+                         <span class=n>jobs</span><span class=p>,</span> <span class=n>machines</span><span class=p>,</span> <span class=n>machines</span><span class=p>):</span>
+            <span class=n>counter</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># found another feasible gantt chart for instance</span>
+            <span class=k>if</span> <span class=n>counter</span> <span class=o>>=</span> <span class=n>upper_bound</span><span class=p>:</span>
+                <span class=k>return</span> <span class=n>counter</span>  <span class=c1># if we have reached the minimum, we can stop</span>
+
+        <span class=n>i</span> <span class=o>=</span> <span class=n>machines</span> <span class=o>-</span> <span class=mi>1</span>
+        <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>__next_perm</span><span class=p>(</span><span class=n>gantt</span><span class=p>[</span><span class=n>i</span><span class=p>],</span> <span class=n>index</span><span class=p>,</span> <span class=n>i</span><span class=p>,</span> <span class=n>jobs</span><span class=p>):</span>
+                <span class=k>if</span> <span class=n>i</span> <span class=o>>=</span> <span class=n>machines</span> <span class=o>-</span> <span class=mi>1</span><span class=p>:</span>
+                    <span class=k>break</span>
+                <span class=k>if</span> <span class=n>__is_feasible</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=n>gantt</span><span class=p>,</span> <span class=n>job_state</span><span class=p>,</span> <span class=n>gantt_state</span><span class=p>,</span>
+                                 <span class=n>jobs</span><span class=p>,</span> <span class=n>machines</span><span class=p>,</span> <span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>):</span>
+                    <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>machines</span><span class=p>):</span>
+                        <span class=n>__first_perm</span><span class=p>(</span><span class=n>gantt</span><span class=p>[</span><span class=n>j</span><span class=p>],</span> <span class=n>index</span><span class=p>,</span> <span class=n>j</span><span class=p>,</span> <span class=n>jobs</span><span class=p>)</span>
+                    <span class=k>break</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>i</span> <span class=o>-=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=n>i</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>if</span> <span class=n>instance</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>dest</span><span class=p>:</span>
+                        <span class=n>__copy_instance</span><span class=p>(</span><span class=n>dest</span><span class=p>,</span> <span class=n>instance</span><span class=p>,</span> <span class=n>jobs</span><span class=p>,</span> <span class=n>machines</span><span class=p>)</span>
+                    <span class=k>return</span> <span class=n>counter</span>  <span class=c1># we have enumerated all gantt charts</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__enumerate_feasible_for</span><span class=p>(</span><span class=n>jobs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>,</span> <span class=n>machines</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>,</span>
+                             <span class=n>instance</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Find the minimum number of feasible gantt charts.</span>
+
+<span class=sd>    :param jobs: the number of jobs</span>
+<span class=sd>    :param machines: the number of machines</span>
+<span class=sd>    :param instance: the provided instance array</span>
+<span class=sd>    :return: the minimum number of feasible solutions for any instance</span>
+<span class=sd>        of the given configuration</span>
+<span class=sd>    """</span>
+    <span class=n>gantt</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=n>shape</span><span class=o>=</span><span class=p>(</span><span class=n>machines</span><span class=p>,</span> <span class=n>jobs</span><span class=p>),</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>uint8</span><span class=p>)</span>
+    <span class=n>gantt_index</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>machines</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>)</span>
+    <span class=n>job_state</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>jobs</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>)</span>
+    <span class=n>gantt_state</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>machines</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>)</span>
+    <span class=n>upper_bound</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>(</span><span class=mi>9223372036854775807</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>__enumerate_feasible</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=n>gantt</span><span class=p>,</span> <span class=n>job_state</span><span class=p>,</span>
+                                <span class=n>gantt_state</span><span class=p>,</span> <span class=n>jobs</span><span class=p>,</span> <span class=n>machines</span><span class=p>,</span>
+                                <span class=n>upper_bound</span><span class=p>,</span> <span class=n>gantt_index</span><span class=p>,</span>
+                                <span class=n>instance</span><span class=p>)</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__long_str</span><span class=p>(</span><span class=n>value</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Convert a value to a string.</span>
+
+<span class=sd>    :param value: the value</span>
+<span class=sd>    :returns: the string representation</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=n>value</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>return</span> <span class=s2>""</span>
+    <span class=k>if</span> <span class=n>value</span> <span class=o><=</span> <span class=mi>1_000_000_000_000</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>Lang</span><span class=o>.</span><span class=n>current</span><span class=p>()</span><span class=o>.</span><span class=n>format_int</span><span class=p>(</span><span class=n>value</span><span class=p>)</span>
+    <span class=n>logg</span> <span class=o>=</span> <span class=n>log10</span><span class=p>(</span><span class=n>value</span><span class=p>)</span>
+    <span class=n>exp</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>logg</span><span class=p>)</span>
+    <span class=n>base</span> <span class=o>=</span> <span class=n>value</span> <span class=o>/</span> <span class=p>(</span><span class=mi>10</span> <span class=o>**</span> <span class=n>exp</span><span class=p>)</span>
+    <span class=n>expf</span> <span class=o>=</span> <span class=n>Lang</span><span class=o>.</span><span class=n>current</span><span class=p>()</span><span class=o>.</span><span class=n>format_int</span><span class=p>(</span><span class=n>exp</span><span class=p>)</span>
+    <span class=k>return</span> <span class=sa>f</span><span class=s2>"$</span><span class=se>\\</span><span class=s2>approx$&ampnbsp;</span><span class=si>{</span><span class=n>base</span><span class=si>:</span><span class=s2>.3f</span><span class=si>}</span><span class=s2>*10^</span><span class=si>{</span><span class=n>expf</span><span class=si>}</span><span class=s2>^"</span>
+
+
+<div class=viewcode-block id=make_gantt_space_size_table>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.spaces_sizes.make_gantt_space_size_table>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>make_gantt_space_size_table</span><span class=p>(</span>
+        <span class=n>dest</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"solution_space_size.md"</span><span class=p>,</span>
+        <span class=n>instances</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=nb>list</span><span class=p>(</span>  <span class=c1># noqa</span>
+            <span class=n>experiment</span><span class=o>.</span><span class=n>INSTANCES</span><span class=p>)</span> <span class=o>+</span> <span class=p>[</span><span class=s2>"demo"</span><span class=p>]))</span> <span class=o>-></span> <span class=n>Path</span><span class=p>:</span>  <span class=c1># noqa</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Print a table of solution space sizes.</span>
+
+<span class=sd>    :param dest: the destination file</span>
+<span class=sd>    :param instances: the instances to add</span>
+<span class=sd>    :returns: the fully-qualified path to the generated file</span>
+<span class=sd>    """</span>
+    <span class=n>file</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>dest</span><span class=p>)</span>
+    <span class=n>text</span> <span class=o>=</span> <span class=p>[(</span><span class=sa>f</span><span class=s1>'|</span><span class=si>{</span><span class=n>Lang</span><span class=o>.</span><span class=n>current</span><span class=p>()[</span><span class=s2>"name"</span><span class=p>]</span><span class=si>}</span><span class=s1>|'</span>
+             <span class=sa>r</span><span class=s2>"$\jsspJobs$|$\jsspMachines$|$\min(\#\text{"</span>
+             <span class=sa>f</span><span class=s1>'</span><span class=si>{</span><span class=n>Lang</span><span class=o>.</span><span class=n>current</span><span class=p>()[</span><span class=s2>"feasible"</span><span class=p>]</span><span class=si>}</span><span class=s1>'</span>
+             <span class=sa>r</span><span class=s2>"})$|$\left|\solutionSpace\right|$|"</span><span class=p>),</span>
+            <span class=sa>r</span><span class=s2>"|:--|--:|--:|--:|--:|"</span><span class=p>]</span>
+
+    <span class=n>inst_scales</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+
+    <span class=c1># enumerate the pre-defined instances</span>
+    <span class=k>for</span> <span class=n>inst</span> <span class=ow>in</span> <span class=nb>set</span><span class=p>(</span><span class=n>instances</span><span class=p>):</span>
+        <span class=n>instance</span> <span class=o>=</span> <span class=n>Instance</span><span class=o>.</span><span class=n>from_resource</span><span class=p>(</span><span class=n>inst</span><span class=p>)</span>
+        <span class=n>min_size</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=k>for</span> <span class=n>tup</span> <span class=ow>in</span> <span class=n>__PRE_COMPUTED</span><span class=p>:</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>tup</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>==</span> <span class=n>instance</span><span class=o>.</span><span class=n>jobs</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>tup</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>==</span> <span class=n>instance</span><span class=o>.</span><span class=n>machines</span><span class=p>):</span>
+                <span class=n>min_size</span> <span class=o>=</span> <span class=n>tup</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span>
+                <span class=k>break</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>min_size</span> <span class=o><</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>and</span> <span class=p>((</span><span class=n>instance</span><span class=o>.</span><span class=n>jobs</span> <span class=o><=</span> <span class=mi>2</span><span class=p>)</span>
+                               <span class=ow>or</span> <span class=p>(</span><span class=n>instance</span><span class=o>.</span><span class=n>machines</span> <span class=o><=</span> <span class=mi>2</span><span class=p>)):</span>
+            <span class=n>min_size</span> <span class=o>=</span> <span class=n>gantt_min_feasible</span><span class=p>(</span>
+                <span class=n>instance</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span> <span class=n>instance</span><span class=o>.</span><span class=n>machines</span><span class=p>)[</span><span class=mi>0</span><span class=p>]</span>
+        <span class=n>inst_scales</span><span class=o>.</span><span class=n>append</span><span class=p>(</span>
+            <span class=p>(</span><span class=n>instance</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span> <span class=n>instance</span><span class=o>.</span><span class=n>machines</span><span class=p>,</span>
+             <span class=n>gantt_space_size</span><span class=p>(</span><span class=n>instance</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span> <span class=n>instance</span><span class=o>.</span><span class=n>machines</span><span class=p>),</span>
+             <span class=n>min_size</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"`</span><span class=si>{</span><span class=n>instance</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>`"</span><span class=p>))</span>
+        <span class=k>del</span> <span class=n>instance</span>
+
+    <span class=c1># enumerate some default values</span>
+    <span class=k>for</span> <span class=n>jobs</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=mi>6</span><span class=p>):</span>
+        <span class=k>for</span> <span class=n>machines</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=mi>6</span><span class=p>):</span>
+            <span class=n>found</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>  <span class=c1># skip over already added scales</span>
+            <span class=k>for</span> <span class=n>tupp</span> <span class=ow>in</span> <span class=n>inst_scales</span><span class=p>:</span>
+                <span class=k>if</span> <span class=p>(</span><span class=n>tupp</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>==</span> <span class=n>jobs</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>tupp</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>==</span> <span class=n>machines</span><span class=p>):</span>
+                    <span class=n>found</span> <span class=o>=</span> <span class=kc>True</span>
+                    <span class=k>break</span>
+            <span class=k>if</span> <span class=n>found</span><span class=p>:</span>
+                <span class=k>continue</span>
+
+            <span class=n>min_size</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+            <span class=k>for</span> <span class=n>tup</span> <span class=ow>in</span> <span class=n>__PRE_COMPUTED</span><span class=p>:</span>
+                <span class=k>if</span> <span class=p>(</span><span class=n>tup</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>==</span> <span class=n>jobs</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>tup</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>==</span> <span class=n>machines</span><span class=p>):</span>
+                    <span class=n>min_size</span> <span class=o>=</span> <span class=n>tup</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span>
+                    <span class=k>break</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>min_size</span> <span class=o><</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>and</span> <span class=p>((</span><span class=n>jobs</span> <span class=o><=</span> <span class=mi>2</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>machines</span> <span class=o><=</span> <span class=mi>2</span><span class=p>)):</span>
+                <span class=n>min_size</span> <span class=o>=</span> <span class=n>gantt_min_feasible</span><span class=p>(</span><span class=n>jobs</span><span class=p>,</span> <span class=n>machines</span><span class=p>)[</span><span class=mi>0</span><span class=p>]</span>
+            <span class=n>name</span> <span class=o>=</span> <span class=s2>"[@fig:jssp_feasible_gantt]"</span> \
+                <span class=k>if</span> <span class=p>(</span><span class=n>jobs</span> <span class=o>==</span> <span class=mi>2</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>machines</span> <span class=o>==</span> <span class=mi>2</span><span class=p>)</span> <span class=k>else</span> <span class=s2>""</span>
+            <span class=n>inst_scales</span><span class=o>.</span><span class=n>append</span><span class=p>(</span>
+                <span class=p>(</span><span class=n>jobs</span><span class=p>,</span> <span class=n>machines</span><span class=p>,</span> <span class=n>gantt_space_size</span><span class=p>(</span><span class=n>jobs</span><span class=p>,</span> <span class=n>machines</span><span class=p>),</span>
+                 <span class=n>min_size</span><span class=p>,</span> <span class=n>name</span><span class=p>))</span>
+
+    <span class=n>inst_scales</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>ua</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>inst_scales</span><span class=p>):</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>ua</span>
+        <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>i</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>inst_scales</span><span class=p>)):</span>
+            <span class=n>b</span> <span class=o>=</span> <span class=n>inst_scales</span><span class=p>[</span><span class=n>j</span><span class=p>]</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>a</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=ow>and</span> <span class=n>b</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>])</span> <span class=ow>and</span> <span class=p>(</span><span class=n>a</span><span class=p>[</span><span class=o>-</span><span class=mi>3</span><span class=p>]</span> <span class=o>></span> <span class=n>b</span><span class=p>[</span><span class=o>-</span><span class=mi>3</span><span class=p>]):</span>
+                <span class=n>inst_scales</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>b</span>  <span class=c1># noqa: B909</span>
+                <span class=n>inst_scales</span><span class=p>[</span><span class=n>j</span><span class=p>]</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># noqa: B909</span>
+                <span class=n>a</span> <span class=o>=</span> <span class=n>b</span>
+
+    <span class=n>text</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span>
+        <span class=sa>f</span><span class=s2>"|</span><span class=si>{</span><span class=n>scale</span><span class=p>[</span><span class=mi>4</span><span class=p>]</span><span class=si>}</span><span class=s2>|</span><span class=si>{</span><span class=n>scale</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=si>}</span><span class=s2>|</span><span class=si>{</span><span class=n>scale</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span><span class=si>}</span><span class=s2>|</span><span class=si>{</span><span class=n>__long_str</span><span class=p>(</span><span class=n>scale</span><span class=p>[</span><span class=mi>3</span><span class=p>])</span><span class=si>}</span><span class=s2>|"</span>
+        <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>__long_str</span><span class=p>(</span><span class=n>scale</span><span class=p>[</span><span class=mi>2</span><span class=p>])</span><span class=si>}</span><span class=s2>|"</span> <span class=k>for</span> <span class=n>scale</span> <span class=ow>in</span> <span class=n>inst_scales</span><span class=p>)</span>
+
+    <span class=k>with</span> <span class=n>file</span><span class=o>.</span><span class=n>open_for_write</span><span class=p>()</span> <span class=k>as</span> <span class=n>wd</span><span class=p>:</span>
+        <span class=n>write_lines</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=n>wd</span><span class=p>)</span>
+    <span class=n>file</span><span class=o>.</span><span class=n>enforce_file</span><span class=p>()</span>
+    <span class=k>return</span> <span class=n>file</span></div>
+
+
+
+<div class=viewcode-block id=make_search_space_size_table>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.spaces_sizes.make_search_space_size_table>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>make_search_space_size_table</span><span class=p>(</span>
+        <span class=n>dest</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"solution_space_size.md"</span><span class=p>,</span>
+        <span class=n>instances</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=nb>list</span><span class=p>(</span>  <span class=c1># noqa</span>
+            <span class=n>experiment</span><span class=o>.</span><span class=n>INSTANCES</span><span class=p>)</span> <span class=o>+</span> <span class=p>[</span><span class=s2>"demo"</span><span class=p>]))</span> <span class=o>-></span> <span class=n>Path</span><span class=p>:</span>  <span class=c1># noqa</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Print a table of search space sizes.</span>
+
+<span class=sd>    :param dest: the destination file</span>
+<span class=sd>    :param instances: the instances to add</span>
+<span class=sd>    :returns: the fully-qualified path to the generated file</span>
+<span class=sd>    """</span>
+    <span class=n>file</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>dest</span><span class=p>)</span>
+    <span class=n>text</span> <span class=o>=</span> <span class=p>[(</span><span class=sa>f</span><span class=s1>'|</span><span class=si>{</span><span class=n>Lang</span><span class=o>.</span><span class=n>current</span><span class=p>()[</span><span class=s2>"name"</span><span class=p>]</span><span class=si>}</span><span class=s1>|'</span>
+             <span class=sa>r</span><span class=s2>"$\jsspJobs$|$\jsspMachines$|$\left|\solutionSpace\right|$|"</span>
+             <span class=sa>r</span><span class=s2>"$\left|\searchSpace\right|$|"</span><span class=p>),</span>
+            <span class=sa>r</span><span class=s2>"|:--|--:|--:|--:|--:|"</span><span class=p>]</span>
+    <span class=n>inst_scales</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+
+    <span class=c1># enumerate the pre-defined instances</span>
+    <span class=k>for</span> <span class=n>inst</span> <span class=ow>in</span> <span class=nb>set</span><span class=p>(</span><span class=n>instances</span><span class=p>):</span>
+        <span class=n>instance</span> <span class=o>=</span> <span class=n>Instance</span><span class=o>.</span><span class=n>from_resource</span><span class=p>(</span><span class=n>inst</span><span class=p>)</span>
+        <span class=n>inst_scales</span><span class=o>.</span><span class=n>append</span><span class=p>(</span>
+            <span class=p>(</span><span class=n>instance</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span> <span class=n>instance</span><span class=o>.</span><span class=n>machines</span><span class=p>,</span>
+             <span class=n>gantt_space_size</span><span class=p>(</span><span class=n>instance</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span> <span class=n>instance</span><span class=o>.</span><span class=n>machines</span><span class=p>),</span>
+             <span class=n>permutations_with_repetitions_space_size</span><span class=p>(</span>
+                 <span class=n>instance</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span> <span class=n>instance</span><span class=o>.</span><span class=n>machines</span><span class=p>),</span>
+             <span class=sa>f</span><span class=s2>"`</span><span class=si>{</span><span class=n>instance</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>`"</span><span class=p>))</span>
+        <span class=k>del</span> <span class=n>instance</span>
+
+    <span class=c1># enumerate some default values</span>
+    <span class=k>for</span> <span class=n>jobs</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>3</span><span class=p>,</span> <span class=mi>6</span><span class=p>):</span>
+        <span class=k>for</span> <span class=n>machines</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=mi>6</span><span class=p>):</span>
+            <span class=n>found</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>  <span class=c1># skip over already added scales</span>
+            <span class=k>for</span> <span class=n>tupp</span> <span class=ow>in</span> <span class=n>inst_scales</span><span class=p>:</span>
+                <span class=k>if</span> <span class=p>(</span><span class=n>tupp</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>==</span> <span class=n>jobs</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>tupp</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>==</span> <span class=n>machines</span><span class=p>):</span>
+                    <span class=n>found</span> <span class=o>=</span> <span class=kc>True</span>
+                    <span class=k>break</span>
+            <span class=k>if</span> <span class=n>found</span><span class=p>:</span>
+                <span class=k>continue</span>
+            <span class=n>inst_scales</span><span class=o>.</span><span class=n>append</span><span class=p>(</span>
+                <span class=p>(</span><span class=n>jobs</span><span class=p>,</span> <span class=n>machines</span><span class=p>,</span> <span class=n>gantt_space_size</span><span class=p>(</span><span class=n>jobs</span><span class=p>,</span> <span class=n>machines</span><span class=p>),</span>
+                 <span class=n>permutations_with_repetitions_space_size</span><span class=p>(</span>
+                     <span class=n>jobs</span><span class=p>,</span> <span class=n>machines</span><span class=p>),</span> <span class=s2>""</span><span class=p>))</span>
+
+    <span class=n>inst_scales</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>ua</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>inst_scales</span><span class=p>):</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>ua</span>
+        <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>i</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>inst_scales</span><span class=p>)):</span>
+            <span class=n>b</span> <span class=o>=</span> <span class=n>inst_scales</span><span class=p>[</span><span class=n>j</span><span class=p>]</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>a</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=ow>and</span> <span class=n>b</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>])</span> <span class=ow>and</span> <span class=p>(</span><span class=n>a</span><span class=p>[</span><span class=o>-</span><span class=mi>2</span><span class=p>]</span> <span class=o>></span> <span class=n>b</span><span class=p>[</span><span class=o>-</span><span class=mi>2</span><span class=p>]):</span>
+                <span class=n>inst_scales</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>b</span>  <span class=c1># noqa: B909</span>
+                <span class=n>inst_scales</span><span class=p>[</span><span class=n>j</span><span class=p>]</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># noqa: B909</span>
+                <span class=n>a</span> <span class=o>=</span> <span class=n>b</span>
+    <span class=n>text</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=sa>f</span><span class=s2>"|</span><span class=si>{</span><span class=n>scale</span><span class=p>[</span><span class=mi>4</span><span class=p>]</span><span class=si>}</span><span class=s2>|</span><span class=si>{</span><span class=n>scale</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=si>}</span><span class=s2>|</span><span class=si>{</span><span class=n>scale</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span><span class=si>}</span><span class=s2>|</span><span class=si>{</span><span class=n>__long_str</span><span class=p>(</span><span class=n>scale</span><span class=p>[</span><span class=mi>2</span><span class=p>])</span><span class=si>}</span><span class=s2>|"</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>__long_str</span><span class=p>(</span><span class=n>scale</span><span class=p>[</span><span class=mi>3</span><span class=p>])</span><span class=si>}</span><span class=s2>|"</span> <span class=k>for</span> <span class=n>scale</span> <span class=ow>in</span> <span class=n>inst_scales</span><span class=p>)</span>
+
+    <span class=k>with</span> <span class=n>file</span><span class=o>.</span><span class=n>open_for_write</span><span class=p>()</span> <span class=k>as</span> <span class=n>wd</span><span class=p>:</span>
+        <span class=n>write_lines</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=n>wd</span><span class=p>)</span>
+    <span class=n>file</span><span class=o>.</span><span class=n>enforce_file</span><span class=p>()</span>
+    <span class=k>return</span> <span class=n>file</span></div>
+
+
+
+<span class=c1># create the tables if this is the main script</span>
+<span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s2>"__main__"</span><span class=p>:</span>
+    <span class=n>dest_dir</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>sys</span><span class=o>.</span><span class=n>argv</span><span class=p>[</span><span class=mi>1</span><span class=p>])</span>
+    <span class=n>dest_dir</span><span class=o>.</span><span class=n>ensure_dir_exists</span><span class=p>()</span>
+    <span class=k>for</span> <span class=n>lang</span> <span class=ow>in</span> <span class=n>Lang</span><span class=o>.</span><span class=n>all_langs</span><span class=p>():</span>
+        <span class=n>lang</span><span class=o>.</span><span class=n>set_current</span><span class=p>()</span>
+        <span class=n>make_gantt_space_size_table</span><span class=p>(</span>
+            <span class=n>dest_dir</span><span class=o>.</span><span class=n>resolve_inside</span><span class=p>(</span>
+                <span class=n>lang</span><span class=o>.</span><span class=n>filename</span><span class=p>(</span><span class=s2>"solution_space_size"</span><span class=p>)</span> <span class=o>+</span> <span class=s2>".md"</span><span class=p>))</span>
+        <span class=n>make_search_space_size_table</span><span class=p>(</span>
+            <span class=n>dest_dir</span><span class=o>.</span><span class=n>resolve_inside</span><span class=p>(</span>
+                <span class=n>lang</span><span class=o>.</span><span class=n>filename</span><span class=p>(</span><span class=s2>"search_space_size"</span><span class=p>)</span> <span class=o>+</span> <span class=s2>".md"</span><span class=p>))</span>
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.spaces_sizes</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

@@ -1,0 +1,1018 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.selector — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/selector.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.selector</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.selector</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>A tool for selecting a consistent subset of data from partial experiments.</span>
+
+<span class=sd>When we have partial experimental data, maybe collected from experiments that</span>
+<span class=sd>are still ongoing, we want to still evaluate them in some consistent way. The</span>
+<span class=sd>right method for doing this could be to select a subset of that data that is</span>
+<span class=sd>consistent, i.e., a subset where the algorithms have the same number of runs</span>
+<span class=sd>on the instances using the same seeds. The function :func:`select_consistent`</span>
+<span class=sd>offered by this module provides the functionality to make such a selection.</span>
+<span class=sd>It may be a bit slow, but hopefully it will pick the largest possible</span>
+<span class=sd>consistent sub-selection or, at least, get close to it.</span>
+
+<span class=sd>Our :func:`select_consistent` tries to find such a consistent dataset using</span>
+<span class=sd>different :class:`Selector` methods that are passed to it as second parameter.</span>
+
+<span class=sd>In the most basic and defaul setting, :const:`SELECTOR_SAME_RUNS_FOR_ALL`, it</span>
+<span class=sd>simply retains the exactly same number of runs for all</span>
+<span class=sd>instance/algorithm/objective/encoding combinations, making sure that the same</span>
+<span class=sd>seeds are used for a given instance.</span>
+<span class=sd>This can be done rather quickly, but it may not yield the largest possible</span>
+<span class=sd>set of consistent runs.</span>
+<span class=sd>It will also fail if there are some combinations that have runs with mutually</span>
+<span class=sd>distinct seeds.</span>
+
+<span class=sd>In this case, using :const:`SELECTOR_MAX_RUNS_SIMPLE` might be successful, as</span>
+<span class=sd>it is a more heuristic approach.</span>
+<span class=sd>The heuristic methods implemented here always begin with the full set of data</span>
+<span class=sd>and aim to delete the element that will cause the least other deletions down</span>
+<span class=sd>the road, until we arrive in a consistent state.</span>
+<span class=sd>I strongly suspect that doing this perfectly would be NP-hard, so we cannot</span>
+<span class=sd>implement this in a perfect way. Instead, we use different heuristics and then</span>
+<span class=sd>pick the best result.</span>
+<span class=sd>:const:`SELECTOR_MAX_RUNS` uses more heuristics, which means that it will be</span>
+<span class=sd>slower, but may have a bigger chance to yield a consistent experiment.</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>TypeVar</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.console</span><span class=w> </span><span class=kn>import</span> <span class=n>logger</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.base</span><span class=w> </span><span class=kn>import</span> <span class=n>PerRunData</span>
+
+<span class=c1>#: the type variable for the selector routine</span>
+<span class=n>T</span> <span class=o>=</span> <span class=n>TypeVar</span><span class=p>(</span><span class=s2>"T"</span><span class=p>,</span> <span class=n>bound</span><span class=o>=</span><span class=n>PerRunData</span><span class=p>)</span>
+
+<span class=c1>#: the algorithm key</span>
+<span class=n>KEY_ALGORITHM</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>0</span>
+<span class=c1>#: the instance key</span>
+<span class=n>KEY_INSTANCE</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>KEY_ALGORITHM</span> <span class=o>+</span> <span class=mi>1</span>
+<span class=c1>#: the encoding key</span>
+<span class=n>KEY_ENCODING</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>KEY_INSTANCE</span> <span class=o>+</span> <span class=mi>1</span>
+<span class=c1>#: the objective key</span>
+<span class=n>KEY_OBJECTIVE</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>KEY_ENCODING</span> <span class=o>+</span> <span class=mi>1</span>
+<span class=c1>#: the seed key</span>
+<span class=n>KEY_SEED</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>KEY_OBJECTIVE</span> <span class=o>+</span> <span class=mi>1</span>
+<span class=c1>#: the number of keys</span>
+<span class=n>TOTAL_KEYS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>KEY_SEED</span> <span class=o>+</span> <span class=mi>1</span>
+
+
+<div class=viewcode-block id=Selector>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.selector.Selector>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Selector</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The base class for selectors.</span>
+
+<span class=sd>    Each selector offers a routine that can select a subset of runs from a</span>
+<span class=sd>    given description. For the selection process, all instances, objective</span>
+<span class=sd>    functions, encodings, and algorithms as well as (instance-seed)</span>
+<span class=sd>    combinations are replaced with integer numbers identifying them.</span>
+
+<span class=sd>    The data that is passed to the method :meth:`select` is already purified.</span>
+<span class=sd>    Algorithm, instance, objective function, and encoding names are replaced</span>
+<span class=sd>    with consecutive integers. Instance/seed combinations are also replaced</span>
+<span class=sd>    with such integer values.</span>
+<span class=sd>    Each run of the original experiment is thus identified by a five-tuple of</span>
+<span class=sd>    integer values.</span>
+<span class=sd>    """</span>
+
+<div class=viewcode-block id=Selector.select>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.selector.Selector.select>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>select</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+               <span class=n>dims</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span>
+               <span class=n>keys</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=o>...</span><span class=p>],</span>
+               <span class=n>best_length</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span>
+            <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Perform the dataset selection.</span>
+
+<span class=sd>        The `keys` array is an immutable list of keys. Each key uniquely</span>
+<span class=sd>        identifies one run in the experiment. It is a tuple of five integer</span>
+<span class=sd>        values:</span>
+
+<span class=sd>        0. The value at index :const:`KEY_ALGORITHM` identifies the</span>
+<span class=sd>           algorithm used in the run,</span>
+<span class=sd>        1. the value at index :const:`KEY_INSTANCE` identifies the instance,</span>
+<span class=sd>        2. the value at index :const:`KEY_OBJECTIVE` identifies the objective</span>
+<span class=sd>           function,</span>
+<span class=sd>        3. the value at index :const:`KEY_ENCODING` identifies the encoding,</span>
+<span class=sd>           and</span>
+<span class=sd>        4. the value at index :const:`KEY_SEED` identifies the instance-seed</span>
+<span class=sd>           combination, meaning that each seed on each instance maps to a</span>
+<span class=sd>           unique value here.</span>
+
+<span class=sd>        The number of values in each key dimension is given in the array</span>
+<span class=sd>        `dims`. The instance identifiers, for example, are all in the interval</span>
+<span class=sd>        `0..dims[KEY_INSTANCE]-1`. Because of this, you can use the key values</span>
+<span class=sd>        as indexes into consecutive lists to keep track of counts, if you want</span>
+<span class=sd>        to.</span>
+
+<span class=sd>        The parameter `best_length` provides the largest number of consistent</span>
+<span class=sd>        runs discovered by any selection method so far. It is `-1` for the</span>
+<span class=sd>        first selector that is attempted.</span>
+<span class=sd>        The selection routines returns a list of selected run keys, or `None`</span>
+<span class=sd>        if this selector could not surpass `best_length`.</span>
+
+<span class=sd>        :param dims: the number of different values per key dimension</span>
+<span class=sd>        :param keys: the data keys to select from</span>
+<span class=sd>        :param best_length: the largest number of consistent runs discovered</span>
+<span class=sd>            by any previously applied selector.</span>
+<span class=sd>        :return: the selected data</span>
+<span class=sd>        """</span>
+        <span class=k>raise</span> <span class=ne>NotImplementedError</span></div>
+</div>
+
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_count_inc</span><span class=p>(</span><span class=n>scores</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]],</span> <span class=n>key</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Increment the score of a given tuple.</span>
+
+<span class=sd>    :param scores: the scores</span>
+<span class=sd>    :param key: the key</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>k</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>key</span><span class=p>):</span>
+        <span class=n>scores</span><span class=p>[</span><span class=n>i</span><span class=p>][</span><span class=n>k</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_count_dec</span><span class=p>(</span><span class=n>scores</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]],</span> <span class=n>key</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Decrement the score of a given tuple.</span>
+
+<span class=sd>    :param scores: the scores</span>
+<span class=sd>    :param key: the key</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>k</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>key</span><span class=p>):</span>
+        <span class=n>scores</span><span class=p>[</span><span class=n>i</span><span class=p>][</span><span class=n>k</span><span class=p>]</span> <span class=o>-=</span> <span class=mi>1</span>
+
+
+<div class=viewcode-block id=HeuristicSelector>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.selector.HeuristicSelector>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>HeuristicSelector</span><span class=p>(</span><span class=n>Selector</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A heuristic selector."""</span>
+
+<div class=viewcode-block id=HeuristicSelector.weight>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.selector.HeuristicSelector.weight>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>weight</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>counts</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]])</span> <span class=o>-></span> <span class=n>Any</span><span class=p>:</span>  <span class=c1># pylint: disable=W0613</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compute a weight for the scores.</span>
+
+<span class=sd>        This function can be overwritten to compute the total score.</span>
+
+<span class=sd>        :param counts: the number of currently selected runs for each</span>
+<span class=sd>            dimension and each dimension value</span>
+<span class=sd>        :return: a weight factor, that may be ignored by some methods</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=mi>1</span></div>
+
+
+<div class=viewcode-block id=HeuristicSelector.score>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.selector.HeuristicSelector.score>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>score</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>element</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span>  <span class=c1># pylint: disable=W0613</span>
+              <span class=n>counts</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]],</span>  <span class=c1># pylint: disable=W0613</span>
+              <span class=n>weights</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=n>Any</span><span class=p>:</span>  <span class=c1># pylint: disable=W0613</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Score a given element.</span>
+
+<span class=sd>        :param element: the tuple to score</span>
+<span class=sd>        :param counts: the number of currently selected runs for each</span>
+<span class=sd>            dimension and each dimension value</span>
+<span class=sd>        :param weights: the weights, which may sometimes be ignored</span>
+<span class=sd>        :returns: the score</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=kc>None</span></div>
+
+
+<div class=viewcode-block id=HeuristicSelector.select>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.selector.HeuristicSelector.select>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>select</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+               <span class=n>dims</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span>
+               <span class=n>keys</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=o>...</span><span class=p>],</span>
+               <span class=n>best_length</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span>
+            <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Perform the heuristic dataset selection.</span>
+
+<span class=sd>        Heuristic selectors attempt to step-by-step delete keys that lead to</span>
+<span class=sd>        the fewest dropped instances, algorithms, objectives, and encodings.</span>
+
+<span class=sd>        :param dims: the number of different values per key dimension</span>
+<span class=sd>        :param keys: the data keys to select from</span>
+<span class=sd>        :param best_length: the length of the best-so-far set of runs,</span>
+<span class=sd>            will be `-1` if no such best exists</span>
+<span class=sd>        :return: the selected data</span>
+<span class=sd>        """</span>
+        <span class=c1># the counters for the score calculations</span>
+        <span class=n>source</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[[</span><span class=n>k</span><span class=p>,</span> <span class=mi>0</span><span class=p>]</span> <span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=n>keys</span><span class=p>]</span>
+        <span class=n>dataset_size</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>source</span><span class=p>)</span>
+        <span class=n>scorer_name</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span>
+
+        <span class=c1># compute the original item scores</span>
+        <span class=n>counts</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[[</span><span class=mi>0</span><span class=p>]</span> <span class=o>*</span> <span class=n>i</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>dims</span><span class=p>]</span>
+        <span class=n>count</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>dataset_size</span>
+        <span class=k>for</span> <span class=n>er</span> <span class=ow>in</span> <span class=n>source</span><span class=p>:</span>
+            <span class=n>_count_inc</span><span class=p>(</span><span class=n>counts</span><span class=p>,</span> <span class=n>er</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span>
+
+        <span class=n>changed</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=k>while</span> <span class=n>changed</span><span class=p>:</span>
+            <span class=n>changed</span> <span class=o>=</span> <span class=kc>False</span>
+
+            <span class=c1># Find the setups with maximum and minimum scores.</span>
+            <span class=n>min_score</span><span class=p>:</span> <span class=n>Any</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=n>max_score</span><span class=p>:</span> <span class=n>Any</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=n>weights</span><span class=p>:</span> <span class=n>Any</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>weight</span><span class=p>(</span><span class=n>counts</span><span class=p>)</span>
+
+            <span class=k>if</span> <span class=n>weights</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># cannot proceed</span>
+                <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Method </span><span class=si>{</span><span class=n>scorer_name</span><span class=si>!r}</span><span class=s2> is not applicable."</span><span class=p>)</span>
+                <span class=k>return</span> <span class=kc>None</span>
+
+            <span class=k>for</span> <span class=n>er</span> <span class=ow>in</span> <span class=n>source</span><span class=p>:</span>
+                <span class=n>er</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>=</span> <span class=n>score</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>score</span><span class=p>(</span>  <span class=c1># pylint: disable=E1128</span>
+                    <span class=n>er</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>counts</span><span class=p>,</span> <span class=n>weights</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>score</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                    <span class=k>if</span> <span class=p>(</span><span class=n>min_score</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>min_score</span> <span class=o>></span> <span class=n>score</span><span class=p>):</span>
+                        <span class=n>min_score</span> <span class=o>=</span> <span class=n>score</span>
+                    <span class=k>if</span> <span class=p>(</span><span class=n>max_score</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>max_score</span> <span class=o><</span> <span class=n>score</span><span class=p>):</span>
+                        <span class=n>max_score</span> <span class=o>=</span> <span class=n>score</span>
+            <span class=k>del</span> <span class=n>weights</span>
+            <span class=k>if</span> <span class=n>min_score</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>scorer_name</span><span class=si>!r}</span><span class=s2> failed."</span><span class=p>)</span>
+                <span class=k>return</span> <span class=kc>None</span>
+            <span class=k>if</span> <span class=n>min_score</span> <span class=o><</span> <span class=n>max_score</span><span class=p>:</span>  <span class=c1># Some setups have lower scores.</span>
+                <span class=n>del_count</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># We will delete them.</span>
+                <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>count</span> <span class=o>-</span> <span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>):</span>
+                    <span class=n>er</span> <span class=o>=</span> <span class=n>source</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+                    <span class=n>score</span> <span class=o>=</span> <span class=n>er</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span>
+                    <span class=k>if</span> <span class=p>(</span><span class=n>score</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>score</span> <span class=o><=</span> <span class=n>min_score</span><span class=p>):</span>
+                        <span class=k>del</span> <span class=n>source</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+                        <span class=n>_count_dec</span><span class=p>(</span><span class=n>counts</span><span class=p>,</span> <span class=n>er</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span>
+                        <span class=n>del_count</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=n>del_count</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"Did not delete anything under </span><span class=si>{</span><span class=n>scorer_name</span><span class=si>!r}</span><span class=s2>?"</span><span class=p>)</span>
+
+                <span class=n>new_count</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>source</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>new_count</span> <span class=o>!=</span> <span class=p>(</span><span class=n>count</span> <span class=o>-</span> <span class=n>del_count</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"List inconsistent after deletion "</span>
+                                     <span class=sa>f</span><span class=s2>"under </span><span class=si>{</span><span class=n>scorer_name</span><span class=si>!r}</span><span class=s2>?"</span><span class=p>)</span>
+                <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Deleted </span><span class=si>{</span><span class=n>del_count</span><span class=si>}</span><span class=s2> of the </span><span class=si>{</span><span class=n>count</span><span class=si>}</span><span class=s2> records because "</span>
+                       <span class=sa>f</span><span class=s2>"their score was </span><span class=si>{</span><span class=n>min_score</span><span class=si>}</span><span class=s2>. Retained </span><span class=si>{</span><span class=n>new_count</span><span class=si>}</span><span class=s2> "</span>
+                       <span class=sa>f</span><span class=s2>"records under </span><span class=si>{</span><span class=n>scorer_name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=n>count</span> <span class=o>=</span> <span class=n>new_count</span>
+                <span class=n>changed</span> <span class=o>=</span> <span class=kc>True</span>
+                <span class=k>continue</span>
+
+            <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"All setups now have the same score </span><span class=si>{</span><span class=n>max_score</span><span class=si>}</span><span class=s2> under"</span>
+                   <span class=sa>f</span><span class=s2>" </span><span class=si>{</span><span class=n>scorer_name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>count</span> <span class=o><=</span> <span class=n>best_length</span><span class=p>:</span>
+                <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"We now only have </span><span class=si>{</span><span class=n>count</span><span class=si>}</span><span class=s2> setups, which means we "</span>
+                       <span class=s2>"cannot get better than the current best set with "</span>
+                       <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>best_length</span><span class=si>}</span><span class=s2> setups, so we quit."</span><span class=p>)</span>
+                <span class=k>return</span> <span class=kc>None</span>
+
+            <span class=c1># If we get here, all elements have the same score.</span>
+            <span class=c1># This means that we are basically done.</span>
+            <span class=c1>#</span>
+            <span class=c1># However, this may also happen if a very odd division exists in</span>
+            <span class=c1># the data. Maybe we have one algorithm that was applied to one</span>
+            <span class=c1># instance ten times and another algorithm applied to another</span>
+            <span class=c1># instance ten times. This data would still be inconsistent, as it</span>
+            <span class=c1># does not allow for any comparison.</span>
+
+            <span class=c1># Compute the different values for everything except the seeds.</span>
+            <span class=n>usekeys</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span>
+                <span class=n>v</span> <span class=k>for</span> <span class=n>v</span><span class=p>,</span> <span class=n>s</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>counts</span><span class=p>)</span>
+                <span class=k>if</span> <span class=p>(</span><span class=n>v</span> <span class=o>!=</span> <span class=n>KEY_SEED</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>s</span><span class=p>)</span> <span class=o>></span> <span class=mi>1</span><span class=p>))</span>
+
+            <span class=k>if</span> <span class=nb>tuple</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>usekeys</span><span class=p>)</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+                <span class=n>logger</span><span class=p>(</span><span class=s2>"Now checking for inconsistencies in "</span>
+                       <span class=s2>"algorithm/instance/objective/encoding under"</span>
+                       <span class=sa>f</span><span class=s2>" </span><span class=si>{</span><span class=n>scorer_name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=c1># Only if there are different values in at least one tuple</span>
+                <span class=c1># dimension, we need to check for strange situations.</span>
+
+                <span class=c1># For each of (instance, algorithm, encoding, objective), we</span>
+                <span class=c1># must have the same number of other records.</span>
+                <span class=c1># If not, then we have some strange symmetric situation that</span>
+                <span class=c1># needs to be solved.</span>
+                <span class=n>per_value</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>set</span><span class=p>[</span><span class=n>Any</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{}</span>
+                <span class=n>last</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=n>Any</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+                <span class=k>for</span> <span class=n>key</span> <span class=ow>in</span> <span class=n>usekeys</span><span class=p>:</span>
+                    <span class=n>other_keys</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span>
+                        <span class=n>kk</span> <span class=k>for</span> <span class=n>kk</span> <span class=ow>in</span> <span class=n>usekeys</span> <span class=k>if</span> <span class=n>kk</span> <span class=o>!=</span> <span class=n>key</span><span class=p>)</span>
+                    <span class=k>for</span> <span class=n>er</span> <span class=ow>in</span> <span class=n>source</span><span class=p>:</span>
+                        <span class=n>kv</span> <span class=o>=</span> <span class=n>er</span><span class=p>[</span><span class=mi>0</span><span class=p>][</span><span class=n>key</span><span class=p>]</span>
+                        <span class=n>other</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>er</span><span class=p>[</span><span class=mi>0</span><span class=p>][</span><span class=n>ok</span><span class=p>]</span> <span class=k>for</span> <span class=n>ok</span> <span class=ow>in</span> <span class=n>other_keys</span><span class=p>)</span>
+                        <span class=k>if</span> <span class=n>kv</span> <span class=ow>in</span> <span class=n>per_value</span><span class=p>:</span>
+                            <span class=n>per_value</span><span class=p>[</span><span class=n>kv</span><span class=p>]</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>other</span><span class=p>)</span>
+                        <span class=k>else</span><span class=p>:</span>
+                            <span class=n>per_value</span><span class=p>[</span><span class=n>kv</span><span class=p>]</span> <span class=o>=</span> <span class=n>last</span> <span class=o>=</span> <span class=p>{</span><span class=n>other</span><span class=p>}</span>
+                    <span class=k>for</span> <span class=n>v</span> <span class=ow>in</span> <span class=n>per_value</span><span class=o>.</span><span class=n>values</span><span class=p>():</span>
+                        <span class=k>if</span> <span class=n>v</span> <span class=o>!=</span> <span class=n>last</span><span class=p>:</span>
+                            <span class=n>changed</span> <span class=o>=</span> <span class=kc>True</span>
+                            <span class=k>break</span>
+                    <span class=n>per_value</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+
+                    <span class=c1># We just need to delete one random element. This will</span>
+                    <span class=c1># break the symmetry</span>
+                    <span class=k>if</span> <span class=n>changed</span><span class=p>:</span>
+                        <span class=n>logger</span><span class=p>(</span>
+                            <span class=sa>f</span><span class=s2>"Deleting one of the </span><span class=si>{</span><span class=n>count</span><span class=si>}</span><span class=s2> elements to "</span>
+                            <span class=s2>"break the erroneous symmetry under "</span>
+                            <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>scorer_name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+                        <span class=n>er</span> <span class=o>=</span> <span class=n>source</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>
+                        <span class=k>del</span> <span class=n>source</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>
+                        <span class=n>_count_dec</span><span class=p>(</span><span class=n>counts</span><span class=p>,</span> <span class=n>er</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span>
+                        <span class=n>count</span> <span class=o>-=</span> <span class=mi>1</span>
+                        <span class=k>break</span>
+                <span class=k>del</span> <span class=n>per_value</span>
+                <span class=k>del</span> <span class=n>usekeys</span>
+                <span class=k>if</span> <span class=n>changed</span><span class=p>:</span>
+                    <span class=k>continue</span>
+
+            <span class=k>if</span> <span class=n>count</span> <span class=o><=</span> <span class=n>best_length</span><span class=p>:</span>
+                <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"We now only have </span><span class=si>{</span><span class=n>count</span><span class=si>}</span><span class=s2> setups, which means we "</span>
+                       <span class=s2>"cannot get better than the current best set with "</span>
+                       <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>best_length</span><span class=si>}</span><span class=s2> setups, so we quit."</span><span class=p>)</span>
+                <span class=k>return</span> <span class=kc>None</span>
+
+            <span class=c1># If we get here, the only problem left could be if algorithms</span>
+            <span class=c1># have different seeds for the same instances. We thus need to</span>
+            <span class=c1># check that for each instance, all the seeds are the same.</span>
+            <span class=c1># Notice that such inconsistencies can only occur if different</span>
+            <span class=c1># seeds occurred exactly as same as often.</span>
+            <span class=n>logger</span><span class=p>(</span><span class=s2>"Now checking for inconsistencies in instance "</span>
+                   <span class=sa>f</span><span class=s2>"seeds under </span><span class=si>{</span><span class=n>scorer_name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>seeds</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>{}</span>
+            <span class=k>for</span> <span class=n>er</span> <span class=ow>in</span> <span class=n>source</span><span class=p>:</span>
+                <span class=n>inst</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>er</span><span class=p>[</span><span class=mi>0</span><span class=p>][</span><span class=n>KEY_INSTANCE</span><span class=p>]</span>
+                <span class=n>cur</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span>
+                <span class=k>if</span> <span class=n>inst</span> <span class=ow>in</span> <span class=n>seeds</span><span class=p>:</span>
+                    <span class=n>cur</span> <span class=o>=</span> <span class=n>seeds</span><span class=p>[</span><span class=n>inst</span><span class=p>]</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>seeds</span><span class=p>[</span><span class=n>inst</span><span class=p>]</span> <span class=o>=</span> <span class=n>cur</span> <span class=o>=</span> <span class=p>{}</span>
+                <span class=n>kx</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span>
+                    <span class=n>er</span><span class=p>[</span><span class=mi>0</span><span class=p>][</span><span class=n>KEY_ALGORITHM</span><span class=p>],</span> <span class=n>er</span><span class=p>[</span><span class=mi>0</span><span class=p>][</span><span class=n>KEY_OBJECTIVE</span><span class=p>],</span>
+                    <span class=n>er</span><span class=p>[</span><span class=mi>0</span><span class=p>][</span><span class=n>KEY_ENCODING</span><span class=p>])</span>
+                <span class=k>if</span> <span class=n>kx</span> <span class=ow>in</span> <span class=n>cur</span><span class=p>:</span>
+                    <span class=n>cur</span><span class=p>[</span><span class=n>kx</span><span class=p>]</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>er</span><span class=p>[</span><span class=mi>0</span><span class=p>][</span><span class=n>KEY_SEED</span><span class=p>])</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>cur</span><span class=p>[</span><span class=n>kx</span><span class=p>]</span> <span class=o>=</span> <span class=p>{</span><span class=n>er</span><span class=p>[</span><span class=mi>0</span><span class=p>][</span><span class=n>KEY_SEED</span><span class=p>]}</span>
+
+            <span class=n>max_seed_insts</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+            <span class=n>max_seeds</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+            <span class=n>min_seed_inst</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=n>min_seeds</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+            <span class=n>must_delete_from_insts</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+            <span class=k>for</span> <span class=n>instance</span><span class=p>,</span> <span class=n>inst_setups</span> <span class=ow>in</span> <span class=n>seeds</span><span class=o>.</span><span class=n>items</span><span class=p>():</span>
+                <span class=n>kvx</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+                <span class=k>for</span> <span class=n>setup_seeds</span> <span class=ow>in</span> <span class=n>inst_setups</span><span class=o>.</span><span class=n>values</span><span class=p>():</span>
+                    <span class=k>if</span> <span class=n>kvx</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                        <span class=n>kvx</span> <span class=o>=</span> <span class=n>setup_seeds</span>
+                        <span class=n>seed_cnt</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>set</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>setup_seeds</span><span class=p>)</span>
+                        <span class=k>if</span> <span class=n>seed_cnt</span> <span class=o>>=</span> <span class=n>max_seeds</span><span class=p>:</span>
+                            <span class=k>if</span> <span class=n>seed_cnt</span> <span class=o>></span> <span class=n>max_seeds</span><span class=p>:</span>
+                                <span class=n>max_seed_insts</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+                                <span class=n>max_seeds</span> <span class=o>=</span> <span class=n>seed_cnt</span>
+                            <span class=n>max_seed_insts</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>instance</span><span class=p>)</span>
+                        <span class=k>if</span> <span class=p>(</span><span class=n>seed_cnt</span> <span class=o><</span> <span class=n>min_seeds</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>min_seed_inst</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>):</span>
+                            <span class=n>min_seeds</span> <span class=o>=</span> <span class=n>seed_cnt</span>
+                            <span class=n>min_seed_inst</span> <span class=o>=</span> <span class=n>instance</span>
+                    <span class=k>elif</span> <span class=n>kvx</span> <span class=o>!=</span> <span class=n>setup_seeds</span><span class=p>:</span>
+                        <span class=c1># We got a symmetric inconsistency</span>
+                        <span class=n>must_delete_from_insts</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>instance</span><span class=p>)</span>
+                        <span class=k>break</span>
+            <span class=k>if</span> <span class=n>min_seeds</span> <span class=o><</span> <span class=n>max_seeds</span><span class=p>:</span>
+                <span class=n>must_delete_from_insts</span><span class=o>.</span><span class=n>update</span><span class=p>(</span><span class=n>max_seed_insts</span><span class=p>)</span>
+            <span class=k>del</span> <span class=n>max_seed_insts</span>
+
+            <span class=n>del_count</span> <span class=o>=</span> <span class=nb>set</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>must_delete_from_insts</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>del_count</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                <span class=n>logger</span><span class=p>(</span><span class=s2>"Must delete one record from all of "</span>
+                       <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>must_delete_from_insts</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>count</span> <span class=o>-</span> <span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>):</span>
+                    <span class=n>er</span> <span class=o>=</span> <span class=n>source</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+                    <span class=n>instance</span> <span class=o>=</span> <span class=n>er</span><span class=p>[</span><span class=mi>0</span><span class=p>][</span><span class=n>KEY_INSTANCE</span><span class=p>]</span>
+                    <span class=k>if</span> <span class=n>instance</span> <span class=ow>in</span> <span class=n>must_delete_from_insts</span><span class=p>:</span>
+                        <span class=n>must_delete_from_insts</span><span class=o>.</span><span class=n>remove</span><span class=p>(</span><span class=n>instance</span><span class=p>)</span>
+                        <span class=k>del</span> <span class=n>source</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+                        <span class=n>_count_dec</span><span class=p>(</span><span class=n>counts</span><span class=p>,</span> <span class=n>er</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span>
+                        <span class=n>changed</span> <span class=o>=</span> <span class=kc>True</span>
+                        <span class=k>if</span> <span class=nb>set</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>must_delete_from_insts</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                            <span class=k>break</span>
+                <span class=n>new_count</span> <span class=o>=</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>source</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>new_count</span> <span class=o>!=</span> <span class=p>(</span><span class=n>count</span> <span class=o>-</span> <span class=n>del_count</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Error when deleting instances "</span>
+                                     <span class=sa>f</span><span class=s2>"under </span><span class=si>{</span><span class=n>scorer_name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=n>count</span> <span class=o>=</span> <span class=n>new_count</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=n>changed</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"Seeds inconsistent under </span><span class=si>{</span><span class=n>scorer_name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>del</span> <span class=n>must_delete_from_insts</span>
+
+            <span class=k>del</span> <span class=n>seeds</span>
+            <span class=k>if</span> <span class=n>count</span> <span class=o><=</span> <span class=n>best_length</span><span class=p>:</span>
+                <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"We now only have </span><span class=si>{</span><span class=n>count</span><span class=si>}</span><span class=s2> setups, which "</span>
+                       <span class=s2>"means we cannot get better than the current "</span>
+                       <span class=sa>f</span><span class=s2>"best set with </span><span class=si>{</span><span class=n>best_length</span><span class=si>}</span><span class=s2> setups, so we "</span>
+                       <span class=s2>"quit."</span><span class=p>)</span>
+                <span class=k>return</span> <span class=kc>None</span>
+            <span class=c1># There should not be any problems left, but we need to check</span>
+            <span class=c1># again if something has changed.</span>
+
+        <span class=k>if</span> <span class=n>count</span> <span class=o><=</span> <span class=n>best_length</span><span class=p>:</span>
+            <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"We now only have </span><span class=si>{</span><span class=n>count</span><span class=si>}</span><span class=s2> setups, which means we "</span>
+                   <span class=s2>"cannot get better than the current best set with "</span>
+                   <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>best_length</span><span class=si>}</span><span class=s2> setups, so we quit.."</span><span class=p>)</span>
+            <span class=k>return</span> <span class=kc>None</span>  <span class=c1># We can do nothing here</span>
+        <span class=c1># We are finally finished. The scores are no longer needed.</span>
+        <span class=k>del</span> <span class=n>counts</span>
+        <span class=k>if</span> <span class=n>count</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"No data found at all?"</span><span class=p>)</span>
+        <span class=k>return</span> <span class=p>[</span><span class=n>b</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=k>for</span> <span class=n>b</span> <span class=ow>in</span> <span class=n>source</span><span class=p>]</span></div>
+</div>
+
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__HeuristicSelectorTiered</span><span class=p>(</span><span class=n>HeuristicSelector</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A tiered heuristic selector."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>score</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>element</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span> <span class=n>counts</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]],</span>
+              <span class=n>_</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Score a given element.</span>
+
+<span class=sd>        :param element: the tuple to score</span>
+<span class=sd>        :param counts: the element counts per dimension</span>
+<span class=sd>        :param _: the weights, which may sometimes be ignored</span>
+<span class=sd>        :returns: the score</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>counts</span><span class=p>[</span><span class=n>i</span><span class=p>][</span><span class=n>t</span><span class=p>]</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>t</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>element</span><span class=p>))</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the selector name.</span>
+
+<span class=sd>        :returns "tiered": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"tiered"</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__HeuristicSelectorTieredReverse</span><span class=p>(</span><span class=n>HeuristicSelector</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A reverse tiered heuristic selector."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>score</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>element</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span> <span class=n>counts</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]],</span>
+              <span class=n>_</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Score a given element.</span>
+
+<span class=sd>        :param element: the tuple to score</span>
+<span class=sd>        :param counts: the element counts per dimension</span>
+<span class=sd>        :param _: the weights, which may sometimes be ignored</span>
+<span class=sd>        :returns: the score</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=nb>sorted</span><span class=p>((</span><span class=n>counts</span><span class=p>[</span><span class=n>i</span><span class=p>][</span><span class=n>t</span><span class=p>]</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>t</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>element</span><span class=p>)),</span>
+                      <span class=n>reverse</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the selector name.</span>
+
+<span class=sd>        :returns "tieredReverse": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"tieredReverse"</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__HeuristicSelectorSum</span><span class=p>(</span><span class=n>HeuristicSelector</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A sum heuristic selector."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>score</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>element</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span> <span class=n>counts</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]],</span>
+              <span class=n>_</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Score a given element.</span>
+
+<span class=sd>        :param element: the tuple to score</span>
+<span class=sd>        :param counts: the element counts per dimension</span>
+<span class=sd>        :param _: the weights, which may sometimes be ignored</span>
+<span class=sd>        :returns: the score</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=nb>sum</span><span class=p>(</span><span class=n>counts</span><span class=p>[</span><span class=n>i</span><span class=p>][</span><span class=n>t</span><span class=p>]</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>t</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>element</span><span class=p>))</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the selector name.</span>
+
+<span class=sd>        :returns "sum": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"sum"</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__HeuristicSelectorProduct</span><span class=p>(</span><span class=n>HeuristicSelector</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A product heuristic selector."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>score</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>element</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span> <span class=n>counts</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]],</span>
+              <span class=n>_</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Score a given element.</span>
+
+<span class=sd>        :param element: the tuple to score</span>
+<span class=sd>        :param counts: the element counts per dimension</span>
+<span class=sd>        :param _: the weights, which may sometimes be ignored</span>
+<span class=sd>        :returns: the score</span>
+<span class=sd>        """</span>
+        <span class=n>result</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span>
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>t</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>element</span><span class=p>):</span>
+            <span class=n>result</span> <span class=o>*=</span> <span class=n>counts</span><span class=p>[</span><span class=n>i</span><span class=p>][</span><span class=n>t</span><span class=p>]</span>
+        <span class=k>return</span> <span class=n>result</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the selector name.</span>
+
+<span class=sd>        :returns "product": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"product"</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__HeuristicSelectorMinimum</span><span class=p>(</span><span class=n>HeuristicSelector</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A minimum heuristic selector."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>score</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>element</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span> <span class=n>counts</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]],</span>
+              <span class=n>_</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Score a given element.</span>
+
+<span class=sd>        :param element: the tuple to score</span>
+<span class=sd>        :param counts: the element counts per dimension</span>
+<span class=sd>        :param _: the weights, which may sometimes be ignored</span>
+<span class=sd>        :returns: the score</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=nb>min</span><span class=p>(</span><span class=n>element</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the selector name.</span>
+
+<span class=sd>        :returns "min": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"min"</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__NormalizedHeuristicSelector</span><span class=p>(</span><span class=n>HeuristicSelector</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A heuristic selector."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>weight</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>counts</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]])</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compute the total score.</span>
+
+<span class=sd>        This function can be overwritten to compute the total score.</span>
+
+<span class=sd>        :param counts: the counts</span>
+<span class=sd>        :return: a weight factor, that may be ignored by some methods</span>
+<span class=sd>        """</span>
+        <span class=n>result</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=nb>sum</span><span class=p>(</span><span class=n>t</span><span class=p>)</span> <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>counts</span><span class=p>]</span>
+        <span class=k>return</span> <span class=kc>None</span> <span class=k>if</span> <span class=p>(</span><span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>result</span><span class=p>)</span> <span class=o><</span> <span class=mi>1</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span>
+            <span class=nb>max</span><span class=p>(</span><span class=n>result</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=k>else</span> <span class=n>result</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__HeuristicSelectorNormTiered</span><span class=p>(</span><span class=n>__NormalizedHeuristicSelector</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A normalized tiered heuristic selector."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>score</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>element</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span> <span class=n>counts</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]],</span>
+              <span class=n>weights</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Score a given element.</span>
+
+<span class=sd>        :param element: the tuple to score</span>
+<span class=sd>        :param counts: the element counts per dimension</span>
+<span class=sd>        :param weights: the weights</span>
+<span class=sd>        :returns: the score</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>counts</span><span class=p>[</span><span class=n>i</span><span class=p>][</span><span class=n>t</span><span class=p>]</span> <span class=o>/</span> <span class=n>weights</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>t</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span>
+            <span class=n>element</span><span class=p>)</span> <span class=k>if</span> <span class=n>weights</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>></span> <span class=mi>0</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the selector name.</span>
+
+<span class=sd>        :returns "normalizedTiered": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"normalizedTiered"</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__HeuristicSelectorNormTieredRev</span><span class=p>(</span><span class=n>__NormalizedHeuristicSelector</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A normalized tiered reverse heuristic selector."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>score</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>element</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span> <span class=n>counts</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]],</span>
+              <span class=n>weights</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Score a given element.</span>
+
+<span class=sd>        :param element: the tuple to score</span>
+<span class=sd>        :param counts: the element counts per dimension</span>
+<span class=sd>        :param weights: the weights</span>
+<span class=sd>        :returns: the score</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=nb>sorted</span><span class=p>((</span><span class=n>counts</span><span class=p>[</span><span class=n>i</span><span class=p>][</span><span class=n>t</span><span class=p>]</span> <span class=o>/</span> <span class=n>weights</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>t</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span>
+            <span class=n>element</span><span class=p>)</span> <span class=k>if</span> <span class=n>weights</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>></span> <span class=mi>0</span><span class=p>),</span> <span class=n>reverse</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the selector name.</span>
+
+<span class=sd>        :returns "normalizedTieredReverse": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"normalizedTieredReverse"</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__HeuristicSelectorNormSum</span><span class=p>(</span><span class=n>__NormalizedHeuristicSelector</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A normalized sum heuristic selector."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>score</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>element</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span> <span class=n>counts</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]],</span>
+              <span class=n>weights</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Score a given element.</span>
+
+<span class=sd>        :param element: the tuple to score</span>
+<span class=sd>        :param counts: the element counts per dimension</span>
+<span class=sd>        :param weights: the weights</span>
+<span class=sd>        :returns: the score</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=nb>sum</span><span class=p>(</span><span class=n>counts</span><span class=p>[</span><span class=n>i</span><span class=p>][</span><span class=n>t</span><span class=p>]</span> <span class=o>/</span> <span class=n>weights</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>t</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span>
+            <span class=n>element</span><span class=p>)</span> <span class=k>if</span> <span class=n>weights</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>></span> <span class=mi>0</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the selector name.</span>
+
+<span class=sd>        :returns "normalizedSum": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"normalizedSum"</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__SameNumberOfRuns</span><span class=p>(</span><span class=n>Selector</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A selector choosing the same runs for all instance/algorithm combos."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>select</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+               <span class=n>dims</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span>
+               <span class=n>keys</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=o>...</span><span class=p>],</span>
+               <span class=n>best_length</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span>
+            <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Perform the dataset selection.</span>
+
+<span class=sd>        :param dims: the number of different values per key dimension</span>
+<span class=sd>        :param keys: the data keys to select from</span>
+<span class=sd>        :param best_length: the length of the best-so-far set of runs,</span>
+<span class=sd>            will be `-1` if no such best exists</span>
+<span class=sd>        :return: the selected data</span>
+<span class=sd>        """</span>
+        <span class=n>runs</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>[</span>
+            <span class=p>{}</span> <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>dims</span><span class=p>[</span><span class=n>KEY_INSTANCE</span><span class=p>])]</span>
+        <span class=n>n_combos</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>for</span> <span class=n>key</span> <span class=ow>in</span> <span class=n>keys</span><span class=p>:</span>
+            <span class=n>dct</span> <span class=o>=</span> <span class=n>runs</span><span class=p>[</span><span class=n>key</span><span class=p>[</span><span class=n>KEY_INSTANCE</span><span class=p>]]</span>
+            <span class=n>subkey</span> <span class=o>=</span> <span class=p>(</span><span class=n>key</span><span class=p>[</span><span class=n>KEY_ALGORITHM</span><span class=p>],</span> <span class=n>key</span><span class=p>[</span><span class=n>KEY_ENCODING</span><span class=p>],</span>
+                      <span class=n>key</span><span class=p>[</span><span class=n>KEY_OBJECTIVE</span><span class=p>])</span>
+            <span class=k>if</span> <span class=n>subkey</span> <span class=ow>in</span> <span class=n>dct</span><span class=p>:</span>
+                <span class=n>dct</span><span class=p>[</span><span class=n>subkey</span><span class=p>]</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>key</span><span class=p>[</span><span class=n>KEY_SEED</span><span class=p>])</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>dct</span><span class=p>[</span><span class=n>subkey</span><span class=p>]</span> <span class=o>=</span> <span class=p>{</span><span class=n>key</span><span class=p>[</span><span class=n>KEY_SEED</span><span class=p>]}</span>
+                <span class=n>n_combos</span> <span class=o>+=</span> <span class=mi>1</span>
+
+        <span class=k>if</span> <span class=n>n_combos</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"No runs??"</span><span class=p>)</span>
+
+        <span class=n>inst_seeds</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[</span>
+            <span class=nb>next</span><span class=p>(</span><span class=nb>iter</span><span class=p>(</span><span class=n>dct</span><span class=o>.</span><span class=n>values</span><span class=p>()))</span> <span class=k>for</span> <span class=n>dct</span> <span class=ow>in</span> <span class=n>runs</span><span class=p>]</span>
+        <span class=n>min_set_len</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>tuple</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>keys</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>dct</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>runs</span><span class=p>):</span>
+            <span class=n>base</span> <span class=o>=</span> <span class=n>inst_seeds</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+            <span class=k>for</span> <span class=n>st</span> <span class=ow>in</span> <span class=n>dct</span><span class=o>.</span><span class=n>values</span><span class=p>():</span>
+                <span class=n>base</span><span class=o>.</span><span class=n>intersection_update</span><span class=p>(</span><span class=n>st</span><span class=p>)</span>
+            <span class=n>sl</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>set</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>base</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>sl</span> <span class=o><</span> <span class=n>min_set_len</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>sl</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>logger</span><span class=p>(</span><span class=s2>"Cannot find non-empty instance/run intersection."</span><span class=p>)</span>
+                    <span class=k>return</span> <span class=kc>None</span>
+                <span class=k>if</span> <span class=p>(</span><span class=n>sl</span> <span class=o>*</span> <span class=n>n_combos</span><span class=p>)</span> <span class=o><=</span> <span class=n>best_length</span><span class=p>:</span>
+                    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Cannot surpass best length </span><span class=si>{</span><span class=n>best_length</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+                    <span class=k>return</span> <span class=kc>None</span>
+                <span class=n>min_set_len</span> <span class=o>=</span> <span class=n>sl</span>
+
+        <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Get </span><span class=si>{</span><span class=n>min_set_len</span><span class=si>}</span><span class=s2> seeds per instance/algorithm/objective/"</span>
+               <span class=sa>f</span><span class=s2>"encoding combination."</span><span class=p>)</span>
+        <span class=n>use_seeds</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[</span>
+            <span class=nb>sorted</span><span class=p>(</span><span class=n>st</span><span class=p>)[:</span><span class=n>min_set_len</span><span class=p>]</span> <span class=k>for</span> <span class=n>st</span> <span class=ow>in</span> <span class=n>inst_seeds</span><span class=p>]</span>
+        <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Found </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>use_seeds</span><span class=p>)</span><span class=si>}</span><span class=s2> seeds to use."</span><span class=p>)</span>
+        <span class=k>return</span> <span class=p>[</span><span class=n>key</span> <span class=k>for</span> <span class=n>key</span> <span class=ow>in</span> <span class=n>keys</span> <span class=k>if</span> <span class=n>key</span><span class=p>[</span><span class=n>KEY_SEED</span><span class=p>]</span> <span class=ow>in</span> <span class=n>use_seeds</span><span class=p>[</span>
+            <span class=n>key</span><span class=p>[</span><span class=n>KEY_INSTANCE</span><span class=p>]]]</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the text representation of this selector.</span>
+
+<span class=sd>        :returns "sameNumberOfRuns": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"sameNumberOfRuns"</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__seed_hash</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>])</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute a hash for instance-random seeds.</span>
+
+<span class=sd>    The selection algorithm will deterministically choose which runs to</span>
+<span class=sd>    keep. To make it truly deterministic, we always sort the settings</span>
+<span class=sd>    according to the algorithm, instance, objective function, encoding, and</span>
+<span class=sd>    random seed.</span>
+
+<span class=sd>    When we create this order of configurations, we can normally rely on the</span>
+<span class=sd>    natural or alphabetic order for algorithms, objectives, instances, and</span>
+<span class=sd>    encodings.</span>
+<span class=sd>    However, if we also use the natural order for random seeds, this might</span>
+<span class=sd>    potentially lead to the problem that runs with larger random seeds are</span>
+<span class=sd>    deleted more likely.</span>
+<span class=sd>    Deleting some algorithms or instances is not really a problem, but using</span>
+<span class=sd>    the seed value to select runs via a natural order of seeds could be</span>
+<span class=sd>    problematic.</span>
+<span class=sd>    The hash is based on a tuple containing the seed, which is different from</span>
+<span class=sd>    the seed but still reliably the same in every run.</span>
+<span class=sd>    This should lead to a uniform probability of seed deletion over the random</span>
+<span class=sd>    seed spectrum in the absence of other criteria.</span>
+
+<span class=sd>    :param x: the instance-random seeds</span>
+<span class=sd>    :return: the hash</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>x</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=nb>hash</span><span class=p>((</span><span class=n>x</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span> <span class=p>))</span>  <span class=c1># force hash to be different from x[1]</span>
+
+
+<span class=c1>#: All combinations of instances/algorithms/encodings/objectives get the same</span>
+<span class=c1>#: number of runs, and on all instances the same seeds are used.</span>
+<span class=c1>#: This selector is quite fast and simple.</span>
+<span class=c1>#: It will only delete runs, but attempt to retain all instance, algorithms,</span>
+<span class=c1>#: objective, and encoding combinations.</span>
+<span class=c1>#: It will thus fail if there are some combinations with mutually distinct</span>
+<span class=c1>#: run sets.</span>
+<span class=n>SELECTOR_SAME_RUNS_FOR_ALL</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=n>Selector</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span>
+    <span class=n>__SameNumberOfRuns</span><span class=p>(),</span> <span class=p>)</span>
+
+<span class=c1>#: A simple selector set for maximum runs.</span>
+<span class=c1>#: This selector first attempts to do the selection given in</span>
+<span class=c1>#: :const:`SELECTOR_SAME_RUNS_FOR_ALL` and then attempts to find</span>
+<span class=c1>#: a larger set of consistent runs that might result from dropping off</span>
+<span class=c1>#: instances, encodings, algorithms, or objectives.</span>
+<span class=n>SELECTOR_MAX_RUNS_SIMPLE</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=n>Selector</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span>
+    <span class=o>*</span><span class=n>SELECTOR_SAME_RUNS_FOR_ALL</span><span class=p>,</span> <span class=n>__HeuristicSelectorTiered</span><span class=p>())</span>
+
+<span class=c1>#: Select the maximum number of runs in the most thoroughly possible way.</span>
+<span class=c1>#: This selector performs many more different attempts compared to</span>
+<span class=c1>#: :const:`SELECTOR_MAX_RUNS_SIMPLE`. It is very thorough in attempting to</span>
+<span class=c1>#: find the largest possible set of consistent runs. It will therefore also</span>
+<span class=c1>#: be much slower.</span>
+<span class=n>SELECTOR_MAX_RUNS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=n>Selector</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span>
+    <span class=o>*</span><span class=n>SELECTOR_MAX_RUNS_SIMPLE</span><span class=p>,</span>
+    <span class=n>__HeuristicSelectorNormTieredRev</span><span class=p>(),</span>
+    <span class=n>__HeuristicSelectorSum</span><span class=p>(),</span> <span class=n>__HeuristicSelectorProduct</span><span class=p>(),</span>
+    <span class=n>__HeuristicSelectorMinimum</span><span class=p>(),</span> <span class=n>__HeuristicSelectorNormTiered</span><span class=p>(),</span>
+    <span class=n>__HeuristicSelectorNormTieredRev</span><span class=p>(),</span> <span class=n>__HeuristicSelectorNormSum</span><span class=p>())</span>
+
+
+<div class=viewcode-block id=select_consistent>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.selector.select_consistent>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>select_consistent</span><span class=p>(</span>
+        <span class=n>data</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>T</span><span class=p>],</span>
+        <span class=n>selectors</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Selector</span><span class=p>]</span> <span class=o>=</span> <span class=n>SELECTOR_MAX_RUNS</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=n>T</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Select data such that the numbers of runs are consistent.</span>
+
+<span class=sd>    The input is a set of data items which represent some records over the</span>
+<span class=sd>    runs of algorithms on instances. It may be that not all algorithms have</span>
+<span class=sd>    been applied to all instances. Maybe the number of runs is inconsistent</span>
+<span class=sd>    over the algorithm-instance combinations, too. Maybe some algorithms</span>
+<span class=sd>    have more runs on some instances. Maybe the runs are even different,</span>
+<span class=sd>    it could be that some algorithms have runs for seed `A`, `B`, and `C` on</span>
+<span class=sd>    instance `I`, while others have runs for seed `C` and `D`. This function</span>
+<span class=sd>    is designed to retain only the runs with seed `C` in such a case. It may</span>
+<span class=sd>    discard algorithms or instances or algorithm-instance-seed combinations</span>
+<span class=sd>    in order to obtain a selection of data where all algorithms have been</span>
+<span class=sd>    applied to all instances as same as often and using the same seeds.</span>
+
+<span class=sd>    Now there are different ways to select such consistent subsets of a</span>
+<span class=sd>    dataset. Of course, we want to select the data such that as much as</span>
+<span class=sd>    possible of the data is retained and as little as possible is discarded.</span>
+<span class=sd>    This may be a hard optimization problem in itself. Here, we offer a</span>
+<span class=sd>    heuristic solution. Basically, we step-by-step try to cut away the</span>
+<span class=sd>    setups that are covered by the least amount of runs. We keep repeating</span>
+<span class=sd>    this until we arrive in a situation where all setups have the same</span>
+<span class=sd>    amount of runs. We then check if there were some strange symmetries that</span>
+<span class=sd>    still make the data inconsistent and, if we found some, try to delete</span>
+<span class=sd>    one run to break the symmetries and then repeat the cleaning-up process.</span>
+<span class=sd>    In the end, we should get a list of overall consistent data elements that</span>
+<span class=sd>    can be used during a normal experiment evaluation procedure.</span>
+
+<span class=sd>    This iterative process may be rather slow on larger datasets, but it is</span>
+<span class=sd>    maybe the best approximation we can offer to retain as much data as</span>
+<span class=sd>    possible.</span>
+
+<span class=sd>    :param data: the source data</span>
+<span class=sd>    :param selectors: the selectors to use</span>
+<span class=sd>    :return: a list with the selected data</span>
+
+<span class=sd>    >>> def __p(x) -> str:</span>
+<span class=sd>    ...     return (f"{x.algorithm}/{x.instance}/{x.objective}/{x.encoding}/"</span>
+<span class=sd>    ...             f"{x.rand_seed}")</span>
+
+<span class=sd>    >>> a1i1o1e1s1 = PerRunData("a1", "i1", "o1", "e1", 1)</span>
+<span class=sd>    >>> a1i1o1e1s2 = PerRunData("a1", "i1", "o1", "e1", 2)</span>
+<span class=sd>    >>> a1i1o1e1s3 = PerRunData("a1", "i1", "o1", "e1", 3)</span>
+<span class=sd>    >>> a1i2o1e1s1 = PerRunData("a1", "i2", "o1", "e1", 1)</span>
+<span class=sd>    >>> a1i2o1e1s2 = PerRunData("a1", "i2", "o1", "e1", 2)</span>
+<span class=sd>    >>> a1i2o1e1s3 = PerRunData("a1", "i2", "o1", "e1", 3)</span>
+<span class=sd>    >>> a2i1o1e1s1 = PerRunData("a2", "i1", "o1", "e1", 1)</span>
+<span class=sd>    >>> a2i1o1e1s2 = PerRunData("a2", "i1", "o1", "e1", 2)</span>
+<span class=sd>    >>> a2i1o1e1s3 = PerRunData("a2", "i1", "o1", "e1", 3)</span>
+<span class=sd>    >>> a2i2o1e1s1 = PerRunData("a1", "i2", "o1", "e1", 1)</span>
+<span class=sd>    >>> a2i2o1e1s2 = PerRunData("a2", "i2", "o1", "e1", 2)</span>
+<span class=sd>    >>> a2i2o1e1s3 = PerRunData("a2", "i2", "o1", "e1", 3)</span>
+
+<span class=sd>    >>> list(map(__p, select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s1, a1i1o1e1s2, a1i1o1e1s3,</span>
+<span class=sd>    ...     a1i2o1e1s1, a1i2o1e1s2, a1i2o1e1s3,</span>
+<span class=sd>    ...     a2i1o1e1s1, a2i1o1e1s2,</span>
+<span class=sd>    ...     a2i2o1e1s2, a2i2o1e1s3))))</span>
+<span class=sd>    ['a1/i1/o1/e1/1', 'a1/i1/o1/e1/2', 'a1/i2/o1/e1/2', 'a1/i2/o1/e1/3',\</span>
+<span class=sd> 'a2/i1/o1/e1/1', 'a2/i1/o1/e1/2', 'a2/i2/o1/e1/2', 'a2/i2/o1/e1/3']</span>
+
+<span class=sd>    >>> list(map(__p, select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s2, a1i1o1e1s3,</span>
+<span class=sd>    ...     a1i2o1e1s1, a1i2o1e1s2, a1i2o1e1s3,</span>
+<span class=sd>    ...     a2i1o1e1s1, a2i1o1e1s2,</span>
+<span class=sd>    ...     a2i2o1e1s2, a2i2o1e1s3))))</span>
+<span class=sd>    ['a1/i1/o1/e1/2', 'a1/i2/o1/e1/3', 'a2/i1/o1/e1/2', 'a2/i2/o1/e1/3']</span>
+
+<span class=sd>    >>> list(map(__p, select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s2, a1i1o1e1s3,</span>
+<span class=sd>    ...     a1i2o1e1s1, a1i2o1e1s2, a1i2o1e1s3,</span>
+<span class=sd>    ...     a2i1o1e1s1, a2i1o1e1s2,</span>
+<span class=sd>    ...     a2i2o1e1s2))))</span>
+<span class=sd>    ['a1/i1/o1/e1/2', 'a1/i2/o1/e1/2', 'a2/i1/o1/e1/2', 'a2/i2/o1/e1/2']</span>
+
+<span class=sd>    >>> list(map(__p, select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s1, a1i1o1e1s2, a1i1o1e1s3,</span>
+<span class=sd>    ...     a2i2o1e1s1, a2i2o1e1s2, a2i2o1e1s3))))</span>
+<span class=sd>    ['a1/i1/o1/e1/1', 'a1/i1/o1/e1/2', 'a1/i1/o1/e1/3']</span>
+
+<span class=sd>    >>> list(map(__p, select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s1, a1i1o1e1s2, a1i1o1e1s3,</span>
+<span class=sd>    ...     a2i1o1e1s1, a2i1o1e1s2, a2i1o1e1s3))))</span>
+<span class=sd>    ['a1/i1/o1/e1/1', 'a1/i1/o1/e1/2', 'a1/i1/o1/e1/3', \</span>
+<span class=sd>'a2/i1/o1/e1/1', 'a2/i1/o1/e1/2', 'a2/i1/o1/e1/3']</span>
+
+<span class=sd>    >>> list(map(__p, select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s1, a1i1o1e1s2, a1i2o1e1s2, a1i2o1e1s3))))</span>
+<span class=sd>    ['a1/i1/o1/e1/1', 'a1/i1/o1/e1/2', 'a1/i2/o1/e1/2', 'a1/i2/o1/e1/3']</span>
+
+<span class=sd>    >>> list(map(__p, select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s1, a1i1o1e1s2, a1i2o1e1s2))))</span>
+<span class=sd>    ['a1/i1/o1/e1/1', 'a1/i2/o1/e1/2']</span>
+
+<span class=sd>    >>> list(map(__p, select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s1, a2i1o1e1s2))))</span>
+<span class=sd>    ['a1/i1/o1/e1/1']</span>
+
+<span class=sd>    >>> list(map(__p, select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s1, a2i1o1e1s2, a2i1o1e1s3))))</span>
+<span class=sd>    ['a2/i1/o1/e1/2', 'a2/i1/o1/e1/3']</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     select_consistent((a1i1o1e1s1, a1i1o1e1s2, a1i2o1e1s2, a1i2o1e1s2))</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(str(ve)[:30])</span>
+<span class=sd>    Found two records of type PerR</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     select_consistent(1)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    data should be an instance of typing.Iterable but is int, namely 1.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     select_consistent({234})</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(str(te)[:20])</span>
+<span class=sd>    data[0] should be an</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     select_consistent((a1i1o1e1s1, a1i1o1e1s2, a1i2o1e1s2), 1)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(str(te)[:19])</span>
+<span class=sd>    selectors should be</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     select_consistent((a1i1o1e1s1, a1i1o1e1s2, a1i2o1e1s2), (1, ))</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(str(te)[:21])</span>
+<span class=sd>    selectors[0] should b</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=s2>"data"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>selectors</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>selectors</span><span class=p>,</span> <span class=s2>"selectors"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+
+    <span class=c1># make data re-iterable</span>
+    <span class=n>use_data</span> <span class=o>=</span> <span class=n>data</span> <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=nb>list</span> <span class=o>|</span> <span class=nb>tuple</span><span class=p>)</span> <span class=k>else</span> <span class=nb>list</span><span class=p>(</span><span class=n>data</span><span class=p>)</span>
+    <span class=n>total_len</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>use_data</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>total_len</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"The data is empty!"</span><span class=p>)</span>
+    <span class=n>algorithm_set</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+    <span class=n>instance_set</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+    <span class=n>objective_set</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+    <span class=n>encoding_set</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+    <span class=n>seed_set</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>item</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>use_data</span><span class=p>):</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>item</span><span class=p>,</span> <span class=n>PerRunData</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>item</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"data[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>]"</span><span class=p>,</span> <span class=n>PerRunData</span><span class=p>)</span>
+        <span class=n>algorithm_set</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>item</span><span class=o>.</span><span class=n>algorithm</span><span class=p>)</span>
+        <span class=n>instance_set</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>item</span><span class=o>.</span><span class=n>instance</span><span class=p>)</span>
+        <span class=n>objective_set</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>item</span><span class=o>.</span><span class=n>objective</span><span class=p>)</span>
+        <span class=n>encoding_set</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>item</span><span class=o>.</span><span class=n>encoding</span><span class=p>)</span>
+        <span class=n>seed_set</span><span class=o>.</span><span class=n>add</span><span class=p>((</span><span class=n>item</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span> <span class=n>item</span><span class=o>.</span><span class=n>rand_seed</span><span class=p>))</span>
+
+    <span class=n>algorithms</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>algorithm_set</span><span class=p>)</span>
+    <span class=k>del</span> <span class=n>algorithm_set</span>
+    <span class=n>instances</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>instance_set</span><span class=p>)</span>
+    <span class=k>del</span> <span class=n>instance_set</span>
+    <span class=n>objectives</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>objective_set</span><span class=p>)</span>
+    <span class=k>del</span> <span class=n>objective_set</span>
+    <span class=n>encodings</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span>
+        <span class=n>encoding_set</span><span class=p>,</span> <span class=n>key</span><span class=o>=</span><span class=k>lambda</span> <span class=n>s</span><span class=p>:</span> <span class=s2>""</span> <span class=k>if</span> <span class=n>s</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>s</span><span class=p>)</span>
+    <span class=k>del</span> <span class=n>encoding_set</span>
+    <span class=c1># Random seeds</span>
+    <span class=n>seeds</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>seed_set</span><span class=p>,</span> <span class=n>key</span><span class=o>=</span><span class=n>__seed_hash</span><span class=p>)</span>
+    <span class=k>del</span> <span class=n>seed_set</span>
+    <span class=n>dims</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span>
+        <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>algorithms</span><span class=p>),</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>instances</span><span class=p>),</span>
+        <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>objectives</span><span class=p>),</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>encodings</span><span class=p>),</span>
+        <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>seeds</span><span class=p>))</span>
+
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Found </span><span class=si>{</span><span class=n>dims</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=si>}</span><span class=s2> algorithms, </span><span class=si>{</span><span class=n>dims</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span><span class=si>}</span><span class=s2> instances, "</span>
+           <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>dims</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span><span class=si>}</span><span class=s2> objectives, </span><span class=si>{</span><span class=n>dims</span><span class=p>[</span><span class=mi>3</span><span class=p>]</span><span class=si>}</span><span class=s2> encodings, and "</span>
+           <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>dims</span><span class=p>[</span><span class=mi>4</span><span class=p>]</span><span class=si>}</span><span class=s2> instance/seed combinations over "</span>
+           <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>total_len</span><span class=si>}</span><span class=s2> runs in total."</span><span class=p>)</span>
+
+    <span class=n>data_map</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=n>T</span><span class=p>]</span> <span class=o>=</span> <span class=p>{}</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>item</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>use_data</span><span class=p>):</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=p>(</span><span class=n>algorithms</span><span class=o>.</span><span class=n>index</span><span class=p>(</span><span class=n>item</span><span class=o>.</span><span class=n>algorithm</span><span class=p>),</span>
+               <span class=n>instances</span><span class=o>.</span><span class=n>index</span><span class=p>(</span><span class=n>item</span><span class=o>.</span><span class=n>instance</span><span class=p>),</span>
+               <span class=n>objectives</span><span class=o>.</span><span class=n>index</span><span class=p>(</span><span class=n>item</span><span class=o>.</span><span class=n>objective</span><span class=p>),</span>
+               <span class=n>encodings</span><span class=o>.</span><span class=n>index</span><span class=p>(</span><span class=n>item</span><span class=o>.</span><span class=n>encoding</span><span class=p>),</span>
+               <span class=n>seeds</span><span class=o>.</span><span class=n>index</span><span class=p>((</span><span class=n>item</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span> <span class=n>item</span><span class=o>.</span><span class=n>rand_seed</span><span class=p>)))</span>
+        <span class=k>if</span> <span class=n>key</span> <span class=ow>in</span> <span class=n>data_map</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Found two records of type </span><span class=si>{</span><span class=n>item</span><span class=si>}</span><span class=s2>,"</span>
+                             <span class=sa>f</span><span class=s2>"the second one at index </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>data_map</span><span class=p>[</span><span class=n>key</span><span class=p>]</span> <span class=o>=</span> <span class=n>item</span>
+
+    <span class=n>source</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=o>...</span><span class=p>]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=nb>sorted</span><span class=p>(</span>
+        <span class=n>data_map</span><span class=o>.</span><span class=n>keys</span><span class=p>()))</span>
+    <span class=n>best_data</span><span class=p>:</span> <span class=nb>list</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>best_length</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+
+    <span class=c1># Apply all the selectors one by one.</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>selector</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>selectors</span><span class=p>):</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>selector</span><span class=p>,</span> <span class=n>Selector</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>selector</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"selectors[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>]"</span><span class=p>,</span> <span class=n>Selector</span><span class=p>)</span>
+        <span class=n>selector_name</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>selector</span><span class=p>)</span>
+        <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Now invoking selector </span><span class=si>{</span><span class=n>selector_name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>best_data_2</span><span class=p>:</span> <span class=nb>list</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>selector</span><span class=o>.</span><span class=n>select</span><span class=p>(</span>
+            <span class=n>dims</span><span class=p>,</span> <span class=n>source</span><span class=p>,</span> <span class=n>best_length</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>best_data_2</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>bdl2</span> <span class=o>=</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>best_data_2</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>bdl2</span> <span class=o>></span> <span class=n>best_length</span><span class=p>:</span>
+                <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Selector </span><span class=si>{</span><span class=n>selector_name</span><span class=si>!r}</span><span class=s2> found new best "</span>
+                       <span class=sa>f</span><span class=s2>"of </span><span class=si>{</span><span class=n>bdl2</span><span class=si>}</span><span class=s2> runs."</span><span class=p>)</span>
+                <span class=n>best_length</span> <span class=o>=</span> <span class=n>bdl2</span>
+                <span class=n>best_data</span> <span class=o>=</span> <span class=n>best_data_2</span>
+                <span class=k>if</span> <span class=n>best_length</span> <span class=o>>=</span> <span class=n>total_len</span><span class=p>:</span>
+                    <span class=n>logger</span><span class=p>(</span><span class=s2>"All runs can be retained, we can stop here."</span><span class=p>)</span>
+                    <span class=n>best_data</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+                    <span class=n>best_data</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>use_data</span><span class=p>)</span>
+                    <span class=n>best_data</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+                    <span class=k>return</span> <span class=n>best_data</span>
+
+        <span class=k>del</span> <span class=n>best_data_2</span>
+
+    <span class=k>if</span> <span class=n>best_length</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Did not find consistent run subset."</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"After applying all selectors, we got </span><span class=si>{</span><span class=n>best_length</span><span class=si>}</span><span class=s2> records."</span><span class=p>)</span>
+
+    <span class=c1># Now we construct the final result.</span>
+    <span class=n>best_data</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>key</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>best_data</span><span class=p>):</span>
+        <span class=n>best_data</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>data_map</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>key</span><span class=p>)</span>
+    <span class=k>del</span> <span class=n>data_map</span>
+    <span class=n>best_data</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+    <span class=k>return</span> <span class=n>best_data</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.selector</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

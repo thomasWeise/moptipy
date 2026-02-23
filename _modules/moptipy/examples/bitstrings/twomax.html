@@ -1,0 +1,803 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.bitstrings.twomax — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/bitstrings/twomax.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a accesskey=U href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.twomax</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.bitstrings.twomax</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The TwoMax problem.</span>
+
+<span class=sd>TwoMax has two optima. The local optimum at the string with all `False` bits.</span>
+<span class=sd>The objective value of this local optimum is 1. The global optimum is the</span>
+<span class=sd>string with all `True` bits and its objective value is 0. The worst objective</span>
+<span class=sd>value is reached if half of the bits are `True` and the other half is `False`.</span>
+<span class=sd>Then, the objective value will be `(n // 2) + 1`.</span>
+
+<span class=sd>The TwoMax problem is based on OneMax but introduces deceptiveness in the</span>
+<span class=sd>objective function by having a local and a global optimum. Since their basins</span>
+<span class=sd>of attraction have the same size, a (1 + 1) EA can solve the problem in</span>
+<span class=sd>`Omega(n ln n)` steps with probability 0.5 while otherwise needing exponential</span>
+<span class=sd>runtime in expectation, leading to a total expected runtime in</span>
+<span class=sd>`Omega(n ** n)`.</span>
+
+<span class=sd>1. Tobias Friedrich, Francesco Quinzan, and Markus Wagner. Escaping Large</span>
+<span class=sd>   Deceptive Basins of Attraction with Heavy-Tailed Mutation Operators.</span>
+<span class=sd>   GECCO 2018. ACM.</span>
+<span class=sd>   doi: https://doi.org/10.1145/3205455.3205515.</span>
+<span class=sd>2. Clarissa Van Hoyweghen, David E. Goldberg, and Bart Naudts. From TwoMax to</span>
+<span class=sd>   the Ising Model: Easy and Hard Symmetrical Problems. GECCO 2002.</span>
+<span class=sd>   pp 626-633. Morgan Kaufmann.</span>
+<span class=sd>3. Tobias Friedrich, Pietro S. Oliveto, Dirk Sudholt, and Carsten Witt.</span>
+<span class=sd>   Analysis of Diversity-Preserving Mechanisms for Global Exploration.</span>
+<span class=sd>   Evolutionary Computation. 17(4):455-476. 2009.</span>
+<span class=sd>   doi: https://doi.org/10.1162/evco.2009.17.4.17401.</span>
+<span class=sd>4. Thomas Weise, Zhize Wu, Xinlu Li, and Yan Chen. Frequency Fitness</span>
+<span class=sd>   Assignment: Making Optimization Algorithms Invariant under Bijective</span>
+<span class=sd>   Transformations of the Objective Function Value. *IEEE Transactions on</span>
+<span class=sd>   Evolutionary Computation* 25(2):307-319. April 2021. Preprint available at</span>
+<span class=sd>   arXiv:2001.01416v5 [cs.NE] 15 Oct 2020.</span>
+<span class=sd>   https://dx.doi.org/10.1109/TEVC.2020.3032090</span>
+<span class=sd>5. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency</span>
+<span class=sd>   Fitness Assignment: Optimization without Bias for Good Solutions can be</span>
+<span class=sd>   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.</span>
+<span class=sd>   27(4):980-992. August 2023.</span>
+<span class=sd>   doi: https://doi.org/10.1109/TEVC.2022.3191698</span>
+
+<span class=sd>This is code is part of the research work of Mr. Jiazheng ZENG (曾嘉政),</span>
+<span class=sd>a Master's student at the Institute of Applied Optimization</span>
+<span class=sd>(应用优化研究所) of the School of Artificial</span>
+<span class=sd>Intelligence and Big Data (人工智能与大数据学院) at</span>
+<span class=sd>Hefei University (合肥大学) in</span>
+<span class=sd>Hefei, Anhui, China (中国安徽省合肥市) under the supervision of</span>
+<span class=sd>Prof. Dr. Thomas Weise (汤卫思教授).</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterator</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.bitstring_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>BitStringProblem</span>
+
+
+<div class=viewcode-block id=twomax>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.twomax.twomax>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>twomax</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the objective value of the TwoMax problem.</span>
+
+<span class=sd>    :param x: the np array</span>
+<span class=sd>    :return: the sum of the indices of the first two ones</span>
+
+<span class=sd>    >>> twomax(np.array([True, True, True, True, True]))</span>
+<span class=sd>    0</span>
+<span class=sd>    >>> twomax(np.array([False, False, False, False, False]))</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> twomax(np.array([False, True, True, False, False]))</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> twomax(np.array([True, True, True, True, True]))</span>
+<span class=sd>    0</span>
+<span class=sd>    >>> twomax(np.array([False, False, False, False, False]))</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> twomax(np.array([False, True, False, False, False]))</span>
+<span class=sd>    2</span>
+<span class=sd>    >>> twomax(np.array([False, False, False, False, False, False]))</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> twomax(np.array([False, False, True, False, False, False]))</span>
+<span class=sd>    2</span>
+<span class=sd>    >>> twomax(np.array([False, True, False, True, False, False]))</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> twomax(np.array([False, True, False, True, False, True]))</span>
+<span class=sd>    4</span>
+<span class=sd>    >>> twomax(np.array([True, False, True, False, True, True]))</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> twomax(np.array([False, True, True, True, True, True]))</span>
+<span class=sd>    2</span>
+<span class=sd>    >>> twomax(np.array([True, True, True, True, True, True]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 1 and 0 true bits</span>
+<span class=sd>    >>> twomax(np.array([0]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 1 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 2 and 0 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 2 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 2 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 2 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 2 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 3 and 0 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 3 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 3 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 3 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 3 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 3 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 3 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 3 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 4 and 0 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 4 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 1, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 4 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 4 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 4 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 5 and 0 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 0]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 5 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 5 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 5 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 5 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 1, 0, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 5 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 0, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 5 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 0, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 5 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 1, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 5 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 5 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 1, 1, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 5 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 5 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 5 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 5 and 5 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 6 and 0 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 6 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 1, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 0, 0, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 6 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 1, 0, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 6 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 6 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 1, 0, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 6 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 6 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 6 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 0, 1, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 6 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 6 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 0, 1, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 6 and 5 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 5 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 5 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 6 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 7 and 0 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 7 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 7 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 7 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 7 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 1, 0, 0, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 7 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 0, 0, 1, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 7 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 0, 0, 1, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 7 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 0, 1, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 7 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 7 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 1, 1, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 7 and 5 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 7 and 5 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 0, 0, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 7 and 5 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 1, 0, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 7 and 6 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 6 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1, 0, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 6 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 7 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 8 and 0 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 8 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 1, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 1, 0, 0, 0, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 8 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 0, 1, 0, 0, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 8 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 8 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 1, 0, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 8 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 0, 1, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 8 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 1, 1, 1, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 8 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 0, 1, 1, 0, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 8 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 0, 0, 1, 1, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 8 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 1, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 8 and 5 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 8 and 5 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 8 and 5 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 0, 1, 1, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 8 and 6 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 8 and 6 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 8 and 6 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 1, 1, 1, 1, 1, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 8 and 7 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 7 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 0, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 7 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1, 1, 1, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 8 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 9 and 0 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 9 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 9 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 9 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 9 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 1, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 9 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 9 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 0, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 9 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 0, 0, 0, 1, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 1, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 1, 0, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 0, 0, 0, 0, 1, 1]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 9 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 1, 0, 0, 1, 1, 1, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 9 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 1, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 9 and 5 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 0, 0, 0, 0, 1, 1]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 9 and 5 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 1, 1, 1, 0, 1, 1]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 9 and 5 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 1, 1, 0, 1, 1, 1, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 9 and 6 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 1, 1, 0, 0, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 6 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 1, 1, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 6 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 1, 1, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 7 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1, 1, 0, 0, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 9 and 7 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 0, 0, 1, 1, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 9 and 7 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 1, 1, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 9 and 8 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 9 and 8 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 9 and 8 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1, 1, 1, 0, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 9 and 9 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 10 and 0 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 10 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 0, 0, 0, 1, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 1 true bit</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 0, 0, 0, 0, 1, 0, 0, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 10 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 1, 1, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 10 and 2 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 1, 0, 0, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 10 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 1, 0, 1, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 0, 0, 0, 0, 0, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 3 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 1, 0, 1, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 1, 1, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 10 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 0, 0, 0, 0, 0, 0, 1, 1]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 10 and 4 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 1, 0, 0, 1, 1, 0, 0, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 10 and 5 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 0, 1, 0, 1, 1, 1, 1, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 10 and 5 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 1, 1, 1, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 10 and 5 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 0, 1, 1, 1, 0, 1, 0, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 10 and 6 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1, 0, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 10 and 6 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 1, 1, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 10 and 6 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 1, 1, 0, 1, 1, 1, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 10 and 7 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 1, 1, 0, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 7 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 0, 0, 1, 1, 1, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 7 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 0, 1, 0, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 8 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 1, 1, 1, 1, 1, 0, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 10 and 8 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 10 and 8 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 0, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 10 and 9 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 9 true bits</span>
+<span class=sd>    >>> twomax(np.array([0, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 9 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 0, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 10 true bits</span>
+<span class=sd>    >>> twomax(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+<span class=sd>    """</span>
+    <span class=n>s</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+    <span class=n>number_of_ones</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>sum</span><span class=p>())</span>
+    <span class=k>return</span> <span class=mi>0</span> <span class=k>if</span> <span class=n>s</span> <span class=o>==</span> <span class=n>number_of_ones</span> <span class=k>else</span> <span class=p>(</span>
+        <span class=mi>1</span> <span class=o>+</span> <span class=n>s</span> <span class=o>-</span> <span class=nb>max</span><span class=p>(</span><span class=n>number_of_ones</span><span class=p>,</span> <span class=n>s</span> <span class=o>-</span> <span class=n>number_of_ones</span><span class=p>))</span></div>
+
+
+
+<div class=viewcode-block id=TwoMax>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.twomax.TwoMax>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>TwoMax</span><span class=p>(</span><span class=n>BitStringProblem</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The TwoMax benchmark problem."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the twomax objective function.</span>
+
+<span class=sd>        :param n: the dimension of the problem</span>
+
+<span class=sd>        >>> TwoMax(2).n</span>
+<span class=sd>        2</span>
+<span class=sd>        >>> TwoMax(4).evaluate(np.array([True, True, False, True]))</span>
+<span class=sd>        2</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>n</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>evaluate</span> <span class=o>=</span> <span class=n>twomax</span>  <span class=c1># type: ignore</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the twomax objective function.</span>
+
+<span class=sd>        :return: `twomax_` + length of string</span>
+
+<span class=sd>        >>> print(TwoMax(13))</span>
+<span class=sd>        twomax_13</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"twomax_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=si>}</span><span class=s2>"</span>
+
+<div class=viewcode-block id=TwoMax.upper_bound>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.twomax.TwoMax.upper_bound>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>upper_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the upper bound of the twomax problem.</span>
+
+<span class=sd>        :return: the length of the bit string integer-divided by 2, plus 1</span>
+
+<span class=sd>        >>> TwoMax(15).upper_bound()</span>
+<span class=sd>        8</span>
+
+<span class=sd>        >>> TwoMax(5).upper_bound()</span>
+<span class=sd>        3</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>n</span> <span class=o>//</span> <span class=mi>2</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span></div>
+
+
+<div class=viewcode-block id=TwoMax.default_instances>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.twomax.TwoMax.default_instances>[docs]</a>
+    <span class=nd>@classmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>default_instances</span><span class=p>(</span>
+            <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>,</span> <span class=n>scale_min</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>3</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>333</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=n>Iterator</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=s2>"TwoMax"</span><span class=p>]]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the 77 default instances of the :class:`TwoMax` problem.</span>
+
+<span class=sd>        :param scale_min: the minimum permitted scale, by default `3`</span>
+<span class=sd>        :param scale_max: the maximum permitted scale, by default `333`</span>
+<span class=sd>        :returns: a sequence of default :class:`TwoMax` instances</span>
+
+<span class=sd>        >>> len(list(TwoMax.default_instances()))</span>
+<span class=sd>        77</span>
+
+<span class=sd>        >>> [x() for x in TwoMax.default_instances()]</span>
+<span class=sd>        [twomax_3, twomax_4, twomax_5, twomax_6, twomax_7, twomax_8, \</span>
+<span class=sd>twomax_9, twomax_10, twomax_11, twomax_12, twomax_13, twomax_14, twomax_15, \</span>
+<span class=sd>twomax_16, twomax_17, twomax_18, twomax_19, twomax_20, twomax_21, twomax_22, \</span>
+<span class=sd>twomax_23, twomax_24, twomax_25, twomax_26, twomax_27, twomax_28, twomax_29, \</span>
+<span class=sd>twomax_30, twomax_31, twomax_32, twomax_33, twomax_36, twomax_40, twomax_41, \</span>
+<span class=sd>twomax_42, twomax_44, twomax_48, twomax_49, twomax_50, twomax_55, twomax_59, \</span>
+<span class=sd>twomax_60, twomax_64, twomax_66, twomax_70, twomax_77, twomax_79, twomax_80, \</span>
+<span class=sd>twomax_81, twomax_85, twomax_88, twomax_90, twomax_96, twomax_99, \</span>
+<span class=sd>twomax_100, twomax_107, twomax_111, twomax_121, twomax_125, twomax_128, \</span>
+<span class=sd>twomax_144, twomax_149, twomax_169, twomax_170, twomax_192, twomax_196, \</span>
+<span class=sd>twomax_199, twomax_200, twomax_222, twomax_225, twomax_243, twomax_256, \</span>
+<span class=sd>twomax_269, twomax_289, twomax_300, twomax_324, twomax_333]</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Iterator[Callable[[], TwoMax]]"</span><span class=p>,</span>
+                    <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span>  <span class=c1># type: ignore</span>
+                        <span class=n>scale_min</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>))</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.twomax</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

@@ -1,0 +1,84 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.mock.mo_problem — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/mock/mo_problem.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.mock.mo_problem</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.mock.mo_problem</h1><div class=highlight><pre>
+<span></span><span class=sd>"""The mock multi-objective optimization problem."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>default_rng</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.mo.problem.weighted_sum</span><span class=w> </span><span class=kn>import</span> <span class=n>WeightedSum</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.mock.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>MockObjective</span>
+
+
+<div class=viewcode-block id=MockMOProblem>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.mo_problem.MockMOProblem>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>MockMOProblem</span><span class=p>(</span><span class=n>WeightedSum</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A mock-up of a multi-objective optimization problem."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>objectives</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>MockObjective</span><span class=p>],</span>
+                 <span class=n>weights</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the mock multi-objective problem.</span>
+
+<span class=sd>        :param objectives: the mock objectives</span>
+<span class=sd>        :param weights: their weights</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>objectives</span><span class=p>,</span> <span class=n>weights</span><span class=p>)</span>
+
+<div class=viewcode-block id=MockMOProblem.for_dtype>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.mo_problem.MockMOProblem.for_dtype>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>for_dtype</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>dtype</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"MockMOProblem"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a mock multi-objective problem.</span>
+
+<span class=sd>        :param n: the number of objectives</span>
+<span class=sd>        :param dtype: the optional dtype</span>
+<span class=sd>        :returns: the mock multi-objective problem</span>
+<span class=sd>        """</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dtype</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>dtype</span><span class=p>,</span> <span class=s2>"dtype"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span>
+
+        <span class=n>random</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>()</span>
+        <span class=n>weights</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span>\
+            <span class=p>[</span><span class=nb>int</span><span class=p>(</span><span class=n>w</span><span class=p>)</span> <span class=k>for</span> <span class=n>w</span> <span class=ow>in</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=n>n</span><span class=p>)]</span> \
+            <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span> \
+            <span class=k>else</span> <span class=p>[</span><span class=nb>float</span><span class=p>(</span><span class=n>w</span><span class=p>)</span> <span class=k>for</span> <span class=n>w</span> <span class=ow>in</span> <span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mf>0.2</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=n>n</span><span class=p>)]</span>
+        <span class=n>max_trials</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1000</span>
+        <span class=k>while</span> <span class=n>max_trials</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>max_trials</span> <span class=o>-=</span> <span class=mi>1</span>
+            <span class=n>funcs</span> <span class=o>=</span> <span class=p>[</span><span class=n>MockObjective</span><span class=o>.</span><span class=n>for_type</span><span class=p>(</span><span class=n>dtype</span><span class=p>)</span> <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>)]</span>
+            <span class=n>names</span> <span class=o>=</span> <span class=p>{</span><span class=nb>str</span><span class=p>(</span><span class=n>o</span><span class=p>)</span> <span class=k>for</span> <span class=n>o</span> <span class=ow>in</span> <span class=n>funcs</span><span class=p>}</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>names</span><span class=p>)</span> <span class=o>>=</span> <span class=n>n</span><span class=p>:</span>
+                <span class=k>return</span> <span class=n>MockMOProblem</span><span class=p>(</span><span class=n>funcs</span><span class=p>,</span> <span class=n>weights</span><span class=p>)</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Huh?"</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=MockMOProblem.get_objectives>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.mo_problem.MockMOProblem.get_objectives>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_objectives</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=n>MockObjective</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the internal objective functions.</span>
+
+<span class=sd>        :return: the internal mock objective functions</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"tuple[MockObjective, ...]"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>_objectives</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=MockMOProblem.sample>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.mo_problem.MockMOProblem.sample>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>sample</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>fs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Sample one vector of ojective values.</span>
+
+<span class=sd>        :param fs: the array to receive the objective values</span>
+<span class=sd>        :returns: the scalarized objective values</span>
+<span class=sd>        """</span>
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>o</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_objectives</span><span class=p>):</span>
+            <span class=n>fs</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"MockObjective"</span><span class=p>,</span> <span class=n>o</span><span class=p>)</span><span class=o>.</span><span class=n>sample</span><span class=p>()</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>_scalarize</span><span class=p>(</span><span class=n>fs</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.mock.mo_problem</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

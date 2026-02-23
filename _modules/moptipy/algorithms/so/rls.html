@@ -1,0 +1,122 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.rls — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/rls.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.rls</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.rls</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The implementation of the Randomized Local Search algorithm `rls`.</span>
+
+<span class=sd>The algorithm starts by applying the nullary search operator, an</span>
+<span class=sd>implementation of :meth:`~moptipy.api.operators.Op0.op0`, to sample</span>
+<span class=sd>one fully random solution. This is the first best-so-far solution.</span>
+<span class=sd>In each step, it applies the unary operator, an implementation of</span>
+<span class=sd>:meth:`~moptipy.api.operators.Op1.op1`, to the best-so-far solution to</span>
+<span class=sd>obtain a new, similar solution. If this new solution is not worse than</span>
+<span class=sd>the current best-so-far solution, it replaces this solution. Otherwise,</span>
+<span class=sd>it is discarded.</span>
+
+<span class=sd>The `rls` algorithm is a simple local search that accepts all</span>
+<span class=sd>non-deteriorating moves. It is thus similar to the simple hill climber</span>
+<span class=sd>`hc` implemented in</span>
+<span class=sd>:class:`~moptipy.algorithms.so.hill_climber.HillClimber`, which, however,</span>
+<span class=sd>accepts strictly improving moves. `rls` is also equivalent to a</span>
+<span class=sd>`(mu+lambda)`-EA without crossover as implemented in</span>
+<span class=sd>:class:`~moptipy.algorithms.so.ea.EA` if the same unary and nullary operator</span>
+<span class=sd>are used and `mu=1`, `lambda=1`, and `br=0`. `rls`, however, will be</span>
+<span class=sd>faster as it does not represent a population of solutions as list of</span>
+<span class=sd>objects but can directly utilize local variables.</span>
+
+<span class=sd>Strictly speaking, the name "Randomized Local Search" only fits</span>
+<span class=sd>partially to the algorithm we implement here. Take the discrete search</span>
+<span class=sd>domain, where the search spaces are bit strings of a fixed length `n`,</span>
+<span class=sd>as an example. The name "Randomized Local Search" and the abbreviation</span>
+<span class=sd>`rls` has a fixed meaning on this domain: It is the algorithm that</span>
+<span class=sd>starts with a random solution and flips exactly one randomly chosen bit</span>
+<span class=sd>in each step. This corresponds to our `rls` algorithm with the operator</span>
+<span class=sd>:class:`~moptipy.operators.bitstrings.op1_flip1.Op1Flip1`. However,</span>
+<span class=sd>an algorithm that starts with a random solution and flips a number of</span>
+<span class=sd>bits sampled from a Binomial distribution is called `(1+1) EA`. Now</span>
+<span class=sd>this algorithm corresponds again to our `rls` algorithm, but this time</span>
+<span class=sd>with operator</span>
+<span class=sd>:class:`~moptipy.operators.bitstrings.op1_m_over_n_flip.Op1MoverNflip`.</span>
+<span class=sd>In other words, we can implement (at least) two algorithms with</span>
+<span class=sd>well-known and fixed names by plugging different operators into our</span>
+<span class=sd>`rls` approach. One of them is called `RLS`, the other one is called</span>
+<span class=sd>`(1+1) EA`. Now this is somewhat confusing but results from the general</span>
+<span class=sd>nature of our basic framework. Regardless of what we do, we will have</span>
+<span class=sd>some form of name clash here. We advise the user of our algorithms to</span>
+<span class=sd>be careful with respect to literature and scientific conventions when</span>
+<span class=sd>using our framework.</span>
+
+<span class=sd>1. Frank Neumann and Ingo Wegener. Randomized Local Search, Evolutionary</span>
+<span class=sd>   Algorithms, and the Minimum Spanning Tree Problem. *Theoretical Computer</span>
+<span class=sd>   Science.* 378(1):32-40, June 2007.</span>
+<span class=sd>   https://doi.org/10.1016/j.tcs.2006.11.002,</span>
+<span class=sd>   https://eldorado.tu-dortmund.de/bitstream/2003/5454/1/165.pdf</span>
+<span class=sd>2. Holger H. Hoos and Thomas Stützle. *Stochastic Local Search: Foundations</span>
+<span class=sd>   and Applications.* 2005. ISBN: 1493303732. In The Morgan Kaufmann Series in</span>
+<span class=sd>   Artificial Intelligence. Amsterdam, The Netherlands: Elsevier.</span>
+<span class=sd>3. Thomas Weise. *Optimization Algorithms.* 2021. Hefei, Anhui, China:</span>
+<span class=sd>   Institute of Applied Optimization (IAO), School of Artificial Intelligence</span>
+<span class=sd>   and Big Data, Hefei University. http://thomasweise.github.io/oa/</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm1</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>Op1</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=RLS>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.rls.RLS>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>RLS</span><span class=p>(</span><span class=n>Algorithm1</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The RLS is a simple local search accepting all non-worsening moves.</span>
+
+<span class=sd>    In each step, an RLS creates a modified copy `new_x` of the</span>
+<span class=sd>    current best solution `best_x`. If `new_x` is not worse than `best_x`,</span>
+<span class=sd>    it becomes the new `best_x`. Otherwise, it is discarded.</span>
+<span class=sd>    """</span>
+
+<div class=viewcode-block id=RLS.solve>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.rls.RLS.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the RLS to an optimization problem.</span>
+
+<span class=sd>        :param process: the black-box process object</span>
+<span class=sd>        """</span>
+        <span class=c1># Create records for old and new point in the search space.</span>
+        <span class=n>best_x</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>  <span class=c1># record for best-so-far solution</span>
+        <span class=n>new_x</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>  <span class=c1># record for new solution</span>
+        <span class=c1># Obtain the random number generator.</span>
+        <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>()</span>
+
+        <span class=c1># Put function references in variables to save time.</span>
+        <span class=n>evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>evaluate</span>  <span class=c1># the objective</span>
+        <span class=n>op1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op1</span><span class=o>.</span><span class=n>op1</span>  <span class=c1># the unary operator</span>
+        <span class=n>should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>
+
+        <span class=c1># Start at a random point in the search space and evaluate it.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>op0</span><span class=o>.</span><span class=n>op0</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>best_x</span><span class=p>)</span>  <span class=c1># Create 1 solution randomly and</span>
+        <span class=n>best_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>best_x</span><span class=p>)</span>  <span class=c1># evaluate it.</span>
+
+        <span class=k>while</span> <span class=ow>not</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># Until we need to quit...</span>
+            <span class=n>op1</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>new_x</span><span class=p>,</span> <span class=n>best_x</span><span class=p>)</span>  <span class=c1># new_x = neighbor of best_x</span>
+            <span class=n>new_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>new_x</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>new_f</span> <span class=o><=</span> <span class=n>best_f</span><span class=p>:</span>  <span class=c1># new_x is not worse than best_x?</span>
+                <span class=n>best_f</span> <span class=o>=</span> <span class=n>new_f</span>  <span class=c1># Store its objective value.</span>
+                <span class=n>best_x</span><span class=p>,</span> <span class=n>new_x</span> <span class=o>=</span> <span class=n>new_x</span><span class=p>,</span> <span class=n>best_x</span>  <span class=c1># Swap best and new.</span></div>
+
+
+    <span class=c1># end book</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>:</span> <span class=n>Op1</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the randomized local search (rls).</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param op1: the unary search operator</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=s2>"rls"</span><span class=p>,</span> <span class=n>op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.rls</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

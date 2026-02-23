@@ -1,0 +1,170 @@
+<!doctype html><html data-content_root=../../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.modules.selections.tournament_without_repl — moptipy 0.9.172 documentation</title><link href="../../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/modules/selections/tournament_without_repl.html rel=canonical><link href=../../../../../genindex.html rel=index title=Index><link href=../../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.modules.selections.tournament_without_repl</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.modules.selections.tournament_without_repl</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Tournament selection without replacement in the tournaments.</span>
+
+<span class=sd>For each slot in the destination, a tournament with</span>
+<span class=sd>:attr:`~moptipy.algorithms.modules.selections.\</span>
+<span class=sd>tournament_without_repl.TournamentWithoutReplacement.size`</span>
+<span class=sd>randomly chosen participating solutions is conducted. The solution with</span>
+<span class=sd>the best fitness wins and is copied to the destination.</span>
+
+<span class=sd>The tournaments are without replacement, following the algorithm by Goldberg,</span>
+<span class=sd>Korg, and Deb. This means that a solution can only take part in another</span>
+<span class=sd>tournament after all other solutions have joined one. In other words, we are</span>
+<span class=sd>drawing solutions without replacement. This means that if we have `m`</span>
+<span class=sd>solutions and want to select `n` from them by conducting tournaments of size</span>
+<span class=sd>`s`, each solution will take part in at least `floor(s*n / m)` tournaments and</span>
+<span class=sd>in at most `ceil(s*n / m)` ones.</span>
+
+<span class=sd>We implement this drawing of unique random indices as a partial Fisher-Yates</span>
+<span class=sd>shuffle. The indices used to choose the tournament contestants from are in an</span>
+<span class=sd>array forming a permutation. Initially, `unused=m` indices. Whenever we draw</span>
+<span class=sd>one new index from the permutation, we do so from a random position from</span>
+<span class=sd>`0..unused-1`, swap it to position `unused-1` and decrement `unused` by one.</span>
+<span class=sd>Once `unused` reaches `0`, we reset it to `m`. This is different from the</span>
+<span class=sd>originally proposed implementation of tournament selection without repetition</span>
+<span class=sd>in that it does not first permutate all the indices. It will be better in</span>
+<span class=sd>cases where only a few small tournaments are conducted, e.g., during mating</span>
+<span class=sd>selection. It will be slower when many large tournaments are conducted, e.g.,</span>
+<span class=sd>during survival selection.</span>
+
+<span class=sd>Tournament selection with replacement is implemented in</span>
+<span class=sd>:mod:`moptipy.algorithms.modules.selections.tournament_with_repl`.</span>
+
+<span class=sd>1. David Edward Goldberg and Bradley Korb and Kalyanmoy Deb. Messy Genetic</span>
+<span class=sd>   Algorithms: Motivation, Analysis, and First Results. *Complex Systems*</span>
+<span class=sd>   3(5):493-530. 1989.</span>
+<span class=sd>   https://wpmedia.wolfram.com/uploads/sites/13/2018/02/03-5-5.pdf</span>
+<span class=sd>2. Kumara Sastry and David Edward Goldberg. Modeling Tournament Selection with</span>
+<span class=sd>   Replacement using Apparent Added Noise. In Lee Spector, Erik D. Goodman,</span>
+<span class=sd>   Annie Wu, William Benjamin Langdon, and Hans-Michael Voigt, eds.,</span>
+<span class=sd>   *Proceedings of the 3rd Annual Conference on Genetic and Evolutionary</span>
+<span class=sd>   Computation (GECCO'01)*, July 7-11, 2001, San Francisco, CA, USA, page 781.</span>
+<span class=sd>   San Francisco, CA, United States: Morgan Kaufmann Publishers Inc.</span>
+<span class=sd>   ISBN: 978-1-55860-774-3. https://dl.acm.org/doi/pdf/10.5555/2955239.2955378</span>
+<span class=sd>3. Peter J. B. Hancock. An Empirical Comparison of Selection Methods in</span>
+<span class=sd>   Evolutionary Algorithms. In Terence Claus Fogarty, editor, *Selected Papers</span>
+<span class=sd>   from the AISB Workshop on Evolutionary Computing (AISB EC'94),* April</span>
+<span class=sd>   11-13, 1994, Leeds, UK, volume 865 of Lecture Notes in Computer Science,</span>
+<span class=sd>   pages 80-94, Berlin/Heidelberg, Germany: Springer, ISBN: 978-3-540-58483-4.</span>
+<span class=sd>   https://dx.doi.org/10.1007/3-540-58483-8_7. Conference organized by the</span>
+<span class=sd>   Society for the Study of Artificial Intelligence and Simulation of</span>
+<span class=sd>   Behaviour (AISB).</span>
+<span class=sd>4. Uday Kumar Chakraborty and Kalyanmoy Deb and Mandira Chakraborty. Analysis</span>
+<span class=sd>   of Selection Algorithms: A Markov Chain Approach. *Evolutionary</span>
+<span class=sd>   Computation,* 4(2):133-167. Summer 1996. Cambridge, MA, USA: MIT Press.</span>
+<span class=sd>   doi:10.1162/evco.1996.4.2.133.</span>
+<span class=sd>   https://dl.acm.org/doi/pdf/10.1162/evco.1996.4.2.133</span>
+<span class=sd>5. Tobias Blickle and Lothar Thiele. A Comparison of Selection Schemes used in</span>
+<span class=sd>   Genetic Algorithms. Second edition, December 1995. TIK-Report 11 from the</span>
+<span class=sd>   Eidgenössische Technische Hochschule (ETH) Zürich, Department of Electrical</span>
+<span class=sd>   Engineering, Computer Engineering and Networks Laboratory (TIK), Zürich,</span>
+<span class=sd>   Switzerland. ftp://ftp.tik.ee.ethz.ch/pub/publications/TIK-Report11.ps</span>
+<span class=sd>6. Sir Ronald Aylmer Fisher and Frank Yates. *Statistical Tables for</span>
+<span class=sd>   Biological, Agricultural and Medical Research.* Sixth Edition, March 1963.</span>
+<span class=sd>   London, UK: Oliver & Boyd. ISBN: 0-02-844720-4. https://digital.library.\</span>
+<span class=sd>adelaide.edu.au/dspace/bitstream/2440/10701/1/stat_tab.pdf</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=kn>import</span> <span class=n>empty</span><span class=p>,</span> <span class=n>ndarray</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.modules.selection</span><span class=w> </span><span class=kn>import</span> <span class=n>FitnessRecord</span><span class=p>,</span> <span class=n>Selection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>DEFAULT_INT</span><span class=p>,</span> <span class=n>fill_in_canonical_permutation</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=TournamentWithoutReplacement>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.modules.selections.html#moptipy.algorithms.modules.selections.tournament_without_repl.TournamentWithoutReplacement>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>TournamentWithoutReplacement</span><span class=p>(</span><span class=n>Selection</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""Tournament selection without replacement in the tournament."""</span>
+
+<span class=c1># end book</span>
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>size</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>2</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the tournament selection method.</span>
+
+<span class=sd>        :param size: the size of the tournaments</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=c1>#: the tournament size</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>size</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>size</span><span class=p>,</span> <span class=s2>"tournament size"</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+        <span class=c1>#: the cache for the array</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__perm</span><span class=p>:</span> <span class=n>ndarray</span> <span class=o>=</span> <span class=n>empty</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>DEFAULT_INT</span><span class=p>)</span>
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=TournamentWithoutReplacement.select>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.modules.selections.html#moptipy.algorithms.modules.selections.tournament_without_repl.TournamentWithoutReplacement.select>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>select</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>source</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>FitnessRecord</span><span class=p>],</span>
+               <span class=n>dest</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>FitnessRecord</span><span class=p>],</span> <span class=n>Any</span><span class=p>],</span>
+               <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Perform deterministic best selection without replacement.</span>
+
+<span class=sd>        :param source: the list with the records to select from</span>
+<span class=sd>        :param dest: the destination collector to invoke for each selected</span>
+<span class=sd>            record</span>
+<span class=sd>        :param n: the number of records to select</span>
+<span class=sd>        :param random: the random number generator</span>
+<span class=sd>        """</span>
+        <span class=n>size</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>size</span>  <span class=c1># the tournament size</span>
+        <span class=n>m</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>source</span><span class=p>)</span>  <span class=c1># number of elements to select from</span>
+        <span class=n>perm</span><span class=p>:</span> <span class=n>ndarray</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__perm</span>  <span class=c1># get the base permutation</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>perm</span><span class=p>)</span> <span class=o>!=</span> <span class=n>m</span><span class=p>:</span>  <span class=c1># -book</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__perm</span> <span class=o>=</span> <span class=n>perm</span> <span class=o>=</span> <span class=n>empty</span><span class=p>(</span><span class=n>m</span><span class=p>,</span> <span class=n>DEFAULT_INT</span><span class=p>)</span>  <span class=c1># -book</span>
+            <span class=n>fill_in_canonical_permutation</span><span class=p>(</span><span class=n>perm</span><span class=p>)</span>  <span class=c1># -book</span>
+        <span class=n>r0i</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span>  <span class=c1># fast call to random int from 0..(i-1)</span>
+        <span class=n>u</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>m</span>  <span class=c1># the number u of available (unused) indices = m</span>
+        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>):</span>  <span class=c1># conduct n tournaments</span>
+            <span class=n>best</span><span class=p>:</span> <span class=n>FitnessRecord</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>  <span class=c1># best competitor</span>
+            <span class=n>best_fitness</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span>  <span class=c1># best fitness, initial infinite</span>
+            <span class=k>for</span> <span class=n>__</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>size</span><span class=p>):</span>  <span class=c1># perform one tournament</span>
+                <span class=k>if</span> <span class=n>u</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>  <span class=c1># if we have used all indices in perm</span>
+                    <span class=n>u</span> <span class=o>=</span> <span class=n>m</span>  <span class=c1># then we again at the end</span>
+                <span class=n>i</span> <span class=o>=</span> <span class=n>r0i</span><span class=p>(</span><span class=n>u</span><span class=p>)</span>  <span class=c1># get random integer in 0..u-1</span>
+                <span class=n>u</span> <span class=o>-=</span> <span class=mi>1</span>  <span class=c1># decrease number of unused indices</span>
+                <span class=n>chosen</span> <span class=o>=</span> <span class=n>perm</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>  <span class=c1># get the index of the chosen element</span>
+                <span class=n>perm</span><span class=p>[</span><span class=n>u</span><span class=p>],</span> <span class=n>perm</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>chosen</span><span class=p>,</span> <span class=n>perm</span><span class=p>[</span><span class=n>u</span><span class=p>]</span>  <span class=c1># swap to the end</span>
+                <span class=n>rec</span> <span class=o>=</span> <span class=n>source</span><span class=p>[</span><span class=n>chosen</span><span class=p>]</span>  <span class=c1># get contestant record</span>
+                <span class=n>rec_fitness</span> <span class=o>=</span> <span class=n>rec</span><span class=o>.</span><span class=n>fitness</span>  <span class=c1># get its fitness</span>
+                <span class=k>if</span> <span class=n>rec_fitness</span> <span class=o><=</span> <span class=n>best_fitness</span><span class=p>:</span>  <span class=c1># if better or equal...</span>
+                    <span class=n>best</span> <span class=o>=</span> <span class=n>rec</span>  <span class=c1># ... rec becomes the new best record</span>
+                    <span class=n>best_fitness</span> <span class=o>=</span> <span class=n>rec_fitness</span>  <span class=c1># and remember fitness</span>
+            <span class=n>dest</span><span class=p>(</span><span class=n>best</span><span class=p>)</span>  <span class=c1># at end of the tournament, send best to dest</span></div>
+
+        <span class=c1># end book</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the tournament selection algorithm.</span>
+
+<span class=sd>        :return: the name of the tournament selection algorithm</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"tour</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>size</span><span class=si>}</span><span class=s2>"</span>
+
+<div class=viewcode-block id=TournamentWithoutReplacement.initialize>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.modules.selections.html#moptipy.algorithms.modules.selections.tournament_without_repl.TournamentWithoutReplacement.initialize>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>initialize</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize this selection algorithm."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+        <span class=n>fill_in_canonical_permutation</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__perm</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=TournamentWithoutReplacement.log_parameters_to>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.modules.selections.html#moptipy.algorithms.modules.selections.tournament_without_repl.TournamentWithoutReplacement.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of the algorithm to a logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"size"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>size</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.modules.selections.tournament_without_repl</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

@@ -1,0 +1,332 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.ppa — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/ppa.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.ppa</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.ppa</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>A simple implementation of a Plant Propagation Algorithm (PPA).</span>
+
+<span class=sd>This is a simple implementation of the Plant Propagation Algorithm, PPA for</span>
+<span class=sd>short, with some tweaks and modifications.</span>
+<span class=sd>Our PPA implementation works as follows:</span>
+
+<span class=sd>1. It starts with a set of :attr:`~moptipy.algorithms.so.ppa.PPA.m` randomly</span>
+<span class=sd>   sampled solutions in the list `lst`. Each solution `x` is evaluated and its</span>
+<span class=sd>   objective value `f(x)` is remembered.</span>
+<span class=sd>2. In the main loop...</span>
+
+<span class=sd>   a. First, the range `[fmin,fmax]` of the objective values of the first</span>
+<span class=sd>      :attr:`~moptipy.algorithms.so.ppa.PPA.m` solutions in `lst` is</span>
+<span class=sd>      determined. We set `frange = fmax - fmin`, where `fmax` is the largest</span>
+<span class=sd>      objective value of any of the first `m` solutions in `lst` and `fmin`</span>
+<span class=sd>      is the smallest one. If `frange > 0`, then the fitness `z(x)` of each</span>
+<span class=sd>      element be `(f(x) - fmin) / frange`. Otherwise, i.e., if all solutions</span>
+<span class=sd>      in `lst` have the same objective value, we set `z(x)` to be a random</span>
+<span class=sd>      number uniformly distributed in `[0,1)` and drawn separately for each</span>
+<span class=sd>      solution.</span>
+<span class=sd>   b. For each of the first :attr:`~moptipy.algorithms.so.ppa.PPA.m` solutions</span>
+<span class=sd>      `x` in `lst`, we create `1 + int(nmax * r * (1 - z(x)))` offspring,</span>
+<span class=sd>      where :attr:`~moptipy.algorithms.so.ppa.PPA.nmax` is the maximum number</span>
+<span class=sd>      of offspring per solution and `r` be again an independently drawn random</span>
+<span class=sd>      number uniformly distributed in `[0,1)`. In other words, solutions with</span>
+<span class=sd>      a fitness close to zero will produce more offspring. If the solutions in</span>
+<span class=sd>      the list `lst` have different objective values, then this means that</span>
+<span class=sd>      better solutions produce more offsprings.</span>
+<span class=sd>      Each such offspring is the result of the application of a unary operator</span>
+<span class=sd>      with step size, i.e., an instance of</span>
+<span class=sd>      :class:`~moptipy.api.operators.Op1WithStepSize`. The step size is set to</span>
+<span class=sd>      `r * max_step * z(x)`, where `r` again is a freshly and independently</span>
+<span class=sd>      drawn random number uniformly distributed in `[0,1)`. This means that</span>
+<span class=sd>      better solutions are modified with smaller step sizes and worse</span>
+<span class=sd>      solutions are modified more strongly.</span>
+<span class=sd>      :attr:`~moptipy.algorithms.so.ppa.PPA.max_step` is a parameter of the</span>
+<span class=sd>      algorithm that determines the maximum permissible step size. It is</span>
+<span class=sd>      always from the interval `[0,1]`.</span>
+<span class=sd>      Examples for such operators are given in</span>
+<span class=sd>      :mod:`~moptipy.operators.permutations.op1_swap_exactly_n`,</span>
+<span class=sd>      :mod:`~moptipy.operators.permutations.op1_swap_try_n`, or</span>
+<span class=sd>      :mod:`~moptipy.operators.bitstrings.op1_flip_m`.</span>
+<span class=sd>      The new solutions are appended into `lst` and their objective values are</span>
+<span class=sd>      computed.</span>
+<span class=sd>   c. The list is then sorted by objective values in ascending order, meaning</span>
+<span class=sd>      that the best solutions are up front.</span>
+
+<span class=sd>The main differences between this procedure and the "standard-PPA" are as</span>
+<span class=sd>follows:</span>
+
+<span class=sd>A. The algorithm is implemented for minimization and all equations are</span>
+<span class=sd>   modified accordingly.</span>
+<span class=sd>B. After normalizing the objective values in the population, the `tanh`-based</span>
+<span class=sd>   scaling is *not* applied.</span>
+<span class=sd>   Instead, the normalized objective values, where `0` is best and `1` is</span>
+<span class=sd>   worst, are used directly to determine the number of offspring per record</span>
+<span class=sd>   and the step length.</span>
+<span class=sd>C. The fitness of a record equals its normalized objective value</span>
+<span class=sd>   (in `[0, 1]`), unless all records have the same objective value, in which</span>
+<span class=sd>   case the fitness of each record is set to a random number uniformly</span>
+<span class=sd>   distributed in `[0, 1)`.</span>
+<span class=sd>   If all elements in the population have the same objective value,</span>
+<span class=sd>   normalizing is not possible as it would lead to a division by zero.</span>
+<span class=sd>   One could use a constant value, say `0.5`, in this case, but there is no</span>
+<span class=sd>   guarantee that this would be a good choice.</span>
+<span class=sd>   We therefore use random values from `[0, 1)` instead.</span>
+<span class=sd>   These may sometimes be suitable, sometimes not.</span>
+<span class=sd>   But at least they likely are not *always* a bad choice, which might happen</span>
+<span class=sd>   in some scenarios with `0.5` or any other constant.</span>
+<span class=sd>D. The decisions regarding the number of offspring per selected record and the</span>
+<span class=sd>   step-width of the search moves are made only based on this fitness (and,</span>
+<span class=sd>   again, not on the `tanh` scaling which is not used).</span>
+<span class=sd>   Since we normally do not know the characteristics of the objective function</span>
+<span class=sd>   in advance, I think that we also often do not know whether a `tanh` scaling</span>
+<span class=sd>   (that emphasizes objective values close to the best and close to the worst)</span>
+<span class=sd>   is necessary or a good idea.</span>
+<span class=sd>   It could be good in some cases, but it might as well be a bad choice in</span>
+<span class=sd>   others.</span>
+<span class=sd>   For now, I have thus not implemented this and just use the raw normalized</span>
+<span class=sd>   objective values.</span>
+<span class=sd>E. As unary operators, we employ instances of the class</span>
+<span class=sd>   :class:`~moptipy.api.operators.Op1WithStepSize`, which provides a unary</span>
+<span class=sd>   operator with a step size between `0` (smallest possible modification) to</span>
+<span class=sd>   `1` (largest possible modification) and will scale appropriately between</span>
+<span class=sd>   the two extremes.</span>
+<span class=sd>   Often, instances of this class will determine the number or magnitude of</span>
+<span class=sd>   changes based on an exponential scaling (see</span>
+<span class=sd>   :func:`~moptipy.operators.tools.exponential_step_size`) of the step length.</span>
+<span class=sd>   The idea is that small step sizes should be emphasized and that really big</span>
+<span class=sd>   step sizes are often rarely needed.</span>
+<span class=sd>   This thus effectively takes the place of the `tanh` scaling.</span>
+<span class=sd>F. Maximum step lengths, i.e., the parameter</span>
+<span class=sd>   :attr:`~moptipy.algorithms.so.ppa.PPA.max_step`, are not always explicitly</span>
+<span class=sd>   used in some of the papers.</span>
+
+<span class=sd>In order to understand the behavior of the algorithm, consider the following</span>
+<span class=sd>case. Assume that we set the maximum number</span>
+<span class=sd>(:attr:`~moptipy.algorithms.so.ppa.PPA.nmax`) of offspring per solution to `1`</span>
+<span class=sd>and the number :attr:`~moptipy.algorithms.so.ppa.PPA.m` of solutions to</span>
+<span class=sd>survive selection to `1` as well. In this case, the PPA has exactly the same</span>
+<span class=sd>"population structure" as the Randomized Local Search</span>
+<span class=sd>(:mod:`~moptipy.algorithms.so.rls`), namely it preserves the best-so-far</span>
+<span class=sd>solution and generates one new solution in each step, which then competes with</span>
+<span class=sd>that best-so-far solution. The two algorithms then only differ in their search</span>
+<span class=sd>operator: The step-length of the unary operator used in PPA depends on the</span>
+<span class=sd>relative objective value and the one of the RLS does not. However, there are</span>
+<span class=sd>many situations where the two could still be equivalent. For example, if the</span>
+<span class=sd>current and new solution have different objective values, normalizing the</span>
+<span class=sd>objective value will mean that the best of the two has normalized objective</span>
+<span class=sd>value "0". This equates to the shortest possible step length. In this case,</span>
+<span class=sd>for example, the step-length based operator</span>
+<span class=sd>:mod:`~moptipy.operators.permutations.op1_swap_try_n` behaves exactly like the</span>
+<span class=sd>:mod:`~moptipy.operators.permutations.op1_swap2` operator and the step-length</span>
+<span class=sd>based :mod:`~moptipy.operators.bitstrings.op1_flip_m` operator behaves like</span>
+<span class=sd>the :mod:`~moptipy.operators.bitstrings.op1_flip1`.</span>
+<span class=sd>Of course, if both the current and the new solution have the same objective</span>
+<span class=sd>value, then we use a random number from `[0,1)` as normalized objective value,</span>
+<span class=sd>so the operators would not behave the same. Then again, one could set the</span>
+<span class=sd>maximum step length :attr:`~moptipy.algorithms.so.ppa.PPA.max_step` to `0`.</span>
+<span class=sd>In this case, the step length is always zero and most of our step-length based</span>
+<span class=sd>operations will behave like fixed small step-length based counterparts, as</span>
+<span class=sd>mentioned above. So in other words, if we set both</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ppa.PPA.m` and</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ppa.PPA.nmax` to `1` and set</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ppa.PPA.max_step` to `0`, our PPA behaves like</span>
+<span class=sd>:mod:`~moptipy.algorithms.so.rls` (if the search operators are appropriately</span>
+<span class=sd>chosen).</span>
+
+<span class=sd>Now :mod:`~moptipy.algorithms.so.rls` is also known as the (1+1) EA</span>
+<span class=sd>and indeed, it is a special case of the (mu+lambda) EA implemented in</span>
+<span class=sd>:mod:`~moptipy.algorithms.so.ea`.</span>
+<span class=sd>I think with some appropriate settings of the parameter, we can probably</span>
+<span class=sd>construct some setups of both algorithms with larger populations that should</span>
+<span class=sd>be equivalent or close-to-equivalent in the big picture.</span>
+
+<span class=sd>Below, you can find references on the PPA.</span>
+
+<span class=sd>1. Abdellah Salhi and Eric Serafin Fraga. Nature-Inspired Optimisation</span>
+<span class=sd>   Approaches and the New Plant Propagation Algorithm. *Proceeding of the</span>
+<span class=sd>   International Conference on Numerical Analysis and Optimization</span>
+<span class=sd>   (ICeMATH'2011),* June 6-8, 2011, Yogyakarta, Indonesia, volume 1,</span>
+<span class=sd>   pages K2-1--K2-8. ISBN: 978-602-98919-1-1.</span>
+<span class=sd>   https://doi.org/10.13140/2.1.3262.0806.</span>
+<span class=sd>   https://repository.essex.ac.uk/9974/1/paper.pdf.</span>
+<span class=sd>2. Misha Paauw and Daan van den Berg. Paintings, Polygons and Plant</span>
+<span class=sd>   Propagation. In Anikó Ekárt, Antonios Liapis, and María Luz Castro Pena,</span>
+<span class=sd>   editors, *Proceedings of the 8th International Conference on Computational</span>
+<span class=sd>   Intelligence in Music, Sound, Art and Design (EvoMUSART'19, Part of</span>
+<span class=sd>   EvoStar)*, April 24-26, 2019, Leipzig, Germany, Lecture Notes in Computer</span>
+<span class=sd>   Science (LNCS), volume 11453, pages 84-97. ISBN: 978-3-030-16666-3. Cham,</span>
+<span class=sd>   Switzerland: Springer. https://doi.org/10.1007/978-3-030-16667-0_6.</span>
+<span class=sd>   https://www.researchgate.net/publication/332328080.</span>
+<span class=sd>3. Muhammad Sulaiman, Abdellah Salhi, Eric Serafin Fraga, Wali Khan Mashwa,</span>
+<span class=sd>   and Muhammad M. Rashi. A Novel Plant Propagation Algorithm: Modifications</span>
+<span class=sd>   and Implementation. *Science International (Lahore)* 28(1):201-209, #2330,</span>
+<span class=sd>   January/February 2016. http://www.sci-int.com/pdf/4066579081%20a%20201-\</span>
+<span class=sd>209%20PPA%20Science%20international_Wali.pdf.</span>
+<span class=sd>   https://arxiv.org/pdf/1412.4290.pdf</span>
+<span class=sd>4. Hussein Fouad Almazini, Salah Mortada, Hassan Fouad Abbas Al-Mazini, Hayder</span>
+<span class=sd>   Naser Khraibet AL-Behadili, and Jawad Alkenani. Improved Discrete Plant</span>
+<span class=sd>   Propagation Algorithm for Solving the Traveling Salesman Problem. *IAES</span>
+<span class=sd>   International Journal of Artificial Intelligence (IJ-AI)* 11(1):13-22.</span>
+<span class=sd>   March 2022. http://doi.org/10.11591/ijai.v11.i1.pp13-22.</span>
+<span class=sd>   https://www.researchgate.net/publication/357484222.</span>
+<span class=sd>5. Birsen İrem Selamoğlu and Abdellah Salhi. The Plant Propagation Algorithm</span>
+<span class=sd>   for Discrete Optimisation: The Case of the Travelling Salesman Problem.</span>
+<span class=sd>   In Xin-She Yang, editor, *Nature-Inspired Computation in Engineering,*</span>
+<span class=sd>   pages 43-61. Studies in Computational Intelligence (SCI), Volume 637.</span>
+<span class=sd>   March 2016. Cham, Switzerland: Springer.</span>
+<span class=sd>   https://doi.org/10.1007/978-3-319-30235-5_3.</span>
+<span class=sd>   https://www.researchgate.net/publication/299286896.</span>
+<span class=sd>6. Marleen de Jonge and Daan van den Berg. Parameter Sensitivity Patterns in</span>
+<span class=sd>   the Plant Propagation Algorithm. In Juan Julián Merelo Guervós,</span>
+<span class=sd>   Jonathan M. Garibaldi, Christian Wagner, Thomas Bäck, Kurosh Madani, and</span>
+<span class=sd>   Kevin Warwick, editors, *Proceedings of the 12th International Joint</span>
+<span class=sd>   Conference on Computational Intelligence* (IJCCI'20), November 2-4, 2020,</span>
+<span class=sd>   Budapest, Hungary, pages 92-99. Setúbal, Portugal: SciTePress.</span>
+<span class=sd>   https://doi.org/10.5220/0010134300920099.</span>
+<span class=sd>   https://www.researchgate.net/publication/346829569.</span>
+<span class=sd>7. Ege de Bruin. Escaping Local Optima by Preferring Rarity with the</span>
+<span class=sd>   Frequency Fitness Assignment. Master's Thesis at Vrije Universiteit</span>
+<span class=sd>   Amsterdam, Amsterdam, the Netherlands. 2022.</span>
+<span class=sd>8. Wouter Vrielink and Daan van den Berg. Parameter control for the Plant</span>
+<span class=sd>   Propagation Algorithm. In Antonio M. Mora and Anna Isabel Esparcia-Alcázar,</span>
+<span class=sd>   editors, *Late-Breaking Abstracts of EvoStar'21*, April 7-9, 2021, online</span>
+<span class=sd>   conference. https://arxiv.org/pdf/2106.11804.pdf.</span>
+<span class=sd>   https://www.researchgate.net/publication/350328314.</span>
+<span class=sd>9. Levi Koppenhol, Nielis Brouwer, Danny Dijkzeul, Iris Pijning, Joeri</span>
+<span class=sd>   Sleegers, and Daan van den Berg. Exactly Characterizable Parameter Settings</span>
+<span class=sd>   in a Crossoverless Evolutionary Algorithm. In Jonathan E. Fieldsend and</span>
+<span class=sd>   Markus Wagner, editors, Genetic and Evolutionary Computation Conference</span>
+<span class=sd>   (GECCO'22) Companion Volume, July 9-13, 2022, Boston, MA, USA,</span>
+<span class=sd>   pages 1640-1649. New York, NY, USA: ACM.</span>
+<span class=sd>   https://doi.org/10.1145/3520304.3533968.</span>
+<span class=sd>   https://www.researchgate.net/publication/362120506.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.record</span><span class=w> </span><span class=kn>import</span> <span class=n>Record</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm1</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>Op1WithStepSize</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=n>PART_SEPARATOR</span><span class=p>,</span> <span class=n>num_to_str_for_name</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=PPA>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.ppa.PPA>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>PPA</span><span class=p>(</span><span class=n>Algorithm1</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The Plant Propagation Algorithm (PPA)."""</span>
+
+<div class=viewcode-block id=PPA.solve>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.ppa.PPA.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the PPA to an optimization problem.</span>
+
+<span class=sd>        :param process: the black-box process object</span>
+<span class=sd>        """</span>
+        <span class=n>m</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>m</span>  <span class=c1># m: the number of best solutions kept</span>
+        <span class=n>nmax</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>nmax</span>  <span class=c1># maximum offspring per solution</span>
+        <span class=n>list_len</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=n>nmax</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>m</span>
+        <span class=c1># initialization of some variables omitted in book for brevity</span>
+        <span class=c1># end book</span>
+        <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>()</span>  <span class=c1># random gen</span>
+        <span class=n>create</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span>  <span class=c1># create x container</span>
+        <span class=n>evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>evaluate</span>  <span class=c1># the objective</span>
+        <span class=n>op0</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op0</span><span class=o>.</span><span class=n>op0</span>  <span class=c1># the nullary operator</span>
+        <span class=n>op1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Op1WithStepSize"</span><span class=p>,</span>
+                                    <span class=bp>self</span><span class=o>.</span><span class=n>op1</span><span class=p>)</span><span class=o>.</span><span class=n>op1</span>  <span class=c1># the unary operator</span>
+        <span class=n>should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>
+        <span class=n>r01</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span>  <span class=c1># random floats</span>
+            <span class=s2>"Callable[[], float]"</span><span class=p>,</span> <span class=n>random</span><span class=o>.</span><span class=n>random</span><span class=p>)</span>
+        <span class=n>max_step</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_step</span>
+        <span class=c1># start book</span>
+        <span class=c1># create list of m random records and enough empty records</span>
+        <span class=n>lst</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=kc>None</span><span class=p>]</span> <span class=o>*</span> <span class=n>list_len</span>  <span class=c1># pre-allocate list</span>
+        <span class=n>f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># variable to hold objective values</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>list_len</span><span class=p>):</span>  <span class=c1># fill list of size m*nmax</span>
+            <span class=n>x</span> <span class=o>=</span> <span class=n>create</span><span class=p>()</span>  <span class=c1># by creating point in search space</span>
+            <span class=k>if</span> <span class=n>i</span> <span class=o><</span> <span class=n>m</span><span class=p>:</span>  <span class=c1># only the first m records are initialized by</span>
+                <span class=n>op0</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span>  <span class=c1># applying nullary operator = randomize</span>
+                <span class=k>if</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># should we quit?</span>
+                    <span class=k>return</span>   <span class=c1># computational budget exhausted -> quit</span>
+                <span class=n>f</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>  <span class=c1># continue? ok, evaluate new solution</span>
+            <span class=n>lst</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>Record</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>)</span>  <span class=c1># create and store record</span>
+
+        <span class=n>it</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># the iteration counter</span>
+        <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>  <span class=c1># lst: keep 0..mu-1, overwrite mu..mu+lambda-1</span>
+            <span class=n>it</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># step iteration counter</span>
+            <span class=n>fmin</span> <span class=o>=</span> <span class=n>fmax</span> <span class=o>=</span> <span class=n>lst</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>f</span>  <span class=c1># get range of objective values</span>
+            <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>m</span><span class=p>):</span>  <span class=c1># iterate over selected individuals</span>
+                <span class=n>fval</span> <span class=o>=</span> <span class=n>lst</span><span class=p>[</span><span class=n>i</span><span class=p>]</span><span class=o>.</span><span class=n>f</span>  <span class=c1># get objective value</span>
+                <span class=k>if</span> <span class=n>fval</span> <span class=o><</span> <span class=n>fmin</span><span class=p>:</span>  <span class=c1># is it less than minimum?</span>
+                    <span class=n>fmin</span> <span class=o>=</span> <span class=n>fval</span>  <span class=c1># yes -> update the minimum</span>
+                <span class=k>elif</span> <span class=n>fval</span> <span class=o>></span> <span class=n>fmax</span><span class=p>:</span>  <span class=c1># no! is it more than maximum then?</span>
+                    <span class=n>fmax</span> <span class=o>=</span> <span class=n>fval</span>  <span class=c1># yes -> update maximum</span>
+            <span class=n>frange</span> <span class=o>=</span> <span class=n>fmax</span> <span class=o>-</span> <span class=n>fmin</span>  <span class=c1># compute the range of objective</span>
+            <span class=n>all_same</span> <span class=o>=</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>frange</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=n>frange</span> <span class=o><=</span> <span class=mf>0.0</span><span class=p>)</span>
+            <span class=n>total</span> <span class=o>=</span> <span class=n>m</span>  <span class=c1># the total population length (so far: m)</span>
+            <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>m</span><span class=p>):</span>  <span class=c1># generate offspring for each survivor</span>
+                <span class=n>rec</span> <span class=o>=</span> <span class=n>lst</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>  <span class=c1># get parent record</span>
+                <span class=n>fit</span> <span class=o>=</span> <span class=n>r01</span><span class=p>()</span> <span class=k>if</span> <span class=n>all_same</span> <span class=k>else</span> <span class=p>((</span><span class=n>rec</span><span class=o>.</span><span class=n>f</span> <span class=o>-</span> <span class=n>fmin</span><span class=p>)</span> <span class=o>/</span> <span class=n>frange</span><span class=p>)</span>
+                <span class=n>x</span> <span class=o>=</span> <span class=n>rec</span><span class=o>.</span><span class=n>x</span>  <span class=c1># the parent x</span>
+                <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span> <span class=o>+</span> <span class=nb>int</span><span class=p>((</span><span class=mf>1.0</span> <span class=o>-</span> <span class=n>fit</span><span class=p>)</span> <span class=o>*</span> <span class=n>r01</span><span class=p>()</span> <span class=o>*</span> <span class=n>nmax</span><span class=p>)):</span>
+                    <span class=k>if</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># should we quit?</span>
+                        <span class=k>return</span>  <span class=c1># yes - then return</span>
+                    <span class=n>dest</span> <span class=o>=</span> <span class=n>lst</span><span class=p>[</span><span class=n>total</span><span class=p>]</span>  <span class=c1># get next destination record</span>
+                    <span class=n>total</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># remember we have now one more</span>
+                    <span class=n>dest</span><span class=o>.</span><span class=n>it</span> <span class=o>=</span> <span class=n>it</span>  <span class=c1># set iteration counter</span>
+                    <span class=n>op1</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>dest</span><span class=o>.</span><span class=n>x</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>fit</span> <span class=o>*</span> <span class=n>max_step</span> <span class=o>*</span> <span class=n>r01</span><span class=p>())</span>
+                    <span class=n>dest</span><span class=o>.</span><span class=n>f</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>dest</span><span class=o>.</span><span class=n>x</span><span class=p>)</span>  <span class=c1># evaluate new point</span>
+            <span class=n>ls</span> <span class=o>=</span> <span class=n>lst</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=n>total</span><span class=p>]</span>  <span class=c1># get sub-list of elements in population</span>
+            <span class=n>ls</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>  <span class=c1># sort these used elements</span>
+            <span class=n>lst</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=n>total</span><span class=p>]</span> <span class=o>=</span> <span class=n>ls</span>  <span class=c1># write the sorted sub-list back</span></div>
+
+<span class=c1># end book</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>:</span> <span class=n>Op1WithStepSize</span><span class=p>,</span> <span class=n>m</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>30</span><span class=p>,</span>
+                 <span class=n>nmax</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>5</span><span class=p>,</span> <span class=n>max_step</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.3</span><span class=p>,</span>
+                 <span class=n>name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"ppa"</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the Plant Propagation Algorithm (PPA).</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param op1: the unary search operator</span>
+<span class=sd>        :param m: the number of best solutions to survive in each generation</span>
+<span class=sd>        :param nmax: the maximum number of offspring per solution</span>
+<span class=sd>        :param name: the base name of the algorithm</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>op1</span><span class=p>,</span> <span class=n>Op1WithStepSize</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>op1</span><span class=p>,</span> <span class=s2>"op1"</span><span class=p>,</span> <span class=n>Op1WithStepSize</span><span class=p>)</span>
+
+        <span class=c1>#: the number of records to survive in each generation</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>m</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>m</span><span class=p>,</span> <span class=s2>"m"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+        <span class=c1>#: the maximum number of offsprings per solution per iteration</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>nmax</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>nmax</span><span class=p>,</span> <span class=s2>"nmax"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>max_step</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>max_step</span><span class=p>,</span> <span class=s2>"max_step"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>max_step</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=n>max_step</span> <span class=o><</span> <span class=mf>0.0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>max_step</span> <span class=o>></span> <span class=mf>1.0</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"max_step=</span><span class=si>{</span><span class=n>max_step</span><span class=si>}</span><span class=s2>, but must be in [0,1]."</span><span class=p>)</span>
+        <span class=c1>#: the maximum step length</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>max_step</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>max_step</span>
+
+        <span class=n>name</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>name</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}{</span><span class=n>m</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}{</span><span class=n>nmax</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>if</span> <span class=n>max_step</span> <span class=o>!=</span> <span class=mf>1.0</span><span class=p>:</span>  <span class=c1># noqa: RUF069</span>
+            <span class=n>name</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>name</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}{</span><span class=n>num_to_str_for_name</span><span class=p>(</span><span class=n>max_step</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=n>op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>)</span>
+
+<div class=viewcode-block id=PPA.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.ppa.PPA.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of the algorithm to a logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"m"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>m</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"nmax"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>nmax</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"maxStep"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_step</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.ppa</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

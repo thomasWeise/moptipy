@@ -1,0 +1,97 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.jssp.worktime — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/jssp/worktime.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.worktime</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.jssp.worktime</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Minimize the sum of the work times of all machines in `Gantt` charts."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>Objective</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.gantt</span><span class=w> </span><span class=kn>import</span> <span class=n>Gantt</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.instance</span><span class=w> </span><span class=kn>import</span> <span class=n>Instance</span>
+
+
+<div class=viewcode-block id=worktime>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.worktime.worktime>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>worktime</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>Gantt</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the work time of all machines in a given `Gantt` chart.</span>
+
+<span class=sd>    We assume that a machine is turned on when its first job/operation begins</span>
+<span class=sd>    and is turned off when the last job/operation on it ends.</span>
+<span class=sd>    During all the time inbetween, the machine is on and a worker needs to be</span>
+<span class=sd>    present.</span>
+<span class=sd>    The work time therefore corresponds to the sum of the time units when the</span>
+<span class=sd>    machines can be turned off minus the time units at which they are turned</span>
+<span class=sd>    on.</span>
+
+<span class=sd>    :param x: the Gantt chart.</span>
+<span class=sd>    :return: the end times minus the start times</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>x</span><span class=p>[:,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>]</span><span class=o>.</span><span class=n>sum</span><span class=p>())</span> <span class=o>-</span> <span class=nb>int</span><span class=p>(</span><span class=n>x</span><span class=p>[:,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>2</span><span class=p>]</span><span class=o>.</span><span class=n>sum</span><span class=p>())</span></div>
+
+
+
+<div class=viewcode-block id=Worktime>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.worktime.Worktime>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Worktime</span><span class=p>(</span><span class=n>Objective</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""Compute the work time of a `Gantt` chart (for minimization)."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>instance</span><span class=p>:</span> <span class=n>Instance</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the worktime objective function.</span>
+
+<span class=sd>        :param instance: the instance to load the bounds from</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=n>Instance</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=s2>"instance"</span><span class=p>,</span> <span class=n>Instance</span><span class=p>)</span>
+        <span class=c1>#: the internal instance reference</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__instance</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Instance</span><span class=p>]</span> <span class=o>=</span> <span class=n>instance</span>
+        <span class=c1>#: The fast call forwarding to the worktime function. # +book</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>evaluate</span> <span class=o>=</span> <span class=n>worktime</span>  <span class=c1># type: ignore # +book</span>
+
+<div class=viewcode-block id=Worktime.lower_bound>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.worktime.Worktime.lower_bound>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>lower_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the lower bound of the worktime.</span>
+
+<span class=sd>        :return: the lower bound</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__instance</span><span class=o>.</span><span class=n>makespan_lower_bound</span> \
+            <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>__instance</span><span class=o>.</span><span class=n>machines</span> <span class=o>-</span> <span class=mi>1</span></div>
+
+
+<div class=viewcode-block id=Worktime.is_always_integer>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.worktime.Worktime.is_always_integer>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>is_always_integer</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Return `True` because :func:`worktime` always returns `int` values.</span>
+
+<span class=sd>        :retval True: always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=kc>True</span></div>
+
+
+<div class=viewcode-block id=Worktime.upper_bound>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.worktime.Worktime.upper_bound>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>upper_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the upper bound of the worktime.</span>
+
+<span class=sd>        :return: the sum of all job execution times.</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__instance</span><span class=o>.</span><span class=n>makespan_upper_bound</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>__instance</span><span class=o>.</span><span class=n>machines</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the worktime objective function.</span>
+
+<span class=sd>        :return: `worktime`</span>
+<span class=sd>        :retval "worktime": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"worktime"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.worktime</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

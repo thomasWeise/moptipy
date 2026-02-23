@@ -1,0 +1,116 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.hill_climber_with_restarts — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/hill_climber_with_restarts.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.hill_climber_with_restarts</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.hill_climber_with_restarts</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The implementation of the hill climbing algorithm with restarts `hcr`.</span>
+
+<span class=sd>This algorithm basically works like the normal hill climber `hc`</span>
+<span class=sd>(:class:`~moptipy.algorithms.so.hill_climber.HillClimber`), but it will</span>
+<span class=sd>restart automatically if no move was successful for</span>
+<span class=sd>`max_moves_without_improvement` iterative steps. It therefore maintains an</span>
+<span class=sd>internal counter `count` which is set to zero at the beginning of each restart</span>
+<span class=sd>and which is also set to zero again any time a move successfully improved the</span>
+<span class=sd>best-so-far solution of the current restart. If a search move, i.e., an</span>
+<span class=sd>application of the unary operator, yielded a new solution which is not better</span>
+<span class=sd>than the best-so-far solution of the current restart, `count` is incremented.</span>
+<span class=sd>If `count >= max_moves_without_improvement`, the algorithm begins a new</span>
+<span class=sd>restart with a new random solution.</span>
+
+<span class=sd>1. Thomas Weise. *Optimization Algorithms.* 2021. Hefei, Anhui, China:</span>
+<span class=sd>   Institute of Applied Optimization (IAO), School of Artificial Intelligence</span>
+<span class=sd>   and Big Data, Hefei University. http://thomasweise.github.io/oa/</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm1</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>Op1</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=HillClimberWithRestarts>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.hill_climber_with_restarts.HillClimberWithRestarts>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>HillClimberWithRestarts</span><span class=p>(</span><span class=n>Algorithm1</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The stochastic hill climbing algorithm only accepts improving moves.</span>
+
+<span class=sd>    In each step, a hill climber creates a modified copy `new_x` of the</span>
+<span class=sd>    current best solution `best_x`. If `new_x` is better than `best_x`,</span>
+<span class=sd>    it becomes the new `best_x`. Otherwise, it is discarded. If no</span>
+<span class=sd>    improvement is made for `max_moves_without_improvement` steps, the</span>
+<span class=sd>    algorithm restarts.</span>
+<span class=sd>    """</span>
+
+<div class=viewcode-block id=HillClimberWithRestarts.solve>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.hill_climber_with_restarts.HillClimberWithRestarts.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the hill climber with restarts to an optimization problem.</span>
+
+<span class=sd>        :param process: the black-box process object</span>
+<span class=sd>        """</span>
+        <span class=c1># Create records for old and new point in the search space.</span>
+        <span class=n>best_x</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>  <span class=c1># record for best-so-far solution</span>
+        <span class=n>new_x</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>  <span class=c1># record for new solution</span>
+        <span class=c1># Obtain the random number generator.</span>
+        <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>()</span>
+
+        <span class=c1># Put function references in variables to save time.</span>
+        <span class=n>evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>evaluate</span>  <span class=c1># the objective</span>
+        <span class=n>op1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op1</span><span class=o>.</span><span class=n>op1</span>  <span class=c1># the unary operator</span>
+        <span class=n>should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>
+        <span class=n>limit</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_moves_without_improvement</span>
+
+        <span class=k>while</span> <span class=ow>not</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># Until we need to quit....</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>op0</span><span class=o>.</span><span class=n>op0</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>best_x</span><span class=p>)</span>  <span class=c1># Create random solution and</span>
+            <span class=n>best_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>best_x</span><span class=p>)</span>
+            <span class=n>count</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># The counter of unsuccessful moves = 0.</span>
+
+            <span class=k>while</span> <span class=ow>not</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># Until we need to quit...</span>
+                <span class=n>op1</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>new_x</span><span class=p>,</span> <span class=n>best_x</span><span class=p>)</span>  <span class=c1># new_x=neighbor of best_x</span>
+                <span class=n>new_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>new_x</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>new_f</span> <span class=o><</span> <span class=n>best_f</span><span class=p>:</span>  <span class=c1># new_x is _better_ than best_x?</span>
+                    <span class=n>best_f</span> <span class=o>=</span> <span class=n>new_f</span>  <span class=c1># Store its objective value.</span>
+                    <span class=n>best_x</span><span class=p>,</span> <span class=n>new_x</span> <span class=o>=</span> <span class=n>new_x</span><span class=p>,</span> <span class=n>best_x</span>  <span class=c1># Swap best and new.</span>
+                    <span class=n>count</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># Reset unsuccessful move counter.</span>
+                <span class=k>else</span><span class=p>:</span>  <span class=c1># The move did not lead to an improvement!?</span>
+                    <span class=n>count</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># Increment unsuccessful move counter.</span>
+                    <span class=k>if</span> <span class=n>count</span> <span class=o>>=</span> <span class=n>limit</span><span class=p>:</span>  <span class=c1># Too many unsuccessful moves?</span>
+                        <span class=k>break</span>  <span class=c1># Break inner loop, start again randomly.</span></div>
+
+<span class=c1># end book</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>:</span> <span class=n>Op1</span><span class=p>,</span>
+                 <span class=n>max_moves_without_improvement</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the hill climber.</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param op1: the unary search operator</span>
+<span class=sd>        :param max_moves_without_improvement: the maximum number of</span>
+<span class=sd>            moves without improvement before a restart</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"hcr_</span><span class=si>{</span><span class=n>max_moves_without_improvement</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=n>op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>)</span>
+        <span class=c1>#: the maximum moves without improvement</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>max_moves_without_improvement</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> \
+            <span class=n>check_int_range</span><span class=p>(</span>
+                <span class=n>max_moves_without_improvement</span><span class=p>,</span>
+                <span class=s2>"max_moves_without_improvement"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000_000</span><span class=p>)</span>
+
+<div class=viewcode-block id=HillClimberWithRestarts.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.hill_climber_with_restarts.HillClimberWithRestarts.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log all parameters of this component as key-value pairs.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"maxMovesWithoutImprovement"</span><span class=p>,</span>
+                         <span class=bp>self</span><span class=o>.</span><span class=n>max_moves_without_improvement</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.hill_climber_with_restarts</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

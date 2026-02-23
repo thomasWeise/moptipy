@@ -1,0 +1,842 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.bitstrings.jump — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/bitstrings/jump.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a accesskey=U href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.jump</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.bitstrings.jump</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The Jump problem.</span>
+
+<span class=sd>The Jump problem is basically OneMax, but with a deceptive region of `k` bit</span>
+<span class=sd>flips before the optimum.</span>
+<span class=sd>The optimal objective value is 0, which is reached if all bits are `True`.</span>
+<span class=sd>The worst objective value is `n + k - 1`, which is reached if exactly one</span>
+<span class=sd>bit is `False`.</span>
+
+<span class=sd>1. Stefan Droste, Thomas Jansen, and Ingo Wegener. On the Analysis of the</span>
+<span class=sd>   (1+1) Evolutionary Algorithm. *Theoretical Computer Science.*</span>
+<span class=sd>   276(1-2):51-81. April 2002.</span>
+<span class=sd>   doi: https://doi.org/10.1016/S0304-3975(01)00182-7</span>
+<span class=sd>2. Tobias Friedrich, Francesco Quinzan, and Markus Wagner. Escaping Large</span>
+<span class=sd>   Deceptive Basins of Attraction with Heavy-Tailed Mutation Operators. In</span>
+<span class=sd>   Hernán E. Aguirre and Keiki Takadama, editors, *Proceedings of the Genetic</span>
+<span class=sd>   and Evolutionary Computation Conference (GECCO'18),* July 15-19, 2018.</span>
+<span class=sd>   Kyoto, Japan. ACM. doi: https://doi.org/10.1145/3205455.3205515}</span>
+<span class=sd>3. Francesco Quinzan, Andreas Göbel, Markus Wagner, and Tobias Friedrich.</span>
+<span class=sd>   Evolutionary algorithms and submodular functions: benefits of heavy-tailed</span>
+<span class=sd>   mutations. *Natural Computing.* 20(3):561-575. September 2021.</span>
+<span class=sd>   doi: https://doi.org/10.1007/s11047-021-09841-7.</span>
+<span class=sd>   Also: arXiv:1805.10902v2 [cs.DS] 21 Nov 2018.</span>
+<span class=sd>   https://arxiv.org/abs/1805.10902</span>
+<span class=sd>4. Thomas Weise, Zhize Wu, Xinlu Li, and Yan Chen. Frequency Fitness</span>
+<span class=sd>   Assignment: Making Optimization Algorithms Invariant under Bijective</span>
+<span class=sd>   Transformations of the Objective Function Value. *IEEE Transactions on</span>
+<span class=sd>   Evolutionary Computation* 25(2):307-319. April 2021. Preprint available at</span>
+<span class=sd>   arXiv:2001.01416v5 [cs.NE] 15 Oct 2020.</span>
+<span class=sd>   https://dx.doi.org/10.1109/TEVC.2020.3032090</span>
+<span class=sd>5. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency</span>
+<span class=sd>   Fitness Assignment: Optimization without Bias for Good Solutions can be</span>
+<span class=sd>   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.</span>
+<span class=sd>   27(4):980-992. August 2023.</span>
+<span class=sd>   doi: https://doi.org/10.1109/TEVC.2022.3191698</span>
+
+<span class=sd>>>> len(list(Jump.default_instances()))</span>
+<span class=sd>122</span>
+
+<span class=sd>>>> [x() for x in Jump.default_instances()]</span>
+<span class=sd>[jump_6_2, jump_7_2, jump_8_2, jump_8_3, jump_9_2, jump_9_3, jump_10_2, \</span>
+<span class=sd>jump_10_3, jump_10_4, jump_11_2, jump_11_3, jump_11_4, jump_12_2, jump_12_3, \</span>
+<span class=sd>jump_12_4, jump_12_5, jump_13_2, jump_13_3, jump_13_4, jump_13_5, jump_14_2, \</span>
+<span class=sd>jump_14_3, jump_14_4, jump_14_6, jump_15_2, jump_15_3, jump_15_4, jump_15_6, \</span>
+<span class=sd>jump_16_2, jump_16_4, jump_16_5, jump_16_7, jump_17_2, jump_17_4, jump_17_5, \</span>
+<span class=sd>jump_17_7, jump_18_2, jump_18_4, jump_18_6, jump_18_8, jump_19_2, jump_19_4, \</span>
+<span class=sd>jump_19_6, jump_19_8, jump_20_2, jump_20_3, jump_20_4, jump_20_5, jump_20_7, \</span>
+<span class=sd>jump_20_9, jump_21_2, jump_21_3, jump_21_4, jump_21_5, jump_21_7, jump_21_9, \</span>
+<span class=sd>jump_22_2, jump_22_3, jump_22_4, jump_22_5, jump_22_7, jump_22_10, \</span>
+<span class=sd>jump_23_2, jump_23_3, jump_23_4, jump_23_5, jump_23_7, jump_23_10, \</span>
+<span class=sd>jump_24_2, jump_24_3, jump_24_4, jump_24_6, jump_24_8, jump_24_11, \</span>
+<span class=sd>jump_25_2, jump_25_3, jump_25_5, jump_25_6, jump_25_8, jump_25_11, \</span>
+<span class=sd>jump_26_2, jump_26_3, jump_26_5, jump_26_6, jump_26_9, jump_26_12, \</span>
+<span class=sd>jump_27_2, jump_27_3, jump_27_5, jump_27_6, jump_27_9, jump_27_12, \</span>
+<span class=sd>jump_28_2, jump_28_4, jump_28_5, jump_28_7, jump_28_10, jump_28_13, \</span>
+<span class=sd>jump_29_2, jump_29_4, jump_29_5, jump_29_7, jump_29_10, jump_29_13, \</span>
+<span class=sd>jump_30_2, jump_30_4, jump_30_5, jump_30_7, jump_30_10, jump_30_14, \</span>
+<span class=sd>jump_31_2, jump_31_4, jump_31_5, jump_31_7, jump_31_10, jump_31_14, \</span>
+<span class=sd>jump_32_2, jump_32_4, jump_32_5, jump_32_8, jump_32_11, jump_32_15]</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.bitstring_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>BitStringNKProblem</span>
+
+
+<div class=viewcode-block id=jump>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.jump.jump>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>jump</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>k</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the jump value.</span>
+
+<span class=sd>    :param x: the np array</span>
+<span class=sd>    :param k: the k parameter</span>
+<span class=sd>    :return: jump value</span>
+
+<span class=sd>    >>> jump(np.array([False, False, False, False, False, False]), 2)</span>
+<span class=sd>    6</span>
+<span class=sd>    >>> jump(np.array([False, False, False, False, True, False]), 2)</span>
+<span class=sd>    5</span>
+<span class=sd>    >>> jump(np.array([False, True, True, False, False, False]), 2)</span>
+<span class=sd>    4</span>
+<span class=sd>    >>> jump(np.array([True, False, True, False, True, False]), 2)</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> jump(np.array([True, False, True, False, True, True]), 2)</span>
+<span class=sd>    2</span>
+<span class=sd>    >>> jump(np.array([True, True, True, True, True, False]), 2)</span>
+<span class=sd>    7</span>
+<span class=sd>    >>> jump(np.array([True, True, True, True, True, True]), 2)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 6, k = 2, and 0 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0]), 2)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 6, k = 2, and 1 true bit</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 1, 0, 0]), 2)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 6, k = 2, and 2 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 1, 0, 0, 1]), 2)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 6, k = 2, and 3 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 0, 0, 0]), 2)</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 6, k = 2, and 4 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 0, 1, 1, 1]), 2)</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6, k = 2, and 5 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 0, 1]), 2)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 6, k = 2, and 6 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1]), 2)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 7, k = 2, and 0 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0]), 2)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 7, k = 2, and 1 true bit</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 1, 0, 0, 0]), 2)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 7, k = 2, and 2 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 1, 0, 1, 0, 0]), 2)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 7, k = 2, and 3 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 0, 1, 0, 0, 0]), 2)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 7, k = 2, and 4 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 0, 1, 1, 1, 0]), 2)</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 7, k = 2, and 5 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 1, 0, 1, 1]), 2)</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7, k = 2, and 6 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 0, 1, 1]), 2)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 7, k = 2, and 7 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1]), 2)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 8, k = 2, and 0 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0]), 2)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 8, k = 2, and 1 true bit</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 1, 0]), 2)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 8, k = 2, and 2 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 1, 1]), 2)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 8, k = 2, and 3 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 1, 0, 0, 0, 1, 1]), 2)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 8, k = 2, and 4 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 1, 1, 1, 0, 1]), 2)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 8, k = 2, and 5 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 1, 1, 1, 0, 0]), 2)</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 8, k = 2, and 6 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 0, 1, 1, 1, 0]), 2)</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8, k = 2, and 7 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 0, 1, 1, 1]), 2)</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 8, k = 2, and 8 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1]), 2)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 8, k = 3, and 0 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0]), 3)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 8, k = 3, and 1 true bit</span>
+<span class=sd>    >>> jump(np.array([0, 1, 0, 0, 0, 0, 0, 0]), 3)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 8, k = 3, and 2 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 1, 0, 0, 1]), 3)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 8, k = 3, and 3 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 1, 1, 1, 0, 0]), 3)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 8, k = 3, and 4 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 0, 0, 1, 1, 1, 0]), 3)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 8, k = 3, and 5 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 1, 1, 0, 0, 1]), 3)</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 8, k = 3, and 6 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 0, 1, 1, 1, 1]), 3)</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 8, k = 3, and 7 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 1, 1, 1, 1, 1]), 3)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # n = 8, k = 3, and 8 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1]), 3)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 9, k = 2, and 0 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]), 2)</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 9, k = 2, and 1 true bit</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1]), 2)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 9, k = 2, and 2 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 1, 0, 0, 0, 0, 0, 1]), 2)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 9, k = 2, and 3 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 1, 0, 0, 1, 0, 1]), 2)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 9, k = 2, and 4 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 0, 0, 1, 0, 0, 1, 1]), 2)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 9, k = 2, and 5 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 1, 1, 0, 1, 1, 1]), 2)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9, k = 2, and 6 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 0, 1, 0, 1, 1, 1, 0]), 2)</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 9, k = 2, and 7 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 1, 1, 1, 0, 1, 1]), 2)</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 9, k = 2, and 8 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 0, 1, 1, 1]), 2)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # n = 9, k = 2, and 9 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1]), 2)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 9, k = 3, and 0 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]), 3)</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 9, k = 3, and 1 true bit</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1]), 3)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 9, k = 3, and 2 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 1, 0, 1, 0, 0, 0, 0]), 3)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 9, k = 3, and 3 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 0, 1, 1, 0, 0, 0, 0]), 3)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 9, k = 3, and 4 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 0, 1, 0, 0, 1, 0]), 3)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 9, k = 3, and 5 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 0, 0, 0, 0, 1]), 3)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9, k = 3, and 6 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 1, 1, 1, 1, 1, 0, 1]), 3)</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 9, k = 3, and 7 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 1, 1, 1, 1, 1, 0]), 3)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # n = 9, k = 3, and 8 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 1, 1, 1, 1, 1, 1]), 3)</span>
+<span class=sd>    11</span>
+
+<span class=sd>    # n = 9, k = 3, and 9 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1]), 3)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 10, k = 2, and 0 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 2)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # n = 10, k = 2, and 1 true bit</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0]), 2)</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 10, k = 2, and 2 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 1, 0, 0, 0, 0, 0, 0, 1]), 2)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 10, k = 2, and 3 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 0, 0, 1, 0, 0, 0, 0, 1]), 2)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 10, k = 2, and 4 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 1, 0, 1, 0, 1, 0, 0, 1]), 2)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 10, k = 2, and 5 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 1, 0, 1, 1, 0, 0, 0]), 2)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 10, k = 2, and 6 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 0, 1, 1, 0, 0, 0, 1, 1]), 2)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10, k = 2, and 7 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 0, 1, 0, 1, 1, 1, 1]), 2)</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 10, k = 2, and 8 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 1, 1, 1, 1, 0, 1, 1]), 2)</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10, k = 2, and 9 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 1, 1, 1, 1, 1, 1, 1]), 2)</span>
+<span class=sd>    11</span>
+
+<span class=sd>    # n = 10, k = 2, and 10 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 2)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 10, k = 3, and 0 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 3)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # n = 10, k = 3, and 1 true bit</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 0]), 3)</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 10, k = 3, and 2 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 0, 0, 0, 0, 1, 0, 0, 0]), 3)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 10, k = 3, and 3 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 0, 1, 0, 0, 1, 0, 0, 0]), 3)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 10, k = 3, and 4 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 1, 0, 1, 1, 0, 0, 1, 0]), 3)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 10, k = 3, and 5 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 1, 1, 0, 0, 1, 1, 0, 1]), 3)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 10, k = 3, and 6 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 0, 1, 1, 1, 0, 1, 0, 1]), 3)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10, k = 3, and 7 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 1, 1, 1, 0, 0, 1, 1]), 3)</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 10, k = 3, and 8 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 1, 1, 1, 1, 0, 1, 1]), 3)</span>
+<span class=sd>    11</span>
+
+<span class=sd>    # n = 10, k = 3, and 9 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 0, 1, 1, 1, 1, 1, 1, 1]), 3)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # n = 10, k = 3, and 10 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 3)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 10, k = 4, and 0 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 4)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # n = 10, k = 4, and 1 true bit</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1]), 4)</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 10, k = 4, and 2 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 0, 0, 0, 0, 0, 0, 1, 0]), 4)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 10, k = 4, and 3 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 0, 0, 1, 0, 0, 0, 0]), 4)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 10, k = 4, and 4 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 1, 1, 0, 1, 1]), 4)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 10, k = 4, and 5 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 0, 1, 0, 1, 0, 1, 0]), 4)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 10, k = 4, and 6 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 0, 1, 0, 0, 1, 0]), 4)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10, k = 4, and 7 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 1, 0, 1, 1, 1, 1, 0]), 4)</span>
+<span class=sd>    11</span>
+
+<span class=sd>    # n = 10, k = 4, and 8 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 1, 1, 0, 1, 1, 1, 1]), 4)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # n = 10, k = 4, and 9 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 0, 1, 1]), 4)</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # n = 10, k = 4, and 10 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 4)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 11, k = 2, and 0 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 2)</span>
+<span class=sd>    11</span>
+
+<span class=sd>    # n = 11, k = 2, and 1 true bit</span>
+<span class=sd>    >>> jump(np.array([0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]), 2)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # n = 11, k = 2, and 2 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0]), 2)</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 11, k = 2, and 3 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0]), 2)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 11, k = 2, and 4 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0]), 2)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 11, k = 2, and 5 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1]), 2)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 11, k = 2, and 6 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0]), 2)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 11, k = 2, and 7 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0]), 2)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 11, k = 2, and 8 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0]), 2)</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 11, k = 2, and 9 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1]), 2)</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 11, k = 2, and 10 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1]), 2)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # n = 11, k = 2, and 11 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 2)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 11, k = 3, and 0 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 3)</span>
+<span class=sd>    11</span>
+
+<span class=sd>    # n = 11, k = 3, and 1 true bit</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]), 3)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # n = 11, k = 3, and 2 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1]), 3)</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 11, k = 3, and 3 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0]), 3)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 11, k = 3, and 4 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1]), 3)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 11, k = 3, and 5 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0]), 3)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 11, k = 3, and 6 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1]), 3)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 11, k = 3, and 7 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0]), 3)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 11, k = 3, and 8 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1]), 3)</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 11, k = 3, and 9 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1]), 3)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # n = 11, k = 3, and 10 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 3)</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # n = 11, k = 3, and 11 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 3)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 11, k = 4, and 0 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 4)</span>
+<span class=sd>    11</span>
+
+<span class=sd>    # n = 11, k = 4, and 1 true bit</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]), 4)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # n = 11, k = 4, and 2 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1]), 4)</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 11, k = 4, and 3 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1]), 4)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 11, k = 4, and 4 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1]), 4)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 11, k = 4, and 5 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0]), 4)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 11, k = 4, and 6 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1]), 4)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 11, k = 4, and 7 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1]), 4)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 11, k = 4, and 8 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1]), 4)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # n = 11, k = 4, and 9 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0]), 4)</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # n = 11, k = 4, and 10 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0]), 4)</span>
+<span class=sd>    14</span>
+
+<span class=sd>    # n = 11, k = 4, and 11 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 4)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 12, k = 2, and 0 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 2)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # n = 12, k = 2, and 1 true bit</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]), 2)</span>
+<span class=sd>    11</span>
+
+<span class=sd>    # n = 12, k = 2, and 2 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 2)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # n = 12, k = 2, and 3 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0]), 2)</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 12, k = 2, and 4 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0]), 2)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 12, k = 2, and 5 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1]), 2)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 12, k = 2, and 6 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0]), 2)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 12, k = 2, and 7 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0]), 2)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 12, k = 2, and 8 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1]), 2)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 12, k = 2, and 9 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1]), 2)</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 12, k = 2, and 10 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1]), 2)</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 12, k = 2, and 11 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 2)</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # n = 12, k = 2, and 12 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 2)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 12, k = 3, and 0 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 3)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # n = 12, k = 3, and 1 true bit</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]), 3)</span>
+<span class=sd>    11</span>
+
+<span class=sd>    # n = 12, k = 3, and 2 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0]), 3)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # n = 12, k = 3, and 3 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1]), 3)</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 12, k = 3, and 4 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0]), 3)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 12, k = 3, and 5 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0]), 3)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 12, k = 3, and 6 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1]), 3)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 12, k = 3, and 7 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1]), 3)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 12, k = 3, and 8 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1]), 3)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 12, k = 3, and 9 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0]), 3)</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 12, k = 3, and 10 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1]), 3)</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # n = 12, k = 3, and 11 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1]), 3)</span>
+<span class=sd>    14</span>
+
+<span class=sd>    # n = 12, k = 3, and 12 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 3)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 12, k = 4, and 0 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 4)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # n = 12, k = 4, and 1 true bit</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]), 4)</span>
+<span class=sd>    11</span>
+
+<span class=sd>    # n = 12, k = 4, and 2 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]), 4)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # n = 12, k = 4, and 3 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0]), 4)</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 12, k = 4, and 4 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0]), 4)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 12, k = 4, and 5 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0]), 4)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 12, k = 4, and 6 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0]), 4)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 12, k = 4, and 7 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1]), 4)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 12, k = 4, and 8 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1]), 4)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 12, k = 4, and 9 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1]), 4)</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # n = 12, k = 4, and 10 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0]), 4)</span>
+<span class=sd>    14</span>
+
+<span class=sd>    # n = 12, k = 4, and 11 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1]), 4)</span>
+<span class=sd>    15</span>
+
+<span class=sd>    # n = 12, k = 4, and 12 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 4)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 12, k = 5, and 0 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 5)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # n = 12, k = 5, and 1 true bit</span>
+<span class=sd>    >>> jump(np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 5)</span>
+<span class=sd>    11</span>
+
+<span class=sd>    # n = 12, k = 5, and 2 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 5)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # n = 12, k = 5, and 3 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0]), 5)</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 12, k = 5, and 4 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1]), 5)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 12, k = 5, and 5 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0]), 5)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 12, k = 5, and 6 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0]), 5)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 12, k = 5, and 7 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0]), 5)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 12, k = 5, and 8 true bits</span>
+<span class=sd>    >>> jump(np.array([0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1]), 5)</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # n = 12, k = 5, and 9 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1]), 5)</span>
+<span class=sd>    14</span>
+
+<span class=sd>    # n = 12, k = 5, and 10 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1]), 5)</span>
+<span class=sd>    15</span>
+
+<span class=sd>    # n = 12, k = 5, and 11 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1]), 5)</span>
+<span class=sd>    16</span>
+
+<span class=sd>    # n = 12, k = 5, and 12 true bits</span>
+<span class=sd>    >>> jump(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 5)</span>
+<span class=sd>    0</span>
+<span class=sd>    """</span>
+    <span class=n>res</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>sum</span><span class=p>())</span>
+    <span class=n>n</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+    <span class=n>nmk</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>n</span> <span class=o>-</span> <span class=n>k</span>
+    <span class=k>return</span> <span class=n>n</span> <span class=o>-</span> <span class=n>res</span> <span class=k>if</span> <span class=p>(</span><span class=n>res</span> <span class=o>>=</span> <span class=n>n</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>res</span> <span class=o><=</span> <span class=n>nmk</span><span class=p>)</span> <span class=k>else</span> <span class=n>k</span> <span class=o>+</span> <span class=n>res</span></div>
+
+
+
+<div class=viewcode-block id=Jump>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.jump.Jump>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Jump</span><span class=p>(</span><span class=n>BitStringNKProblem</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""Compute the Jump problem."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the jump objective function.</span>
+
+<span class=sd>        :return: `jump_` + length of string + `_` + k</span>
+
+<span class=sd>        >>> Jump(13, 4)</span>
+<span class=sd>        jump_13_4</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"jump_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=si>}</span><span class=s2>_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>k</span><span class=si>}</span><span class=s2>"</span>
+
+<div class=viewcode-block id=Jump.evaluate>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.jump.Jump.evaluate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Evaluate a solution to the jump problem.</span>
+
+<span class=sd>        :param x: the bit string to evaluate</span>
+<span class=sd>        :returns: the value of the jump problem for the string</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>jump</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>k</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=Jump.upper_bound>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.jump.Jump.upper_bound>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>upper_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the upper bound of the jump problem.</span>
+
+<span class=sd>        :return: the length of the bit string + the length of the jump - 1</span>
+
+<span class=sd>        >>> Jump(15, 4).upper_bound()</span>
+<span class=sd>        18</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>n</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>k</span> <span class=o>-</span> <span class=mi>1</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.jump</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

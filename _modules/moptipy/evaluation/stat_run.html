@@ -1,0 +1,571 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.stat_run — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/stat_run.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.stat_run</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.stat_run</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Statistic runs are time-depending statistics over several runs."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>dataclasses</span><span class=w> </span><span class=kn>import</span> <span class=n>dataclass</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>erf</span><span class=p>,</span> <span class=n>sqrt</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.math.sample_statistics</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>KEY_MAXIMUM</span><span class=p>,</span>
+    <span class=n>KEY_MEAN_ARITH</span><span class=p>,</span>
+    <span class=n>KEY_MEAN_GEOM</span><span class=p>,</span>
+    <span class=n>KEY_MEDIAN</span><span class=p>,</span>
+    <span class=n>KEY_MINIMUM</span><span class=p>,</span>
+    <span class=n>KEY_STDDEV</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.base</span><span class=w> </span><span class=kn>import</span> <span class=n>MultiRun2DData</span><span class=p>,</span> <span class=n>MultiRunData</span><span class=p>,</span> <span class=n>PerRunData</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.progress</span><span class=w> </span><span class=kn>import</span> <span class=n>Progress</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>DEFAULT_FLOAT</span><span class=p>,</span> <span class=n>DEFAULT_INT</span><span class=p>,</span> <span class=n>is_np_float</span>
+
+<span class=c1>#: The value of the CDF of the standard normal distribution CDF at -1,</span>
+<span class=c1>#: which corresponds to "mean - 1 * sd".</span>
+<span class=n>__Q159</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=mf>1.0</span> <span class=o>+</span> <span class=n>erf</span><span class=p>(</span><span class=o>-</span><span class=mf>1.0</span> <span class=o>/</span> <span class=n>sqrt</span><span class=p>(</span><span class=mf>2.0</span><span class=p>)))</span> <span class=o>/</span> <span class=mf>2.0</span>
+
+<span class=c1>#: The value of the CDF of the standard normal distribution CDF at +1,</span>
+<span class=c1>#: which corresponds to "mean + 1 * sd".</span>
+<span class=n>__Q841</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=mf>1.0</span> <span class=o>+</span> <span class=n>erf</span><span class=p>(</span><span class=mf>1.0</span> <span class=o>/</span> <span class=n>sqrt</span><span class=p>(</span><span class=mf>2.0</span><span class=p>)))</span> <span class=o>/</span> <span class=mf>2.0</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__unique_floats_1d</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>])</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get all unique values that are >= than the minimum of all arrays.</span>
+
+<span class=sd>    :param data: the data</span>
+<span class=sd>    :return: the `ndarray` with the sorted, unique values</span>
+<span class=sd>    """</span>
+    <span class=n>res</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>unique</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>concatenate</span><span class=p>(</span><span class=n>data</span><span class=p>)</span><span class=o>.</span><span class=n>astype</span><span class=p>(</span><span class=n>DEFAULT_FLOAT</span><span class=p>))</span>
+    <span class=n>mini</span> <span class=o>=</span> <span class=n>res</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>  <span class=c1># old version: int = -9223372036854775808</span>
+    <span class=k>for</span> <span class=n>d</span> <span class=ow>in</span> <span class=n>data</span><span class=p>:</span>
+        <span class=n>mini2</span> <span class=o>=</span> <span class=n>d</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+        <span class=k>if</span> <span class=n>d</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>></span> <span class=n>mini</span><span class=p>:</span>
+            <span class=n>mini</span> <span class=o>=</span> <span class=n>mini2</span>
+    <span class=n>i</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>searchsorted</span><span class=p>(</span><span class=n>res</span><span class=p>,</span> <span class=n>mini</span><span class=p>))</span>
+    <span class=k>if</span> <span class=n>i</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>res</span><span class=p>[</span><span class=n>i</span><span class=p>:]</span>
+    <span class=k>return</span> <span class=n>res</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__apply_fun</span><span class=p>(</span><span class=n>x_unique</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                <span class=n>x_raw</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span>
+                <span class=n>y_raw</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span>
+                <span class=n>stat_func</span><span class=p>:</span> <span class=n>Callable</span><span class=p>,</span>
+                <span class=n>out_len</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                <span class=n>dest_y</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                <span class=n>stat_dim</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                <span class=n>values_buf</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                <span class=n>pos_buf</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Perform the work of computing the time-depending statistic.</span>
+
+<span class=sd>    The unique x-values `x_unique` have separately been computed with</span>
+<span class=sd>    :func:`_unique_floats_1d` from `x_raw` so that they can be reused.</span>
+<span class=sd>    `x_raw` and `y_raw` are lists with the raw time and objective data,</span>
+<span class=sd>    respectively. `stat_fun` is the statistic function that will be applied to</span>
+<span class=sd>    the step-wise generated data filled into `values_buf`. `pos_buf` will be</span>
+<span class=sd>    used maintain the current indices into `x_raw` and `y_raw`. `dest_y` will</span>
+<span class=sd>    be filled with the computed statistic for each element of `x_unique`.</span>
+<span class=sd>    In a final step, we will remove all redundant elements of both arrays: If</span>
+<span class=sd>    `x_unique` increases but `dest_y` remains the same, then the corresponding</span>
+<span class=sd>    point is deleted if it is not the last point in the list. As a result,</span>
+<span class=sd>    a two-dimensional time/value array is returned.</span>
+
+<span class=sd>    :param x_unique: the unique time coordinates</span>
+<span class=sd>    :param x_raw: a tuple of several x-data arrays</span>
+<span class=sd>    :param y_raw: a tuple of several y-data arrays</span>
+<span class=sd>    :param Callable stat_func: a statistic function which must have been</span>
+<span class=sd>        jitted with numba</span>
+<span class=sd>    :param out_len: the length of `dest_y` and `x_unique`</span>
+<span class=sd>    :param dest_y: the destination array for the computed statistics</span>
+<span class=sd>    :param stat_dim: the dimension of the tuples `x_raw` and `y_raw`</span>
+<span class=sd>    :param values_buf: the buffer for the values to be passed to `stat_func`</span>
+<span class=sd>    :param pos_buf: the position buffer</span>
+<span class=sd>    :return: the two-dimensional `np.ndarray` where the first column is the</span>
+<span class=sd>        time and the second column is the statistic value</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>out_len</span> <span class=o>-</span> <span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>):</span>  <span class=c1># reverse iteration</span>
+        <span class=n>x</span> <span class=o>=</span> <span class=n>x_unique</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>  <span class=c1># x_unique holds all unique x values</span>
+        <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>stat_dim</span><span class=p>):</span>  <span class=c1># for all Progress datasets do</span>
+            <span class=n>idx</span> <span class=o>=</span> <span class=n>pos_buf</span><span class=p>[</span><span class=n>j</span><span class=p>]</span>  <span class=c1># get the current position</span>
+            <span class=k>if</span> <span class=n>x</span> <span class=o><</span> <span class=n>x_raw</span><span class=p>[</span><span class=n>j</span><span class=p>][</span><span class=n>idx</span><span class=p>]:</span>  <span class=c1># if x < then current time value</span>
+                <span class=n>idx</span> <span class=o>-=</span> <span class=mi>1</span>  <span class=c1># step back by one</span>
+                <span class=n>pos_buf</span><span class=p>[</span><span class=n>j</span><span class=p>]</span> <span class=o>=</span> <span class=n>idx</span>  <span class=c1># now x >= x_raw[j][idx]</span>
+            <span class=n>values_buf</span><span class=p>[</span><span class=n>j</span><span class=p>]</span> <span class=o>=</span> <span class=n>y_raw</span><span class=p>[</span><span class=n>j</span><span class=p>][</span><span class=n>idx</span><span class=p>]</span>
+        <span class=n>dest_y</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>stat_func</span><span class=p>(</span><span class=n>values_buf</span><span class=p>)</span>
+
+    <span class=n>changes</span> <span class=o>=</span> <span class=mi>1</span> <span class=o>+</span> <span class=n>np</span><span class=o>.</span><span class=n>flatnonzero</span><span class=p>(</span><span class=n>dest_y</span><span class=p>[</span><span class=mi>1</span><span class=p>:]</span> <span class=o>!=</span> <span class=n>dest_y</span><span class=p>[:</span><span class=o>-</span><span class=mi>1</span><span class=p>])</span>
+    <span class=n>dest_len</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>dest_y</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span>
+    <span class=n>changes_len</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>changes</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>changes_len</span> <span class=o><</span> <span class=mi>2</span><span class=p>:</span>  <span class=c1># strange corner case: all values are the same</span>
+        <span class=c1># if there is only one value, use only that value</span>
+        <span class=c1># otherwise, use first and last value</span>
+        <span class=n>indexes</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mi>0</span><span class=p>])</span> <span class=k>if</span> <span class=n>dest_len</span> <span class=o><=</span> <span class=mi>1</span> <span class=k>else</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mi>0</span><span class=p>,</span> <span class=n>dest_len</span><span class=p>])</span>
+    <span class=k>elif</span> <span class=n>changes</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>!=</span> <span class=n>dest_len</span><span class=p>:</span>  <span class=c1># always put last point</span>
+        <span class=n>indexes</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>concatenate</span><span class=p>((</span><span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mi>0</span><span class=p>]),</span> <span class=n>changes</span><span class=p>,</span>
+                                  <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=n>dest_len</span><span class=p>])))</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=n>indexes</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>concatenate</span><span class=p>((</span><span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=mi>0</span><span class=p>]),</span> <span class=n>changes</span><span class=p>))</span>
+    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>column_stack</span><span class=p>((</span><span class=n>x_unique</span><span class=p>[</span><span class=n>indexes</span><span class=p>],</span> <span class=n>dest_y</span><span class=p>[</span><span class=n>indexes</span><span class=p>]))</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__do_apply_fun</span><span class=p>(</span><span class=n>x_unique</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>x_raw</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span>
+                   <span class=n>y_raw</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span>
+                   <span class=n>stat_func</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>float</span><span class=p>])</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute a time-depending statistic.</span>
+
+<span class=sd>    The unique x-values `x_unique` have separate been computed with</span>
+<span class=sd>    `_unique_floats_1d` from `x_raw` so that they can be reused.</span>
+<span class=sd>    `x_raw` and `y_raw` are tuples with the raw time and objective data,</span>
+<span class=sd>    respectively. `stat_fun` is the statistic function that will be applied.</span>
+<span class=sd>    In a final step, we will remove all redundant elements of both arrays: If</span>
+<span class=sd>    `x_unique` increases but `dest_y` remains the same, then the corresponding</span>
+<span class=sd>    point is deleted if it is not the last point in the list. As a result,</span>
+<span class=sd>    a two-dimensional time/value array is returned. This function uses</span>
+<span class=sd>    :meth:`__apply_fun` as internal work horse.</span>
+
+<span class=sd>    :param x_unique: the unique time coordinates</span>
+<span class=sd>    :param x_raw: a tuple of several x-data arrays</span>
+<span class=sd>    :param y_raw: a tuple of several y-data arrays</span>
+<span class=sd>    :param stat_func: a statistic function which must have been jitted with</span>
+<span class=sd>        numba</span>
+<span class=sd>    :return: the two-dimensional `numpy.ndarray` where the first column is the</span>
+<span class=sd>        time and the second column is the statistic value</span>
+<span class=sd>    """</span>
+    <span class=n>out_len</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>x_unique</span><span class=p>)</span>
+    <span class=n>dest_y</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>out_len</span><span class=p>,</span> <span class=n>DEFAULT_FLOAT</span><span class=p>)</span>
+    <span class=n>stat_dim</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>x_raw</span><span class=p>)</span>
+    <span class=n>values</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>stat_dim</span><span class=p>,</span> <span class=n>DEFAULT_FLOAT</span><span class=p>)</span>
+    <span class=n>pos</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>x_raw</span><span class=p>],</span> <span class=n>DEFAULT_INT</span><span class=p>)</span>
+
+    <span class=k>return</span> <span class=n>__apply_fun</span><span class=p>(</span><span class=n>x_unique</span><span class=p>,</span> <span class=n>x_raw</span><span class=p>,</span> <span class=n>y_raw</span><span class=p>,</span> <span class=n>stat_func</span><span class=p>,</span> <span class=n>out_len</span><span class=p>,</span>
+                       <span class=n>dest_y</span><span class=p>,</span> <span class=n>stat_dim</span><span class=p>,</span> <span class=n>values</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span>
+            <span class=n>parallel</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__stat_arith_mean</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>number</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the arithmetic mean.</span>
+
+<span class=sd>    :param data: the data</span>
+<span class=sd>    :return: the arithmetic mean</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>data</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span>
+            <span class=n>parallel</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__stat_geo_mean</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>number</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the geometric mean.</span>
+
+<span class=sd>    :param data: the data</span>
+<span class=sd>    :return: the geometric mean</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>exp</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>mean</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>log</span><span class=p>(</span><span class=n>data</span><span class=p>)))</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span>
+            <span class=n>parallel</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__stat_min</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>number</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the minimum.</span>
+
+<span class=sd>    :param data: the data</span>
+<span class=sd>    :return: the minimum</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>data</span><span class=o>.</span><span class=n>min</span><span class=p>()</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span>
+            <span class=n>parallel</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__stat_max</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>number</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the maximum.</span>
+
+<span class=sd>    :param data: the data</span>
+<span class=sd>    :return: the maximum</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>data</span><span class=o>.</span><span class=n>max</span><span class=p>()</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__stat_median</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the median.</span>
+
+<span class=sd>    :param data: the data</span>
+<span class=sd>    :return: the median</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>median</span><span class=p>(</span><span class=n>data</span><span class=p>)</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span>
+            <span class=n>parallel</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__stat_sd</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>number</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the standard deviation.</span>
+
+<span class=sd>    :param data: the data</span>
+<span class=sd>    :return: the standard deviation</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>data</span><span class=o>.</span><span class=n>std</span><span class=p>()</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span>
+            <span class=n>parallel</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__stat_mean_minus_sd</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>number</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the arithmetic mean minus the standard deviation.</span>
+
+<span class=sd>    :param data: the data</span>
+<span class=sd>    :return: the arithmetic mean minus the standard deviation</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>data</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span> <span class=o>-</span> <span class=n>data</span><span class=o>.</span><span class=n>std</span><span class=p>()</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span>
+            <span class=n>parallel</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__stat_mean_plus_sd</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>number</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the arithmetic mean plus the standard deviation.</span>
+
+<span class=sd>    :param data: the data</span>
+<span class=sd>    :return: the arithmetic mean plus the standard deviation</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>data</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span> <span class=o>+</span> <span class=n>data</span><span class=o>.</span><span class=n>std</span><span class=p>()</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__stat_quantile_10</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the 10% quantile.</span>
+
+<span class=sd>    :param data: the data</span>
+<span class=sd>    :return: the 10% quantile</span>
+<span class=sd>    """</span>
+    <span class=n>length</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>data</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>length</span> <span class=o>></span> <span class=mi>10</span><span class=p>)</span> <span class=ow>and</span> <span class=p>((</span><span class=n>length</span> <span class=o>%</span> <span class=mi>10</span><span class=p>)</span> <span class=o>==</span> <span class=mi>1</span><span class=p>):</span>
+        <span class=n>data</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+        <span class=k>return</span> <span class=n>data</span><span class=p>[(</span><span class=n>length</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>//</span> <span class=mi>10</span><span class=p>]</span>
+    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>quantile</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=mf>0.1</span><span class=p>)</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__stat_quantile_90</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the 90% quantile.</span>
+
+<span class=sd>    :param data: the data</span>
+<span class=sd>    :return: the 90% quantile</span>
+<span class=sd>    """</span>
+    <span class=n>length</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>data</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>length</span> <span class=o>></span> <span class=mi>10</span><span class=p>)</span> <span class=ow>and</span> <span class=p>((</span><span class=n>length</span> <span class=o>%</span> <span class=mi>10</span><span class=p>)</span> <span class=o>==</span> <span class=mi>1</span><span class=p>):</span>
+        <span class=n>data</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+        <span class=k>return</span> <span class=n>data</span><span class=p>[(</span><span class=mi>9</span> <span class=o>*</span> <span class=p>(</span><span class=n>length</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span> <span class=o>//</span> <span class=mi>10</span><span class=p>]</span>
+    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>quantile</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=mf>0.9</span><span class=p>)</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__stat_quantile_159</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the 15.9% quantile, which equals mean-sd in normal distributions.</span>
+
+<span class=sd>    :param data: the data</span>
+<span class=sd>    :return: the 15.9% quantile</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>quantile</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=n>__Q159</span><span class=p>)</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__stat_quantile_841</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the 84.1% quantile, which equals mean+sd in normal distributions.</span>
+
+<span class=sd>    :param data: the data</span>
+<span class=sd>    :return: the 84.1% quantile</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>quantile</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=n>__Q841</span><span class=p>)</span>
+
+
+<span class=c1>#: The statistics key for the minimum</span>
+<span class=n>STAT_MINIMUM</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>KEY_MINIMUM</span>
+<span class=c1>#: The statistics key for the median.</span>
+<span class=n>STAT_MEDIAN</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>KEY_MEDIAN</span>
+<span class=c1>#: The statistics key for the arithmetic mean.</span>
+<span class=n>STAT_MEAN_ARITH</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>KEY_MEAN_ARITH</span>
+<span class=c1>#: The statistics key for the geometric mean.</span>
+<span class=n>STAT_MEAN_GEOM</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>KEY_MEAN_GEOM</span>
+<span class=c1>#: The statistics key for the maximum</span>
+<span class=n>STAT_MAXIMUM</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>KEY_MAXIMUM</span>
+<span class=c1>#: The statistics key for the standard deviation</span>
+<span class=n>STAT_STDDEV</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>KEY_STDDEV</span>
+<span class=c1>#: The key for the arithmetic mean minus the standard deviation.</span>
+<span class=n>STAT_MEAN_MINUS_STDDEV</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>STAT_MEAN_ARITH</span><span class=si>}</span><span class=s2>-</span><span class=si>{</span><span class=n>STAT_STDDEV</span><span class=si>}</span><span class=s2>"</span>
+<span class=c1>#: The key for the arithmetic mean plus the standard deviation.</span>
+<span class=n>STAT_MEAN_PLUS_STDDEV</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>STAT_MEAN_ARITH</span><span class=si>}</span><span class=s2>+</span><span class=si>{</span><span class=n>STAT_STDDEV</span><span class=si>}</span><span class=s2>"</span>
+<span class=c1>#: The key for the 10% quantile.</span>
+<span class=n>STAT_Q10</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"q10"</span>
+<span class=c1>#: The key for the 90% quantile.</span>
+<span class=n>STAT_Q90</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"q90"</span>
+<span class=c1>#: The key for the 15.9% quantile. In a normal distribution, this quantile</span>
+<span class=c1>#: is where "mean - standard deviation" is located-</span>
+<span class=n>STAT_Q159</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"q159"</span>
+<span class=c1>#: The key for the 84.1% quantile. In a normal distribution, this quantile</span>
+<span class=c1>#: is where "mean + standard deviation" is located-</span>
+<span class=n>STAT_Q841</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"q841"</span>
+
+<span class=c1>#: The internal function map.</span>
+<span class=n>_FUNC_MAP</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>float</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>{</span>
+    <span class=n>STAT_MINIMUM</span><span class=p>:</span> <span class=n>__stat_min</span><span class=p>,</span>
+    <span class=n>STAT_MEDIAN</span><span class=p>:</span> <span class=n>__stat_median</span><span class=p>,</span>
+    <span class=n>STAT_MEAN_ARITH</span><span class=p>:</span> <span class=n>__stat_arith_mean</span><span class=p>,</span>
+    <span class=n>STAT_MEAN_GEOM</span><span class=p>:</span> <span class=n>__stat_geo_mean</span><span class=p>,</span>
+    <span class=n>STAT_MAXIMUM</span><span class=p>:</span> <span class=n>__stat_max</span><span class=p>,</span>
+    <span class=n>STAT_STDDEV</span><span class=p>:</span> <span class=n>__stat_sd</span><span class=p>,</span>
+    <span class=n>STAT_MEAN_MINUS_STDDEV</span><span class=p>:</span> <span class=n>__stat_mean_minus_sd</span><span class=p>,</span>
+    <span class=n>STAT_MEAN_PLUS_STDDEV</span><span class=p>:</span> <span class=n>__stat_mean_plus_sd</span><span class=p>,</span>
+    <span class=n>STAT_Q10</span><span class=p>:</span> <span class=n>__stat_quantile_10</span><span class=p>,</span>
+    <span class=n>STAT_Q90</span><span class=p>:</span> <span class=n>__stat_quantile_90</span><span class=p>,</span>
+    <span class=n>STAT_Q159</span><span class=p>:</span> <span class=n>__stat_quantile_159</span><span class=p>,</span>
+    <span class=n>STAT_Q841</span><span class=p>:</span> <span class=n>__stat_quantile_841</span><span class=p>,</span>
+<span class=p>}</span>
+
+
+<div class=viewcode-block id=StatRun>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.stat_run.StatRun>[docs]</a>
+<span class=nd>@dataclass</span><span class=p>(</span><span class=n>frozen</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>init</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>order</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>eq</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>class</span><span class=w> </span><span class=nc>StatRun</span><span class=p>(</span><span class=n>MultiRun2DData</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A time-value statistic over a set of runs."""</span>
+
+    <span class=c1>#: The name of this statistic.</span>
+    <span class=n>stat_name</span><span class=p>:</span> <span class=nb>str</span>
+    <span class=c1>#: The time-dependent statistic.</span>
+    <span class=n>stat</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                 <span class=n>algorithm</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>instance</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>objective</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>encoding</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>time_unit</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>f_name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>stat_name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>stat</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the time-based statistics of an algorithm-setup combination.</span>
+
+<span class=sd>        :param algorithm: the algorithm name, if all runs are</span>
+<span class=sd>            with the same algorithm</span>
+<span class=sd>        :param instance: the instance name, if all runs are</span>
+<span class=sd>            on the same instance</span>
+<span class=sd>        :param objective: the objective name, if all runs are on the same</span>
+<span class=sd>            objective function, `None` otherwise</span>
+<span class=sd>        :param encoding: the encoding name, if all runs are on the same</span>
+<span class=sd>            encoding and an encoding was actually used, `None` otherwise</span>
+<span class=sd>        :param n: the total number of runs</span>
+<span class=sd>        :param time_unit: the time unit</span>
+<span class=sd>        :param f_name: the objective dimension name</span>
+<span class=sd>        :param stat_name: the name of the statistic</span>
+<span class=sd>        :param stat: the statistic itself</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>instance</span><span class=p>,</span> <span class=n>objective</span><span class=p>,</span> <span class=n>encoding</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span>
+                         <span class=n>time_unit</span><span class=p>,</span> <span class=n>f_name</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>stat_name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>stat_name</span><span class=p>,</span> <span class=s2>"stat_name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"stat_name"</span><span class=p>,</span> <span class=n>stat_name</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>stat</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>stat</span><span class=p>,</span> <span class=s2>"statistic data"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span>
+        <span class=n>stat</span><span class=o>.</span><span class=n>flags</span><span class=o>.</span><span class=n>writeable</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=k>if</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>stat</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>2</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>stat</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>!=</span> <span class=mi>2</span><span class=p>)</span> <span class=ow>or</span> \
+                <span class=p>(</span><span class=n>stat</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o><=</span> <span class=mi>0</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=s2>"time array must be two-dimensional and have two columns and "</span>
+                <span class=sa>f</span><span class=s2>"at least one row, but has shape </span><span class=si>{</span><span class=n>stat</span><span class=o>.</span><span class=n>shape</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>is_np_float</span><span class=p>(</span><span class=n>stat</span><span class=o>.</span><span class=n>dtype</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"statistics array must be float-typed, but has "</span>
+                             <span class=sa>f</span><span class=s2>"dtype </span><span class=si>{</span><span class=n>stat</span><span class=o>.</span><span class=n>dtype</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"stat"</span><span class=p>,</span> <span class=n>stat</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=create>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.stat_run.create>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=n>source</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Progress</span><span class=p>],</span>
+           <span class=n>statistics</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>],</span>
+           <span class=n>consumer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>StatRun</span><span class=p>],</span> <span class=n>Any</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute statistics from an iterable of `Progress` objects.</span>
+
+<span class=sd>    :param source: the progress data</span>
+<span class=sd>    :param statistics: the statistics to be computed</span>
+<span class=sd>    :param consumer: the consumer for the statistics</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=s2>"source"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>statistics</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=n>statistics</span> <span class=o>=</span> <span class=p>[</span><span class=n>statistics</span><span class=p>]</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>statistics</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>statistics</span><span class=p>,</span> <span class=s2>"statistics"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>consumer</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>consumer</span><span class=p>,</span> <span class=s2>"consumer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=n>algorithm</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>instance</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>objective</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>encoding</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>time_unit</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>f_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>time</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>f</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>n</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+
+    <span class=k>for</span> <span class=n>progress</span> <span class=ow>in</span> <span class=n>source</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>progress</span><span class=p>,</span> <span class=n>Progress</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>progress</span><span class=p>,</span> <span class=s2>"stat run data source"</span><span class=p>,</span> <span class=n>Progress</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>n</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>algorithm</span> <span class=o>=</span> <span class=n>progress</span><span class=o>.</span><span class=n>algorithm</span>
+            <span class=n>instance</span> <span class=o>=</span> <span class=n>progress</span><span class=o>.</span><span class=n>instance</span>
+            <span class=n>objective</span> <span class=o>=</span> <span class=n>progress</span><span class=o>.</span><span class=n>objective</span>
+            <span class=n>encoding</span> <span class=o>=</span> <span class=n>progress</span><span class=o>.</span><span class=n>encoding</span>
+            <span class=n>time_unit</span> <span class=o>=</span> <span class=n>progress</span><span class=o>.</span><span class=n>time_unit</span>
+            <span class=n>f_name</span> <span class=o>=</span> <span class=n>progress</span><span class=o>.</span><span class=n>f_name</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>algorithm</span> <span class=o>!=</span> <span class=n>progress</span><span class=o>.</span><span class=n>algorithm</span><span class=p>:</span>
+                <span class=n>algorithm</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=k>if</span> <span class=n>instance</span> <span class=o>!=</span> <span class=n>progress</span><span class=o>.</span><span class=n>instance</span><span class=p>:</span>
+                <span class=n>instance</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=k>if</span> <span class=n>objective</span> <span class=o>!=</span> <span class=n>progress</span><span class=o>.</span><span class=n>objective</span><span class=p>:</span>
+                <span class=n>objective</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=k>if</span> <span class=n>encoding</span> <span class=o>!=</span> <span class=n>progress</span><span class=o>.</span><span class=n>encoding</span><span class=p>:</span>
+                <span class=n>encoding</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=k>if</span> <span class=n>time_unit</span> <span class=o>!=</span> <span class=n>progress</span><span class=o>.</span><span class=n>time_unit</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Cannot mix time units </span><span class=si>{</span><span class=n>time_unit</span><span class=si>}</span><span class=s2> "</span>
+                    <span class=sa>f</span><span class=s2>"and </span><span class=si>{</span><span class=n>progress</span><span class=o>.</span><span class=n>time_unit</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>f_name</span> <span class=o>!=</span> <span class=n>progress</span><span class=o>.</span><span class=n>f_name</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Cannot mix f-names </span><span class=si>{</span><span class=n>f_name</span><span class=si>}</span><span class=s2> "</span>
+                                 <span class=sa>f</span><span class=s2>"and </span><span class=si>{</span><span class=n>progress</span><span class=o>.</span><span class=n>f_name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>n</span> <span class=o>+=</span> <span class=mi>1</span>
+        <span class=n>time</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>progress</span><span class=o>.</span><span class=n>time</span><span class=p>)</span>
+        <span class=n>f</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>progress</span><span class=o>.</span><span class=n>f</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>n</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Did not encounter any progress information."</span><span class=p>)</span>
+
+    <span class=n>x_unique</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>__unique_floats_1d</span><span class=p>(</span><span class=n>time</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>x_unique</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>x_unique</span><span class=p>,</span> <span class=s2>"x_unique"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=n>is_np_float</span><span class=p>(</span><span class=n>x_unique</span><span class=o>.</span><span class=n>dtype</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>TypeError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"x_unique must be floats, but is </span><span class=si>{</span><span class=n>x_unique</span><span class=o>.</span><span class=n>dtype</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>x_unique</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>x_unique</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o><=</span> <span class=mi>0</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"Invalid shape of unique values </span><span class=si>{</span><span class=n>x_unique</span><span class=o>.</span><span class=n>shape</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=n>count</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=k>for</span> <span class=n>name</span> <span class=ow>in</span> <span class=n>statistics</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=s2>"statistic name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>name</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>_FUNC_MAP</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Unknown statistic name </span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>consumer</span><span class=p>(</span><span class=n>StatRun</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>instance</span><span class=p>,</span> <span class=n>objective</span><span class=p>,</span> <span class=n>encoding</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span>
+                         <span class=n>time_unit</span><span class=p>,</span> <span class=n>f_name</span><span class=p>,</span> <span class=n>name</span><span class=p>,</span>
+                         <span class=n>__do_apply_fun</span><span class=p>(</span><span class=n>x_unique</span><span class=p>,</span> <span class=n>time</span><span class=p>,</span> <span class=n>f</span><span class=p>,</span> <span class=n>_FUNC_MAP</span><span class=p>[</span><span class=n>name</span><span class=p>])))</span>
+        <span class=n>count</span> <span class=o>+=</span> <span class=mi>1</span>
+
+    <span class=k>if</span> <span class=n>count</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"No statistic names provided."</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=from_progress>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.stat_run.from_progress>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>from_progress</span><span class=p>(</span><span class=n>source</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Progress</span><span class=p>],</span>
+                  <span class=n>statistics</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>],</span>
+                  <span class=n>consumer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>StatRun</span><span class=p>],</span> <span class=n>Any</span><span class=p>],</span>
+                  <span class=n>join_all_algorithms</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+                  <span class=n>join_all_instances</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+                  <span class=n>join_all_objectives</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+                  <span class=n>join_all_encodings</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Aggregate statist runs over a stream of progress data.</span>
+
+<span class=sd>    :param source: the stream of progress data</span>
+<span class=sd>    :param statistics: the statistics that should be computed per group</span>
+<span class=sd>    :param consumer: the destination to which the new stat runs will be</span>
+<span class=sd>        passed, can be the `append` method of a :class:`list`</span>
+<span class=sd>    :param join_all_algorithms: should the statistics be aggregated</span>
+<span class=sd>        over all algorithms</span>
+<span class=sd>    :param join_all_instances: should the statistics be aggregated</span>
+<span class=sd>        over all algorithms</span>
+<span class=sd>    :param join_all_objectives: should the statistics be aggregated over</span>
+<span class=sd>        all objective functions?</span>
+<span class=sd>    :param join_all_encodings: should the statistics be aggregated over</span>
+<span class=sd>        all encodings?</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=s2>"source"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>statistics</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=n>statistics</span> <span class=o>=</span> <span class=p>[</span><span class=n>statistics</span><span class=p>]</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>statistics</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>statistics</span><span class=p>,</span> <span class=s2>"statistics"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>consumer</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>consumer</span><span class=p>,</span> <span class=s2>"consumer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>join_all_algorithms</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>join_all_algorithms</span><span class=p>,</span> <span class=s2>"join_all_algorithms"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>join_all_instances</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>join_all_instances</span><span class=p>,</span> <span class=s2>"join_all_instances"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>join_all_objectives</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>join_all_objectives</span><span class=p>,</span> <span class=s2>"join_all_objectives"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>join_all_encodings</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>join_all_encodings</span><span class=p>,</span> <span class=s2>"join_all_encodings"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+
+    <span class=n>sorter</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>],</span> <span class=nb>list</span><span class=p>[</span><span class=n>Progress</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{}</span>
+    <span class=k>for</span> <span class=n>prog</span> <span class=ow>in</span> <span class=n>source</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>prog</span><span class=p>,</span> <span class=n>Progress</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>prog</span><span class=p>,</span> <span class=s2>"progress source"</span><span class=p>,</span> <span class=n>Progress</span><span class=p>)</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=p>(</span><span class=s2>""</span> <span class=k>if</span> <span class=n>join_all_algorithms</span> <span class=k>else</span> <span class=n>prog</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span>
+               <span class=s2>""</span> <span class=k>if</span> <span class=n>join_all_instances</span> <span class=k>else</span> <span class=n>prog</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span>
+               <span class=s2>""</span> <span class=k>if</span> <span class=n>join_all_objectives</span> <span class=k>else</span> <span class=n>prog</span><span class=o>.</span><span class=n>objective</span><span class=p>,</span>
+               <span class=s2>""</span> <span class=k>if</span> <span class=n>join_all_encodings</span> <span class=k>else</span> <span class=p>(</span>
+                   <span class=s2>""</span> <span class=k>if</span> <span class=n>prog</span><span class=o>.</span><span class=n>encoding</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>prog</span><span class=o>.</span><span class=n>encoding</span><span class=p>),</span>
+               <span class=n>prog</span><span class=o>.</span><span class=n>time_unit</span><span class=p>,</span> <span class=n>prog</span><span class=o>.</span><span class=n>f_name</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>key</span> <span class=ow>in</span> <span class=n>sorter</span><span class=p>:</span>
+            <span class=n>lst</span> <span class=o>=</span> <span class=n>sorter</span><span class=p>[</span><span class=n>key</span><span class=p>]</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>lst</span> <span class=o>=</span> <span class=p>[]</span>
+            <span class=n>sorter</span><span class=p>[</span><span class=n>key</span><span class=p>]</span> <span class=o>=</span> <span class=n>lst</span>
+        <span class=n>lst</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>prog</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>sorter</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"source must not be empty"</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>sorter</span><span class=p>)</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+        <span class=n>keys</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>sorter</span><span class=o>.</span><span class=n>keys</span><span class=p>())</span>
+        <span class=n>keys</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+        <span class=k>for</span> <span class=n>key</span> <span class=ow>in</span> <span class=n>keys</span><span class=p>:</span>
+            <span class=n>create</span><span class=p>(</span><span class=n>sorter</span><span class=p>[</span><span class=n>key</span><span class=p>],</span> <span class=n>statistics</span><span class=p>,</span> <span class=n>consumer</span><span class=p>)</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=n>create</span><span class=p>(</span><span class=nb>next</span><span class=p>(</span><span class=nb>iter</span><span class=p>(</span><span class=n>sorter</span><span class=o>.</span><span class=n>values</span><span class=p>())),</span> <span class=n>statistics</span><span class=p>,</span> <span class=n>consumer</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=get_statistic>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.stat_run.get_statistic>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>get_statistic</span><span class=p>(</span><span class=n>obj</span><span class=p>:</span> <span class=n>PerRunData</span> <span class=o>|</span> <span class=n>MultiRunData</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the statistic of a given object.</span>
+
+<span class=sd>    :param obj: the object</span>
+<span class=sd>    :return: the statistic string, or `None` if no statistic is specified</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>obj</span><span class=o>.</span><span class=n>stat_name</span> <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>obj</span><span class=p>,</span> <span class=n>StatRun</span><span class=p>)</span> <span class=k>else</span> <span class=kc>None</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.stat_run</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

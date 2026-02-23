@@ -1,0 +1,50 @@
+moptipy.operators.bitstrings package
+====================================
+
+.. automodule:: moptipy.operators.bitstrings
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+moptipy.operators.bitstrings.op0\_random module
+-----------------------------------------------
+
+.. automodule:: moptipy.operators.bitstrings.op0_random
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.operators.bitstrings.op1\_flip1 module
+----------------------------------------------
+
+.. automodule:: moptipy.operators.bitstrings.op1_flip1
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.operators.bitstrings.op1\_flip\_m module
+------------------------------------------------
+
+.. automodule:: moptipy.operators.bitstrings.op1_flip_m
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.operators.bitstrings.op1\_m\_over\_n\_flip module
+---------------------------------------------------------
+
+.. automodule:: moptipy.operators.bitstrings.op1_m_over_n_flip
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.operators.bitstrings.op2\_uniform module
+------------------------------------------------
+
+.. automodule:: moptipy.operators.bitstrings.op2_uniform
+   :members:
+   :show-inheritance:
+   :undoc-members:

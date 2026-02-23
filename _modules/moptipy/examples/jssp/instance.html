@@ -1,0 +1,607 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.jssp.instance — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/jssp/instance.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.instance</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.jssp.instance</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>A representation and collection of Job Shop Scheduling Problem instances.</span>
+
+<span class=sd>The Job Shop Scheduling Problem (JSSP) is one of the classical NP-hard</span>
+<span class=sd>problems from operations research. Here we provide a class (:class:`Instance`)</span>
+<span class=sd>to represent and load their data as well as a collection of common JSSP</span>
+<span class=sd>instances from literature.</span>
+
+<span class=sd>Our problem instances are actually extensions of :class:`numpy.ndarray`. They</span>
+<span class=sd>present the basic instance data as a matrix, where each row corresponds to a</span>
+<span class=sd>job. Each row has twice the number of machines elements. In an alternating</span>
+<span class=sd>fashion, we store the machines that the job needs to go to as well as the time</span>
+<span class=sd>that it needs on the machines, one by one. Additionally, the instance name,</span>
+<span class=sd>the number of machines, and the number of jobs are provided as attributes</span>
+<span class=sd>(although the latter two can easily be inferred from the shape of the matrix).</span>
+<span class=sd>Nevertheless, this memory layout and encapsulation as :class:`~numpy.ndarray`</span>
+<span class=sd>are the most efficient way to store the data I could come up with.</span>
+
+<span class=sd>You can directly load the most common JSSP instances using</span>
+<span class=sd>:meth:`~Instance.from_resource` by providing their mnemonic name. With</span>
+<span class=sd>:meth:`~Instance.list_resources`, you can obtain a list of string mnemonic</span>
+<span class=sd>names of all JSSP instances available as resource.</span>
+
+<span class=sd>This collection of common instances stems from the repositories [1-5], each of</span>
+<span class=sd>which containing some or all of them. The instances themselves were originally</span>
+<span class=sd>published by different researchers in literature [6-14].</span>
+
+<span class=sd>1. John Edward Beasley. OR-Library: Distributing Test Problems by Electronic</span>
+<span class=sd>   Mail. *The Journal of the Operational Research Society (JORS).*</span>
+<span class=sd>   41:1069-1072. November 1990. doi: https://doi.org/10.1057/jors.1990.166</span>
+<span class=sd>2. Jelke Jeroen van Hoorn. *Job Shop Instances and Solutions.* 2015.</span>
+<span class=sd>   http://jobshop.jjvh.nl</span>
+<span class=sd>3. Jelke Jeroen van Hoorn. The Current State of Bounds on Benchmark Instances</span>
+<span class=sd>   of the Job-Shop Scheduling Problem. *Journal of Scheduling.* 21(1):127-128.</span>
+<span class=sd>   February 2018. doi: https://doi.org/10.1007/s10951-017-0547-8</span>
+<span class=sd>4. Oleg V. Shylo. *Job Shop Scheduling (Personal Homepage).* August 2019.</span>
+<span class=sd>   Knoxville, TN, USA. http://optimizizer.com/jobshop.php</span>
+<span class=sd>5. Thomas Weise. *jsspInstancesAndResults: Results, Data, and Instances of the</span>
+<span class=sd>   Job Shop Scheduling Problem.* Hefei, Anhui, China: Institute of Applied</span>
+<span class=sd>   Optimization, School of Computer Science and Artificial Intelligence, Hefei</span>
+<span class=sd>   University. 2019. http://github.com/thomasWeise/jsspInstancesAndResults.</span>
+<span class=sd>   A GitHub repository with the common benchmark instances for the Job Shop</span>
+<span class=sd>   Scheduling Problem as well as results from the literature, both in form of</span>
+<span class=sd>   CSV files and R program code to access them.</span>
+<span class=sd>6. Henry Fisher and Gerald L. Thompson. Probabilistic Learning Combinations of</span>
+<span class=sd>   Local Job-Shop Scheduling Rules. Chapter 3.2 of John F. Muth and</span>
+<span class=sd>   Gerald L. Thompson, editors, *Industrial Scheduling,* pages 225-251. 1963.</span>
+<span class=sd>   Englewood Cliffs, NJ, USA: Prentice-Hall.</span>
+<span class=sd>7. Joseph Adams, Egon Balas, and Daniel Zawack. The Shifting Bottleneck</span>
+<span class=sd>   Procedure for Job Shop Scheduling. *Management Science.* 34(3):391-401.</span>
+<span class=sd>   1988. doi: https://doi.org/10.1287/mnsc.34.3.391</span>
+<span class=sd>8. David Lee Applegate and William John Cook. A Computational Study of the</span>
+<span class=sd>   Job-Shop Scheduling Problem. *ORSA Journal on Computing* 3(2):149-156.</span>
+<span class=sd>   May 1991. doi: https://doi.org/10.1287/ijoc.3.2.149. The JSSP instances</span>
+<span class=sd>   used were generated in Bonn, Germany in 1986.</span>
+<span class=sd>9. Robert H. Storer, S. David Wu, and Renzo Vaccari. New Search Spaces for</span>
+<span class=sd>   Sequencing Problems with Application to Job Shop Scheduling. *Management</span>
+<span class=sd>   Science.* 38(10):1495-1509. 1992.</span>
+<span class=sd>   doi: https://doi.org/10.1287/mnsc.38.10.1495</span>
+<span class=sd>10. Takeshi Yamada and Ryohei Nakano. A Genetic Algorithm Applicable to</span>
+<span class=sd>    Large-Scale Job-Shop Instances. In Reinhard Männer and Bernard</span>
+<span class=sd>    Manderick, editors, *Proceedings of Parallel Problem Solving from Nature 2</span>
+<span class=sd>    (PPSN II),* September 28-30, 1992, Brussels, Belgium, pages 281-290.</span>
+<span class=sd>    Amsterdam, The Netherlands: Elsevier.</span>
+<span class=sd>    https://www.researchgate.net/publication/220701684</span>
+<span class=sd>11. Stephen R. Lawrence. *Resource Constrained Project Scheduling: An</span>
+<span class=sd>    Experimental Investigation of Heuristic Scheduling Techniques</span>
+<span class=sd>    (Supplement).* 1984. Pittsburgh, PA, USA: Graduate School of Industrial</span>
+<span class=sd>    Administration (GSIA), Carnegie-Mellon University.</span>
+<span class=sd>12. Ebru Demirkol, Sanjay V. Mehta, and Reha Uzsoy. Benchmarks for Shop</span>
+<span class=sd>    Scheduling Problems. *European Journal of Operational Research (EJOR).*</span>
+<span class=sd>    109(1):137-141. August 1998.</span>
+<span class=sd>    doi: https://doi.org/10.1016/S0377-2217(97)00019-2</span>
+<span class=sd>13. Éric D. Taillard. Benchmarks for Basic Scheduling Problems. *European</span>
+<span class=sd>    Journal of Operational Research (EJOR).* 64(2):278-285. January 1993.</span>
+<span class=sd>    doi: https://doi.org/10.1016/0377-2217(93)90182-M.</span>
+<span class=sd>    http://mistic.heig-vd.ch/taillard/articles.dir/Taillard1993EJOR.pdf</span>
+<span class=sd>14. André Henning. *Praktische Job-Shop Scheduling-Probleme.* Jena, Thüringen,</span>
+<span class=sd>    Germany: Friedrich-Schiller-Universität Jena, Fakultät für Mathematik und</span>
+<span class=sd>    Informatik. August 2022. https://www.db-thueringen.de/servlets/MCRFileNo\</span>
+<span class=sd>deServlet/dbt_derivate_00001373/Dissertation.pdf</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>importlib</span><span class=w> </span><span class=kn>import</span> <span class=n>resources</span>  <span class=c1># nosem</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>UTF8</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>npu</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.component</span><span class=w> </span><span class=kn>import</span> <span class=n>Component</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>int_range_to_dtype</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=n>sanitize_name</span>
+
+<span class=c1>#: the recommended scope under which instance data should be stored</span>
+<span class=n>SCOPE_INSTANCE</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"inst"</span>
+<span class=c1>#: The number of machines in the instance.</span>
+<span class=n>MACHINES</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"machines"</span>
+<span class=c1>#: The number of jobs in the instance.</span>
+<span class=n>JOBS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"jobs"</span>
+<span class=c1>#: The lower bound of the makespan of the instance.</span>
+<span class=n>MAKESPAN_LOWER_BOUND</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"makespanLowerBound"</span>
+<span class=c1>#: The upper bound of the makespan of the instance.</span>
+<span class=n>MAKESPAN_UPPER_BOUND</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"makespanUpperBound"</span>
+
+<span class=c1>#: the internal final set of instances</span>
+<span class=n>_INSTANCES</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> \
+    <span class=p>(</span><span class=s2>"abz5"</span><span class=p>,</span> <span class=s2>"abz6"</span><span class=p>,</span> <span class=s2>"abz7"</span><span class=p>,</span> <span class=s2>"abz8"</span><span class=p>,</span> <span class=s2>"abz9"</span><span class=p>,</span>
+     <span class=s2>"demo"</span><span class=p>,</span>
+     <span class=s2>"dmu01"</span><span class=p>,</span> <span class=s2>"dmu02"</span><span class=p>,</span> <span class=s2>"dmu03"</span><span class=p>,</span> <span class=s2>"dmu04"</span><span class=p>,</span> <span class=s2>"dmu05"</span><span class=p>,</span> <span class=s2>"dmu06"</span><span class=p>,</span> <span class=s2>"dmu07"</span><span class=p>,</span>
+     <span class=s2>"dmu08"</span><span class=p>,</span> <span class=s2>"dmu09"</span><span class=p>,</span> <span class=s2>"dmu10"</span><span class=p>,</span> <span class=s2>"dmu11"</span><span class=p>,</span> <span class=s2>"dmu12"</span><span class=p>,</span> <span class=s2>"dmu13"</span><span class=p>,</span> <span class=s2>"dmu14"</span><span class=p>,</span>
+     <span class=s2>"dmu15"</span><span class=p>,</span> <span class=s2>"dmu16"</span><span class=p>,</span> <span class=s2>"dmu17"</span><span class=p>,</span> <span class=s2>"dmu18"</span><span class=p>,</span> <span class=s2>"dmu19"</span><span class=p>,</span> <span class=s2>"dmu20"</span><span class=p>,</span> <span class=s2>"dmu21"</span><span class=p>,</span>
+     <span class=s2>"dmu22"</span><span class=p>,</span> <span class=s2>"dmu23"</span><span class=p>,</span> <span class=s2>"dmu24"</span><span class=p>,</span> <span class=s2>"dmu25"</span><span class=p>,</span> <span class=s2>"dmu26"</span><span class=p>,</span> <span class=s2>"dmu27"</span><span class=p>,</span> <span class=s2>"dmu28"</span><span class=p>,</span>
+     <span class=s2>"dmu29"</span><span class=p>,</span> <span class=s2>"dmu30"</span><span class=p>,</span> <span class=s2>"dmu31"</span><span class=p>,</span> <span class=s2>"dmu32"</span><span class=p>,</span> <span class=s2>"dmu33"</span><span class=p>,</span> <span class=s2>"dmu34"</span><span class=p>,</span> <span class=s2>"dmu35"</span><span class=p>,</span>
+     <span class=s2>"dmu36"</span><span class=p>,</span> <span class=s2>"dmu37"</span><span class=p>,</span> <span class=s2>"dmu38"</span><span class=p>,</span> <span class=s2>"dmu39"</span><span class=p>,</span> <span class=s2>"dmu40"</span><span class=p>,</span> <span class=s2>"dmu41"</span><span class=p>,</span> <span class=s2>"dmu42"</span><span class=p>,</span>
+     <span class=s2>"dmu43"</span><span class=p>,</span> <span class=s2>"dmu44"</span><span class=p>,</span> <span class=s2>"dmu45"</span><span class=p>,</span> <span class=s2>"dmu46"</span><span class=p>,</span> <span class=s2>"dmu47"</span><span class=p>,</span> <span class=s2>"dmu48"</span><span class=p>,</span> <span class=s2>"dmu49"</span><span class=p>,</span>
+     <span class=s2>"dmu50"</span><span class=p>,</span> <span class=s2>"dmu51"</span><span class=p>,</span> <span class=s2>"dmu52"</span><span class=p>,</span> <span class=s2>"dmu53"</span><span class=p>,</span> <span class=s2>"dmu54"</span><span class=p>,</span> <span class=s2>"dmu55"</span><span class=p>,</span> <span class=s2>"dmu56"</span><span class=p>,</span>
+     <span class=s2>"dmu57"</span><span class=p>,</span> <span class=s2>"dmu58"</span><span class=p>,</span> <span class=s2>"dmu59"</span><span class=p>,</span> <span class=s2>"dmu60"</span><span class=p>,</span> <span class=s2>"dmu61"</span><span class=p>,</span> <span class=s2>"dmu62"</span><span class=p>,</span> <span class=s2>"dmu63"</span><span class=p>,</span>
+     <span class=s2>"dmu64"</span><span class=p>,</span> <span class=s2>"dmu65"</span><span class=p>,</span> <span class=s2>"dmu66"</span><span class=p>,</span> <span class=s2>"dmu67"</span><span class=p>,</span> <span class=s2>"dmu68"</span><span class=p>,</span> <span class=s2>"dmu69"</span><span class=p>,</span> <span class=s2>"dmu70"</span><span class=p>,</span>
+     <span class=s2>"dmu71"</span><span class=p>,</span> <span class=s2>"dmu72"</span><span class=p>,</span> <span class=s2>"dmu73"</span><span class=p>,</span> <span class=s2>"dmu74"</span><span class=p>,</span> <span class=s2>"dmu75"</span><span class=p>,</span> <span class=s2>"dmu76"</span><span class=p>,</span> <span class=s2>"dmu77"</span><span class=p>,</span>
+     <span class=s2>"dmu78"</span><span class=p>,</span> <span class=s2>"dmu79"</span><span class=p>,</span> <span class=s2>"dmu80"</span><span class=p>,</span>
+     <span class=s2>"ft06"</span><span class=p>,</span> <span class=s2>"ft10"</span><span class=p>,</span> <span class=s2>"ft20"</span><span class=p>,</span>
+     <span class=s2>"la01"</span><span class=p>,</span> <span class=s2>"la02"</span><span class=p>,</span> <span class=s2>"la03"</span><span class=p>,</span> <span class=s2>"la04"</span><span class=p>,</span> <span class=s2>"la05"</span><span class=p>,</span> <span class=s2>"la06"</span><span class=p>,</span> <span class=s2>"la07"</span><span class=p>,</span>
+     <span class=s2>"la08"</span><span class=p>,</span> <span class=s2>"la09"</span><span class=p>,</span> <span class=s2>"la10"</span><span class=p>,</span> <span class=s2>"la11"</span><span class=p>,</span> <span class=s2>"la12"</span><span class=p>,</span> <span class=s2>"la13"</span><span class=p>,</span> <span class=s2>"la14"</span><span class=p>,</span>
+     <span class=s2>"la15"</span><span class=p>,</span> <span class=s2>"la16"</span><span class=p>,</span> <span class=s2>"la17"</span><span class=p>,</span> <span class=s2>"la18"</span><span class=p>,</span> <span class=s2>"la19"</span><span class=p>,</span> <span class=s2>"la20"</span><span class=p>,</span> <span class=s2>"la21"</span><span class=p>,</span>
+     <span class=s2>"la22"</span><span class=p>,</span> <span class=s2>"la23"</span><span class=p>,</span> <span class=s2>"la24"</span><span class=p>,</span> <span class=s2>"la25"</span><span class=p>,</span> <span class=s2>"la26"</span><span class=p>,</span> <span class=s2>"la27"</span><span class=p>,</span> <span class=s2>"la28"</span><span class=p>,</span>
+     <span class=s2>"la29"</span><span class=p>,</span> <span class=s2>"la30"</span><span class=p>,</span> <span class=s2>"la31"</span><span class=p>,</span> <span class=s2>"la32"</span><span class=p>,</span> <span class=s2>"la33"</span><span class=p>,</span> <span class=s2>"la34"</span><span class=p>,</span> <span class=s2>"la35"</span><span class=p>,</span>
+     <span class=s2>"la36"</span><span class=p>,</span> <span class=s2>"la37"</span><span class=p>,</span> <span class=s2>"la38"</span><span class=p>,</span> <span class=s2>"la39"</span><span class=p>,</span> <span class=s2>"la40"</span><span class=p>,</span>
+     <span class=s2>"orb01"</span><span class=p>,</span> <span class=s2>"orb02"</span><span class=p>,</span> <span class=s2>"orb03"</span><span class=p>,</span> <span class=s2>"orb04"</span><span class=p>,</span> <span class=s2>"orb05"</span><span class=p>,</span> <span class=s2>"orb06"</span><span class=p>,</span> <span class=s2>"orb07"</span><span class=p>,</span>
+     <span class=s2>"orb08"</span><span class=p>,</span> <span class=s2>"orb09"</span><span class=p>,</span> <span class=s2>"orb10"</span><span class=p>,</span>
+     <span class=s2>"swv01"</span><span class=p>,</span> <span class=s2>"swv02"</span><span class=p>,</span> <span class=s2>"swv03"</span><span class=p>,</span> <span class=s2>"swv04"</span><span class=p>,</span> <span class=s2>"swv05"</span><span class=p>,</span> <span class=s2>"swv06"</span><span class=p>,</span> <span class=s2>"swv07"</span><span class=p>,</span>
+     <span class=s2>"swv08"</span><span class=p>,</span> <span class=s2>"swv09"</span><span class=p>,</span> <span class=s2>"swv10"</span><span class=p>,</span> <span class=s2>"swv11"</span><span class=p>,</span> <span class=s2>"swv12"</span><span class=p>,</span> <span class=s2>"swv13"</span><span class=p>,</span> <span class=s2>"swv14"</span><span class=p>,</span>
+     <span class=s2>"swv15"</span><span class=p>,</span> <span class=s2>"swv16"</span><span class=p>,</span> <span class=s2>"swv17"</span><span class=p>,</span> <span class=s2>"swv18"</span><span class=p>,</span> <span class=s2>"swv19"</span><span class=p>,</span> <span class=s2>"swv20"</span><span class=p>,</span>
+     <span class=s2>"ta01"</span><span class=p>,</span> <span class=s2>"ta02"</span><span class=p>,</span> <span class=s2>"ta03"</span><span class=p>,</span> <span class=s2>"ta04"</span><span class=p>,</span> <span class=s2>"ta05"</span><span class=p>,</span> <span class=s2>"ta06"</span><span class=p>,</span> <span class=s2>"ta07"</span><span class=p>,</span>
+     <span class=s2>"ta08"</span><span class=p>,</span> <span class=s2>"ta09"</span><span class=p>,</span> <span class=s2>"ta10"</span><span class=p>,</span> <span class=s2>"ta11"</span><span class=p>,</span> <span class=s2>"ta12"</span><span class=p>,</span> <span class=s2>"ta13"</span><span class=p>,</span> <span class=s2>"ta14"</span><span class=p>,</span>
+     <span class=s2>"ta15"</span><span class=p>,</span> <span class=s2>"ta16"</span><span class=p>,</span> <span class=s2>"ta17"</span><span class=p>,</span> <span class=s2>"ta18"</span><span class=p>,</span> <span class=s2>"ta19"</span><span class=p>,</span> <span class=s2>"ta20"</span><span class=p>,</span> <span class=s2>"ta21"</span><span class=p>,</span>
+     <span class=s2>"ta22"</span><span class=p>,</span> <span class=s2>"ta23"</span><span class=p>,</span> <span class=s2>"ta24"</span><span class=p>,</span> <span class=s2>"ta25"</span><span class=p>,</span> <span class=s2>"ta26"</span><span class=p>,</span> <span class=s2>"ta27"</span><span class=p>,</span> <span class=s2>"ta28"</span><span class=p>,</span>
+     <span class=s2>"ta29"</span><span class=p>,</span> <span class=s2>"ta30"</span><span class=p>,</span> <span class=s2>"ta31"</span><span class=p>,</span> <span class=s2>"ta32"</span><span class=p>,</span> <span class=s2>"ta33"</span><span class=p>,</span> <span class=s2>"ta34"</span><span class=p>,</span> <span class=s2>"ta35"</span><span class=p>,</span>
+     <span class=s2>"ta36"</span><span class=p>,</span> <span class=s2>"ta37"</span><span class=p>,</span> <span class=s2>"ta38"</span><span class=p>,</span> <span class=s2>"ta39"</span><span class=p>,</span> <span class=s2>"ta40"</span><span class=p>,</span> <span class=s2>"ta41"</span><span class=p>,</span> <span class=s2>"ta42"</span><span class=p>,</span>
+     <span class=s2>"ta43"</span><span class=p>,</span> <span class=s2>"ta44"</span><span class=p>,</span> <span class=s2>"ta45"</span><span class=p>,</span> <span class=s2>"ta46"</span><span class=p>,</span> <span class=s2>"ta47"</span><span class=p>,</span> <span class=s2>"ta48"</span><span class=p>,</span> <span class=s2>"ta49"</span><span class=p>,</span>
+     <span class=s2>"ta50"</span><span class=p>,</span> <span class=s2>"ta51"</span><span class=p>,</span> <span class=s2>"ta52"</span><span class=p>,</span> <span class=s2>"ta53"</span><span class=p>,</span> <span class=s2>"ta54"</span><span class=p>,</span> <span class=s2>"ta55"</span><span class=p>,</span> <span class=s2>"ta56"</span><span class=p>,</span>
+     <span class=s2>"ta57"</span><span class=p>,</span> <span class=s2>"ta58"</span><span class=p>,</span> <span class=s2>"ta59"</span><span class=p>,</span> <span class=s2>"ta60"</span><span class=p>,</span> <span class=s2>"ta61"</span><span class=p>,</span> <span class=s2>"ta62"</span><span class=p>,</span> <span class=s2>"ta63"</span><span class=p>,</span>
+     <span class=s2>"ta64"</span><span class=p>,</span> <span class=s2>"ta65"</span><span class=p>,</span> <span class=s2>"ta66"</span><span class=p>,</span> <span class=s2>"ta67"</span><span class=p>,</span> <span class=s2>"ta68"</span><span class=p>,</span> <span class=s2>"ta69"</span><span class=p>,</span> <span class=s2>"ta70"</span><span class=p>,</span>
+     <span class=s2>"ta71"</span><span class=p>,</span> <span class=s2>"ta72"</span><span class=p>,</span> <span class=s2>"ta73"</span><span class=p>,</span> <span class=s2>"ta74"</span><span class=p>,</span> <span class=s2>"ta75"</span><span class=p>,</span> <span class=s2>"ta76"</span><span class=p>,</span> <span class=s2>"ta77"</span><span class=p>,</span>
+     <span class=s2>"ta78"</span><span class=p>,</span> <span class=s2>"ta79"</span><span class=p>,</span> <span class=s2>"ta80"</span><span class=p>,</span>
+     <span class=s2>"yn1"</span><span class=p>,</span> <span class=s2>"yn2"</span><span class=p>,</span> <span class=s2>"yn3"</span><span class=p>,</span> <span class=s2>"yn4"</span><span class=p>)</span>
+
+
+<span class=c1># start lb</span>
+<div class=viewcode-block id=compute_makespan_lower_bound>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.instance.compute_makespan_lower_bound>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>compute_makespan_lower_bound</span><span class=p>(</span><span class=n>machines</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                                 <span class=n>jobs</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                                 <span class=n>matrix</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the lower bound for the makespan of a JSSP instance data.</span>
+
+<span class=sd>    :param machines: the number of machines</span>
+<span class=sd>    :param jobs: the number of jobs</span>
+<span class=sd>    :param matrix: the matrix with the instance data</span>
+<span class=sd>    :returns: the lower bound for the makespan</span>
+<span class=sd>    """</span>
+    <span class=c1># get the lower bound of the makespan with the algorithm by Taillard</span>
+    <span class=n>usedmachines</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>machines</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>bool_</span><span class=p>)</span>  <span class=c1># -lb</span>
+    <span class=n>jobtimes</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>jobs</span><span class=p>,</span> <span class=n>npu</span><span class=o>.</span><span class=n>DEFAULT_INT</span><span class=p>)</span>  <span class=c1># get array for job times</span>
+    <span class=n>machinetimes</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>machines</span><span class=p>,</span> <span class=n>npu</span><span class=o>.</span><span class=n>DEFAULT_INT</span><span class=p>)</span>  <span class=c1># machine times array</span>
+    <span class=n>machine_start_idle</span> <span class=o>=</span> <span class=n>npu</span><span class=o>.</span><span class=n>np_ints_max</span><span class=p>(</span><span class=n>machines</span><span class=p>,</span> <span class=n>npu</span><span class=o>.</span><span class=n>DEFAULT_INT</span><span class=p>)</span>
+    <span class=n>machine_end_idle</span> <span class=o>=</span> <span class=n>npu</span><span class=o>.</span><span class=n>np_ints_max</span><span class=p>(</span><span class=n>machines</span><span class=p>,</span> <span class=n>npu</span><span class=o>.</span><span class=n>DEFAULT_INT</span><span class=p>)</span>
+
+    <span class=k>for</span> <span class=n>jobidx</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>jobs</span><span class=p>):</span>  <span class=c1># iterate over all jobs</span>
+        <span class=n>usedmachines</span><span class=o>.</span><span class=n>fill</span><span class=p>(</span><span class=kc>False</span><span class=p>)</span>  <span class=c1># no machine has been used  # -lb</span>
+        <span class=n>jobtime</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># the job time sum</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>machines</span><span class=p>):</span>  <span class=c1># iterate over all operations</span>
+            <span class=n>machine</span><span class=p>,</span> <span class=n>time</span> <span class=o>=</span> <span class=n>matrix</span><span class=p>[</span><span class=n>jobidx</span><span class=p>,</span> <span class=n>i</span><span class=p>]</span>  <span class=c1># get operation data</span>
+            <span class=n>time</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>time</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>usedmachines</span><span class=p>[</span><span class=n>i</span><span class=p>]:</span>  <span class=c1># machine already used??? -> error  # -lb</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>  <span class=c1># -lb</span>
+                    <span class=sa>f</span><span class=s2>"Machine </span><span class=si>{</span><span class=n>machine</span><span class=si>}</span><span class=s2> occurs more than once."</span><span class=p>)</span>  <span class=c1># -lb</span>
+            <span class=n>usedmachines</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=kc>True</span>  <span class=c1># mark machine as used  # -lb</span>
+            <span class=k>if</span> <span class=n>time</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>  <span class=c1># time can _never_ be negative -> error  # -lb</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid time </span><span class=si>{</span><span class=nb>str</span><span class=p>(</span><span class=n>time</span><span class=p>)</span><span class=si>!r}</span><span class=s2>'."</span><span class=p>)</span>  <span class=c1># -lb</span>
+            <span class=n>machinetimes</span><span class=p>[</span><span class=n>machine</span><span class=p>]</span> <span class=o>+=</span> <span class=n>time</span>  <span class=c1># add up operation times</span>
+            <span class=n>machine_start_idle</span><span class=p>[</span><span class=n>machine</span><span class=p>]</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span>  <span class=c1># update with...</span>
+                <span class=n>machine_start_idle</span><span class=p>[</span><span class=n>machine</span><span class=p>],</span> <span class=n>jobtime</span><span class=p>)</span>  <span class=c1># ...job time</span>
+            <span class=n>jobtime</span> <span class=o>+=</span> <span class=n>time</span>  <span class=c1># update job time by adding operation time</span>
+
+        <span class=n>jobtimes</span><span class=p>[</span><span class=n>jobidx</span><span class=p>]</span> <span class=o>=</span> <span class=n>jobtime</span>  <span class=c1># store job time</span>
+        <span class=n>jobremaining</span> <span class=o>=</span> <span class=n>jobtime</span>  <span class=c1># iterate backwards to get end idle times</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>machines</span> <span class=o>-</span> <span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>):</span>  <span class=c1># second iteration round</span>
+            <span class=n>machine</span><span class=p>,</span> <span class=n>time</span> <span class=o>=</span> <span class=n>matrix</span><span class=p>[</span><span class=n>jobidx</span><span class=p>,</span> <span class=n>i</span><span class=p>]</span>  <span class=c1># get machine for operation</span>
+            <span class=n>time</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>time</span><span class=p>)</span>
+            <span class=n>machine_end_idle</span><span class=p>[</span><span class=n>machine</span><span class=p>]</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span>  <span class=c1># update by computing...</span>
+                <span class=n>machine_end_idle</span><span class=p>[</span><span class=n>machine</span><span class=p>],</span>  <span class=c1># the time that the job...</span>
+                <span class=nb>int</span><span class=p>(</span><span class=n>jobtime</span><span class=p>)</span> <span class=o>-</span> <span class=nb>int</span><span class=p>(</span><span class=n>jobremaining</span><span class=p>))</span>  <span class=c1># needs _after_ operation</span>
+            <span class=n>jobremaining</span> <span class=o>-=</span> <span class=n>time</span>  <span class=c1># and update the remaining job time</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>all</span><span class=p>(</span><span class=n>usedmachines</span><span class=p>):</span>  <span class=c1># all machines have been used?  # -lb</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Some machines not used in a job."</span><span class=p>)</span>  <span class=c1># -lb</span>
+
+    <span class=c1># get the maximum of the per-machine sums of the idle and work times</span>
+    <span class=n>machines_bound</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=nb>max</span><span class=p>(</span><span class=nb>map</span><span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=n>machine_start_idle</span> <span class=o>+</span> <span class=n>machine_end_idle</span>
+                                 <span class=o>+</span> <span class=n>machinetimes</span><span class=p>)))</span>
+    <span class=k>if</span> <span class=n>machines_bound</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>  <span class=c1># -lb</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Computed machine bound cannot be <= , "</span>  <span class=c1># -lb</span>
+                         <span class=sa>f</span><span class=s2>"but is </span><span class=si>{</span><span class=n>machines_bound</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>  <span class=c1># -lb</span>
+    <span class=c1># get the longest time any job needs in total</span>
+    <span class=n>jobs_bound</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=nb>max</span><span class=p>(</span><span class=nb>map</span><span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=n>jobtimes</span><span class=p>)))</span>
+    <span class=k>if</span> <span class=n>jobs_bound</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>  <span class=c1># -lb</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>  <span class=c1># -lb</span>
+            <span class=sa>f</span><span class=s2>"Computed jobs bound cannot be <= , but is </span><span class=si>{</span><span class=n>jobs_bound</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>  <span class=c1># -lb</span>
+
+    <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=nb>max</span><span class=p>(</span><span class=n>machines_bound</span><span class=p>,</span> <span class=n>jobs_bound</span><span class=p>))</span>  <span class=c1># return bigger one</span></div>
+
+<span class=c1># end lb</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=Instance>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.instance.Instance>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Instance</span><span class=p>(</span><span class=n>Component</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    An instance of the Job Shop Scheduling Problem.</span>
+
+<span class=sd>    Besides the metadata, this object is a three-dimensional np.ndarray</span>
+<span class=sd>    where the columns stand for jobs and the rows represent the</span>
+<span class=sd>    operations of the jobs. Each row*column contains two values (third</span>
+<span class=sd>    dimension), namely the machine where the operation goes and the time</span>
+<span class=sd>    it will consume at that machine: `I[job, operation, 0] = machine`,</span>
+<span class=sd>    `I[job, operation, 1] = time` that the job spents on machine.</span>
+<span class=sd>    """</span>
+
+    <span class=c1>#: the name of the instance</span>
+    <span class=n>name</span><span class=p>:</span> <span class=nb>str</span>
+    <span class=c1>#: the number of jobs == self.shape[0]</span>
+    <span class=n>jobs</span><span class=p>:</span> <span class=nb>int</span>
+    <span class=c1>#: the number of machines == self.shape[1]</span>
+    <span class=n>machines</span><span class=p>:</span> <span class=nb>int</span>
+    <span class=c1># ... some more properties and methods ...</span>
+    <span class=c1># end book</span>
+    <span class=c1>#: the lower bound of the makespan of this JSSP instance</span>
+    <span class=n>makespan_lower_bound</span><span class=p>:</span> <span class=nb>int</span>
+    <span class=c1>#: the upper bound of the makespan of this JSSP instance</span>
+    <span class=n>makespan_upper_bound</span><span class=p>:</span> <span class=nb>int</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__new__</span><span class=p>(</span><span class=bp>cls</span><span class=p>,</span> <span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>machines</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>jobs</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>  <span class=c1># noqa: PYI034</span>
+                <span class=n>matrix</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>  <span class=c1># noqa: PYI034</span>
+                <span class=n>makespan_lower_bound</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> \
+            <span class=s2>"Instance"</span><span class=p>:</span>  <span class=c1># noqa: PYI034</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create an instance of the Job Shop Scheduling Problem.</span>
+
+<span class=sd>        :param cls: the class</span>
+<span class=sd>        :param name: the name of the instance</span>
+<span class=sd>        :param machines: the number of machines</span>
+<span class=sd>        :param jobs: the number of jobs</span>
+<span class=sd>        :param matrix: the matrix with the data (will be copied)</span>
+<span class=sd>        :param makespan_lower_bound: the lower bound of the makespan, which</span>
+<span class=sd>            may be the known global optimum if the instance has been solved</span>
+<span class=sd>            to optimality or any other approximation. If `None` is provided,</span>
+<span class=sd>            a lower bound will be computed.</span>
+<span class=sd>        """</span>
+        <span class=n>use_name</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>sanitize_name</span><span class=p>(</span><span class=n>name</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>name</span> <span class=o>!=</span> <span class=n>use_name</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Name </span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2> is not a valid name."</span><span class=p>)</span>
+
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>machines</span><span class=p>,</span> <span class=s2>"machines"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>jobs</span><span class=p>,</span> <span class=s2>"jobs"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>matrix</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>matrix</span><span class=p>,</span> <span class=s2>"matrix"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span>
+
+        <span class=n>use_shape</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=n>jobs</span><span class=p>,</span> <span class=n>machines</span><span class=p>,</span> <span class=mi>2</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>matrix</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>!=</span> <span class=n>jobs</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"Invalid shape </span><span class=si>{</span><span class=nb>str</span><span class=p>(</span><span class=n>matrix</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span><span class=si>!r}</span><span class=s2> of matrix: must have "</span>
+                <span class=sa>f</span><span class=s2>"jobs=</span><span class=si>{</span><span class=n>jobs</span><span class=si>}</span><span class=s2> rows, but has </span><span class=si>{</span><span class=n>matrix</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=si>}</span><span class=s2> in "</span>
+                <span class=sa>f</span><span class=s2>"instance </span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>matrix</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span> <span class=o>==</span> <span class=mi>3</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>matrix</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>!=</span> <span class=n>machines</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Invalid shape </span><span class=si>{</span><span class=nb>str</span><span class=p>(</span><span class=n>matrix</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span><span class=si>!r}</span><span class=s2> of matrix: "</span>
+                    <span class=sa>f</span><span class=s2>"must have 2*machines=</span><span class=si>{</span><span class=n>machines</span><span class=si>}</span><span class=s2> columns, but has "</span>
+                    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>matrix</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span><span class=si>}</span><span class=s2> in instance </span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>matrix</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span> <span class=o>!=</span> <span class=mi>2</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Invalid shape </span><span class=si>{</span><span class=nb>str</span><span class=p>(</span><span class=n>matrix</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span><span class=si>!r}</span><span class=s2> of matrix: must "</span>
+                    <span class=sa>f</span><span class=s2>"have 2 cells per row/column tuple, but has "</span>
+                    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>matrix</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span><span class=si>}</span><span class=s2> in instance </span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=nb>len</span><span class=p>(</span><span class=n>matrix</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span> <span class=o>==</span> <span class=mi>2</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>matrix</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>!=</span> <span class=mi>2</span> <span class=o>*</span> <span class=n>machines</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Invalid shape </span><span class=si>{</span><span class=nb>str</span><span class=p>(</span><span class=n>matrix</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span><span class=si>!r}</span><span class=s2> of matrix: must "</span>
+                    <span class=sa>f</span><span class=s2>"have 2*machines=</span><span class=si>{</span><span class=mi>2</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=n>machines</span><span class=si>}</span><span class=s2> columns, but has "</span>
+                    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>matrix</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span><span class=si>}</span><span class=s2> in instance </span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>matrix</span> <span class=o>=</span> <span class=n>matrix</span><span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=n>use_shape</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=s2>"JSSP instance data matrix must have two or three"</span>
+                <span class=sa>f</span><span class=s2>"dimensions, but has </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>matrix</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span><span class=si>}</span><span class=s2> in instance "</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>matrix</span><span class=o>.</span><span class=n>shape</span> <span class=o>!=</span> <span class=n>use_shape</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"matrix.shape is </span><span class=si>{</span><span class=n>matrix</span><span class=o>.</span><span class=n>shape</span><span class=si>}</span><span class=s2>, not </span><span class=si>{</span><span class=n>use_shape</span><span class=si>}</span><span class=s2>?"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>npu</span><span class=o>.</span><span class=n>is_np_int</span><span class=p>(</span><span class=n>matrix</span><span class=o>.</span><span class=n>dtype</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=s2>"Matrix must have an integer type, but is of type "</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=nb>str</span><span class=p>(</span><span class=n>matrix</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span><span class=si>!r}</span><span class=s2> in instance </span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=c1># ... some computations ...</span>
+        <span class=n>ms_lower_bound</span> <span class=o>=</span> <span class=n>compute_makespan_lower_bound</span><span class=p>(</span><span class=n>machines</span><span class=p>,</span> <span class=n>jobs</span><span class=p>,</span> <span class=n>matrix</span><span class=p>)</span>
+        <span class=n>ms_upper_bound</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=nb>sum</span><span class=p>(</span><span class=nb>map</span><span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=n>matrix</span><span class=p>[:,</span> <span class=p>:,</span> <span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>flatten</span><span class=p>())))</span>
+        <span class=k>if</span> <span class=n>ms_upper_bound</span> <span class=o><</span> <span class=n>ms_lower_bound</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"Computed makespan upper bound </span><span class=si>{</span><span class=n>ms_upper_bound</span><span class=si>}</span><span class=s2> must not "</span>
+                <span class=sa>f</span><span class=s2>"be less than computed lower bound </span><span class=si>{</span><span class=n>ms_lower_bound</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>makespan_lower_bound</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>makespan_lower_bound</span> <span class=o>=</span> <span class=n>ms_lower_bound</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>check_int_range</span><span class=p>(</span>
+                <span class=n>makespan_lower_bound</span><span class=p>,</span> <span class=s2>"makespan lower bound"</span><span class=p>,</span>
+                <span class=nb>max</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>ms_lower_bound</span><span class=p>),</span> <span class=n>ms_upper_bound</span><span class=p>)</span>
+        <span class=n>maxmat</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>matrix</span><span class=o>.</span><span class=n>max</span><span class=p>())</span>
+        <span class=n>obj</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Instance</span><span class=p>]</span> <span class=o>=</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__new__</span><span class=p>(</span>
+            <span class=n>Instance</span><span class=p>,</span> <span class=n>use_shape</span><span class=p>,</span> <span class=n>int_range_to_dtype</span><span class=p>(</span>
+                <span class=n>min_value</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>max_value</span><span class=o>=</span><span class=nb>max</span><span class=p>(</span><span class=n>ms_upper_bound</span><span class=p>,</span> <span class=n>maxmat</span><span class=p>)))</span>
+        <span class=n>np</span><span class=o>.</span><span class=n>copyto</span><span class=p>(</span><span class=n>obj</span><span class=p>,</span> <span class=n>matrix</span><span class=p>,</span> <span class=n>casting</span><span class=o>=</span><span class=s2>"safe"</span><span class=p>)</span>
+        <span class=c1>#: the name of the instance</span>
+        <span class=n>obj</span><span class=o>.</span><span class=n>name</span> <span class=o>=</span> <span class=n>use_name</span>
+        <span class=c1>#: the number of jobs == self.shape[0]</span>
+        <span class=n>obj</span><span class=o>.</span><span class=n>jobs</span> <span class=o>=</span> <span class=n>jobs</span>
+        <span class=c1>#: the number of machines == self.shape[1]</span>
+        <span class=n>obj</span><span class=o>.</span><span class=n>machines</span> <span class=o>=</span> <span class=n>machines</span>
+        <span class=c1>#: the lower bound of the makespan of this JSSP instance</span>
+        <span class=n>obj</span><span class=o>.</span><span class=n>makespan_lower_bound</span> <span class=o>=</span> <span class=n>makespan_lower_bound</span>
+        <span class=c1>#: the upper bound of the makespan of this JSSP instance</span>
+        <span class=n>obj</span><span class=o>.</span><span class=n>makespan_upper_bound</span> <span class=o>=</span> <span class=n>ms_upper_bound</span>
+        <span class=k>return</span> <span class=n>obj</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this JSSP instance.</span>
+
+<span class=sd>        :return: the name</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>name</span>
+
+<div class=viewcode-block id=Instance.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.instance.Instance.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters describing this JSSP instance to the logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.key_values("I") as kv:</span>
+<span class=sd>        ...         Instance.from_resource("abz8").log_parameters_to(kv)</span>
+<span class=sd>        ...     print(repr('@'.join(l.get_log())))</span>
+<span class=sd>        'BEGIN_I@name: abz8@class: moptipy.examples.jssp.instance.\</span>
+<span class=sd>Instance@machines: 15@jobs: 20@makespanLowerBound: 648\</span>
+<span class=sd>@makespanUpperBound: 7586@dtype: h@END_I'</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>MACHINES</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>machines</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>JOBS</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>jobs</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>MAKESPAN_LOWER_BOUND</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>makespan_lower_bound</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>MAKESPAN_UPPER_BOUND</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>makespan_upper_bound</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>npu</span><span class=o>.</span><span class=n>KEY_NUMPY_TYPE</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=o>.</span><span class=n>char</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=Instance.from_text>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.instance.Instance.from_text>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>from_text</span><span class=p>(</span><span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>rows</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=s2>"Instance"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Convert a name and a set of rows of text to an JSSP instance.</span>
+
+<span class=sd>        :param name: the name of the instance</span>
+<span class=sd>        :param rows: the rows</span>
+<span class=sd>        :return: the JSSP Instance</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>rows</span><span class=p>,</span> <span class=nb>list</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>rows</span><span class=p>,</span> <span class=s2>"rows"</span><span class=p>,</span> <span class=nb>list</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>rows</span><span class=p>)</span> <span class=o><</span> <span class=mi>3</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"Must have at least 3 rows, but found </span><span class=si>{</span><span class=n>rows</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>description</span> <span class=o>=</span> <span class=n>rows</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>description</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>description</span><span class=p>,</span> <span class=s2>"first element of rows"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=n>jobs_machines_txt</span> <span class=o>=</span> <span class=n>rows</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span>
+
+        <span class=n>matrix</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>asanyarray</span><span class=p>([</span><span class=n>np</span><span class=o>.</span><span class=n>fromstring</span><span class=p>(</span><span class=n>row</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>npu</span><span class=o>.</span><span class=n>DEFAULT_INT</span><span class=p>,</span>
+                                              <span class=n>sep</span><span class=o>=</span><span class=s2>" "</span><span class=p>)</span>
+                                <span class=k>for</span> <span class=n>row</span> <span class=ow>in</span> <span class=n>rows</span><span class=p>[</span><span class=mi>2</span><span class=p>:]])</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>np</span><span class=o>.</span><span class=n>issubdtype</span><span class=p>(</span><span class=n>matrix</span><span class=o>.</span><span class=n>dtype</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>integer</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Error when converting array to matrix, "</span>
+                             <span class=sa>f</span><span class=s2>"got type </span><span class=si>{</span><span class=nb>str</span><span class=p>(</span><span class=n>matrix</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=n>min_value</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>matrix</span><span class=o>.</span><span class=n>min</span><span class=p>())</span>
+        <span class=k>if</span> <span class=n>min_value</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"JSSP matrix can only contain values >= 0, "</span>
+                             <span class=sa>f</span><span class=s2>"but found </span><span class=si>{</span><span class=n>min_value</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=n>max_value</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>matrix</span><span class=o>.</span><span class=n>max</span><span class=p>())</span>
+        <span class=k>if</span> <span class=n>max_value</span> <span class=o><=</span> <span class=n>min_value</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=s2>"JSSP matrix must contain value larger than minimum "</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>min_value</span><span class=si>}</span><span class=s2>, but maximum is </span><span class=si>{</span><span class=n>max_value</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=n>dtype</span> <span class=o>=</span> <span class=n>int_range_to_dtype</span><span class=p>(</span><span class=n>min_value</span><span class=o>=</span><span class=n>min_value</span><span class=p>,</span> <span class=n>max_value</span><span class=o>=</span><span class=n>max_value</span><span class=p>,</span>
+                                   <span class=n>force_unsigned</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>dtype</span> <span class=o>!=</span> <span class=n>matrix</span><span class=o>.</span><span class=n>dtype</span><span class=p>:</span>
+            <span class=n>matrix</span> <span class=o>=</span> <span class=n>matrix</span><span class=o>.</span><span class=n>astype</span><span class=p>(</span><span class=n>dtype</span><span class=p>)</span>
+
+        <span class=n>jobs_machines</span> <span class=o>=</span> <span class=n>jobs_machines_txt</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=s2>" "</span><span class=p>)</span>
+        <span class=n>jobs</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>jobs_machines</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span>
+        <span class=n>machines</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>jobs_machines</span><span class=p>[</span><span class=nb>len</span><span class=p>(</span><span class=n>jobs_machines</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span><span class=p>])</span>
+
+        <span class=n>makespan_lower_bound</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>i</span> <span class=o>=</span> <span class=n>description</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>"lower bound:"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>i</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>i</span> <span class=o>+=</span> <span class=mi>12</span>
+            <span class=n>j</span> <span class=o>=</span> <span class=n>description</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>";"</span><span class=p>,</span> <span class=n>i</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>j</span> <span class=o><</span> <span class=n>i</span><span class=p>:</span>
+                <span class=n>j</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>description</span><span class=p>)</span>
+            <span class=n>makespan_lower_bound</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>description</span><span class=p>[</span><span class=n>i</span><span class=p>:</span><span class=n>j</span><span class=p>]</span><span class=o>.</span><span class=n>strip</span><span class=p>())</span>
+
+        <span class=k>return</span> <span class=n>Instance</span><span class=p>(</span><span class=n>name</span><span class=o>=</span><span class=n>name</span><span class=p>,</span>
+                        <span class=n>jobs</span><span class=o>=</span><span class=n>jobs</span><span class=p>,</span>
+                        <span class=n>machines</span><span class=o>=</span><span class=n>machines</span><span class=p>,</span>
+                        <span class=n>matrix</span><span class=o>=</span><span class=n>matrix</span><span class=p>,</span>
+                        <span class=n>makespan_lower_bound</span><span class=o>=</span><span class=n>makespan_lower_bound</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=Instance.from_stream>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.instance.Instance.from_stream>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>from_stream</span><span class=p>(</span><span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>stream</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=s2>"Instance"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Load an instance from a text stream.</span>
+
+<span class=sd>        :param name: the name of the instance to be loaded</span>
+<span class=sd>        :param stream: the text stream</span>
+<span class=sd>        :return: the instance</span>
+<span class=sd>        """</span>
+        <span class=n>state</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=n>rows</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=k>for</span> <span class=n>linestr</span> <span class=ow>in</span> <span class=n>stream</span><span class=p>:</span>
+            <span class=n>line</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>linestr</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>line</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>continue</span>
+            <span class=k>if</span> <span class=n>state</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>line</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=s2>"+++"</span><span class=p>):</span>
+                    <span class=n>state</span> <span class=o>=</span> <span class=mi>1</span>
+                <span class=k>continue</span>
+            <span class=k>if</span> <span class=n>state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>line</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=s2>"instance "</span><span class=p>):</span>
+                    <span class=n>inst</span> <span class=o>=</span> <span class=n>line</span><span class=p>[</span><span class=mi>9</span><span class=p>:]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+                    <span class=n>state</span> <span class=o>=</span> <span class=mi>2</span> <span class=k>if</span> <span class=n>inst</span> <span class=o>==</span> <span class=n>name</span> <span class=k>else</span> <span class=mi>4</span>
+                <span class=k>continue</span>
+            <span class=k>if</span> <span class=n>state</span> <span class=o>==</span> <span class=mi>2</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>line</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=s2>"+++"</span><span class=p>):</span>
+                    <span class=n>state</span> <span class=o>=</span> <span class=mi>3</span>
+                    <span class=n>rows</span> <span class=o>=</span> <span class=p>[]</span>
+                    <span class=k>continue</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Unexpected string </span><span class=si>{</span><span class=n>line</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>state</span> <span class=o>==</span> <span class=mi>3</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>line</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=s2>"+++"</span><span class=p>):</span>
+                    <span class=k>return</span> <span class=n>Instance</span><span class=o>.</span><span class=n>from_text</span><span class=p>(</span><span class=n>name</span><span class=o>=</span><span class=n>name</span><span class=p>,</span> <span class=n>rows</span><span class=o>=</span><span class=n>rows</span><span class=p>)</span>
+                <span class=n>rows</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>line</span><span class=p>)</span>
+                <span class=k>continue</span>
+            <span class=k>if</span> <span class=n>state</span> <span class=o>==</span> <span class=mi>4</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>line</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=s2>"+++"</span><span class=p>):</span>
+                    <span class=n>state</span> <span class=o>=</span> <span class=mi>5</span>
+                    <span class=k>continue</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Unexpected string </span><span class=si>{</span><span class=n>line</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>state</span> <span class=o>==</span> <span class=mi>5</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>line</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=s2>"+++"</span><span class=p>)):</span>
+                <span class=n>state</span> <span class=o>=</span> <span class=mi>1</span>
+
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Could not find instance </span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=Instance.from_resource>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.instance.Instance.from_resource>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>from_resource</span><span class=p>(</span><span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"Instance"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Load the JSSP instances `name` provided as part of moptipy.</span>
+
+<span class=sd>        :param name: the instance name</span>
+<span class=sd>        :return: the instance</span>
+
+<span class=sd>        >>> jssp = Instance.from_resource("demo")</span>
+<span class=sd>        >>> print(jssp.jobs)</span>
+<span class=sd>        4</span>
+<span class=sd>        >>> print(jssp.machines)</span>
+<span class=sd>        5</span>
+<span class=sd>        >>> print(jssp)</span>
+<span class=sd>        demo</span>
+<span class=sd>        """</span>
+        <span class=n>container</span><span class=p>:</span> <span class=n>Final</span> <span class=o>=</span> <span class=n>Instance</span><span class=o>.</span><span class=n>from_resource</span>
+        <span class=n>inst_attr</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"__inst_</span><span class=si>{</span><span class=n>name</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>if</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>container</span><span class=p>,</span> <span class=n>inst_attr</span><span class=p>):</span>
+            <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Instance"</span><span class=p>,</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>container</span><span class=p>,</span> <span class=n>inst_attr</span><span class=p>))</span>
+        <span class=k>with</span> <span class=n>resources</span><span class=o>.</span><span class=n>files</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>__package__</span><span class=p>))</span><span class=o>.</span><span class=n>joinpath</span><span class=p>(</span>
+                <span class=s2>"demo.txt"</span> <span class=k>if</span> <span class=p>(</span><span class=n>name</span> <span class=o>==</span> <span class=s2>"demo"</span><span class=p>)</span>
+                <span class=k>else</span> <span class=s2>"instances.txt"</span><span class=p>)</span><span class=o>.</span><span class=n>open</span><span class=p>(</span><span class=s2>"r"</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=n>UTF8</span><span class=p>)</span> <span class=k>as</span> <span class=n>stream</span><span class=p>:</span>
+            <span class=n>inst</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Instance</span><span class=p>]</span> <span class=o>=</span> <span class=n>Instance</span><span class=o>.</span><span class=n>from_stream</span><span class=p>(</span>
+                <span class=n>name</span><span class=o>=</span><span class=n>name</span><span class=p>,</span> <span class=n>stream</span><span class=o>=</span><span class=n>stream</span><span class=p>)</span>
+            <span class=nb>setattr</span><span class=p>(</span><span class=n>container</span><span class=p>,</span> <span class=n>inst_attr</span><span class=p>,</span> <span class=n>inst</span><span class=p>)</span>
+            <span class=k>return</span> <span class=n>inst</span></div>
+
+
+<div class=viewcode-block id=Instance.list_resources>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.instance.Instance.list_resources>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>list_resources</span><span class=p>()</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get a tuple with all JSSP instances provided in the moptipy resources.</span>
+
+<span class=sd>        :return: a tuple with all instance names that are valid parameters</span>
+<span class=sd>            to :meth:`Instance.from_resource`</span>
+
+<span class=sd>        >>> print(Instance.list_resources()[0:3])</span>
+<span class=sd>        ('abz5', 'abz6', 'abz7')</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>_INSTANCES</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=check_instance>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.instance.check_instance>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>check_instance</span><span class=p>(</span><span class=n>inst</span><span class=p>:</span> <span class=n>Instance</span><span class=p>)</span> <span class=o>-></span> <span class=n>Instance</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether the contents of a JSSP instance are OK.</span>
+
+<span class=sd>    This method thoroughly checks the contents of an instance and the</span>
+<span class=sd>    types of all of its members. If your instances passes this method</span>
+<span class=sd>    without any error, it is a valid JSSP instance that can be used for</span>
+<span class=sd>    experiments. All instances in our benchmark set listed above will</span>
+<span class=sd>    pass this test.</span>
+
+<span class=sd>    :param inst: the instance</span>
+<span class=sd>    :returns: the instance, if its contents are OK</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>inst</span><span class=p>,</span> <span class=n>Instance</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>inst</span><span class=p>,</span> <span class=s2>"instance"</span><span class=p>,</span> <span class=n>Instance</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>inst</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>inst</span><span class=p>,</span> <span class=s2>"instance"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>inst</span><span class=o>.</span><span class=n>machines</span><span class=p>,</span> <span class=s2>"inst.machines"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>inst</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span> <span class=s2>"inst.jobs"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=p>,</span> <span class=s2>"inst.name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> \
+            <span class=ow>or</span> <span class=p>(</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span> <span class=o>!=</span> <span class=n>sanitize_name</span><span class=p>(</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid instance name </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>!r}</span><span class=s2>"</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span>
+        <span class=n>inst</span><span class=o>.</span><span class=n>makespan_lower_bound</span><span class=p>,</span> <span class=s2>"inst.makespan_lower_bound"</span><span class=p>,</span>
+        <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000_000</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span>
+        <span class=n>inst</span><span class=o>.</span><span class=n>makespan_upper_bound</span><span class=p>,</span> <span class=s2>"inst.makespan_upper_bound"</span><span class=p>,</span>
+        <span class=n>inst</span><span class=o>.</span><span class=n>makespan_lower_bound</span><span class=p>,</span> <span class=mi>1_000_000_000_000</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>inst</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>3</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"inst must be 3d-array, but has shape </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>shape</span><span class=si>}</span><span class=s2>"</span>
+                         <span class=sa>f</span><span class=s2>" for instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>inst</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>!=</span> <span class=n>inst</span><span class=o>.</span><span class=n>jobs</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"inst.shape[0] must be inst.jobs=</span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>jobs</span><span class=si>}</span><span class=s2>, "</span>
+            <span class=sa>f</span><span class=s2>"but inst has shape </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>shape</span><span class=si>}</span><span class=s2> for instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>inst</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>!=</span> <span class=n>inst</span><span class=o>.</span><span class=n>machines</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"inst.machines[1] must be inst.machines=</span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>machines</span><span class=si>}</span><span class=s2>, "</span>
+            <span class=sa>f</span><span class=s2>"but inst has shape </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>shape</span><span class=si>}</span><span class=s2> for instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>inst</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span> <span class=o>!=</span> <span class=mi>2</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"inst.machines[2] must be 2, but inst has shape </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>shape</span><span class=si>}</span><span class=s2>"</span>
+            <span class=sa>f</span><span class=s2>" for instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>inst</span><span class=o>.</span><span class=n>jobs</span><span class=p>):</span>
+        <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>inst</span><span class=o>.</span><span class=n>machines</span><span class=p>):</span>
+            <span class=n>machine</span> <span class=o>=</span> <span class=n>inst</span><span class=p>[</span><span class=n>i</span><span class=p>,</span> <span class=n>j</span><span class=p>,</span> <span class=mi>0</span><span class=p>]</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=mi>0</span> <span class=o><=</span> <span class=n>machine</span> <span class=o><</span> <span class=n>inst</span><span class=o>.</span><span class=n>machines</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"encountered machine </span><span class=si>{</span><span class=n>machine</span><span class=si>}</span><span class=s2> for job </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2> in "</span>
+                    <span class=sa>f</span><span class=s2>"operation </span><span class=si>{</span><span class=n>j</span><span class=si>}</span><span class=s2>, but there are only "</span>
+                    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>machines</span><span class=si>}</span><span class=s2> machines for instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>mslb</span> <span class=o>=</span> <span class=n>compute_makespan_lower_bound</span><span class=p>(</span>
+        <span class=n>machines</span><span class=o>=</span><span class=n>inst</span><span class=o>.</span><span class=n>machines</span><span class=p>,</span> <span class=n>jobs</span><span class=o>=</span><span class=n>inst</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span> <span class=n>matrix</span><span class=o>=</span><span class=n>inst</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>mslb</span> <span class=o>></span> <span class=n>inst</span><span class=o>.</span><span class=n>makespan_lower_bound</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"makespan lower bound computed as </span><span class=si>{</span><span class=n>mslb</span><span class=si>}</span><span class=s2>,"</span>
+                         <span class=sa>f</span><span class=s2>"but set to </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>makespan_upper_bound</span><span class=si>}</span><span class=s2>,"</span>
+                         <span class=s2>"which is not lower  for instance </span><span class=si>{inst.name}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>msub</span> <span class=o>=</span> <span class=nb>sum</span><span class=p>(</span><span class=n>inst</span><span class=p>[:,</span> <span class=p>:,</span> <span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>flatten</span><span class=p>())</span>
+    <span class=k>if</span> <span class=n>msub</span> <span class=o>!=</span> <span class=n>inst</span><span class=o>.</span><span class=n>makespan_upper_bound</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"makespan upper bound computed as </span><span class=si>{</span><span class=n>msub</span><span class=si>}</span><span class=s2>, "</span>
+                         <span class=sa>f</span><span class=s2>"but set to </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>makespan_upper_bound</span><span class=si>}</span><span class=s2>"</span>
+                         <span class=sa>f</span><span class=s2>" for instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>tub</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=nb>sum</span><span class=p>(</span><span class=n>inst</span><span class=p>[</span><span class=n>i</span><span class=p>,</span> <span class=p>:,</span> <span class=mi>1</span><span class=p>])</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>inst</span><span class=o>.</span><span class=n>jobs</span><span class=p>))</span>
+    <span class=k>if</span> <span class=n>inst</span><span class=o>.</span><span class=n>makespan_lower_bound</span> <span class=o><</span> <span class=n>tub</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"makespan lower bound </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>makespan_lower_bound</span><span class=si>}</span><span class=s2> "</span>
+                         <span class=sa>f</span><span class=s2>"less then longest job duration </span><span class=si>{</span><span class=n>tub</span><span class=si>}</span><span class=s2>"</span>
+                         <span class=sa>f</span><span class=s2>" for instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>inst</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.instance</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

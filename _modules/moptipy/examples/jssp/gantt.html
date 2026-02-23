@@ -1,0 +1,142 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.jssp.gantt — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/jssp/gantt.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.gantt</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.jssp.gantt</h1><div class=highlight><pre>
+<span></span><span class=sd>"""A class for representing Gantt charts as objects."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=n>SECTION_RESULT_Y</span><span class=p>,</span> <span class=n>SECTION_SETUP</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.log_parser</span><span class=w> </span><span class=kn>import</span> <span class=n>LogParser</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.instance</span><span class=w> </span><span class=kn>import</span> <span class=n>Instance</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=Gantt>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.gantt.Gantt>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Gantt</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A class representing Gantt charts.</span>
+
+<span class=sd>    A Gantt chart is a diagram that visualizes when a job on a given</span>
+<span class=sd>    machine begins or ends. We here represent it as a three-dimensional</span>
+<span class=sd>    matrix. This matrix has one row for each machine and one column for</span>
+<span class=sd>    each operation on the machine.</span>
+<span class=sd>    In each cell, it holds three values: the job ID, the start, and the</span>
+<span class=sd>    end time of the job on the machine. The Gantt chart has the</span>
+<span class=sd>    additional attribute `instance` which references the JSSP instance</span>
+<span class=sd>    for which the chart is constructed.</span>
+<span class=sd>    Gantt charts must only be created by an instance of</span>
+<span class=sd>    :class:`moptipy.examples.jssp.gantt_space.GanttSpace`.</span>
+<span class=sd>    """</span>
+
+<span class=c1># end book</span>
+
+    <span class=c1>#: the JSSP instance for which the Gantt chart is created</span>
+    <span class=n>instance</span><span class=p>:</span> <span class=n>Instance</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__new__</span><span class=p>(</span><span class=bp>cls</span><span class=p>,</span> <span class=n>space</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"Gantt"</span><span class=p>:</span>  <span class=c1># noqa: PYI034</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the Gantt chart.</span>
+
+<span class=sd>        :param space: the Gantt space for which the instance is created.</span>
+<span class=sd>        """</span>
+        <span class=n>gnt</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Gantt</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=o>.</span><span class=fm>__new__</span><span class=p>(</span><span class=n>Gantt</span><span class=p>,</span> <span class=n>space</span><span class=o>.</span><span class=n>shape</span><span class=p>,</span> <span class=n>space</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span>
+        <span class=c1>#: the JSSP instance for which the Gantt chart is created</span>
+        <span class=n>gnt</span><span class=o>.</span><span class=n>instance</span> <span class=o>=</span> <span class=n>space</span><span class=o>.</span><span class=n>instance</span>
+        <span class=k>return</span> <span class=n>gnt</span>
+
+<div class=viewcode-block id=Gantt.from_log>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.gantt.Gantt.from_log>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>from_log</span><span class=p>(</span><span class=n>file</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>instance</span><span class=p>:</span> <span class=n>Instance</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"Gantt"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Load a Gantt chart from a log file.</span>
+
+<span class=sd>        :param file: the log file path</span>
+<span class=sd>        :param instance: the optional JSSP instance: if `None` is provided,</span>
+<span class=sd>            we try to load it from the resources</span>
+<span class=sd>        :returns: the Gantt chart</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>_GanttParser</span><span class=p>(</span><span class=n>instance</span><span class=p>)</span><span class=o>.</span><span class=n>parse_file</span><span class=p>(</span><span class=n>file</span><span class=p>)</span></div>
+</div>
+
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>_GanttParser</span><span class=p>(</span><span class=n>LogParser</span><span class=p>[</span><span class=n>Gantt</span><span class=p>]):</span>
+<span class=w>    </span><span class=sd>"""The log parser for loading Gantt charts."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>instance</span><span class=p>:</span> <span class=n>Instance</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the gantt parser.</span>
+
+<span class=sd>        :param instance: the optional JSSP instance: if `None` is provided,</span>
+<span class=sd>            we try to load it from the resources</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>instance</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=n>Instance</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=s2>"instance"</span><span class=p>,</span> <span class=n>Instance</span><span class=p>)</span>
+        <span class=c1>#: the internal instance</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__instance</span><span class=p>:</span> <span class=n>Instance</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>instance</span>
+        <span class=c1>#: the internal section mode: 0=none, 1=setup, 2=y</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__sec_mode</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=c1>#: the gantt string</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__gantt_str</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: the result Gantt chart</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_result</span><span class=p>:</span> <span class=n>Gantt</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_start_section</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>title</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Start a section."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_start_section</span><span class=p>(</span><span class=n>title</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__sec_mode</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>if</span> <span class=n>title</span> <span class=o>==</span> <span class=n>SECTION_SETUP</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__instance</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__sec_mode</span> <span class=o>=</span> <span class=mi>1</span>
+                <span class=k>return</span> <span class=kc>True</span>
+            <span class=k>return</span> <span class=kc>False</span>
+        <span class=k>if</span> <span class=n>title</span> <span class=o>==</span> <span class=n>SECTION_RESULT_Y</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__sec_mode</span> <span class=o>=</span> <span class=mi>2</span>
+            <span class=k>return</span> <span class=kc>True</span>
+        <span class=k>return</span> <span class=kc>False</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_lines</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>lines</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Parse the lines."""</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__sec_mode</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__instance</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"instance is already set to </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__instance</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>key</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"y.inst.name: "</span>
+            <span class=k>for</span> <span class=n>line</span> <span class=ow>in</span> <span class=n>lines</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>line</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=n>key</span><span class=p>):</span>
+                    <span class=bp>self</span><span class=o>.</span><span class=n>__instance</span> <span class=o>=</span> <span class=n>Instance</span><span class=o>.</span><span class=n>from_resource</span><span class=p>(</span>
+                        <span class=n>line</span><span class=p>[</span><span class=nb>len</span><span class=p>(</span><span class=n>key</span><span class=p>):]</span><span class=o>.</span><span class=n>strip</span><span class=p>())</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__instance</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Did not find instance key </span><span class=si>{</span><span class=n>key</span><span class=si>!r}</span><span class=s2> "</span>
+                                 <span class=sa>f</span><span class=s2>"in section </span><span class=si>{</span><span class=n>SECTION_SETUP</span><span class=si>}</span><span class=s2>!"</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=bp>self</span><span class=o>.</span><span class=n>__sec_mode</span> <span class=o>==</span> <span class=mi>2</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__gantt_str</span> <span class=o>=</span> <span class=s2>" "</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>lines</span><span class=p>)</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Should not be in section?"</span><span class=p>)</span>
+        <span class=k>return</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__instance</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__gantt_str</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_parse_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=n>Gantt</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""End the file."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_parse_file</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__gantt_str</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Section </span><span class=si>{</span><span class=n>SECTION_RESULT_Y</span><span class=si>}</span><span class=s2> missing!"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__instance</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Section </span><span class=si>{</span><span class=n>SECTION_SETUP</span><span class=si>}</span><span class=s2> missing or empty!"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>_result</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Applied parser to more than one log file?"</span><span class=p>)</span>
+        <span class=c1># pylint: disable=C0415,R0401</span>
+        <span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.gantt_space</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>  <span class=c1># noqa: PLC0415</span>
+            <span class=n>GanttSpace</span><span class=p>,</span>  <span class=c1># pylint: disable=C0415,R0401</span>
+        <span class=p>)</span>
+        <span class=k>return</span> <span class=n>GanttSpace</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__instance</span><span class=p>)</span><span class=o>.</span><span class=n>from_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__gantt_str</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_end_parse_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Cleanup."""</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__gantt_str</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_end_parse_file</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.gantt</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

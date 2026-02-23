@@ -1,0 +1,104 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.restarts — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/restarts.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.restarts</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.restarts</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Perform restarts of an algorithm that terminates too early."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>TypeVar</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>MOAlgorithm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_process</span><span class=w> </span><span class=kn>import</span> <span class=n>MOProcess</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__RestartAlgorithm</span><span class=p>(</span><span class=n>Algorithm</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A wrapper around an existing algorithm."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>algorithm</span><span class=p>:</span> <span class=n>Algorithm</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the algorithm wrapper.</span>
+
+<span class=sd>        :param algorithm: the algorithm to wrap</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=c1>#: the algorithm</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_algo</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Algorithm</span><span class=p>]</span> <span class=o>=</span> <span class=n>algorithm</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>initialize</span> <span class=o>=</span> <span class=n>algorithm</span><span class=o>.</span><span class=n>initialize</span>  <span class=c1># type: ignore # fast call</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the string representation of this algorithm.</span>
+
+<span class=sd>        :returns: `rs_` + sub-algorithm name</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"rs_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>_algo</span><span class=si>}</span><span class=s2>"</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Solve a single-objective problem.</span>
+
+<span class=sd>        :param process: the process</span>
+<span class=sd>        """</span>
+        <span class=n>st</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=nb>bool</span><span class=p>]]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>
+        <span class=n>rst</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_algo</span><span class=o>.</span><span class=n>initialize</span>
+        <span class=n>sv</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Process</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_algo</span><span class=o>.</span><span class=n>solve</span>
+        <span class=k>while</span> <span class=ow>not</span> <span class=n>st</span><span class=p>():</span>
+            <span class=n>rst</span><span class=p>()</span>
+            <span class=n>sv</span><span class=p>(</span><span class=n>process</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Store the parameters of this algorithm wrapper to the logger.</span>
+
+<span class=sd>        :param logger: the logger</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=k>with</span> <span class=n>logger</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=s2>"a"</span><span class=p>)</span> <span class=k>as</span> <span class=n>scope</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_algo</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>scope</span><span class=p>)</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__RestartMOAlgorithm</span><span class=p>(</span><span class=n>__RestartAlgorithm</span><span class=p>,</span> <span class=n>MOAlgorithm</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A wrapper around an existing multi-objective algorithm."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>solve_mo</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>MOProcess</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Solve a multi-objective problem.</span>
+
+<span class=sd>        :param process: the process</span>
+<span class=sd>        """</span>
+        <span class=n>st</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=nb>bool</span><span class=p>]]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>
+        <span class=n>rst</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>initialize</span>
+        <span class=n>sv</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>MOProcess</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span>
+            <span class=s2>"MOAlgorithm"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>_algo</span><span class=p>)</span><span class=o>.</span><span class=n>solve_mo</span>
+        <span class=k>while</span> <span class=ow>not</span> <span class=n>st</span><span class=p>():</span>
+            <span class=n>rst</span><span class=p>()</span>
+            <span class=n>sv</span><span class=p>(</span><span class=n>process</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the string representation of this algorithm.</span>
+
+<span class=sd>        :returns: `mors_` + sub-algorithm name</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"mors_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>_algo</span><span class=si>}</span><span class=s2>"</span>
+
+
+<span class=c1>#: the type variable for single- and multi-objective algorithms.</span>
+<span class=n>T</span> <span class=o>=</span> <span class=n>TypeVar</span><span class=p>(</span><span class=s2>"T"</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>,</span> <span class=n>MOAlgorithm</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=restarts>
+<a class=viewcode-back href=../../../moptipy.algorithms.html#moptipy.algorithms.restarts.restarts>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>restarts</span><span class=p>(</span><span class=n>algorithm</span><span class=p>:</span> <span class=n>T</span><span class=p>)</span> <span class=o>-></span> <span class=n>T</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Perform restarts of an algorithm until the termination criterion is met.</span>
+
+<span class=sd>    :param algorithm: the algorithm</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>MOAlgorithm</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>__RestartMOAlgorithm</span><span class=p>(</span><span class=n>algorithm</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>__RestartAlgorithm</span><span class=p>(</span><span class=n>algorithm</span><span class=p>)</span>
+    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=s2>"algorithm"</span><span class=p>,</span> <span class=p>(</span><span class=n>Algorithm</span><span class=p>,</span> <span class=n>MOAlgorithm</span><span class=p>))</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.restarts</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

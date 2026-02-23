@@ -1,0 +1,778 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.utils.nputils — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/utils/nputils.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.nputils</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.utils.nputils</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Utilities for interaction with numpy."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>hashlib</span><span class=w> </span><span class=kn>import</span> <span class=n>sha512</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>isfinite</span><span class=p>,</span> <span class=n>isnan</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>operator</span><span class=w> </span><span class=kn>import</span> <span class=n>itemgetter</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>PCG64</span><span class=p>,</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>default_rng</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.csv</span><span class=w> </span><span class=kn>import</span> <span class=n>CSV_SEPARATOR</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.strings.string_conv</span><span class=w> </span><span class=kn>import</span> <span class=n>bool_to_str</span><span class=p>,</span> <span class=n>num_to_str</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=c1>#: All the numpy integer types and their ranges in increasing order of size.</span>
+<span class=c1>#: The tuple contains alternating signed and unsigned types. It starts with</span>
+<span class=c1>#: the smallest signed type, `numpy.int8` and ends with the largest unsigned</span>
+<span class=c1>#: type `numpy.uint64`.</span>
+<span class=c1>#: If we have a range `[min..max]` of valid value, then we can look up this</span>
+<span class=c1>#: range and find the integer type with the smallest memory footprint to</span>
+<span class=c1>#: accommodate it. This is what :func:`int_range_to_dtype` does.</span>
+<span class=n>__INTS_AND_RANGES</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> \
+    <span class=nb>tuple</span><span class=p>(</span><span class=nb>sorted</span><span class=p>([</span>
+        <span class=p>(</span><span class=n>dtx</span><span class=p>,</span> <span class=nb>int</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>iinfo</span><span class=p>(</span><span class=n>dtx</span><span class=p>)</span><span class=o>.</span><span class=n>min</span><span class=p>),</span> <span class=nb>int</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>iinfo</span><span class=p>(</span><span class=n>dtx</span><span class=p>)</span><span class=o>.</span><span class=n>max</span><span class=p>))</span>
+        <span class=k>for</span> <span class=n>dtx</span> <span class=ow>in</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"set[np.dtype]"</span><span class=p>,</span> <span class=p>{</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>(</span><span class=n>bdt</span><span class=p>)</span> <span class=k>for</span> <span class=n>bdt</span> <span class=ow>in</span> <span class=p>[</span>
+            <span class=nb>int</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>int8</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>int16</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>uint8</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>uint16</span><span class=p>,</span>
+            <span class=n>np</span><span class=o>.</span><span class=n>int32</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>uint32</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>uint64</span><span class=p>]})],</span>
+        <span class=n>key</span><span class=o>=</span><span class=n>itemgetter</span><span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=mi>1</span><span class=p>)))</span>
+
+<span class=c1>#: The numpy integer data types.</span>
+<span class=n>INTS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>a</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=k>for</span> <span class=n>a</span> <span class=ow>in</span> <span class=n>__INTS_AND_RANGES</span><span class=p>)</span>
+
+<span class=c1>#: A map associating all numpy integer types associated to tuples</span>
+<span class=c1>#: of their respective minimum and maximum value.</span>
+<span class=n>__NP_INTS_MAP</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]]</span> <span class=o>=</span> \
+    <span class=p>{</span><span class=n>a</span><span class=p>[</span><span class=mi>0</span><span class=p>]:</span> <span class=p>(</span><span class=n>a</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span> <span class=n>a</span><span class=p>[</span><span class=mi>2</span><span class=p>])</span> <span class=k>for</span> <span class=n>a</span> <span class=ow>in</span> <span class=n>__INTS_AND_RANGES</span><span class=p>}</span>
+
+<span class=c1>#: The default integer type: the signed 64-bit integer.</span>
+<span class=n>DEFAULT_INT</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>]</span> <span class=o>=</span> <span class=n>INTS</span><span class=p>[</span><span class=o>-</span><span class=mi>2</span><span class=p>]</span>
+
+<span class=c1>#: The default unsigned integer type: an unsigned 64-bit integer.</span>
+<span class=n>DEFAULT_UNSIGNED_INT</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>]</span> <span class=o>=</span> <span class=n>INTS</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>
+
+<span class=c1>#: The default boolean type.</span>
+<span class=n>DEFAULT_BOOL</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>bool_</span><span class=p>)</span>
+
+<span class=c1>#: The default floating point type.</span>
+<span class=n>DEFAULT_FLOAT</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>(</span><span class=nb>float</span><span class=p>)</span>
+
+<span class=c1>#: The default numerical types.</span>
+<span class=n>DEFAULT_NUMERICAL</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span><span class=o>*</span><span class=nb>list</span><span class=p>(</span><span class=n>INTS</span><span class=p>),</span> <span class=n>DEFAULT_FLOAT</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=is_np_int>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.nputils.is_np_int>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>is_np_int</span><span class=p>(</span><span class=n>dtype</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether a :class:`numpy.dtype` is an integer type.</span>
+
+<span class=sd>    :param dtype: the type</span>
+
+<span class=sd>    >>> import numpy as npx</span>
+<span class=sd>    >>> from moptipy.utils.nputils import is_np_int</span>
+<span class=sd>    >>> print(is_np_int(npx.dtype(npx.int8)))</span>
+<span class=sd>    True</span>
+<span class=sd>    >>> print(is_np_int(npx.dtype(npx.uint16)))</span>
+<span class=sd>    True</span>
+<span class=sd>    >>> print(is_np_int(npx.dtype(npx.float64)))</span>
+<span class=sd>    False</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>dtype</span><span class=o>.</span><span class=n>kind</span> <span class=ow>in</span> <span class=p>{</span><span class=s2>"i"</span><span class=p>,</span> <span class=s2>"u"</span><span class=p>}</span></div>
+
+
+
+<div class=viewcode-block id=is_np_float>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.nputils.is_np_float>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>is_np_float</span><span class=p>(</span><span class=n>dtype</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether a :class:`numpy.dtype` is a floating point type.</span>
+
+<span class=sd>    :param dtype: the type</span>
+
+<span class=sd>    >>> import numpy as npx</span>
+<span class=sd>    >>> from moptipy.utils.nputils import is_np_float</span>
+<span class=sd>    >>> print(is_np_float(npx.dtype(npx.int8)))</span>
+<span class=sd>    False</span>
+<span class=sd>    >>> print(is_np_float(npx.dtype(npx.uint16)))</span>
+<span class=sd>    False</span>
+<span class=sd>    >>> print(is_np_float(npx.dtype(npx.float64)))</span>
+<span class=sd>    True</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>dtype</span><span class=o>.</span><span class=n>kind</span> <span class=o>==</span> <span class=s2>"f"</span></div>
+
+
+
+<div class=viewcode-block id=int_range_to_dtype>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.nputils.int_range_to_dtype>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>int_range_to_dtype</span><span class=p>(</span><span class=n>min_value</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>max_value</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                       <span class=n>force_signed</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+                       <span class=n>force_unsigned</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Convert an integer range to an appropriate numpy data type.</span>
+
+<span class=sd>    The returned type is as compact as possible and signed types are</span>
+<span class=sd>    preferred over unsigned types.</span>
+<span class=sd>    The returned :class:`numpy.dtype` will allow accommodating all values in</span>
+<span class=sd>    the inclusive interval `min_value..max_value`.</span>
+
+<span class=sd>    :param min_value: the minimum value</span>
+<span class=sd>    :param max_value: the maximum value</span>
+<span class=sd>    :param force_signed: enforce signed types</span>
+<span class=sd>    :param force_unsigned: enforce unsigned types</span>
+<span class=sd>    :return: the numpy integer range</span>
+<span class=sd>    :raises TypeError: if the parameters are not integers</span>
+<span class=sd>    :raises ValueError: if the range is invalid, i.e., if `min_value` exceeds</span>
+<span class=sd>        `max_value` or either of them exceeds the possible range of the</span>
+<span class=sd>        largest numpy integers.</span>
+
+<span class=sd>    >>> from moptipy.utils.nputils import int_range_to_dtype</span>
+<span class=sd>    >>> print(int_range_to_dtype(0, 127))</span>
+<span class=sd>    int8</span>
+<span class=sd>    >>> print(int_range_to_dtype(0, 128))</span>
+<span class=sd>    uint8</span>
+<span class=sd>    >>> print(int_range_to_dtype(0, 128, True))</span>
+<span class=sd>    int16</span>
+<span class=sd>    >>> print(int_range_to_dtype(0, 32767))</span>
+<span class=sd>    int16</span>
+<span class=sd>    >>> print(int_range_to_dtype(0, 32768))</span>
+<span class=sd>    uint16</span>
+<span class=sd>    >>> print(int_range_to_dtype(0, 32768, True))</span>
+<span class=sd>    int32</span>
+<span class=sd>    >>> print(int_range_to_dtype(0, (2 ** 31) - 1))</span>
+<span class=sd>    int32</span>
+<span class=sd>    >>> print(int_range_to_dtype(0, 2 ** 31))</span>
+<span class=sd>    uint32</span>
+<span class=sd>    >>> print(int_range_to_dtype(0, 2 ** 31, True))</span>
+<span class=sd>    int64</span>
+<span class=sd>    >>> print(int_range_to_dtype(0, (2 ** 63) - 1))</span>
+<span class=sd>    int64</span>
+<span class=sd>    >>> print(int_range_to_dtype(0, 2 ** 63))</span>
+<span class=sd>    uint64</span>
+<span class=sd>    >>> print(int_range_to_dtype(0, (2 ** 64) - 1))</span>
+<span class=sd>    uint64</span>
+<span class=sd>    >>> print(int_range_to_dtype(0, (2 ** 7) - 1))</span>
+<span class=sd>    int8</span>
+<span class=sd>    >>> print(int_range_to_dtype(0, (2 ** 7) - 1, force_unsigned=True))</span>
+<span class=sd>    uint8</span>
+<span class=sd>    >>> print(int_range_to_dtype(0, 32767, force_unsigned=True))</span>
+<span class=sd>    uint16</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     int_range_to_dtype(0, (2 ** 64) - 1, True)</span>
+<span class=sd>    ... except ValueError as e:</span>
+<span class=sd>    ...     print(e)</span>
+<span class=sd>    Signed integer range cannot exceed -9223372036854775808..922337203685477\</span>
+<span class=sd>5807, but 0..18446744073709551615 was specified.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     int_range_to_dtype(0, (2 ** 64) + 1)</span>
+<span class=sd>    ... except ValueError as e:</span>
+<span class=sd>    ...     print(e)</span>
+<span class=sd>    max_value for unsigned integers must be <=18446744073709551615, but is \</span>
+<span class=sd>18446744073709551617 for min_value=0.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     int_range_to_dtype(-1, (2 ** 64) - 1)</span>
+<span class=sd>    ... except ValueError as e:</span>
+<span class=sd>    ...     print(e)</span>
+<span class=sd>    Signed integer range cannot exceed -9223372036854775808..922337203685477\</span>
+<span class=sd>5807, but -1..18446744073709551615 was specified.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     int_range_to_dtype(-1.0, (2 ** 64) - 1)</span>
+<span class=sd>    ... except TypeError as e:</span>
+<span class=sd>    ...     print(e)</span>
+<span class=sd>    min_value should be an instance of int but is float, namely -1.0.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     int_range_to_dtype(-1, 'a')</span>
+<span class=sd>    ... except TypeError as e:</span>
+<span class=sd>    ...     print(e)</span>
+<span class=sd>    max_value should be an instance of int but is str, namely 'a'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     int_range_to_dtype(0, 1, 1)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    force_signed should be an instance of bool but is int, namely 1.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     int_range_to_dtype(0, 1, force_unsigned=3)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    force_unsigned should be an instance of bool but is int, namely 3.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     int_range_to_dtype(0, 1, True, True)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    force_signed and force_unsigned cannot both be True.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     int_range_to_dtype(-1, 1, force_unsigned=True)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    min_value=-1 and force_unsigned=True is not permitted.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>min_value</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>min_value</span><span class=p>,</span> <span class=s2>"min_value"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>max_value</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>max_value</span><span class=p>,</span> <span class=s2>"max_value"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>force_signed</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>force_signed</span><span class=p>,</span> <span class=s2>"force_signed"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>force_unsigned</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>force_unsigned</span><span class=p>,</span> <span class=s2>"force_unsigned"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>force_unsigned</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>force_signed</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=s2>"force_signed and force_unsigned cannot both be True."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>min_value</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"min_value=</span><span class=si>{</span><span class=n>min_value</span><span class=si>}</span><span class=s2> and force_unsigned="</span>
+                             <span class=s2>"True is not permitted."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>min_value</span> <span class=o>></span> <span class=n>max_value</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"min_value must be <= max_value, but min_value=</span><span class=si>{</span><span class=n>min_value</span><span class=si>}</span><span class=s2> "</span>
+            <span class=sa>f</span><span class=s2>"and max_value=</span><span class=si>{</span><span class=n>max_value</span><span class=si>}</span><span class=s2> was provided."</span><span class=p>)</span>
+
+    <span class=n>use_min_value</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span> <span class=k>if</span> <span class=n>force_signed</span> <span class=ow>and</span> <span class=p>(</span><span class=n>min_value</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>)</span> \
+        <span class=k>else</span> <span class=n>min_value</span>
+    <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>__INTS_AND_RANGES</span><span class=p>:</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>use_min_value</span> <span class=o>>=</span> <span class=n>t</span><span class=p>[</span><span class=mi>1</span><span class=p>])</span> <span class=ow>and</span> <span class=p>(</span><span class=n>max_value</span> <span class=o><=</span> <span class=n>t</span><span class=p>[</span><span class=mi>2</span><span class=p>]):</span>
+            <span class=k>if</span> <span class=n>force_unsigned</span> <span class=ow>and</span> <span class=p>(</span><span class=n>t</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o><</span> <span class=mi>0</span><span class=p>):</span>
+                <span class=k>continue</span>
+            <span class=k>return</span> <span class=n>t</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+
+    <span class=k>if</span> <span class=p>(</span><span class=n>min_value</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=n>force_signed</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=s2>"max_value for unsigned integers must be <="</span>
+            <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=p>(</span><span class=n>__INTS_AND_RANGES</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>])[</span><span class=mi>2</span><span class=p>]</span><span class=si>}</span><span class=s2>, but is </span><span class=si>{</span><span class=n>max_value</span><span class=si>}</span><span class=s2>"</span>
+            <span class=sa>f</span><span class=s2>" for min_value=</span><span class=si>{</span><span class=n>min_value</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+        <span class=sa>f</span><span class=s2>"Signed integer range cannot exceed </span><span class=si>{</span><span class=n>__INTS_AND_RANGES</span><span class=p>[</span><span class=o>-</span><span class=mi>2</span><span class=p>][</span><span class=mi>1</span><span class=p>]</span><span class=si>}</span><span class=s2>.."</span>
+        <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>__INTS_AND_RANGES</span><span class=p>[</span><span class=o>-</span><span class=mi>2</span><span class=p>][</span><span class=mi>2</span><span class=p>]</span><span class=si>}</span><span class=s2>, but </span><span class=si>{</span><span class=n>min_value</span><span class=si>}</span><span class=s2>..</span><span class=si>{</span><span class=n>max_value</span><span class=si>}</span><span class=s2> "</span>
+        <span class=s2>"was specified."</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=dtype_for_data>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.nputils.dtype_for_data>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>dtype_for_data</span><span class=p>(</span><span class=n>always_int</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span>
+                   <span class=n>lower_bound</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span>
+                   <span class=n>upper_bound</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Obtain the most suitable numpy data type to represent the data.</span>
+
+<span class=sd>    If the data is always integer, the smallest possible integer type will be</span>
+<span class=sd>    sought using :func:`int_range_to_dtype`. If `always_int` is `True` and</span>
+<span class=sd>    one or both of the bounds are infinite, then the largest available integer</span>
+<span class=sd>    type is returned. If the bounds are finite but exceed the integer range,</span>
+<span class=sd>    a `ValueError` is thrown. If the data is not always integer, the `float64`</span>
+<span class=sd>    is returned.</span>
+
+<span class=sd>    :param always_int: is the data always integer?</span>
+<span class=sd>    :param lower_bound: the lower bound of the data, set to `-inf` if no lower</span>
+<span class=sd>        bound is known and we should assume the full integer range</span>
+<span class=sd>    :param upper_bound: the upper bound of the data, set to `-inf` if no upper</span>
+<span class=sd>        bound is known and we should assume the full integer range</span>
+<span class=sd>    :raises ValueError: if the `lower_bound > upper_bound` or any bound is</span>
+<span class=sd>        `nan` or the integer bounds exceed the largest int range</span>
+<span class=sd>    :raises TypeError: if, well, you provide parameters of the wrong types</span>
+
+<span class=sd>    >>> print(dtype_for_data(True, 0, 127))</span>
+<span class=sd>    int8</span>
+<span class=sd>    >>> print(dtype_for_data(True, 0, 128))</span>
+<span class=sd>    uint8</span>
+<span class=sd>    >>> print(dtype_for_data(True, -1, 32767))</span>
+<span class=sd>    int16</span>
+<span class=sd>    >>> print(dtype_for_data(True, 0, 32768))</span>
+<span class=sd>    uint16</span>
+<span class=sd>    >>> print(dtype_for_data(True, -1, 32768))</span>
+<span class=sd>    int32</span>
+<span class=sd>    >>> print(dtype_for_data(True, 0, 65535))</span>
+<span class=sd>    uint16</span>
+<span class=sd>    >>> print(dtype_for_data(True, 0, 65536))</span>
+<span class=sd>    int32</span>
+<span class=sd>    >>> print(dtype_for_data(True, -1, 65535))</span>
+<span class=sd>    int32</span>
+<span class=sd>    >>> print(dtype_for_data(True, 0, (2 ** 31) - 1))</span>
+<span class=sd>    int32</span>
+<span class=sd>    >>> print(dtype_for_data(True, 0, 2 ** 31))</span>
+<span class=sd>    uint32</span>
+<span class=sd>    >>> print(dtype_for_data(True, -1, 2 ** 31))</span>
+<span class=sd>    int64</span>
+<span class=sd>    >>> print(dtype_for_data(True, 0, (2 ** 63) - 1))</span>
+<span class=sd>    int64</span>
+<span class=sd>    >>> print(dtype_for_data(True, 0, 2 ** 63))</span>
+<span class=sd>    uint64</span>
+<span class=sd>    >>> print(dtype_for_data(True, 0, (2 ** 63) + 1))</span>
+<span class=sd>    uint64</span>
+<span class=sd>    >>> print(dtype_for_data(True, 0, (2 ** 64) - 1))</span>
+<span class=sd>    uint64</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     dtype_for_data(True, 0, 2 ** 64)</span>
+<span class=sd>    ... except ValueError as v:</span>
+<span class=sd>    ...     print(v)</span>
+<span class=sd>    max_value for unsigned integers must be <=18446744073709551615, but \</span>
+<span class=sd>is 18446744073709551616 for min_value=0.</span>
+
+<span class=sd>    >>> from math import inf, nan</span>
+<span class=sd>    >>> print(dtype_for_data(True, 0, inf))</span>
+<span class=sd>    uint64</span>
+<span class=sd>    >>> print(dtype_for_data(True, -1, inf))</span>
+<span class=sd>    int64</span>
+<span class=sd>    >>> print(dtype_for_data(True, -inf, inf))</span>
+<span class=sd>    int64</span>
+<span class=sd>    >>> print(dtype_for_data(True, -inf, inf))</span>
+<span class=sd>    int64</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     dtype_for_data(True, 1, 0)</span>
+<span class=sd>    ... except ValueError as v:</span>
+<span class=sd>    ...     print(v)</span>
+<span class=sd>    invalid bounds [1,0].</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     dtype_for_data(False, 1, 0)</span>
+<span class=sd>    ... except ValueError as v:</span>
+<span class=sd>    ...     print(v)</span>
+<span class=sd>    invalid bounds [1,0].</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     dtype_for_data(True, 1, nan)</span>
+<span class=sd>    ... except ValueError as v:</span>
+<span class=sd>    ...     print(v)</span>
+<span class=sd>    invalid bounds [1,nan].</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     dtype_for_data(False, nan, 0)</span>
+<span class=sd>    ... except ValueError as v:</span>
+<span class=sd>    ...     print(v)</span>
+<span class=sd>    invalid bounds [nan,0].</span>
+
+<span class=sd>    >>> print(dtype_for_data(False, 1, 2))</span>
+<span class=sd>    float64</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     dtype_for_data(False, nan, '0')</span>
+<span class=sd>    ... except TypeError as v:</span>
+<span class=sd>    ...     print(v)</span>
+<span class=sd>    upper_bound should be an instance of any in {float, int} but is str, \</span>
+<span class=sd>namely '0'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     dtype_for_data(True, 'x', 0)</span>
+<span class=sd>    ... except TypeError as v:</span>
+<span class=sd>    ...     print(v)</span>
+<span class=sd>    lower_bound should be an instance of any in {float, int} but is str, \</span>
+<span class=sd>namely 'x'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     dtype_for_data(True, 1.0, 2.0)</span>
+<span class=sd>    ... except TypeError as v:</span>
+<span class=sd>    ...     print(v)</span>
+<span class=sd>    finite lower_bound of always_int should be an instance of int but is \</span>
+<span class=sd>float, namely 1.0.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     dtype_for_data(True, 0, 2.0)</span>
+<span class=sd>    ... except TypeError as v:</span>
+<span class=sd>    ...     print(v)</span>
+<span class=sd>    finite upper_bound of always_int should be an instance of int but is \</span>
+<span class=sd>float, namely 2.0.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     dtype_for_data(3, 0, 2)</span>
+<span class=sd>    ... except TypeError as v:</span>
+<span class=sd>    ...     print(v)</span>
+<span class=sd>    always_int should be an instance of bool but is int, namely 3.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>always_int</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>always_int</span><span class=p>,</span> <span class=s2>"always_int"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>,</span> <span class=s2>"lower_bound"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>,</span> <span class=s2>"upper_bound"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+    <span class=k>if</span> <span class=n>isnan</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>)</span> <span class=ow>or</span> <span class=n>isnan</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>)</span> <span class=ow>or</span> \
+            <span class=p>(</span><span class=n>lower_bound</span> <span class=o>></span> <span class=n>upper_bound</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid bounds [</span><span class=si>{</span><span class=n>lower_bound</span><span class=si>}</span><span class=s2>,</span><span class=si>{</span><span class=n>upper_bound</span><span class=si>}</span><span class=s2>]."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>always_int</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>):</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span>
+                    <span class=n>lower_bound</span><span class=p>,</span> <span class=s2>"finite lower_bound of always_int"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>):</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span>
+                        <span class=n>upper_bound</span><span class=p>,</span> <span class=s2>"finite upper_bound of always_int"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+                <span class=k>return</span> <span class=n>int_range_to_dtype</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>),</span> <span class=nb>int</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>))</span>
+            <span class=k>if</span> <span class=n>lower_bound</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>return</span> <span class=n>DEFAULT_UNSIGNED_INT</span>
+        <span class=k>return</span> <span class=n>DEFAULT_INT</span>
+    <span class=k>return</span> <span class=n>DEFAULT_FLOAT</span></div>
+
+
+
+<div class=viewcode-block id=np_ints_max>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.nputils.np_ints_max>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>jit</span><span class=p>(</span><span class=n>forceobj</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>np_ints_max</span><span class=p>(</span><span class=n>shape</span><span class=p>,</span> <span class=n>dtype</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span> <span class=o>=</span> <span class=n>DEFAULT_INT</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create an integer array of the given length filled with the maximum value.</span>
+
+<span class=sd>    :param shape: the requested shape</span>
+<span class=sd>    :param dtype: the data type (defaults to 64bit integers)</span>
+<span class=sd>    :return: the new array</span>
+
+<span class=sd>    >>> import numpy as npx</span>
+<span class=sd>    >>> from moptipy.utils.nputils import np_ints_max</span>
+<span class=sd>    >>> print(np_ints_max(4, npx.dtype("uint8")))</span>
+<span class=sd>    [255 255 255 255]</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>full</span><span class=p>(</span><span class=n>shape</span><span class=o>=</span><span class=n>shape</span><span class=p>,</span> <span class=n>fill_value</span><span class=o>=</span><span class=n>__NP_INTS_MAP</span><span class=p>[</span><span class=n>dtype</span><span class=p>][</span><span class=mi>1</span><span class=p>],</span>
+                   <span class=n>dtype</span><span class=o>=</span><span class=n>dtype</span><span class=p>)</span></div>
+
+
+
+<span class=c1>#: the default number of bytes for random seeds</span>
+<span class=n>__SEED_BYTES</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>8</span>
+<span class=c1>#: the minimum acceptable random seed</span>
+<span class=n>__MIN_RAND_SEED</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>0</span>
+<span class=c1>#: the maximum acceptable random seed</span>
+<span class=n>__MAX_RAND_SEED</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>int</span><span class=p>((</span><span class=mi>1</span> <span class=o><<</span> <span class=p>(</span><span class=n>__SEED_BYTES</span> <span class=o>*</span> <span class=mi>8</span><span class=p>))</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=rand_seed_generate>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.nputils.rand_seed_generate>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>rand_seed_generate</span><span class=p>(</span><span class=n>random</span><span class=p>:</span> <span class=n>Generator</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>())</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Draw a (pseudo-random) random seed.</span>
+
+<span class=sd>    This method either uses a provided random number generator `random` or a</span>
+<span class=sd>    default generator. It draws 8 bytes from this generator and converts them</span>
+<span class=sd>    to an unsigned (64 bit) integer big-endian style.</span>
+
+<span class=sd>    :param random: the random number generator to be used to generate the seed</span>
+<span class=sd>    :return: the random seed</span>
+<span class=sd>    :raises TypeError: if `random` is specified but is not an instance of</span>
+<span class=sd>        `Generator`</span>
+
+<span class=sd>    >>> from numpy.random import default_rng as drg</span>
+<span class=sd>    >>> rand_seed_generate(default_rng(100))</span>
+<span class=sd>    10991970318022328789</span>
+<span class=sd>    >>> rand_seed_generate(default_rng(100))</span>
+<span class=sd>    10991970318022328789</span>
+<span class=sd>    >>> rand_seed_generate(default_rng(10991970318022328789))</span>
+<span class=sd>    11139051376468819756</span>
+<span class=sd>    >>> rand_seed_generate(default_rng(10991970318022328789))</span>
+<span class=sd>    11139051376468819756</span>
+<span class=sd>    >>> rand_seed_generate(default_rng(11139051376468819756))</span>
+<span class=sd>    16592984639586750386</span>
+<span class=sd>    >>> rand_seed_generate(default_rng(11139051376468819756))</span>
+<span class=sd>    16592984639586750386</span>
+<span class=sd>    >>> rand_seed_generate(default_rng(16592984639586750386))</span>
+<span class=sd>    12064014979695949294</span>
+<span class=sd>    >>> rand_seed_generate(default_rng(16592984639586750386))</span>
+<span class=sd>    12064014979695949294</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>Generator</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=s2>"random"</span><span class=p>,</span> <span class=n>Generator</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>rand_seed_check</span><span class=p>(</span><span class=nb>int</span><span class=o>.</span><span class=n>from_bytes</span><span class=p>(</span>
+        <span class=n>random</span><span class=o>.</span><span class=n>bytes</span><span class=p>(</span><span class=n>__SEED_BYTES</span><span class=p>),</span> <span class=n>byteorder</span><span class=o>=</span><span class=s2>"big"</span><span class=p>,</span> <span class=n>signed</span><span class=o>=</span><span class=kc>False</span><span class=p>))</span></div>
+
+
+
+<div class=viewcode-block id=rand_seed_check>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.nputils.rand_seed_check>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>rand_seed_check</span><span class=p>(</span><span class=n>rand_seed</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Make sure that a random seed is valid.</span>
+
+<span class=sd>    :param rand_seed: the random seed to check</span>
+<span class=sd>    :return: the rand seed</span>
+
+<span class=sd>    :raises TypeError: if the random seed is not an `int`</span>
+<span class=sd>    :raises ValueError: if the random seed is not valid</span>
+
+<span class=sd>    >>> rand_seed_check(1)</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> rand_seed_check(0)</span>
+<span class=sd>    0</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     rand_seed_check(-1)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    rand_seed=-1 is invalid, must be in 0..18446744073709551615.</span>
+
+<span class=sd>    >>> rand_seed_check(18446744073709551615)</span>
+<span class=sd>    18446744073709551615</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     rand_seed_check(18446744073709551616)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    rand_seed=18446744073709551616 is invalid, must be in 0..\</span>
+<span class=sd>18446744073709551615.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     rand_seed_check(1.2)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    rand_seed should be an instance of int but is float, namely 1.2.</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>rand_seed</span><span class=p>,</span> <span class=s2>"rand_seed"</span><span class=p>,</span>
+                           <span class=n>__MIN_RAND_SEED</span><span class=p>,</span> <span class=n>__MAX_RAND_SEED</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=rand_generator>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.nputils.rand_generator>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>rand_generator</span><span class=p>(</span><span class=n>seed</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=n>Generator</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Instantiate a random number generator from a seed.</span>
+
+<span class=sd>    :param seed: the random seed</span>
+<span class=sd>    :return: the random number generator</span>
+
+<span class=sd>    >>> type(rand_generator(1))</span>
+<span class=sd>    &LTclass 'numpy.random._generator.Generator'></span>
+<span class=sd>    >>> type(rand_generator(1).bit_generator)</span>
+<span class=sd>    &LTclass 'numpy.random._pcg64.PCG64'></span>
+<span class=sd>    >>> rand_generator(1).random() == rand_generator(1).random()</span>
+<span class=sd>    True</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>default_rng</span><span class=p>(</span><span class=n>rand_seed_check</span><span class=p>(</span><span class=n>seed</span><span class=p>))</span></div>
+
+
+
+<div class=viewcode-block id=rand_seeds_from_str>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.nputils.rand_seeds_from_str>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>rand_seeds_from_str</span><span class=p>(</span><span class=n>string</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>n_seeds</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Reproducibly generate `n_seeds` unique random seeds from a `string`.</span>
+
+<span class=sd>    This function will produce a sorted sequence of `n_seeds` random seeds,</span>
+<span class=sd>    each of which being an unsigned 64-bit integer, from the string passed in.</span>
+<span class=sd>    The same string will always yield the same sequence reproducibly.</span>
+<span class=sd>    Running the function twice with different values of `n_seeds` will result</span>
+<span class=sd>    in the two sets of random seeds, where the larger one (for the larger</span>
+<span class=sd>    value of `n_seeds`) contains all elements of the smaller one.</span>
+
+<span class=sd>    This works as follows: First, we encode the string to an array of bytes</span>
+<span class=sd>    using the UTF-8 encoding (`string.encode("utf8")`). Then, we compute the</span>
+<span class=sd>    SHA-512 digest of this byte array (using `hashlib.sha512`).</span>
+<span class=sd>    From this digest, we then use two chunks of 32 bytes (256 bit) to seed two</span>
+<span class=sd>    :class:`~numpy.random.PCG64` random number generators. We then</span>
+<span class=sd>    alternatingly draw seeds from these two generators using</span>
+<span class=sd>    :func:`rand_seed_generate` until we have `n_seeds` unique values.</span>
+
+<span class=sd>    This procedure is used in :func:`moptipy.api.experiment.run_experiment` to</span>
+<span class=sd>    draw the random seeds for the algorithm runs to be performed. As `string`</span>
+<span class=sd>    input, that method uses the string representation of the problem instance.</span>
+<span class=sd>    This guarantees that all algorithms start with the same seeds on the same</span>
+<span class=sd>    problems. It also guarantees that an experiment is repeatable, i.e., will</span>
+<span class=sd>    use the same seeds when executed twice. Finally, it ensures that</span>
+<span class=sd>    cherry-picking is impossible, as all seeds are fairly pseudo-random.</span>
+
+<span class=sd>    1. Penny Pritzker and Willie E. May, editors, *Secure Hash Standard</span>
+<span class=sd>       (SHS),* Federal Information Processing Standards Publication FIPS PUB</span>
+<span class=sd>       180-4, Gaithersburg, MD, USA: National Institute of Standards and</span>
+<span class=sd>       Technology, Information Technology Laboratory, August 2015.</span>
+<span class=sd>       doi: https://dx.doi.org/10.6028/NIST.FIPS.180-4</span>
+<span class=sd>       https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf</span>
+<span class=sd>    2. Unicode Consortium, editors, *The Unicode(R) Standard, Version</span>
+<span class=sd>       15.0 - Core Specification,* Mountain View, CA, USA: Unicode, Inc.,</span>
+<span class=sd>       September 2022, ISBN:978-1-936213-32-0,</span>
+<span class=sd>       https://www.unicode.org/versions/Unicode15.0.0/</span>
+<span class=sd>    3. NumPy Community, Permuted Congruential Generator (64-bit, PCG64), in</span>
+<span class=sd>       *NumPy Reference, Release 1.23.0,* June 2022, Austin, TX, USA:</span>
+<span class=sd>       NumFOCUS, Inc., https://numpy.org/doc/1.23/numpy-ref.pdf</span>
+<span class=sd>    4. Melissa E. O'Neill: *PCG: A Family of Simple Fast Space-Efficient</span>
+<span class=sd>       Statistically Good Algorithms for Random Number Generation,* Report</span>
+<span class=sd>       HMC-CS-2014-0905, September 5, 2014, Claremont, CA, USA: Harvey Mudd</span>
+<span class=sd>       College, Computer Science Department.</span>
+<span class=sd>       https://www.cs.hmc.edu/tr/hmc-cs-2014-0905.pdf</span>
+
+<span class=sd>    :param string: the string</span>
+<span class=sd>    :param n_seeds: the number of seeds</span>
+<span class=sd>    :return: a list of random seeds</span>
+<span class=sd>    :raises TypeError: if the parameters do not follow the type contract</span>
+<span class=sd>    :raises ValueError: if the parameter values are invalid</span>
+
+<span class=sd>    >>> rand_seeds_from_str("hello world!", 1)</span>
+<span class=sd>    [11688012229199056962]</span>
+<span class=sd>    >>> rand_seeds_from_str("hello world!", 2)</span>
+<span class=sd>    [3727742416375614079, 11688012229199056962]</span>
+<span class=sd>    >>> rand_seeds_from_str("hello world!", 3)</span>
+<span class=sd>    [3727742416375614079, 11688012229199056962, 17315292100125916507]</span>
+
+<span class=sd>    >>> rand_seeds_from_str("metaheuristic optimization", 1)</span>
+<span class=sd>    [12323230366215963648]</span>
+<span class=sd>    >>> rand_seeds_from_str("metaheuristic optimization", 2)</span>
+<span class=sd>    [12323230366215963648, 13673960948036381176]</span>
+<span class=sd>    >>> rand_seeds_from_str("metaheuristic optimization", 3)</span>
+<span class=sd>    [12323230366215963648, 13673960948036381176, 18426184104943646060]</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>string</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>string</span><span class=p>,</span> <span class=s2>"string"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>string</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"string must not be empty."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>n_seeds</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>n_seeds</span><span class=p>,</span> <span class=s2>"n_seeds"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>n_seeds</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"n_seeds must be positive, but is </span><span class=si>{</span><span class=n>n_seeds</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=n>seeds</span> <span class=o>=</span> <span class=nb>bytearray</span><span class=p>(</span><span class=n>sha512</span><span class=p>(</span><span class=n>string</span><span class=o>.</span><span class=n>encode</span><span class=p>(</span><span class=s2>"utf8"</span><span class=p>))</span><span class=o>.</span><span class=n>digest</span><span class=p>())</span>
+    <span class=n>seed1</span> <span class=o>=</span> <span class=nb>int</span><span class=o>.</span><span class=n>from_bytes</span><span class=p>(</span><span class=n>seeds</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=mi>32</span><span class=p>],</span> <span class=n>byteorder</span><span class=o>=</span><span class=s2>"big"</span><span class=p>,</span> <span class=n>signed</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+    <span class=n>seed2</span> <span class=o>=</span> <span class=nb>int</span><span class=o>.</span><span class=n>from_bytes</span><span class=p>(</span><span class=n>seeds</span><span class=p>[</span><span class=mi>32</span><span class=p>:</span><span class=mi>64</span><span class=p>],</span> <span class=n>byteorder</span><span class=o>=</span><span class=s2>"big"</span><span class=p>,</span> <span class=n>signed</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+    <span class=k>del</span> <span class=n>seeds</span>
+
+    <span class=c1># seed two PCG64 generators, each of which should use two 256 bit</span>
+    <span class=c1># numbers as seed</span>
+    <span class=n>g1</span> <span class=o>=</span> <span class=n>Generator</span><span class=p>(</span><span class=n>PCG64</span><span class=p>(</span><span class=n>seed1</span><span class=p>))</span>
+    <span class=n>g2</span> <span class=o>=</span> <span class=n>Generator</span><span class=p>(</span><span class=n>PCG64</span><span class=p>(</span><span class=n>seed2</span><span class=p>))</span>
+
+    <span class=n>generated</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+    <span class=k>while</span> <span class=nb>len</span><span class=p>(</span><span class=n>generated</span><span class=p>)</span> <span class=o><</span> <span class=n>n_seeds</span><span class=p>:</span>
+        <span class=n>g1</span><span class=p>,</span> <span class=n>g2</span> <span class=o>=</span> <span class=n>g2</span><span class=p>,</span> <span class=n>g1</span>
+        <span class=n>generated</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>rand_seed_generate</span><span class=p>(</span><span class=n>g1</span><span class=p>))</span>
+
+    <span class=n>result</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>generated</span><span class=p>)</span>
+    <span class=n>result</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>result</span><span class=p>)</span> <span class=o>!=</span> <span class=n>n_seeds</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Failed to generate </span><span class=si>{</span><span class=n>n_seeds</span><span class=si>}</span><span class=s2> unique seeds."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>result</span></div>
+
+
+
+<div class=viewcode-block id=is_all_finite>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.nputils.is_all_finite>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>is_all_finite</span><span class=p>(</span><span class=n>a</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check if an array is all finite.</span>
+
+<span class=sd>    :param a: the input array</span>
+<span class=sd>    :return: `True` if all elements in the array are finite, `False` otherwise</span>
+
+<span class=sd>    >>> import numpy as npx</span>
+<span class=sd>    >>> from moptipy.utils.nputils import is_all_finite</span>
+<span class=sd>    >>> print(is_all_finite(npx.array([1.1, 2.1, 3])))</span>
+<span class=sd>    True</span>
+<span class=sd>    >>> print(is_all_finite(npx.array([1, 2, 3])))</span>
+<span class=sd>    True</span>
+<span class=sd>    >>> print(is_all_finite(npx.array([1.1, npx.inf, 3])))</span>
+<span class=sd>    False</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>a</span><span class=p>:</span>  <span class=c1># noqa</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>np</span><span class=o>.</span><span class=n>isfinite</span><span class=p>(</span><span class=n>x</span><span class=p>):</span>  <span class=c1># noqa</span>
+            <span class=k>return</span> <span class=kc>False</span>  <span class=c1># noqa</span>
+    <span class=k>return</span> <span class=kc>True</span>  <span class=c1># noqa</span></div>
+
+
+
+<span class=c1>#: the character identifying the numpy data type backing the space</span>
+<span class=n>KEY_NUMPY_TYPE</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"dtype"</span>
+
+
+<div class=viewcode-block id=numpy_type_to_str>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.nputils.numpy_type_to_str>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>numpy_type_to_str</span><span class=p>(</span><span class=n>dtype</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Convert a numpy data type to a string.</span>
+
+<span class=sd>    :param dtype: the data type</span>
+<span class=sd>    :returns: a string representation</span>
+
+<span class=sd>    >>> import numpy as npx</span>
+<span class=sd>    >>> numpy_type_to_str(npx.dtype(int))</span>
+<span class=sd>    'l'</span>
+<span class=sd>    >>> numpy_type_to_str(npx.dtype(float))</span>
+<span class=sd>    'd'</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>dtype</span><span class=o>.</span><span class=n>char</span></div>
+
+
+
+<div class=viewcode-block id=np_to_py_number>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.nputils.np_to_py_number>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>np_to_py_number</span><span class=p>(</span><span class=n>number</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Convert a scalar number from numpy to a corresponding Python type.</span>
+
+<span class=sd>    :param number: the numpy number</span>
+<span class=sd>    :returns: an integer or float representing the number</span>
+
+<span class=sd>    >>> type(np_to_py_number(1))</span>
+<span class=sd>    &LTclass 'int'></span>
+<span class=sd>    >>> type(np_to_py_number(1.0))</span>
+<span class=sd>    &LTclass 'float'></span>
+<span class=sd>    >>> type(np_to_py_number(np.int8(1)))</span>
+<span class=sd>    &LTclass 'int'></span>
+<span class=sd>    >>> type(np_to_py_number(np.float64(1)))</span>
+<span class=sd>    &LTclass 'float'></span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...    np_to_py_number(np.complex64(1))</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...    print(te)</span>
+<span class=sd>    number should be an instance of any in {float, int, numpy.floating, \</span>
+<span class=sd>numpy.integer} but is numpy.complex64.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>number</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>number</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>number</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>number</span><span class=p>):</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>number</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>integer</span><span class=p>):</span>
+            <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>number</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>number</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>floating</span><span class=p>):</span>
+            <span class=k>return</span> <span class=nb>float</span><span class=p>(</span><span class=n>number</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>number</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>number</span>
+    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>number</span><span class=p>,</span> <span class=s2>"number"</span><span class=p>,</span>
+                     <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>integer</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>floating</span><span class=p>))</span></div>
+
+
+
+<div class=viewcode-block id=array_to_str>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.nputils.array_to_str>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>array_to_str</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Convert a numpy array to a string.</span>
+
+<span class=sd>    This method represents a numpy array as a string.</span>
+<span class=sd>    It makes sure to include all the information stored in the array and to</span>
+<span class=sd>    represent it as compactly as possible.</span>
+
+<span class=sd>    If the array has numerical values, it will use the default CSV separator.</span>
+<span class=sd>    If the array contains Boolean values, it will use no separator at all.</span>
+
+<span class=sd>    :param data: the data</span>
+<span class=sd>    :returns: the string</span>
+
+<span class=sd>    >>> import numpy as npx</span>
+<span class=sd>    >>> array_to_str(npx.array([1, 2, 3]))</span>
+<span class=sd>    '1;2;3'</span>
+<span class=sd>    >>> array_to_str(npx.array([1, 2.2, 3]))</span>
+<span class=sd>    '1;2.2;3'</span>
+<span class=sd>    >>> array_to_str(npx.array([True, False, True]))</span>
+<span class=sd>    'TFT'</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=s2>"data"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span>
+    <span class=n>k</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>dtype</span><span class=o>.</span><span class=n>kind</span>
+    <span class=k>if</span> <span class=n>k</span> <span class=ow>in</span> <span class=p>{</span><span class=s2>"i"</span><span class=p>,</span> <span class=s2>"u"</span><span class=p>}:</span>
+        <span class=k>return</span> <span class=n>CSV_SEPARATOR</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=nb>map</span><span class=p>(</span><span class=nb>str</span><span class=p>,</span> <span class=n>data</span><span class=p>))</span>
+    <span class=k>if</span> <span class=n>k</span> <span class=o>==</span> <span class=s2>"f"</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>CSV_SEPARATOR</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>num_to_str</span><span class=p>(</span><span class=nb>float</span><span class=p>(</span><span class=n>d</span><span class=p>))</span> <span class=k>for</span> <span class=n>d</span> <span class=ow>in</span> <span class=n>data</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>k</span> <span class=o>==</span> <span class=s2>"b"</span><span class=p>:</span>
+        <span class=k>return</span> <span class=s2>""</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>bool_to_str</span><span class=p>(</span><span class=nb>bool</span><span class=p>(</span><span class=n>d</span><span class=p>))</span> <span class=k>for</span> <span class=n>d</span> <span class=ow>in</span> <span class=n>data</span><span class=p>)</span>
+    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+        <span class=sa>f</span><span class=s2>"unsupported data kind </span><span class=si>{</span><span class=n>k</span><span class=si>!r}</span><span class=s2> of type </span><span class=si>{</span><span class=nb>str</span><span class=p>(</span><span class=n>data</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=fill_in_canonical_permutation>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.nputils.fill_in_canonical_permutation>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>fill_in_canonical_permutation</span><span class=p>(</span><span class=n>a</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Fill the canonical permutation into an array.</span>
+
+<span class=sd>    >>> import numpy</span>
+<span class=sd>    >>> arr = numpy.empty(10, int)</span>
+<span class=sd>    >>> fill_in_canonical_permutation(arr)</span>
+<span class=sd>    >>> print(arr)</span>
+<span class=sd>    [0 1 2 3 4 5 6 7 8 9]</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>a</span><span class=p>)):</span>  <span class=c1># pylint: disable=C0200</span>
+        <span class=n>a</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>i</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.nputils</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

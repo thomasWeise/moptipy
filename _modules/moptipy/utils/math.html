@@ -1,0 +1,528 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.utils.math — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/utils/math.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.math</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.utils.math</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Simple routines for handling numbers and numerical stuff."""</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>contextlib</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>exp</span><span class=p>,</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isfinite</span><span class=p>,</span> <span class=n>isqrt</span><span class=p>,</span> <span class=n>log</span><span class=p>,</span> <span class=n>log2</span><span class=p>,</span> <span class=n>nextafter</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=c1>#: The positive limit for doubles that can be represented exactly as ints.</span>
+<span class=n>DBL_INT_LIMIT_P</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=mf>9007199254740992.0</span>  <span class=c1># = 1 << 53</span>
+<span class=c1>#: The negative  limit for doubles that can be represented exactly as ints.</span>
+<span class=n>_DBL_INT_LIMIT_N</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=o>-</span><span class=n>DBL_INT_LIMIT_P</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__try_int</span><span class=p>(</span><span class=n>val</span><span class=p>:</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Convert a float to an int without any fancy checks.</span>
+
+<span class=sd>    :param val: the flot</span>
+<span class=sd>    :returns: the float or int</span>
+
+<span class=sd>    >>> from math import inf, nan, nextafter</span>
+<span class=sd>    >>> type(__try_int(0.0))</span>
+<span class=sd>    &LTclass 'int'></span>
+<span class=sd>    >>> type(__try_int(0.5))</span>
+<span class=sd>    &LTclass 'float'></span>
+<span class=sd>    >>> type(__try_int(inf))</span>
+<span class=sd>    &LTclass 'float'></span>
+<span class=sd>    >>> type(__try_int(-inf))</span>
+<span class=sd>    &LTclass 'float'></span>
+<span class=sd>    >>> type(__try_int(nan))</span>
+<span class=sd>    &LTclass 'float'></span>
+<span class=sd>    >>> 1 << 53</span>
+<span class=sd>    9007199254740992</span>
+<span class=sd>    >>> type(__try_int(9007199254740992.0))</span>
+<span class=sd>    &LTclass 'int'></span>
+<span class=sd>    >>> __try_int(9007199254740992.0)</span>
+<span class=sd>    9007199254740992</span>
+<span class=sd>    >>> too_big = nextafter(9007199254740992.0, inf)</span>
+<span class=sd>    >>> print(too_big)</span>
+<span class=sd>    9007199254740994.0</span>
+<span class=sd>    >>> type(__try_int(too_big))</span>
+<span class=sd>    &LTclass 'float'></span>
+<span class=sd>    >>> type(__try_int(-9007199254740992.0))</span>
+<span class=sd>    &LTclass 'int'></span>
+<span class=sd>    >>> __try_int(-9007199254740992.0)</span>
+<span class=sd>    -9007199254740992</span>
+<span class=sd>    >>> type(__try_int(-too_big))</span>
+<span class=sd>    &LTclass 'float'></span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=n>_DBL_INT_LIMIT_N</span> <span class=o><=</span> <span class=n>val</span> <span class=o><=</span> <span class=n>DBL_INT_LIMIT_P</span><span class=p>:</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>val</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>a</span> <span class=o>==</span> <span class=n>val</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>a</span>
+    <span class=k>return</span> <span class=n>val</span>
+
+
+<div class=viewcode-block id=try_int>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.math.try_int>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>try_int</span><span class=p>(</span><span class=n>val</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Attempt to convert a float to an integer.</span>
+
+<span class=sd>    This method will convert a floating point number to an integer if the</span>
+<span class=sd>    floating point number was representing an exact integer. This is the</span>
+<span class=sd>    case if it has a) no fractional part and b) is in the range</span>
+<span class=sd>    `-9007199254740992...9007199254740992`, i.e., the range where `+1` and</span>
+<span class=sd>    `-1` work without loss of precision.</span>
+
+<span class=sd>    :param val: the input value, which must either be `int` or `float`</span>
+<span class=sd>    :return: an `int` if `val` can be represented as `int` without loss of</span>
+<span class=sd>        precision, `val` otherwise</span>
+<span class=sd>    :raises TypeError: if `val` is neither an instance of `int` nor of `float`</span>
+<span class=sd>    :raises ValueError: if `val` is a `float`, but not finite</span>
+
+<span class=sd>    >>> print(type(try_int(10.5)))</span>
+<span class=sd>    &LTclass 'float'></span>
+<span class=sd>    >>> print(type(try_int(10)))</span>
+<span class=sd>    &LTclass 'int'></span>
+
+<span class=sd>    >>> from math import inf, nan, nextafter</span>
+<span class=sd>    >>> type(try_int(0.0))</span>
+<span class=sd>    &LTclass 'int'></span>
+<span class=sd>    >>> type(try_int(0.5))</span>
+<span class=sd>    &LTclass 'float'></span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     try_int(inf)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Value must be finite, but is inf.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     try_int(-inf)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Value must be finite, but is -inf.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     try_int(nan)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Value must be finite, but is nan.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     try_int("blab")  # noqa  # type: off</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    val should be an instance of any in {float, int} but is str, namely \</span>
+<span class=sd>'blab'.</span>
+
+<span class=sd>    >>> type(try_int(9007199254740992.0))</span>
+<span class=sd>    &LTclass 'int'></span>
+<span class=sd>    >>> try_int(9007199254740992.0)</span>
+<span class=sd>    9007199254740992</span>
+<span class=sd>    >>> too_big = nextafter(9007199254740992.0, inf)</span>
+<span class=sd>    >>> print(too_big)</span>
+<span class=sd>    9007199254740994.0</span>
+<span class=sd>    >>> type(try_int(too_big))</span>
+<span class=sd>    &LTclass 'float'></span>
+<span class=sd>    >>> type(try_int(-9007199254740992.0))</span>
+<span class=sd>    &LTclass 'int'></span>
+<span class=sd>    >>> try_int(-9007199254740992.0)</span>
+<span class=sd>    -9007199254740992</span>
+<span class=sd>    >>> type(try_int(-too_big))</span>
+<span class=sd>    &LTclass 'float'></span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>val</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>val</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>val</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>val</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Value must be finite, but is </span><span class=si>{</span><span class=n>val</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>_DBL_INT_LIMIT_N</span> <span class=o><=</span> <span class=n>val</span> <span class=o><=</span> <span class=n>DBL_INT_LIMIT_P</span><span class=p>:</span>
+            <span class=n>a</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>val</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>a</span> <span class=o>==</span> <span class=n>val</span><span class=p>:</span>
+                <span class=k>return</span> <span class=n>a</span>
+        <span class=k>return</span> <span class=n>val</span>
+    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>val</span><span class=p>,</span> <span class=s2>"val"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span></div>
+
+
+
+<div class=viewcode-block id=try_int_div>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.math.try_int_div>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>try_int_div</span><span class=p>(</span><span class=n>a</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>b</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Try to divide two integers at best precision.</span>
+
+<span class=sd>    Floating point divisions can incur some loss of precision. We try</span>
+<span class=sd>    to avoid this here as much as possible. First, we check if `a` is</span>
+<span class=sd>    divisible by `b` without any fractional part. If this is true, then</span>
+<span class=sd>    we can do a pure integer division without loss of any precision.</span>
+
+<span class=sd>    Otherwise, we would do a floating point division. This will lead the</span>
+<span class=sd>    values be converted to floating point numbers, which can incur</span>
+<span class=sd>    a loss of precision. In the past, we tried to divide both numbers by</span>
+<span class=sd>    their `gcd` to make them smaller in order to avoid a loss of precision.</span>
+<span class=sd>    But it seems that Python is already doing something like this internally</span>
+<span class=sd>    when performing the `a / b` division anyway, so we don't do this anymore.</span>
+<span class=sd>    However, it is still attempted to convert the result back to an integer.</span>
+
+<span class=sd>    :param a: the first integer</span>
+<span class=sd>    :param b: the second integer</span>
+<span class=sd>    :return: a/b, either as `int` or as `float` but always a finite value</span>
+<span class=sd>    :raises OverflowError: if the division must be performed using floating</span>
+<span class=sd>        point arithmetic, but the result would be too large to fit into a</span>
+<span class=sd>        `float`</span>
+<span class=sd>    :raises ZeroDivisionError: if `b==0`</span>
+
+<span class=sd>    >>> print(try_int_div(10, 2))</span>
+<span class=sd>    5</span>
+<span class=sd>    >>> print(try_int_div(10, -2))</span>
+<span class=sd>    -5</span>
+<span class=sd>    >>> print(try_int_div(-10, 2))</span>
+<span class=sd>    -5</span>
+<span class=sd>    >>> print(try_int_div(-10, -2))</span>
+<span class=sd>    5</span>
+<span class=sd>    >>> print(type(try_int_div(10, 2)))</span>
+<span class=sd>    &LTclass 'int'></span>
+<span class=sd>    >>> print(try_int_div(10, 3))</span>
+<span class=sd>    3.3333333333333335</span>
+<span class=sd>    >>> print(try_int_div(-10, 3))</span>
+<span class=sd>    -3.3333333333333335</span>
+<span class=sd>    >>> print(try_int_div(10, -3))</span>
+<span class=sd>    -3.3333333333333335</span>
+<span class=sd>    >>> print(try_int_div(-10, -3))</span>
+<span class=sd>    3.3333333333333335</span>
+<span class=sd>    >>> print(type(try_int_div(10, 3)))</span>
+<span class=sd>    &LTclass 'float'></span>
+<span class=sd>    >>> print(try_int_div(9007199254740992, 1))</span>
+<span class=sd>    9007199254740992</span>
+<span class=sd>    >>> print(try_int_div(2109792310235001520128, 234234))</span>
+<span class=sd>    9007199254740992</span>
+<span class=sd>    >>> print(try_int_div(2109792310235001520128, 234235))</span>
+<span class=sd>    9007160801054503</span>
+<span class=sd>    >>> print(try_int_div(2109792310235001520128, 234233))</span>
+<span class=sd>    9007237708755818.0</span>
+<span class=sd>    >>> large = 123456789012345678901234567890123456789012345678901234567\</span>
+<span class=sd>89012345678901234567890123456789012345678901234567890123456789012345678901234\</span>
+<span class=sd>56789012345678901234567890123456789012345678901234567890123456789012345678901\</span>
+<span class=sd>23456789012345678901234567890123456789012345678901234567890123456789012345678\</span>
+<span class=sd>90123456789012345678901234567890123456789012345678901234567890123456789012345\</span>
+<span class=sd>67890123456789012345678901234567890123456789012345678901234567890123456789012\</span>
+<span class=sd>3456789012345678901234567890123456789012345678901234567890123456789012345678\</span>
+<span class=sd>90123456789012345678901234567890123456789012345678901234567890123456789012345\</span>
+<span class=sd>678901234567890123456789012345678901234567890</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     large / 1</span>
+<span class=sd>    ... except OverflowError as oe:</span>
+<span class=sd>    ...     print(oe)</span>
+<span class=sd>    integer division result too large for a float</span>
+<span class=sd>    >>> try_int_div(large, 1)</span>
+<span class=sd>    123456789012345678901234567890123456789012345678901234567\</span>
+<span class=sd>89012345678901234567890123456789012345678901234567890123456789012345678901234\</span>
+<span class=sd>56789012345678901234567890123456789012345678901234567890123456789012345678901\</span>
+<span class=sd>23456789012345678901234567890123456789012345678901234567890123456789012345678\</span>
+<span class=sd>90123456789012345678901234567890123456789012345678901234567890123456789012345\</span>
+<span class=sd>67890123456789012345678901234567890123456789012345678901234567890123456789012\</span>
+<span class=sd>3456789012345678901234567890123456789012345678901234567890123456789012345678\</span>
+<span class=sd>90123456789012345678901234567890123456789012345678901234567890123456789012345\</span>
+<span class=sd>678901234567890123456789012345678901234567890</span>
+<span class=sd>    >>> try_int_div(large * 7, 1 * 7)</span>
+<span class=sd>    123456789012345678901234567890123456789012345678901234567\</span>
+<span class=sd>89012345678901234567890123456789012345678901234567890123456789012345678901234\</span>
+<span class=sd>56789012345678901234567890123456789012345678901234567890123456789012345678901\</span>
+<span class=sd>23456789012345678901234567890123456789012345678901234567890123456789012345678\</span>
+<span class=sd>90123456789012345678901234567890123456789012345678901234567890123456789012345\</span>
+<span class=sd>67890123456789012345678901234567890123456789012345678901234567890123456789012\</span>
+<span class=sd>3456789012345678901234567890123456789012345678901234567890123456789012345678\</span>
+<span class=sd>90123456789012345678901234567890123456789012345678901234567890123456789012345\</span>
+<span class=sd>678901234567890123456789012345678901234567890</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     try_int_div(large, 7)</span>
+<span class=sd>    ... except OverflowError as oe:</span>
+<span class=sd>    ...     print(oe)</span>
+<span class=sd>    integer division result too large for a float</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     try_int_div(0, 0)</span>
+<span class=sd>    ... except ZeroDivisionError as zde:</span>
+<span class=sd>    ...     print(zde)</span>
+<span class=sd>    integer division or modulo by zero</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     try_int_div(1, 0)</span>
+<span class=sd>    ... except ZeroDivisionError as zde:</span>
+<span class=sd>    ...     print(zde)</span>
+<span class=sd>    integer division or modulo by zero</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     try_int_div(-1, 0)</span>
+<span class=sd>    ... except ZeroDivisionError as zde:</span>
+<span class=sd>    ...     print(zde)</span>
+<span class=sd>    integer division or modulo by zero</span>
+<span class=sd>    """</span>
+    <span class=c1># First try pure integer division, in case `a` is divisible by `b`.</span>
+    <span class=n>int_div_test</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>a</span> <span class=o>//</span> <span class=n>b</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>int_div_test</span> <span class=o>*</span> <span class=n>b</span><span class=p>)</span> <span class=o>==</span> <span class=n>a</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>int_div_test</span>
+    <span class=c1># If that does not work, use the floating point division.</span>
+    <span class=k>return</span> <span class=n>__try_int</span><span class=p>(</span><span class=n>a</span> <span class=o>/</span> <span class=n>b</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=try_float_div>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.math.try_float_div>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>try_float_div</span><span class=p>(</span><span class=n>a</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=n>b</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Try to divide two numbers at best precision.</span>
+
+<span class=sd>    First, we will check if we can convert the numbers to integers</span>
+<span class=sd>    without loss of precision via :func:`try_int`. If yes, then</span>
+<span class=sd>    we go for the maximum-precision integer division via :func:`try_int_div`.</span>
+<span class=sd>    If no, then we do the normal floating point division and try to convert</span>
+<span class=sd>    the result to an integer if that can be done without loss of precision.</span>
+
+<span class=sd>    :param a: the first number</span>
+<span class=sd>    :param b: the second number</span>
+<span class=sd>    :return: `a/b`, but always finite</span>
+
+<span class=sd>    :raises ValueError: if either one of the arguments or the final result</span>
+<span class=sd>        would not be finite</span>
+
+<span class=sd>    >>> try_float_div(1e180, 1e60)</span>
+<span class=sd>    1.0000000000000001e+120</span>
+<span class=sd>    >>> try_float_div(1e60, 1e-60)</span>
+<span class=sd>    1e+120</span>
+<span class=sd>    >>> try_float_div(1e14, 1e-1)</span>
+<span class=sd>    1000000000000000</span>
+<span class=sd>    >>> try_float_div(1e14, -1e-1)</span>
+<span class=sd>    -1000000000000000</span>
+<span class=sd>    >>> try_float_div(-1e14, 1e-1)</span>
+<span class=sd>    -1000000000000000</span>
+<span class=sd>    >>> try_float_div(-1e14, -1e-1)</span>
+<span class=sd>    1000000000000000</span>
+<span class=sd>    >>> try_float_div(1e15, 1e-1)</span>
+<span class=sd>    1e+16</span>
+<span class=sd>    >>> try_float_div(1e15, -1e-1)</span>
+<span class=sd>    -1e+16</span>
+<span class=sd>    >>> try_float_div(-1e15, 1e-1)</span>
+<span class=sd>    -1e+16</span>
+<span class=sd>    >>> try_float_div(-1e15, -1e-1)</span>
+<span class=sd>    1e+16</span>
+<span class=sd>    >>> try_float_div(1e15, 1e-15)</span>
+<span class=sd>    9.999999999999999e+29</span>
+
+<span class=sd>    >>> print(type(try_float_div(10, 2)))</span>
+<span class=sd>    &LTclass 'int'></span>
+<span class=sd>    >>> print(type(try_float_div(10, 3)))</span>
+<span class=sd>    &LTclass 'float'></span>
+<span class=sd>    >>> print(type(try_float_div(10, 0.5)))</span>
+<span class=sd>    &LTclass 'int'></span>
+
+<span class=sd>    >>> from math import inf, nan</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     try_float_div(1.0, 0)</span>
+<span class=sd>    ... except ZeroDivisionError as zde:</span>
+<span class=sd>    ...     print(zde)</span>
+<span class=sd>    integer division or modulo by zero</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     try_float_div(1.0, -0.0)</span>
+<span class=sd>    ... except ZeroDivisionError as zde:</span>
+<span class=sd>    ...     print(zde)</span>
+<span class=sd>    integer division or modulo by zero</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     try_float_div(inf, 0)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Value must be finite, but is inf.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     try_float_div(-inf, 0)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Value must be finite, but is -inf.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     try_float_div(nan, 0)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Value must be finite, but is nan.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     try_float_div(1, inf)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Value must be finite, but is inf.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     try_float_div(1, -inf)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Value must be finite, but is -inf.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     try_float_div(1, nan)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Value must be finite, but is nan.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     try_float_div(1e300, 1e-60)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Result must be finite, but is 1e+300/1e-60=inf.</span>
+<span class=sd>    """</span>
+    <span class=n>ia</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>a</span><span class=p>)</span>
+    <span class=n>ib</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>b</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ia</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span> <span class=ow>and</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ib</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>try_int_div</span><span class=p>(</span><span class=n>ia</span><span class=p>,</span> <span class=n>ib</span><span class=p>)</span>
+    <span class=n>val</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>ia</span> <span class=o>/</span> <span class=n>ib</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>val</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Result must be finite, but is </span><span class=si>{</span><span class=n>a</span><span class=si>}</span><span class=s2>/</span><span class=si>{</span><span class=n>b</span><span class=si>}</span><span class=s2>=</span><span class=si>{</span><span class=n>val</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>__try_int</span><span class=p>(</span><span class=n>val</span><span class=p>)</span></div>
+
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__bin_search_root</span><span class=p>(</span><span class=n>value</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>power</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Search a truncated integer root via binary search.</span>
+
+<span class=sd>    :param value: the integer value to compute the root of</span>
+<span class=sd>    :param power: the integer power of the root</span>
+<span class=sd>    :returns: the integer root, truncated if necessary</span>
+<span class=sd>    """</span>
+    <span class=n>int_sqrt</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>isqrt</span><span class=p>(</span><span class=n>value</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>power</span> <span class=o>==</span> <span class=mi>2</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>int_sqrt</span>
+
+    <span class=c1># compute the maximum base root</span>
+    <span class=n>root_min</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span>
+    <span class=n>root_max</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=p>(</span><span class=n>int_sqrt</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=k>if</span> <span class=n>value</span> <span class=o>></span> <span class=mi>3</span> <span class=k>else</span> <span class=mi>1</span>
+    <span class=k>while</span> <span class=n>root_max</span> <span class=o>>=</span> <span class=n>root_min</span><span class=p>:</span>
+        <span class=n>root_mid</span> <span class=o>=</span> <span class=n>isqrt</span><span class=p>(</span><span class=n>root_min</span> <span class=o>*</span> <span class=n>root_max</span><span class=p>)</span>
+        <span class=n>power_mid</span> <span class=o>=</span> <span class=n>root_mid</span> <span class=o>**</span> <span class=n>power</span>
+        <span class=k>if</span> <span class=n>power_mid</span> <span class=o>></span> <span class=n>value</span><span class=p>:</span>
+            <span class=n>root_max</span> <span class=o>=</span> <span class=n>root_mid</span> <span class=o>-</span> <span class=mi>1</span>
+        <span class=k>elif</span> <span class=n>power_mid</span> <span class=o><</span> <span class=n>value</span><span class=p>:</span>
+            <span class=n>root_min</span> <span class=o>=</span> <span class=n>root_mid</span> <span class=o>+</span> <span class=mi>1</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>root_mid</span>
+    <span class=k>return</span> <span class=n>root_max</span>
+
+
+<div class=viewcode-block id=try_int_root>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.math.try_int_root>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>try_int_root</span><span class=p>(</span><span class=n>value</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>power</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>none_on_overflow</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute `value**(1/power)` where `value` and `power` are both integers.</span>
+
+<span class=sd>    :param value: the integer value to compute the root of</span>
+<span class=sd>    :param power: the integer power of the root</span>
+<span class=sd>    :param none_on_overflow: `True` if `None` should be returned if we</span>
+<span class=sd>        encounter an :class:`OverflowError`, `False` if we should simply</span>
+<span class=sd>        re-raise it</span>
+<span class=sd>    :returns: the root, or `None` if we encounter an overflow</span>
+
+<span class=sd>    >>> try_int_root(100, 2)</span>
+<span class=sd>    10</span>
+<span class=sd>    >>> try_int_root(100, 3) - (100 ** (1/3))</span>
+<span class=sd>    0.0</span>
+<span class=sd>    >>> try_int_root(123100, 23) - (123100 ** (1/23))</span>
+<span class=sd>    0.0</span>
+<span class=sd>    >>> 123100**1000 - try_int_root(123100**1000, 1000)**1000</span>
+<span class=sd>    0</span>
+<span class=sd>    >>> 11**290 - try_int_root(11**290, 290)**290</span>
+<span class=sd>    0</span>
+<span class=sd>    >>> (abs(1.797E308 - try_int_root(int(1.797E308), 10) ** 10)</span>
+<span class=sd>    ...     < abs(1.797E308 - (int(1.797E308) ** 0.1) ** 10))</span>
+<span class=sd>    True</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>value</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>value</span><span class=p>,</span> <span class=s2>"value"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>power</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>power</span><span class=p>,</span> <span class=s2>"power"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>power</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"power must be positive but is </span><span class=si>{</span><span class=n>power</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>value</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>value</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"value must not be negative, but is </span><span class=si>{</span><span class=n>value</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>value</span>
+    <span class=k>if</span> <span class=n>power</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>value</span>
+
+    <span class=c1># first, approximate root with crude binary search</span>
+    <span class=n>int_root</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>__bin_search_root</span><span class=p>(</span><span class=n>value</span><span class=p>,</span> <span class=n>power</span><span class=p>)</span>
+    <span class=n>root_power</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>int_root</span> <span class=o>**</span> <span class=n>power</span>
+    <span class=k>if</span> <span class=n>root_power</span> <span class=o>>=</span> <span class=n>value</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>root_power</span> <span class=o>==</span> <span class=n>value</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>int_root</span>  <span class=c1># ok, we are done</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>int_root</span><span class=si>}</span><span class=s2>**</span><span class=si>{</span><span class=n>power</span><span class=si>}</span><span class=s2>=</span><span class=si>{</span><span class=n>root_power</span><span class=si>}</span><span class=s2> > </span><span class=si>{</span><span class=n>value</span><span class=si>}</span><span class=s2>?"</span><span class=p>)</span>
+
+    <span class=c1># Now try to remove integer factors from the value and the root,</span>
+    <span class=c1># to achieve a more accurate division of the rest.</span>
+    <span class=c1># This is probably extremely inefficient.</span>
+    <span class=n>root_base</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span>
+    <span class=n>i</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>2</span>
+    <span class=n>end</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=mi>10_000</span><span class=p>,</span> <span class=n>int_root</span><span class=p>)</span>
+    <span class=k>while</span> <span class=n>i</span> <span class=o><</span> <span class=n>end</span><span class=p>:</span>
+        <span class=n>div</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>i</span> <span class=o>**</span> <span class=n>power</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>value</span> <span class=o>%</span> <span class=n>div</span><span class=p>)</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>root_base</span> <span class=o>*=</span> <span class=n>i</span>
+            <span class=n>value</span> <span class=o>//=</span> <span class=n>div</span>
+            <span class=n>int_root</span> <span class=o>=</span> <span class=p>(</span><span class=n>int_root</span> <span class=o>+</span> <span class=n>i</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>//</span> <span class=n>i</span>
+            <span class=n>end</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>end</span><span class=p>,</span> <span class=n>int_root</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>i</span> <span class=o>+=</span> <span class=mi>1</span>
+
+    <span class=c1># value is now reduced by any integer factor that we can pull out</span>
+    <span class=c1># of the root. These factors are aggregated in root_base.</span>
+    <span class=c1># If root_base != 1, we need to re-compute the root of the remainder</span>
+    <span class=c1># inside value. Whatever root we now compute of value, we must multiply</span>
+    <span class=c1># it with root_base.</span>
+    <span class=k>if</span> <span class=n>root_base</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+        <span class=n>int_root</span> <span class=o>=</span> <span class=n>__bin_search_root</span><span class=p>(</span><span class=n>value</span><span class=p>,</span> <span class=n>power</span><span class=p>)</span>
+
+    <span class=c1># check again</span>
+    <span class=n>root_power</span> <span class=o>=</span> <span class=n>int_root</span> <span class=o>**</span> <span class=n>power</span>
+    <span class=k>if</span> <span class=n>root_power</span> <span class=o>>=</span> <span class=n>value</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>root_power</span> <span class=o>==</span> <span class=n>value</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>root_base</span> <span class=o>*</span> <span class=n>int_root</span>  <span class=c1># ok, we are done</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>int_root</span><span class=si>}</span><span class=s2>**</span><span class=si>{</span><span class=n>power</span><span class=si>}</span><span class=s2>=</span><span class=si>{</span><span class=n>root_power</span><span class=si>}</span><span class=s2> > </span><span class=si>{</span><span class=n>value</span><span class=si>}</span><span class=s2>?"</span><span class=p>)</span>
+
+    <span class=c1># from now on, root may be either and int or (more likely) a float.</span>
+    <span class=n>root</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>int_root</span>
+    <span class=k>try</span><span class=p>:</span>
+        <span class=n>rest</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>try_int_div</span><span class=p>(</span><span class=n>value</span><span class=p>,</span> <span class=n>root_power</span><span class=p>)</span>
+        <span class=n>rest_root</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>__try_int</span><span class=p>(</span><span class=n>rest</span> <span class=o>**</span> <span class=p>(</span><span class=mf>1.0</span> <span class=o>/</span> <span class=n>power</span><span class=p>))</span>
+        <span class=n>root</span> <span class=o>=</span> <span class=n>__try_int</span><span class=p>(</span><span class=n>root</span> <span class=o>*</span> <span class=n>rest_root</span><span class=p>)</span>
+    <span class=k>except</span> <span class=ne>OverflowError</span><span class=p>:</span>  <span class=c1># as ofe:</span>
+        <span class=k>if</span> <span class=n>none_on_overflow</span><span class=p>:</span>
+            <span class=k>return</span> <span class=kc>None</span>
+        <span class=k>raise</span>  <span class=c1># raises ofe again</span>
+
+    <span class=c1># OK, we got an approximate root of what remains of value.</span>
+    <span class=c1># Let's see if we can refine it.</span>
+    <span class=k>with</span> <span class=n>contextlib</span><span class=o>.</span><span class=n>suppress</span><span class=p>(</span><span class=ne>OverflowError</span><span class=p>):</span>
+        <span class=n>diff</span> <span class=o>=</span> <span class=nb>abs</span><span class=p>((</span><span class=n>root</span> <span class=o>**</span> <span class=n>power</span><span class=p>)</span> <span class=o>-</span> <span class=n>value</span><span class=p>)</span>
+        <span class=n>root2</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>__try_int</span><span class=p>(</span><span class=n>exp</span><span class=p>(</span><span class=n>log</span><span class=p>(</span><span class=n>value</span><span class=p>)</span> <span class=o>/</span> <span class=n>root</span><span class=p>))</span>
+        <span class=n>diff2</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=nb>abs</span><span class=p>((</span><span class=n>root2</span> <span class=o>**</span> <span class=n>power</span><span class=p>)</span> <span class=o>-</span> <span class=n>value</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>diff2</span> <span class=o><</span> <span class=n>diff</span><span class=p>:</span>
+            <span class=n>diff</span> <span class=o>=</span> <span class=n>diff2</span>
+            <span class=n>root</span> <span class=o>=</span> <span class=n>root2</span>
+        <span class=n>root2</span> <span class=o>=</span> <span class=n>__try_int</span><span class=p>(</span><span class=mi>2</span> <span class=o>**</span> <span class=p>(</span><span class=n>log2</span><span class=p>(</span><span class=n>value</span><span class=p>)</span> <span class=o>/</span> <span class=n>root</span><span class=p>))</span>
+        <span class=n>diff2</span> <span class=o>=</span> <span class=nb>abs</span><span class=p>((</span><span class=n>root2</span> <span class=o>**</span> <span class=n>power</span><span class=p>)</span> <span class=o>-</span> <span class=n>value</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>diff2</span> <span class=o><</span> <span class=n>diff</span><span class=p>:</span>
+            <span class=n>diff</span> <span class=o>=</span> <span class=n>diff2</span>
+            <span class=n>root</span> <span class=o>=</span> <span class=n>root2</span>
+
+        <span class=n>rdn</span> <span class=o>=</span> <span class=n>root</span>
+        <span class=n>rup</span> <span class=o>=</span> <span class=n>root</span>
+        <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+            <span class=n>rdn</span> <span class=o>=</span> <span class=n>nextafter</span><span class=p>(</span><span class=n>rdn</span><span class=p>,</span> <span class=o>-</span><span class=n>inf</span><span class=p>)</span>
+            <span class=n>apd</span> <span class=o>=</span> <span class=nb>abs</span><span class=p>((</span><span class=n>rdn</span> <span class=o>**</span> <span class=n>power</span><span class=p>)</span> <span class=o>-</span> <span class=n>value</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>apd</span> <span class=o>></span> <span class=n>diff</span><span class=p>:</span>
+                <span class=k>break</span>
+            <span class=n>diff</span> <span class=o>=</span> <span class=n>apd</span>
+            <span class=n>root</span> <span class=o>=</span> <span class=n>rdn</span>
+        <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+            <span class=n>rup</span> <span class=o>=</span> <span class=n>nextafter</span><span class=p>(</span><span class=n>rup</span><span class=p>,</span> <span class=n>inf</span><span class=p>)</span>
+            <span class=n>apd</span> <span class=o>=</span> <span class=nb>abs</span><span class=p>((</span><span class=n>rup</span> <span class=o>**</span> <span class=n>power</span><span class=p>)</span> <span class=o>-</span> <span class=n>value</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>apd</span> <span class=o>></span> <span class=n>diff</span><span class=p>:</span>
+                <span class=k>break</span>
+            <span class=n>diff</span> <span class=o>=</span> <span class=n>apd</span>
+            <span class=n>root</span> <span class=o>=</span> <span class=n>rup</span>
+
+    <span class=k>return</span> <span class=n>root_base</span> <span class=o>*</span> <span class=n>__try_int</span><span class=p>(</span><span class=n>root</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.math</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

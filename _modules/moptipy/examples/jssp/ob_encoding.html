@@ -1,0 +1,179 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.jssp.ob_encoding — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/jssp/ob_encoding.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.ob_encoding</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.jssp.ob_encoding</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>An implementation of the operation-based encoding for JSSPs.</span>
+
+<span class=sd>1. Mitsuo Gen, Yasuhiro Tsujimura, and Erika Kubota. Solving Job-Shop</span>
+<span class=sd>   Scheduling Problems by Genetic Algorithm. In *Humans, Information and</span>
+<span class=sd>   Technology: Proceedings of the 1994 IEEE International Conference on</span>
+<span class=sd>   Systems, Man and Cybernetics,* October 2-5, 1994, San Antonio, TX, USA,</span>
+<span class=sd>   volume 2. Piscataway, NJ, USA: IEEE. ISBN: 0-7803-2129-4.</span>
+<span class=sd>   doi: https://doi.org/10.1109/ICSMC.1994.400072.</span>
+<span class=sd>   http://read.pudn.com/downloads151/doc/658565/00400072.pdf.</span>
+<span class=sd>2. Christian Bierwirth. A Generalized Permutation Approach to Job Shop</span>
+<span class=sd>   Scheduling with Genetic Algorithms. *Operations-Research-Spektrum</span>
+<span class=sd>   (OR Spectrum)*, 17(2-3):87-92, June 1995.</span>
+<span class=sd>   doi: https://doi.org/10.1007/BF01719250.</span>
+<span class=sd>   https://www.researchgate.net/publication/240263036.</span>
+<span class=sd>3. Christian Bierwirth, Dirk C. Mattfeld, and Herbert Kopfer. On Permutation</span>
+<span class=sd>   Representations for Scheduling Problems. In Hans-Michael Voigt, Werner</span>
+<span class=sd>   Ebeling, Ingo Rechenberg, and Hans-Paul Schwefel, editors, *Proceedings of</span>
+<span class=sd>   the 4th International Conference on Parallel Problem Solving from Nature</span>
+<span class=sd>   (PPSN IV),* September 22-24, 1996, Berlin, Germany, pages 310-318.</span>
+<span class=sd>   Volume 1141/1996 of Lecture Notes in Computer Science (LNCS), Berlin,</span>
+<span class=sd>   Germany: Springer-Verlag GmbH. ISBN: 3-540-61723-X.</span>
+<span class=sd>   doi: https://doi.org/10.1007/3-540-61723-X_995.</span>
+<span class=sd>   https://www.researchgate.net/publication/2753293.</span>
+<span class=sd>4. Guoyong Shi, Hitoshi Iima, and Nobuo Sannomiya. New Encoding Scheme for</span>
+<span class=sd>   Solving Job Shop Problems by Genetic Algorithm. In *Proceedings of the 35th</span>
+<span class=sd>   IEEE Conference on Decision and Control (CDC'96),* December 11-13, 1996,</span>
+<span class=sd>   Kobe, Japan, volume 4, pages 4395-4400. Piscataway, NJ, USA: IEEE.</span>
+<span class=sd>   ISBN: 0-7803-3590-2. doi: https://doi.org/10.1109/CDC.1996.577484.</span>
+<span class=sd>   https://www.researchgate.net/publication/224238934.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.encoding</span><span class=w> </span><span class=kn>import</span> <span class=n>Encoding</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.instance</span><span class=w> </span><span class=kn>import</span> <span class=n>Instance</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>KEY_NUMPY_TYPE</span><span class=p>,</span>
+    <span class=n>int_range_to_dtype</span><span class=p>,</span>
+    <span class=n>numpy_type_to_str</span><span class=p>,</span>
+<span class=p>)</span>
+
+<span class=c1>#: the numpy data type for machine indices</span>
+<span class=n>KEY_NUMPY_TYPE_MACHINE_IDX</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_NUMPY_TYPE</span><span class=si>}</span><span class=s2>MachineIdx"</span>
+<span class=c1>#: the numpy data type for job indices</span>
+<span class=n>KEY_NUMPY_TYPE_JOB_IDX</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_NUMPY_TYPE</span><span class=si>}</span><span class=s2>JobIdx"</span>
+<span class=c1>#: the numpy data type for job times</span>
+<span class=n>KEY_NUMPY_TYPE_JOB_TIME</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_NUMPY_TYPE</span><span class=si>}</span><span class=s2>JobTime"</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=decode>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.ob_encoding.decode>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>decode</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>machine_idx</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+           <span class=n>job_time</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>job_idx</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+           <span class=n>instance</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>y</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Map an operation-based encoded array to a Gantt chart.</span>
+
+<span class=sd>    :param x: the source array, i.e., multi-permutation</span>
+<span class=sd>    :param machine_idx: array of length `m` for machine indices</span>
+<span class=sd>    :param job_time: array of length `n` for job times</span>
+<span class=sd>    :param job_idx: length `n` array of current job operations</span>
+<span class=sd>    :param instance: the instance data matrix</span>
+<span class=sd>    :param y: the output array, i.e., the Gantt chart</span>
+<span class=sd>    """</span>
+    <span class=n>machine_idx</span><span class=o>.</span><span class=n>fill</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>  <span class=c1># all machines start by having done no jobs</span>
+    <span class=n>job_time</span><span class=o>.</span><span class=n>fill</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>  <span class=c1># each job has initially consumed 0 time units</span>
+    <span class=n>job_idx</span><span class=o>.</span><span class=n>fill</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>  <span class=c1># each job starts at its first operation</span>
+
+    <span class=k>for</span> <span class=n>job</span> <span class=ow>in</span> <span class=n>x</span><span class=p>:</span>  <span class=c1># iterate over multi-permutation</span>
+        <span class=n>idx</span> <span class=o>=</span> <span class=n>job_idx</span><span class=p>[</span><span class=n>job</span><span class=p>]</span>  <span class=c1># get the current operation of the job</span>
+        <span class=n>job_idx</span><span class=p>[</span><span class=n>job</span><span class=p>]</span> <span class=o>=</span> <span class=n>idx</span> <span class=o>+</span> <span class=mi>1</span>  <span class=c1># and step it to the next operation</span>
+        <span class=n>machine</span> <span class=o>=</span> <span class=n>instance</span><span class=p>[</span><span class=n>job</span><span class=p>,</span> <span class=n>idx</span><span class=p>,</span> <span class=mi>0</span><span class=p>]</span>  <span class=c1># get the machine id</span>
+        <span class=n>start</span> <span class=o>=</span> <span class=n>job_time</span><span class=p>[</span><span class=n>job</span><span class=p>]</span>  <span class=c1># end time of previous operation of job</span>
+        <span class=n>mi</span> <span class=o>=</span> <span class=n>machine_idx</span><span class=p>[</span><span class=n>machine</span><span class=p>]</span>  <span class=c1># get jobs finished on machine - 1</span>
+        <span class=k>if</span> <span class=n>mi</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>:</span>  <span class=c1># we already have one job done?</span>
+            <span class=n>start</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>start</span><span class=p>,</span> <span class=n>y</span><span class=p>[</span><span class=n>machine</span><span class=p>,</span> <span class=n>mi</span><span class=p>,</span> <span class=mi>2</span><span class=p>])</span>  <span class=c1># earliest start</span>
+        <span class=n>mi</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># step the machine index</span>
+        <span class=n>machine_idx</span><span class=p>[</span><span class=n>machine</span><span class=p>]</span> <span class=o>=</span> <span class=n>mi</span>  <span class=c1># step the machine index</span>
+        <span class=n>end</span> <span class=o>=</span> <span class=n>start</span> <span class=o>+</span> <span class=n>instance</span><span class=p>[</span><span class=n>job</span><span class=p>,</span> <span class=n>idx</span><span class=p>,</span> <span class=mi>1</span><span class=p>]</span>  <span class=c1># compute end time</span>
+        <span class=n>y</span><span class=p>[</span><span class=n>machine</span><span class=p>,</span> <span class=n>mi</span><span class=p>,</span> <span class=mi>0</span><span class=p>]</span> <span class=o>=</span> <span class=n>job</span>  <span class=c1># store job index</span>
+        <span class=n>y</span><span class=p>[</span><span class=n>machine</span><span class=p>,</span> <span class=n>mi</span><span class=p>,</span> <span class=mi>1</span><span class=p>]</span> <span class=o>=</span> <span class=n>start</span>  <span class=c1># store start of job's operation</span>
+        <span class=n>y</span><span class=p>[</span><span class=n>machine</span><span class=p>,</span> <span class=n>mi</span><span class=p>,</span> <span class=mi>2</span><span class=p>]</span> <span class=o>=</span> <span class=n>end</span>  <span class=c1># store end of job's operation</span>
+        <span class=n>job_time</span><span class=p>[</span><span class=n>job</span><span class=p>]</span> <span class=o>=</span> <span class=n>end</span>  <span class=c1># time next operation of job can start</span></div>
+
+    <span class=c1># end book</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=OperationBasedEncoding>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.ob_encoding.OperationBasedEncoding>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>OperationBasedEncoding</span><span class=p>(</span><span class=n>Encoding</span><span class=p>):</span>
+    <span class=c1># reusable variables __machine_time, __job_time, and __job_idx are</span>
+    <span class=c1># allocated in __init__; __matrix refers to instance data matrix</span>
+    <span class=c1># end book</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    An operation-based encoding for the Job Shop Scheduling Problem (JSSP).</span>
+
+<span class=sd>    The operation-based encoding for the Job Shop Scheduling Problem (JSSP)</span>
+<span class=sd>    maps permutations with repetitions to Gantt charts.</span>
+<span class=sd>    In the operation-based encoding, the search space consists of permutations</span>
+<span class=sd>    with repetitions of length `n*m`, where `n` is the number of jobs in the</span>
+<span class=sd>    JSSP instance and `m` is the number of machines.</span>
+<span class=sd>    In such a permutation with repetitions, each of the job ids from `0..n-1`</span>
+<span class=sd>    occurs exactly `m` times.</span>
+<span class=sd>    In the encoding, the permutations are processed from beginning to end and</span>
+<span class=sd>    the jobs are assigned to machines in exactly the order in which they are</span>
+<span class=sd>    encountered. If a job is encountered for the first time, we place its</span>
+<span class=sd>    first operation onto the corresponding machine. If we encounter it for the</span>
+<span class=sd>    second time, its second operation is placed on its corresponding machine,</span>
+<span class=sd>    and so on.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>instance</span><span class=p>:</span> <span class=n>Instance</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Instantiate the operation based encoding.</span>
+
+<span class=sd>        :param instance: the JSSP instance</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=n>Instance</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=s2>"instance"</span><span class=p>,</span> <span class=n>Instance</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__machine_idx</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> \
+            <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>instance</span><span class=o>.</span><span class=n>machines</span><span class=p>,</span>
+                     <span class=n>int_range_to_dtype</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=n>instance</span><span class=o>.</span><span class=n>jobs</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__job_time</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> \
+            <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>instance</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span>
+                     <span class=n>int_range_to_dtype</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>instance</span><span class=o>.</span><span class=n>makespan_upper_bound</span><span class=p>))</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__job_idx</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> \
+            <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>instance</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span>
+                     <span class=n>int_range_to_dtype</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>instance</span><span class=o>.</span><span class=n>machines</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__instance</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Instance</span><span class=p>]</span> <span class=o>=</span> <span class=n>instance</span>
+
+<div class=viewcode-block id=OperationBasedEncoding.decode>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.ob_encoding.OperationBasedEncoding.decode>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>decode</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>y</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Map an operation-based encoded array to a Gantt chart.</span>
+
+<span class=sd>        :param x: the array</span>
+<span class=sd>        :param y: the Gantt chart</span>
+<span class=sd>        """</span>
+        <span class=n>decode</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__machine_idx</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__job_time</span><span class=p>,</span>  <span class=c1># +book</span>
+               <span class=bp>self</span><span class=o>.</span><span class=n>__job_idx</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__instance</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span>  <span class=c1># +book</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this encoding.</span>
+
+<span class=sd>        :return: `"operation_based_encoding"`</span>
+<span class=sd>        :rtype: str</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"operation_based_encoding"</span>
+
+<div class=viewcode-block id=OperationBasedEncoding.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.ob_encoding.OperationBasedEncoding.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log all parameters of this component as key-value pairs.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_NUMPY_TYPE_MACHINE_IDX</span><span class=p>,</span>
+                         <span class=n>numpy_type_to_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__machine_idx</span><span class=o>.</span><span class=n>dtype</span><span class=p>))</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_NUMPY_TYPE_JOB_IDX</span><span class=p>,</span>
+                         <span class=n>numpy_type_to_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__job_idx</span><span class=o>.</span><span class=n>dtype</span><span class=p>))</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_NUMPY_TYPE_JOB_TIME</span><span class=p>,</span>
+                         <span class=n>numpy_type_to_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__job_time</span><span class=o>.</span><span class=n>dtype</span><span class=p>))</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.ob_encoding</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

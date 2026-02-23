@@ -1,0 +1,654 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.tests.on_bitstrings — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/tests/on_bitstrings.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.on_bitstrings</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.tests.on_bitstrings</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Test stuff on bit strings."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>default_rng</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span><span class=p>,</span> <span class=n>type_name_of</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.fitness</span><span class=w> </span><span class=kn>import</span> <span class=n>Fitness</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm</span><span class=p>,</span> <span class=n>check_algorithm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.execution</span><span class=w> </span><span class=kn>import</span> <span class=n>Execution</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>MOAlgorithm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>MOProblem</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>Objective</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>Op1</span><span class=p>,</span> <span class=n>Op1WithStepSize</span><span class=p>,</span> <span class=n>Op2</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.ising1d</span><span class=w> </span><span class=kn>import</span> <span class=n>Ising1d</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.leadingones</span><span class=w> </span><span class=kn>import</span> <span class=n>LeadingOnes</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.onemax</span><span class=w> </span><span class=kn>import</span> <span class=n>OneMax</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.zeromax</span><span class=w> </span><span class=kn>import</span> <span class=n>ZeroMax</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.mo.problem.weighted_sum</span><span class=w> </span><span class=kn>import</span> <span class=n>WeightedSum</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.operators.bitstrings.op0_random</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0Random</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.bitstrings</span><span class=w> </span><span class=kn>import</span> <span class=n>BitStrings</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_algorithm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.fitness</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_fitness</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.mo_algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_mo_algorithm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.op0</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_op0</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.op1</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_op1</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.op1_with_step_size</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_op1_with_step_size</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.op2</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_op2</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>array_to_str</span>
+
+
+<div class=viewcode-block id=dimensions_for_tests>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.dimensions_for_tests>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>dimensions_for_tests</span><span class=p>()</span> <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get a sequence of dimensions for tests.</span>
+
+<span class=sd>    :returns: the sequence of integers</span>
+<span class=sd>    """</span>
+    <span class=n>r</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>()</span>
+    <span class=n>bs</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=mi>5</span><span class=p>,</span> <span class=mi>10</span><span class=p>,</span> <span class=mi>16</span><span class=p>,</span> <span class=mi>100</span><span class=p>,</span>
+                     <span class=nb>int</span><span class=p>(</span><span class=n>r</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>20</span><span class=p>,</span> <span class=mi>50</span><span class=p>)),</span> <span class=nb>int</span><span class=p>(</span><span class=n>r</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>200</span><span class=p>,</span> <span class=mi>300</span><span class=p>))]</span>
+    <span class=n>r</span><span class=o>.</span><span class=n>shuffle</span><span class=p>(</span><span class=n>cast</span><span class=p>(</span><span class=s2>"list"</span><span class=p>,</span> <span class=n>bs</span><span class=p>))</span>
+    <span class=k>return</span> <span class=n>bs</span></div>
+
+
+
+<div class=viewcode-block id=bitstrings_for_tests>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.bitstrings_for_tests>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>bitstrings_for_tests</span><span class=p>()</span> <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=n>BitStrings</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get a sequence of bit strings for tests.</span>
+
+<span class=sd>    :returns: the sequence of BitStrings</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=p>[</span><span class=n>BitStrings</span><span class=p>(</span><span class=n>i</span><span class=p>)</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>dimensions_for_tests</span><span class=p>()]</span></div>
+
+
+
+<div class=viewcode-block id=random_bit_string>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.random_bit_string>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>random_bit_string</span><span class=p>(</span><span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Randomize a bit string.</span>
+
+<span class=sd>    :param random: the random number generator</span>
+<span class=sd>    :param x: the bit string</span>
+<span class=sd>    :returns: the array</span>
+<span class=sd>    """</span>
+    <span class=n>ri</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=p>)):</span>  <span class=c1># pylint: disable=C0200</span>
+        <span class=n>x</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>ri</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span>
+    <span class=k>return</span> <span class=n>x</span></div>
+
+
+
+<div class=viewcode-block id=validate_op0_on_1_bitstrings>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.validate_op0_on_1_bitstrings>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_op0_on_1_bitstrings</span><span class=p>(</span>
+        <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>BitStrings</span><span class=p>],</span> <span class=n>Op0</span><span class=p>],</span>
+        <span class=n>search_space</span><span class=p>:</span> <span class=n>BitStrings</span><span class=p>,</span>
+        <span class=n>number_of_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>min_unique_samples</span><span class=p>:</span>
+        <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>,</span> <span class=n>BitStrings</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span>
+        <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Validate the unary operator on one bit strings instance.</span>
+
+<span class=sd>    :param op0: the operator or operator factory</span>
+<span class=sd>    :param search_space: the search space</span>
+<span class=sd>    :param number_of_samples: the optional number of samples</span>
+<span class=sd>    :param min_unique_samples: the optional unique samples</span>
+<span class=sd>    """</span>
+    <span class=n>args</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=p>{</span>
+        <span class=s2>"op0"</span><span class=p>:</span> <span class=n>op0</span><span class=p>(</span><span class=n>search_space</span><span class=p>)</span> <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>op0</span><span class=p>)</span> <span class=k>else</span> <span class=n>op0</span><span class=p>,</span>
+        <span class=s2>"search_space"</span><span class=p>:</span> <span class=n>search_space</span><span class=p>,</span>
+        <span class=s2>"make_search_space_element_valid"</span><span class=p>:</span> <span class=n>random_bit_string</span><span class=p>,</span>
+    <span class=p>}</span>
+    <span class=k>if</span> <span class=n>number_of_samples</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>args</span><span class=p>[</span><span class=s2>"number_of_samples"</span><span class=p>]</span> <span class=o>=</span> <span class=n>number_of_samples</span>
+    <span class=k>if</span> <span class=n>min_unique_samples</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>args</span><span class=p>[</span><span class=s2>"min_unique_samples"</span><span class=p>]</span> <span class=o>=</span> <span class=n>min_unique_samples</span>
+    <span class=n>validate_op0</span><span class=p>(</span><span class=o>**</span><span class=n>args</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_op0_on_bitstrings>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.validate_op0_on_bitstrings>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_op0_on_bitstrings</span><span class=p>(</span>
+        <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>BitStrings</span><span class=p>],</span> <span class=n>Op0</span><span class=p>],</span>
+        <span class=n>number_of_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>min_unique_samples</span><span class=p>:</span>
+        <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>,</span> <span class=n>BitStrings</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span>
+        <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Validate the unary operator on several BitStrings instances.</span>
+
+<span class=sd>    :param op0: the operator or operator factory</span>
+<span class=sd>    :param number_of_samples: the optional number of samples</span>
+<span class=sd>    :param min_unique_samples: the optional unique samples</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>bst</span> <span class=ow>in</span> <span class=n>bitstrings_for_tests</span><span class=p>():</span>
+        <span class=n>validate_op0_on_1_bitstrings</span><span class=p>(</span><span class=n>op0</span><span class=p>,</span> <span class=n>bst</span><span class=p>,</span>
+                                     <span class=n>number_of_samples</span><span class=p>,</span> <span class=n>min_unique_samples</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_op1_on_1_bitstrings>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.validate_op1_on_1_bitstrings>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_op1_on_1_bitstrings</span><span class=p>(</span>
+        <span class=n>op1</span><span class=p>:</span> <span class=n>Op1</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>BitStrings</span><span class=p>],</span> <span class=n>Op1</span><span class=p>],</span>
+        <span class=n>search_space</span><span class=p>:</span> <span class=n>BitStrings</span><span class=p>,</span>
+        <span class=n>number_of_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>min_unique_samples</span><span class=p>:</span>
+        <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>,</span> <span class=n>BitStrings</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span>
+        <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Validate the unary operator on one BitStrings instance.</span>
+
+<span class=sd>    :param op1: the operator or operator factory</span>
+<span class=sd>    :param search_space: the search space</span>
+<span class=sd>    :param number_of_samples: the optional number of samples</span>
+<span class=sd>    :param min_unique_samples: the optional unique samples</span>
+<span class=sd>    """</span>
+    <span class=n>args</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=p>{</span>
+        <span class=s2>"op1"</span><span class=p>:</span> <span class=n>op1</span><span class=p>(</span><span class=n>search_space</span><span class=p>)</span> <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>op1</span><span class=p>)</span> <span class=k>else</span> <span class=n>op1</span><span class=p>,</span>
+        <span class=s2>"search_space"</span><span class=p>:</span> <span class=n>search_space</span><span class=p>,</span>
+        <span class=s2>"make_search_space_element_valid"</span><span class=p>:</span> <span class=n>random_bit_string</span><span class=p>,</span>
+    <span class=p>}</span>
+    <span class=k>if</span> <span class=n>number_of_samples</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>args</span><span class=p>[</span><span class=s2>"number_of_samples"</span><span class=p>]</span> <span class=o>=</span> <span class=n>number_of_samples</span>
+    <span class=k>if</span> <span class=n>min_unique_samples</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>args</span><span class=p>[</span><span class=s2>"min_unique_samples"</span><span class=p>]</span> <span class=o>=</span> <span class=n>min_unique_samples</span>
+    <span class=n>validate_op1</span><span class=p>(</span><span class=o>**</span><span class=n>args</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_op1_on_bitstrings>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.validate_op1_on_bitstrings>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_op1_on_bitstrings</span><span class=p>(</span>
+        <span class=n>op1</span><span class=p>:</span> <span class=n>Op1</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>BitStrings</span><span class=p>],</span> <span class=n>Op1</span><span class=p>],</span>
+        <span class=n>number_of_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>min_unique_samples</span><span class=p>:</span>
+        <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>,</span> <span class=n>BitStrings</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span>
+        <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Validate the unary operator on several BitStrings instances.</span>
+
+<span class=sd>    :param op1: the operator or operator factory</span>
+<span class=sd>    :param number_of_samples: the optional number of samples</span>
+<span class=sd>    :param min_unique_samples: the optional unique samples</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>bst</span> <span class=ow>in</span> <span class=n>bitstrings_for_tests</span><span class=p>():</span>
+        <span class=n>validate_op1_on_1_bitstrings</span><span class=p>(</span><span class=n>op1</span><span class=p>,</span> <span class=n>bst</span><span class=p>,</span>
+                                     <span class=n>number_of_samples</span><span class=p>,</span> <span class=n>min_unique_samples</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_op1_with_step_size_on_1_bitstrings>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.validate_op1_with_step_size_on_1_bitstrings>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_op1_with_step_size_on_1_bitstrings</span><span class=p>(</span>
+        <span class=n>op1</span><span class=p>:</span> <span class=n>Op1WithStepSize</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>BitStrings</span><span class=p>],</span> <span class=n>Op1WithStepSize</span><span class=p>],</span>
+        <span class=n>search_space</span><span class=p>:</span> <span class=n>BitStrings</span><span class=p>,</span>
+        <span class=n>number_of_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>min_unique_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span>
+            <span class=nb>int</span><span class=p>,</span> <span class=n>BitStrings</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>step_sizes</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=n>BitStrings</span><span class=p>],</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(),</span>
+        <span class=n>get_step_size</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span>
+            <span class=n>BitStrings</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+        <span class=p>],</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Validate the step-sized unary operator on one `BitStrings` instance.</span>
+
+<span class=sd>    :param op1: the operator or operator factory</span>
+<span class=sd>    :param search_space: the search space</span>
+<span class=sd>    :param number_of_samples: the optional number of samples</span>
+<span class=sd>    :param min_unique_samples: the optional unique samples</span>
+<span class=sd>    :param step_sizes: the step sizes to test</span>
+<span class=sd>    :param get_step_size: try to get the step size from two space elements</span>
+<span class=sd>    """</span>
+    <span class=n>args</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=p>{</span>
+        <span class=s2>"op1"</span><span class=p>:</span> <span class=n>op1</span><span class=p>(</span><span class=n>search_space</span><span class=p>)</span> <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>op1</span><span class=p>)</span> <span class=k>else</span> <span class=n>op1</span><span class=p>,</span>
+        <span class=s2>"search_space"</span><span class=p>:</span> <span class=n>search_space</span><span class=p>,</span>
+        <span class=s2>"make_search_space_element_valid"</span><span class=p>:</span> <span class=n>random_bit_string</span><span class=p>,</span>
+        <span class=s2>"step_sizes"</span><span class=p>:</span> <span class=n>step_sizes</span><span class=p>(</span><span class=n>search_space</span><span class=p>)</span> <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>step_sizes</span><span class=p>)</span>
+        <span class=k>else</span> <span class=n>step_sizes</span><span class=p>,</span>
+        <span class=s2>"get_step_size"</span><span class=p>:</span> <span class=n>get_step_size</span><span class=p>,</span>
+    <span class=p>}</span>
+    <span class=k>if</span> <span class=n>number_of_samples</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>args</span><span class=p>[</span><span class=s2>"number_of_samples"</span><span class=p>]</span> <span class=o>=</span> <span class=n>number_of_samples</span>
+    <span class=k>if</span> <span class=n>min_unique_samples</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>args</span><span class=p>[</span><span class=s2>"min_unique_samples"</span><span class=p>]</span> <span class=o>=</span> <span class=n>min_unique_samples</span>
+    <span class=n>validate_op1_with_step_size</span><span class=p>(</span><span class=o>**</span><span class=n>args</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_op1_with_step_size_on_bitstrings>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.validate_op1_with_step_size_on_bitstrings>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_op1_with_step_size_on_bitstrings</span><span class=p>(</span>
+        <span class=n>op1</span><span class=p>:</span> <span class=n>Op1WithStepSize</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>BitStrings</span><span class=p>],</span> <span class=n>Op1WithStepSize</span><span class=p>],</span>
+        <span class=n>number_of_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>min_unique_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span>
+            <span class=nb>int</span><span class=p>,</span> <span class=n>BitStrings</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>step_sizes</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=n>BitStrings</span><span class=p>],</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(),</span>
+        <span class=n>get_step_size</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span>
+            <span class=n>BitStrings</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+        <span class=p>],</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Validate the unary operator on several `BitStrings` instances.</span>
+
+<span class=sd>    :param op1: the operator or operator factory</span>
+<span class=sd>    :param number_of_samples: the optional number of samples</span>
+<span class=sd>    :param min_unique_samples: the optional unique samples</span>
+<span class=sd>    :param step_sizes: the step sizes to test</span>
+<span class=sd>    :param get_step_size: try to get the step size from two space elements</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>bs</span> <span class=ow>in</span> <span class=n>bitstrings_for_tests</span><span class=p>():</span>
+        <span class=n>validate_op1_with_step_size_on_1_bitstrings</span><span class=p>(</span>
+            <span class=n>op1</span><span class=p>,</span> <span class=n>bs</span><span class=p>,</span> <span class=n>number_of_samples</span><span class=p>,</span> <span class=n>min_unique_samples</span><span class=p>,</span> <span class=n>step_sizes</span><span class=p>,</span>
+            <span class=n>get_step_size</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_op2_on_1_bitstrings>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.validate_op2_on_1_bitstrings>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_op2_on_1_bitstrings</span><span class=p>(</span>
+        <span class=n>op2</span><span class=p>:</span> <span class=n>Op2</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>BitStrings</span><span class=p>],</span> <span class=n>Op2</span><span class=p>],</span>
+        <span class=n>search_space</span><span class=p>:</span> <span class=n>BitStrings</span><span class=p>,</span>
+        <span class=n>number_of_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>min_unique_samples</span><span class=p>:</span>
+        <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>,</span> <span class=n>BitStrings</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span>
+        <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Validate the binary operator on one BitStrings instance.</span>
+
+<span class=sd>    :param op2: the operator or operator factory</span>
+<span class=sd>    :param search_space: the search space</span>
+<span class=sd>    :param number_of_samples: the optional number of samples</span>
+<span class=sd>    :param min_unique_samples: the optional unique samples</span>
+<span class=sd>    """</span>
+    <span class=n>args</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=p>{</span>
+        <span class=s2>"op2"</span><span class=p>:</span> <span class=n>op2</span><span class=p>(</span><span class=n>search_space</span><span class=p>)</span> <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>op2</span><span class=p>)</span> <span class=k>else</span> <span class=n>op2</span><span class=p>,</span>
+        <span class=s2>"search_space"</span><span class=p>:</span> <span class=n>search_space</span><span class=p>,</span>
+        <span class=s2>"make_search_space_element_valid"</span><span class=p>:</span> <span class=n>random_bit_string</span><span class=p>,</span>
+    <span class=p>}</span>
+    <span class=k>if</span> <span class=n>number_of_samples</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>args</span><span class=p>[</span><span class=s2>"number_of_samples"</span><span class=p>]</span> <span class=o>=</span> <span class=n>number_of_samples</span>
+    <span class=k>if</span> <span class=n>min_unique_samples</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>args</span><span class=p>[</span><span class=s2>"min_unique_samples"</span><span class=p>]</span> <span class=o>=</span> <span class=n>min_unique_samples</span>
+    <span class=n>validate_op2</span><span class=p>(</span><span class=o>**</span><span class=n>args</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_op2_on_bitstrings>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.validate_op2_on_bitstrings>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_op2_on_bitstrings</span><span class=p>(</span>
+        <span class=n>op2</span><span class=p>:</span> <span class=n>Op2</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>BitStrings</span><span class=p>],</span> <span class=n>Op2</span><span class=p>],</span>
+        <span class=n>number_of_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>min_unique_samples</span><span class=p>:</span>
+        <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>,</span> <span class=n>BitStrings</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span>
+        <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Validate the binary operator on several BitStrings instances.</span>
+
+<span class=sd>    :param op2: the operator or operator factory</span>
+<span class=sd>    :param number_of_samples: the optional number of samples</span>
+<span class=sd>    :param min_unique_samples: the optional unique samples</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>bst</span> <span class=ow>in</span> <span class=n>bitstrings_for_tests</span><span class=p>():</span>
+        <span class=n>validate_op2_on_1_bitstrings</span><span class=p>(</span><span class=n>op2</span><span class=p>,</span> <span class=n>bst</span><span class=p>,</span>
+                                     <span class=n>number_of_samples</span><span class=p>,</span> <span class=n>min_unique_samples</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_algorithm_on_bitstrings>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.validate_algorithm_on_bitstrings>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_algorithm_on_bitstrings</span><span class=p>(</span>
+        <span class=n>objective</span><span class=p>:</span> <span class=n>Objective</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>],</span> <span class=n>Objective</span><span class=p>],</span>
+        <span class=n>algorithm</span><span class=p>:</span> <span class=n>Algorithm</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=n>BitStrings</span><span class=p>,</span> <span class=n>Objective</span><span class=p>],</span> <span class=n>Algorithm</span><span class=p>],</span>
+        <span class=n>dimension</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>5</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>100</span><span class=p>,</span>
+        <span class=n>required_result</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>uses_all_fes_if_goal_not_reached</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+        <span class=n>post</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Algorithm</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check the validity of a black-box algorithm on a bit strings problem.</span>
+
+<span class=sd>    :param algorithm: the algorithm or algorithm factory</span>
+<span class=sd>    :param objective: the objective function or function factory</span>
+<span class=sd>    :param dimension: the dimension of the problem</span>
+<span class=sd>    :param max_fes: the maximum number of FEs</span>
+<span class=sd>    :param required_result: the optional required result quality</span>
+<span class=sd>    :param uses_all_fes_if_goal_not_reached: will the algorithm use all FEs</span>
+<span class=sd>        unless it reaches the goal?</span>
+<span class=sd>    :param post: a check to run after each execution of the algorithm,</span>
+<span class=sd>        receiving the algorithm and the number of consumed FEs as parameter</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>)</span> <span class=ow>or</span> <span class=nb>callable</span><span class=p>(</span><span class=n>algorithm</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=s2>"algorithm"</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=nb>isinstance</span><span class=p>(</span><span class=n>objective</span><span class=p>,</span> <span class=n>Objective</span><span class=p>)</span> <span class=ow>or</span> <span class=nb>callable</span><span class=p>(</span><span class=n>objective</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>objective</span><span class=p>,</span> <span class=s2>"objective"</span><span class=p>,</span> <span class=n>Objective</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>dimension</span><span class=p>,</span> <span class=s2>"dimension"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>post</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>post</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>post</span><span class=p>,</span> <span class=s2>"post"</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>objective</span><span class=p>):</span>
+        <span class=n>objective</span> <span class=o>=</span> <span class=n>objective</span><span class=p>(</span><span class=n>dimension</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>objective</span><span class=p>,</span> <span class=n>Objective</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>objective</span><span class=p>,</span> <span class=s2>"result of callable 'objective'"</span><span class=p>,</span>
+                         <span class=n>Objective</span><span class=p>)</span>
+    <span class=n>bs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>BitStrings</span><span class=p>]</span> <span class=o>=</span> <span class=n>BitStrings</span><span class=p>(</span><span class=n>dimension</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>algorithm</span><span class=p>):</span>
+        <span class=n>algorithm</span> <span class=o>=</span> <span class=n>algorithm</span><span class=p>(</span><span class=n>bs</span><span class=p>,</span> <span class=n>objective</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=s2>"result of callable 'algorithm'"</span><span class=p>,</span>
+                         <span class=n>Algorithm</span><span class=p>)</span>
+
+    <span class=n>goal</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>required_result</span><span class=p>(</span><span class=n>max_fes</span><span class=p>,</span> <span class=n>dimension</span><span class=p>)</span> \
+        <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>required_result</span><span class=p>)</span> <span class=k>else</span> <span class=n>required_result</span>
+
+    <span class=n>validate_algorithm</span><span class=p>(</span>
+        <span class=n>algorithm</span><span class=o>=</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>solution_space</span><span class=o>=</span><span class=n>bs</span><span class=p>,</span> <span class=n>objective</span><span class=o>=</span><span class=n>objective</span><span class=p>,</span>
+        <span class=n>max_fes</span><span class=o>=</span><span class=n>max_fes</span><span class=p>,</span> <span class=n>required_result</span><span class=o>=</span><span class=n>goal</span><span class=p>,</span>
+        <span class=n>uses_all_fes_if_goal_not_reached</span><span class=o>=</span><span class=n>uses_all_fes_if_goal_not_reached</span><span class=p>,</span>
+        <span class=n>post</span><span class=o>=</span><span class=n>post</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_algorithm_on_onemax>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.validate_algorithm_on_onemax>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_algorithm_on_onemax</span><span class=p>(</span>
+        <span class=n>algorithm</span><span class=p>:</span> <span class=n>Algorithm</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=n>BitStrings</span><span class=p>,</span> <span class=n>Objective</span><span class=p>],</span> <span class=n>Algorithm</span><span class=p>],</span>
+        <span class=n>post</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Algorithm</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check the validity of a black-box algorithm on OneMax.</span>
+
+<span class=sd>    :param algorithm: the algorithm or algorithm factory</span>
+<span class=sd>    :param post: a check to run after each execution of the algorithm,</span>
+<span class=sd>        receiving the algorithm and the number of consumed FEs as parameter</span>
+<span class=sd>    """</span>
+    <span class=n>max_fes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>100</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>dimensions_for_tests</span><span class=p>():</span>
+        <span class=n>rr</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span> <span class=k>if</span> <span class=n>i</span> <span class=o><</span> <span class=mi>3</span> <span class=k>else</span> <span class=p>(</span><span class=mi>1</span> <span class=o>+</span> <span class=nb>max</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>i</span> <span class=o>//</span> <span class=mi>2</span><span class=p>,</span> <span class=n>i</span> <span class=o>-</span> <span class=nb>int</span><span class=p>(</span><span class=n>max_fes</span> <span class=o>**</span> <span class=mf>0.5</span><span class=p>)))</span>
+        <span class=n>validate_algorithm_on_bitstrings</span><span class=p>(</span>
+            <span class=n>objective</span><span class=o>=</span><span class=n>OneMax</span><span class=p>,</span>
+            <span class=n>algorithm</span><span class=o>=</span><span class=n>algorithm</span><span class=p>,</span>
+            <span class=n>dimension</span><span class=o>=</span><span class=n>i</span><span class=p>,</span>
+            <span class=n>max_fes</span><span class=o>=</span><span class=n>max_fes</span><span class=p>,</span>
+            <span class=n>required_result</span><span class=o>=</span><span class=n>rr</span><span class=p>,</span>
+            <span class=n>post</span><span class=o>=</span><span class=n>post</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_algorithm_on_leadingones>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.validate_algorithm_on_leadingones>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_algorithm_on_leadingones</span><span class=p>(</span>
+        <span class=n>algorithm</span><span class=p>:</span> <span class=n>Algorithm</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=n>BitStrings</span><span class=p>,</span> <span class=n>Objective</span><span class=p>],</span> <span class=n>Algorithm</span><span class=p>],</span>
+        <span class=n>post</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Algorithm</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check the validity of a black-box algorithm on LeadingOnes.</span>
+
+<span class=sd>    :param algorithm: the algorithm or algorithm factory</span>
+<span class=sd>    :param post: a check to run after each execution of the algorithm,</span>
+<span class=sd>        receiving the algorithm and the number of consumed FEs as parameter</span>
+<span class=sd>    """</span>
+    <span class=n>max_fes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>100</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>dimensions_for_tests</span><span class=p>():</span>
+        <span class=n>rr</span><span class=p>:</span> <span class=nb>int</span>
+        <span class=k>if</span> <span class=n>i</span> <span class=o><</span> <span class=mi>3</span><span class=p>:</span>
+            <span class=n>rr</span> <span class=o>=</span> <span class=mi>1</span>
+        <span class=k>elif</span> <span class=n>max_fes</span> <span class=o>></span> <span class=p>(</span><span class=mi>10</span> <span class=o>*</span> <span class=p>(</span><span class=n>i</span> <span class=o>**</span> <span class=mf>1.5</span><span class=p>)):</span>
+            <span class=n>rr</span> <span class=o>=</span> <span class=n>i</span> <span class=o>-</span> <span class=mi>1</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>rr</span> <span class=o>=</span> <span class=n>i</span>
+        <span class=n>validate_algorithm_on_bitstrings</span><span class=p>(</span>
+            <span class=n>objective</span><span class=o>=</span><span class=n>LeadingOnes</span><span class=p>,</span>
+            <span class=n>algorithm</span><span class=o>=</span><span class=n>algorithm</span><span class=p>,</span>
+            <span class=n>dimension</span><span class=o>=</span><span class=n>i</span><span class=p>,</span>
+            <span class=n>max_fes</span><span class=o>=</span><span class=nb>int</span><span class=p>(</span><span class=mf>1.4</span> <span class=o>*</span> <span class=n>max_fes</span><span class=p>),</span>
+            <span class=n>required_result</span><span class=o>=</span><span class=n>rr</span><span class=p>,</span>
+            <span class=n>post</span><span class=o>=</span><span class=n>post</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_mo_algorithm_on_bitstrings>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.validate_mo_algorithm_on_bitstrings>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_mo_algorithm_on_bitstrings</span><span class=p>(</span>
+        <span class=n>problem</span><span class=p>:</span> <span class=n>MOProblem</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>],</span> <span class=n>MOProblem</span><span class=p>],</span>
+        <span class=n>algorithm</span><span class=p>:</span> <span class=n>MOAlgorithm</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=n>BitStrings</span><span class=p>,</span> <span class=n>MOProblem</span><span class=p>],</span> <span class=n>MOAlgorithm</span><span class=p>],</span>
+        <span class=n>dimension</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>5</span><span class=p>,</span>
+        <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>100</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check a black-box multi-objective algorithm on a bit strings problem.</span>
+
+<span class=sd>    :param algorithm: the algorithm or algorithm factory</span>
+<span class=sd>    :param problem: the multi-objective optimization problem or factory</span>
+<span class=sd>    :param dimension: the dimension of the problem</span>
+<span class=sd>    :param max_fes: the maximum number of FEs</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>MOAlgorithm</span><span class=p>)</span> <span class=ow>or</span> <span class=nb>callable</span><span class=p>(</span><span class=n>algorithm</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=s2>"algorithm"</span><span class=p>,</span> <span class=n>MOAlgorithm</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=nb>isinstance</span><span class=p>(</span><span class=n>problem</span><span class=p>,</span> <span class=n>MOProblem</span><span class=p>)</span> <span class=ow>or</span> <span class=nb>callable</span><span class=p>(</span><span class=n>problem</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>problem</span><span class=p>,</span> <span class=s2>"problem"</span><span class=p>,</span> <span class=n>MOProblem</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>dimension</span><span class=p>,</span> <span class=s2>"dimension"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>problem</span><span class=p>):</span>
+        <span class=n>problem</span> <span class=o>=</span> <span class=n>problem</span><span class=p>(</span><span class=n>dimension</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>problem</span><span class=p>,</span> <span class=n>MOProblem</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>problem</span><span class=p>,</span> <span class=s2>"result of callable 'problem'"</span><span class=p>,</span>
+                         <span class=n>MOProblem</span><span class=p>)</span>
+    <span class=n>bs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>BitStrings</span><span class=p>]</span> <span class=o>=</span> <span class=n>BitStrings</span><span class=p>(</span><span class=n>dimension</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>algorithm</span><span class=p>):</span>
+        <span class=n>algorithm</span> <span class=o>=</span> <span class=n>algorithm</span><span class=p>(</span><span class=n>bs</span><span class=p>,</span> <span class=n>problem</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>MOAlgorithm</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=s2>"result of callable 'algorithm'"</span><span class=p>,</span>
+                         <span class=n>MOAlgorithm</span><span class=p>)</span>
+
+    <span class=n>validate_mo_algorithm</span><span class=p>(</span><span class=n>algorithm</span><span class=o>=</span><span class=n>algorithm</span><span class=p>,</span>
+                          <span class=n>solution_space</span><span class=o>=</span><span class=n>bs</span><span class=p>,</span>
+                          <span class=n>problem</span><span class=o>=</span><span class=n>problem</span><span class=p>,</span>
+                          <span class=n>max_fes</span><span class=o>=</span><span class=n>max_fes</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_mo_algorithm_on_2_bitstring_problems>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.validate_mo_algorithm_on_2_bitstring_problems>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_mo_algorithm_on_2_bitstring_problems</span><span class=p>(</span>
+        <span class=n>algorithm</span><span class=p>:</span> <span class=n>MOAlgorithm</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=n>BitStrings</span><span class=p>,</span> <span class=n>MOProblem</span><span class=p>],</span> <span class=n>MOAlgorithm</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check the validity of a black-box algorithm on OneMax and ZeroMax.</span>
+
+<span class=sd>    :param algorithm: the algorithm or algorithm factory</span>
+<span class=sd>    """</span>
+    <span class=n>max_fes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>100</span>
+    <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>()</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>dimensions_for_tests</span><span class=p>():</span>
+        <span class=n>weights</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=nb>float</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mf>0.01</span><span class=p>,</span> <span class=mi>10</span><span class=p>)),</span>
+                                      <span class=nb>float</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mf>0.01</span><span class=p>,</span> <span class=mi>10</span><span class=p>))]</span> \
+            <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span> <span class=k>else</span> \
+            <span class=p>[</span><span class=mi>1</span> <span class=o>+</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>1</span> <span class=o><<</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>40</span><span class=p>))),</span>
+             <span class=mi>1</span> <span class=o>+</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>1</span> <span class=o><<</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>40</span><span class=p>)))]</span>
+        <span class=n>validate_mo_algorithm_on_bitstrings</span><span class=p>(</span>
+            <span class=n>problem</span><span class=o>=</span><span class=n>WeightedSum</span><span class=p>([</span><span class=n>OneMax</span><span class=p>(</span><span class=n>i</span><span class=p>),</span> <span class=n>ZeroMax</span><span class=p>(</span><span class=n>i</span><span class=p>)],</span> <span class=n>weights</span><span class=p>),</span>
+            <span class=n>algorithm</span><span class=o>=</span><span class=n>algorithm</span><span class=p>,</span>
+            <span class=n>dimension</span><span class=o>=</span><span class=n>i</span><span class=p>,</span>
+            <span class=n>max_fes</span><span class=o>=</span><span class=n>max_fes</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_mo_algorithm_on_3_bitstring_problems>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.validate_mo_algorithm_on_3_bitstring_problems>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_mo_algorithm_on_3_bitstring_problems</span><span class=p>(</span>
+        <span class=n>algorithm</span><span class=p>:</span> <span class=n>MOAlgorithm</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=n>BitStrings</span><span class=p>,</span> <span class=n>MOProblem</span><span class=p>],</span> <span class=n>MOAlgorithm</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check the validity of an algorithm on OneMax, ZeroMax, and Ising1d.</span>
+
+<span class=sd>    :param algorithm: the algorithm or algorithm factory</span>
+<span class=sd>    """</span>
+    <span class=n>max_fes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>100</span>
+    <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>()</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>dimensions_for_tests</span><span class=p>():</span>
+        <span class=n>weights</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=nb>float</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mf>0.01</span><span class=p>,</span> <span class=mi>10</span><span class=p>)),</span>
+                                      <span class=nb>float</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mf>0.01</span><span class=p>,</span> <span class=mi>10</span><span class=p>)),</span>
+                                      <span class=nb>float</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mf>0.01</span><span class=p>,</span> <span class=mi>10</span><span class=p>))]</span> \
+            <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span> <span class=k>else</span> \
+            <span class=p>[</span><span class=mi>1</span> <span class=o>+</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>1</span> <span class=o><<</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>40</span><span class=p>))),</span>
+             <span class=mi>1</span> <span class=o>+</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>1</span> <span class=o><<</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>40</span><span class=p>))),</span>
+             <span class=mi>1</span> <span class=o>+</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>1</span> <span class=o><<</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>40</span><span class=p>)))]</span>
+        <span class=n>validate_mo_algorithm_on_bitstrings</span><span class=p>(</span>
+            <span class=n>problem</span><span class=o>=</span><span class=n>WeightedSum</span><span class=p>([</span><span class=n>OneMax</span><span class=p>(</span><span class=n>i</span><span class=p>),</span> <span class=n>ZeroMax</span><span class=p>(</span><span class=n>i</span><span class=p>),</span> <span class=n>Ising1d</span><span class=p>(</span><span class=n>i</span><span class=p>)],</span>
+                                <span class=n>weights</span><span class=p>),</span>
+            <span class=n>algorithm</span><span class=o>=</span><span class=n>algorithm</span><span class=p>,</span>
+            <span class=n>dimension</span><span class=o>=</span><span class=n>i</span><span class=p>,</span>
+            <span class=n>max_fes</span><span class=o>=</span><span class=n>max_fes</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=verify_algorithms_equivalent>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.verify_algorithms_equivalent>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>verify_algorithms_equivalent</span><span class=p>(</span>
+        <span class=n>algorithms</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>BitStrings</span><span class=p>,</span> <span class=n>Objective</span><span class=p>],</span> <span class=n>Algorithm</span><span class=p>]],</span>
+        <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Verify that a set of algorithms performs identical steps.</span>
+
+<span class=sd>    :param algorithms: the sequence of algorithms</span>
+<span class=sd>    :param max_fes: the maximum number of FEs</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithms</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithms</span><span class=p>,</span> <span class=s2>"algorithms"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>max_fes</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>max_fes</span><span class=p>,</span> <span class=nb>int</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>max_fes</span><span class=p>,</span> <span class=s2>"max_fes"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+
+    <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>()</span>
+    <span class=n>dim</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>4</span><span class=p>,</span> <span class=mi>16</span><span class=p>))</span>
+    <span class=n>space</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>BitStrings</span><span class=p>]</span> <span class=o>=</span> <span class=n>BitStrings</span><span class=p>(</span><span class=n>dim</span><span class=p>)</span>
+    <span class=n>steps</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>100</span><span class=p>,</span> <span class=mi>1000</span><span class=p>))</span> \
+        <span class=k>if</span> <span class=n>max_fes</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>max_fes</span>
+    <span class=k>if</span> <span class=n>steps</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid maximum FEs=</span><span class=si>{</span><span class=n>steps</span><span class=si>}</span><span class=s2> for max_fes=</span><span class=si>{</span><span class=n>max_fes</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+    <span class=n>choice</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>3</span><span class=p>))</span>
+    <span class=n>f</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Objective</span><span class=p>]</span> <span class=o>=</span> \
+        <span class=n>LeadingOnes</span><span class=p>(</span><span class=n>dim</span><span class=p>)</span> <span class=k>if</span> <span class=n>choice</span> <span class=o><=</span> <span class=mi>0</span> <span class=k>else</span> \
+        <span class=n>OneMax</span><span class=p>(</span><span class=n>dim</span><span class=p>)</span> <span class=k>if</span> <span class=n>choice</span> <span class=o><=</span> <span class=mi>1</span> <span class=k>else</span> \
+        <span class=n>Ising1d</span><span class=p>(</span><span class=n>dim</span><span class=p>)</span>
+    <span class=n>evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>evaluate</span>  <span class=c1># noqa</span>
+    <span class=n>seed</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>1</span> <span class=o><<</span> <span class=mi>62</span><span class=p>))</span>
+
+    <span class=n>result1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>bool</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>result2</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>bool</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>first</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+    <span class=n>first_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>""</span>
+    <span class=n>do_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+    <span class=n>do_res</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+    <span class=k>for</span> <span class=n>index</span><span class=p>,</span> <span class=n>algo</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>algorithms</span><span class=p>):</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>algo</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algo</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"algorithms[</span><span class=si>{</span><span class=n>index</span><span class=si>}</span><span class=s2>] for </span><span class=si>{</span><span class=n>f</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=n>algorithm</span><span class=p>:</span> <span class=n>Algorithm</span> <span class=o>=</span> <span class=n>check_algorithm</span><span class=p>(</span><span class=n>algo</span><span class=p>(</span><span class=n>space</span><span class=p>,</span> <span class=n>f</span><span class=p>))</span>
+        <span class=n>current_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>algorithm</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>first</span><span class=p>:</span>
+            <span class=n>first_name</span> <span class=o>=</span> <span class=n>current_name</span>
+            <span class=n>result</span> <span class=o>=</span> <span class=n>result1</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>result</span> <span class=o>=</span> <span class=n>result2</span>
+            <span class=n>result</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+
+        <span class=k>def</span><span class=w> </span><span class=nf>ff</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>rr</span><span class=o>=</span><span class=p>(</span><span class=n>result</span><span class=p>,</span> <span class=p>))</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+            <span class=n>rres</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+            <span class=n>rr</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+            <span class=k>return</span> <span class=n>rres</span>
+
+        <span class=n>ex</span> <span class=o>=</span> <span class=n>Execution</span><span class=p>()</span>
+        <span class=n>ex</span><span class=o>.</span><span class=n>set_algorithm</span><span class=p>(</span><span class=n>algorithm</span><span class=p>)</span>
+        <span class=n>ex</span><span class=o>.</span><span class=n>set_solution_space</span><span class=p>(</span><span class=n>space</span><span class=p>)</span>
+        <span class=n>f</span><span class=o>.</span><span class=n>evaluate</span> <span class=o>=</span> <span class=n>ff</span>  <span class=c1># type: ignore</span>
+        <span class=n>ex</span><span class=o>.</span><span class=n>set_objective</span><span class=p>(</span><span class=n>f</span><span class=p>)</span>
+        <span class=n>ex</span><span class=o>.</span><span class=n>set_rand_seed</span><span class=p>(</span><span class=n>seed</span><span class=p>)</span>
+        <span class=n>ex</span><span class=o>.</span><span class=n>set_max_fes</span><span class=p>(</span><span class=n>steps</span><span class=p>)</span>
+        <span class=k>with</span> <span class=n>ex</span><span class=o>.</span><span class=n>execute</span><span class=p>()</span> <span class=k>as</span> <span class=n>p</span><span class=p>:</span>
+            <span class=n>cf</span> <span class=o>=</span> <span class=n>p</span><span class=o>.</span><span class=n>get_consumed_fes</span><span class=p>()</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=mi>0</span> <span class=o><</span> <span class=n>cf</span> <span class=o><=</span> <span class=n>steps</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>current_name</span><span class=si>}</span><span class=s2> consumed </span><span class=si>{</span><span class=n>cf</span><span class=si>}</span><span class=s2> FS for "</span>
+                                 <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>steps</span><span class=si>}</span><span class=s2> max FEs on </span><span class=si>{</span><span class=n>f</span><span class=si>}</span><span class=s2> for seed </span><span class=si>{</span><span class=n>seed</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>first</span><span class=p>:</span>
+                <span class=n>do_fes</span> <span class=o>=</span> <span class=n>cf</span>
+            <span class=k>elif</span> <span class=n>do_fes</span> <span class=o>!=</span> <span class=n>cf</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>current_name</span><span class=si>}</span><span class=s2> consumed </span><span class=si>{</span><span class=n>cf</span><span class=si>}</span><span class=s2> FEs but "</span>
+                                 <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>first_name</span><span class=si>}</span><span class=s2> consumed </span><span class=si>{</span><span class=n>do_fes</span><span class=si>}</span><span class=s2> FEs on "</span>
+                                 <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>f</span><span class=si>}</span><span class=s2> for seed </span><span class=si>{</span><span class=n>seed</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>res</span> <span class=o>=</span> <span class=n>p</span><span class=o>.</span><span class=n>get_best_f</span><span class=p>()</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=mi>0</span> <span class=o><=</span> <span class=n>res</span> <span class=o><=</span> <span class=n>dim</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>current_name</span><span class=si>}</span><span class=s2> got </span><span class=si>{</span><span class=n>res</span><span class=si>}</span><span class=s2> as objective "</span>
+                                 <span class=sa>f</span><span class=s2>"value on </span><span class=si>{</span><span class=n>f</span><span class=si>}</span><span class=s2> for seed </span><span class=si>{</span><span class=n>seed</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>first</span><span class=p>:</span>
+                <span class=n>do_res</span> <span class=o>=</span> <span class=n>res</span>
+            <span class=k>elif</span> <span class=n>do_res</span> <span class=o>!=</span> <span class=n>res</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>current_name</span><span class=si>}</span><span class=s2> got </span><span class=si>{</span><span class=n>res</span><span class=si>}</span><span class=s2> as objective value on </span><span class=si>{</span><span class=n>f</span><span class=si>}</span><span class=s2> but "</span>
+                    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>first_name</span><span class=si>}</span><span class=s2> got </span><span class=si>{</span><span class=n>do_res</span><span class=si>}</span><span class=s2> for seed </span><span class=si>{</span><span class=n>seed</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>result</span><span class=p>)</span> <span class=o>!=</span> <span class=p>(</span><span class=n>cf</span> <span class=o>*</span> <span class=n>dim</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"len(result) == </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>result</span><span class=p>)</span><span class=si>}</span><span class=s2>, but should be </span><span class=si>{</span><span class=n>cf</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=n>dim</span><span class=si>}</span><span class=s2> "</span>
+                    <span class=sa>f</span><span class=s2>"for </span><span class=si>{</span><span class=n>current_name</span><span class=si>}</span><span class=s2> for seed </span><span class=si>{</span><span class=n>seed</span><span class=si>}</span><span class=s2> on </span><span class=si>{</span><span class=n>f</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>first</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>result1</span> <span class=o>!=</span> <span class=n>result2</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>current_name</span><span class=si>}</span><span class=s2> produced different steps than </span><span class=si>{</span><span class=n>first_name</span><span class=si>}</span><span class=s2> "</span>
+                <span class=sa>f</span><span class=s2>"on </span><span class=si>{</span><span class=n>f</span><span class=si>}</span><span class=s2> for seed </span><span class=si>{</span><span class=n>seed</span><span class=si>}</span><span class=s2>: is "</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>array_to_str</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>result2</span><span class=p>))</span><span class=si>}</span><span class=s2>"</span>
+                <span class=sa>f</span><span class=s2>" but should be </span><span class=si>{</span><span class=n>array_to_str</span><span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>result1</span><span class=p>))</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=n>first</span> <span class=o>=</span> <span class=kc>False</span></div>
+
+
+
+<div class=viewcode-block id=validate_fitness_on_bitstrings>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_bitstrings.validate_fitness_on_bitstrings>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_fitness_on_bitstrings</span><span class=p>(</span>
+        <span class=n>fitness</span><span class=p>:</span> <span class=n>Fitness</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Objective</span><span class=p>],</span> <span class=n>Fitness</span><span class=p>],</span>
+        <span class=n>class_needed</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=nb>type</span> <span class=o>=</span> <span class=n>Fitness</span><span class=p>,</span>
+        <span class=n>prepare_objective</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Objective</span><span class=p>],</span> <span class=n>Objective</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Validate a fitness assignment process on bit strings.</span>
+
+<span class=sd>    :param fitness: the fitness assignment process, or a callable creating it</span>
+<span class=sd>    :param class_needed: the required class</span>
+<span class=sd>    :param prepare_objective: prepare the objective function</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>fitness</span><span class=p>,</span> <span class=n>Fitness</span><span class=p>))</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>fitness</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>fitness</span><span class=p>,</span> <span class=s2>"fitness"</span><span class=p>,</span> <span class=n>Fitness</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>class_needed</span><span class=p>,</span> <span class=nb>str</span> <span class=o>|</span> <span class=nb>type</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>class_needed</span><span class=p>,</span> <span class=s2>"class_needed"</span><span class=p>,</span> <span class=p>(</span><span class=nb>str</span><span class=p>,</span> <span class=nb>type</span><span class=p>))</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>prepare_objective</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>prepare_objective</span><span class=p>,</span> <span class=s2>"prepare_objective"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>()</span>
+    <span class=n>sizes</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+    <span class=k>while</span> <span class=nb>len</span><span class=p>(</span><span class=n>sizes</span><span class=p>)</span> <span class=o><</span> <span class=mi>4</span><span class=p>:</span>
+        <span class=n>sizes</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=mi>10</span><span class=p>)))</span>
+    <span class=n>op0</span><span class=p>:</span> <span class=n>Op0Random</span> <span class=o>=</span> <span class=n>Op0Random</span><span class=p>()</span>
+    <span class=k>for</span> <span class=n>s</span> <span class=ow>in</span> <span class=n>sizes</span><span class=p>:</span>
+        <span class=n>space</span><span class=p>:</span> <span class=n>BitStrings</span> <span class=o>=</span> <span class=n>BitStrings</span><span class=p>(</span><span class=n>s</span><span class=p>)</span>
+        <span class=n>f</span><span class=p>:</span> <span class=n>Objective</span> <span class=o>=</span> <span class=n>OneMax</span><span class=p>(</span><span class=n>s</span><span class=p>)</span> <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span> <span class=k>else</span> <span class=n>LeadingOnes</span><span class=p>(</span><span class=n>s</span><span class=p>)</span>
+        <span class=n>f2</span> <span class=o>=</span> <span class=n>prepare_objective</span><span class=p>(</span><span class=n>f</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>f2</span><span class=p>,</span> <span class=n>Objective</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>f2</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"prepare_objective(</span><span class=si>{</span><span class=n>f</span><span class=si>}</span><span class=s2>)"</span><span class=p>,</span> <span class=n>Objective</span><span class=p>)</span>
+        <span class=k>del</span> <span class=n>f</span>
+        <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>fitness</span><span class=p>):</span>
+            <span class=n>ff</span> <span class=o>=</span> <span class=n>fitness</span><span class=p>(</span><span class=n>f2</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ff</span><span class=p>,</span> <span class=n>Fitness</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>ff</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"fitness(</span><span class=si>{</span><span class=n>f2</span><span class=si>}</span><span class=s2>)"</span><span class=p>,</span> <span class=n>Fitness</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>class_needed</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+                <span class=n>name</span> <span class=o>=</span> <span class=n>type_name_of</span><span class=p>(</span><span class=n>ff</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>name</span> <span class=o>!=</span> <span class=n>class_needed</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>TypeError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"fitness assignment process should be "</span>
+                                    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>class_needed</span><span class=si>!r}</span><span class=s2>, but is </span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>elif</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ff</span><span class=p>,</span> <span class=n>class_needed</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>ff</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"fitness(</span><span class=si>{</span><span class=n>f2</span><span class=si>}</span><span class=s2>)"</span><span class=p>,</span> <span class=n>class_needed</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>ff</span> <span class=o>=</span> <span class=n>fitness</span>
+        <span class=n>validate_fitness</span><span class=p>(</span><span class=n>ff</span><span class=p>,</span> <span class=n>f2</span><span class=p>,</span> <span class=n>space</span><span class=p>,</span> <span class=n>op0</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.on_bitstrings</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

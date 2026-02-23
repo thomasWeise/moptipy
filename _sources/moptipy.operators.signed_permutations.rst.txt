@@ -1,0 +1,26 @@
+moptipy.operators.signed\_permutations package
+==============================================
+
+.. automodule:: moptipy.operators.signed_permutations
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+moptipy.operators.signed\_permutations.op0\_shuffle\_and\_flip module
+---------------------------------------------------------------------
+
+.. automodule:: moptipy.operators.signed_permutations.op0_shuffle_and_flip
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.operators.signed\_permutations.op1\_swap\_2\_or\_flip module
+--------------------------------------------------------------------
+
+.. automodule:: moptipy.operators.signed_permutations.op1_swap_2_or_flip
+   :members:
+   :show-inheritance:
+   :undoc-members:

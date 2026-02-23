@@ -1,0 +1,134 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.operators.permutations.op1_swapn — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/operators/permutations/op1_swapn.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.permutations.op1_swapn</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.operators.permutations.op1_swapn</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>An operator swapping several elements in a permutation.</span>
+
+<span class=sd>This operator works similarly to</span>
+<span class=sd>:class:`~moptipy.operators.permutations.op1_swap2.Op1Swap2`, but instead of</span>
+<span class=sd>swapping two elements (i.e., performing 1 swap), it will perform a random</span>
+<span class=sd>number of swaps.</span>
+
+<span class=sd>First, the operator copies the source string `x` into the destination `dest`.</span>
+<span class=sd>It then chooses a random index `i1`. It remembers the element at that index</span>
+<span class=sd>in two variables, `last` and `first`. (`last` will always be the value of the</span>
+<span class=sd>element will next be overwritten and `first` will never change and remember</span>
+<span class=sd>the first overwritten element, i.e., the value that we need to store again</span>
+<span class=sd>into the array in the end.) We also initialize a variable `continue_after`</span>
+<span class=sd>with `True`. This variable will always tell us if we need to continue and</span>
+<span class=sd>draw another random index.</span>
+
+<span class=sd>We then begin with the main loop, which is iterated as long as</span>
+<span class=sd>`continue_after` is `True`. Directly as first action in this loop, we set</span>
+<span class=sd>`continue_after = ri(2) <= 0`. `ri(2)` will return a random integer in</span>
+<span class=sd>`{0, 1}`. `ri(2) <= 0` will therefore be `True` with probability 0.5.</span>
+
+<span class=sd>We now will draw a new random index `i2`. We load the element at index `i2`</span>
+<span class=sd>into variable `current`. If `current == last`, we immediately go back and</span>
+<span class=sd>draw another random `i2`. The reason is that we want to store `current` at</span>
+<span class=sd>`i1`, i.e., where `last` is currently stored. If `current == last`, this</span>
+<span class=sd>would change nothing. Furthermore, if `continue_after` is `False`, then</span>
+<span class=sd>`current` must also be different from `first`: If we exit the main loop,</span>
+<span class=sd>then we will store `first` into the place where we found `current`. Remember,</span>
+<span class=sd>we will overwrite the element at index `i1` with `current`, so the very first</span>
+<span class=sd>element we overwrite must eventually be stored back into the array.</span>
+
+<span class=sd>OK, if we have obtained an index `i2` whose corresponding element `current`</span>
+<span class=sd>fulfills all requirements, we can set `dest[i1] = last = current`, i.e.,</span>
+<span class=sd>remember `current` in `last` and also store it at index `i1`. Next, we will</span>
+<span class=sd>overwrite the element at index `i2`, so we set `i1 = i2`. If `continue_after`</span>
+<span class=sd>is `True`, the loop will continue. Otherwise, it will stop.</span>
+
+<span class=sd>In the latter case, we store `first` back into the array at the last index</span>
+<span class=sd>`i1` and do `dest[i1] = first`.</span>
+
+<span class=sd>As a result, the operator will swap exactly 2 elements with probability 0.5.</span>
+<span class=sd>With probability 0.25, it will swap three elements, with 0.125 probability, it</span>
+<span class=sd>will swap 4 elements, and so on.</span>
+
+<span class=sd>1. Thomas Weise. *Optimization Algorithms.* 2021. Hefei, Anhui, China:</span>
+<span class=sd>   Institute of Applied Optimization (IAO), School of Artificial Intelligence</span>
+<span class=sd>   and Big Data, Hefei University. http://thomasweise.github.io/oa/</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op1</span>
+
+
+<div class=viewcode-block id=swap_n>
+<a class=viewcode-back href=../../../../moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swapn.swap_n>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>swap_n</span><span class=p>(</span><span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>dest</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>  <span class=c1># +book</span>
+           <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Copy `x` into `dest` and then swap several different values.</span>
+
+<span class=sd>    :param random: the random number generator</span>
+<span class=sd>    :param dest: the array to receive the modified copy of `x`</span>
+<span class=sd>    :param x: the existing point in the search space</span>
+
+<span class=sd>    >>> rand = np.random.default_rng(10)</span>
+<span class=sd>    >>> xx = np.array(range(10), int)</span>
+<span class=sd>    >>> out = np.empty(len(xx), int)</span>
+<span class=sd>    >>> swap_n(rand, out, xx)</span>
+<span class=sd>    >>> print(out)</span>
+<span class=sd>    [0 1 7 3 4 5 6 2 8 9]</span>
+<span class=sd>    >>> swap_n(rand, out, xx)</span>
+<span class=sd>    >>> print(out)</span>
+<span class=sd>    [0 1 8 3 4 5 6 7 2 9]</span>
+<span class=sd>    >>> swap_n(rand, out, xx)</span>
+<span class=sd>    >>> print(out)</span>
+<span class=sd>    [0 5 2 3 4 8 6 7 1 9]</span>
+<span class=sd>    """</span>
+    <span class=c1># start book</span>
+    <span class=n>dest</span><span class=p>[:]</span> <span class=o>=</span> <span class=n>x</span><span class=p>[:]</span>  <span class=c1># First, we copy `x` to `dest`.</span>
+    <span class=n>length</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>dest</span><span class=p>)</span>  <span class=c1># Get the length of `dest`.</span>
+    <span class=n>rint</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span>  <span class=c1># fast call</span>
+
+    <span class=n>i1</span> <span class=o>=</span> <span class=n>rint</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>length</span><span class=p>)</span>  <span class=c1># Get the first random index.</span>
+    <span class=n>last</span> <span class=o>=</span> <span class=n>first</span> <span class=o>=</span> <span class=n>dest</span><span class=p>[</span><span class=n>i1</span><span class=p>]</span>  <span class=c1># Get the value at the first index.</span>
+    <span class=n>continue_after</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>  <span class=c1># True -> loop at least once.</span>
+    <span class=k>while</span> <span class=n>continue_after</span><span class=p>:</span>  <span class=c1># Repeat until we should stop</span>
+        <span class=n>continue_after</span> <span class=o>=</span> <span class=n>rint</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>2</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span>  <span class=c1># 50/50 chance</span>
+        <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>  <span class=c1># Loop forever until eligible element found.</span>
+            <span class=n>i2</span> <span class=o>=</span> <span class=n>rint</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>length</span><span class=p>)</span>  <span class=c1># new random index.</span>
+            <span class=n>current</span> <span class=o>=</span> <span class=n>dest</span><span class=p>[</span><span class=n>i2</span><span class=p>]</span>  <span class=c1># Get the value at the new index.</span>
+            <span class=k>if</span> <span class=n>current</span> <span class=o>==</span> <span class=n>last</span><span class=p>:</span>  <span class=c1># If it is the same as the</span>
+                <span class=k>continue</span>  <span class=c1># previous value, continue.</span>
+            <span class=k>if</span> <span class=n>continue_after</span> <span class=ow>or</span> <span class=p>(</span><span class=n>current</span> <span class=o>!=</span> <span class=n>first</span><span class=p>):</span>  <span class=c1># If we want</span>
+                <span class=k>break</span>  <span class=c1># to stop, then it must be != first value.</span>
+        <span class=n>dest</span><span class=p>[</span><span class=n>i1</span><span class=p>]</span> <span class=o>=</span> <span class=n>last</span> <span class=o>=</span> <span class=n>current</span>  <span class=c1># Store value for from i2 at i1.</span>
+        <span class=n>i1</span> <span class=o>=</span> <span class=n>i2</span>  <span class=c1># Update i1 to now point to cell of i2.</span>
+    <span class=n>dest</span><span class=p>[</span><span class=n>i1</span><span class=p>]</span> <span class=o>=</span> <span class=n>first</span>  <span class=c1># Finally, store first element back at end.</span></div>
+
+
+
+<div class=viewcode-block id=Op1SwapN>
+<a class=viewcode-back href=../../../../moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swapn.Op1SwapN>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Op1SwapN</span><span class=p>(</span><span class=n>Op1</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A unary search operation that swaps several (different) elements.</span>
+
+<span class=sd>    It is similar to `swap2`, but instead may perform a random number</span>
+<span class=sd>    of swaps. After each swap, it decides with probability 0.5 whether</span>
+<span class=sd>    or not to perform another swap.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize the object."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>  <span class=c1># -book</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>op1</span> <span class=o>=</span> <span class=n>swap_n</span>  <span class=c1># type: ignore  # use function directly</span>
+    <span class=c1># end book</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this unary operator.</span>
+
+<span class=sd>        :returns: "swapn", the name of this operator</span>
+<span class=sd>        :retval "swapn": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"swapn"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.permutations.op1_swapn</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

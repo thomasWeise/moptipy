@@ -1,0 +1,434 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.progress — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/progress.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.progress</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.progress</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Objects embodying the progress of a run over time.</span>
+
+<span class=sd>An instance of :class:`Progress` holds one :attr:`~Progress.time` vector and</span>
+<span class=sd>an objective value (:attr:`~Progress.f`) vector. The time dimension (stored in</span>
+<span class=sd>:attr:`~Progress.time_unit`) can either be in FEs or in milliseconds and the</span>
+<span class=sd>objective value dimension (stored in :attr:`~Progress.f_name`) can be raw</span>
+<span class=sd>objective values, standardized objective values, or normalized objective</span>
+<span class=sd>values.</span>
+<span class=sd>The two vectors together thus describe how a run of an optimization algorithm</span>
+<span class=sd>improves the objective value over time.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>dataclasses</span><span class=w> </span><span class=kn>import</span> <span class=n>dataclass</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.console</span><span class=w> </span><span class=kn>import</span> <span class=n>logger</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.csv</span><span class=w> </span><span class=kn>import</span> <span class=n>COMMENT_START</span><span class=p>,</span> <span class=n>CSV_SEPARATOR</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.strings.string_conv</span><span class=w> </span><span class=kn>import</span> <span class=n>num_to_str</span><span class=p>,</span> <span class=n>str_to_num</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>KEY_ALGORITHM</span><span class=p>,</span>
+    <span class=n>KEY_GOAL_F</span><span class=p>,</span>
+    <span class=n>KEY_INSTANCE</span><span class=p>,</span>
+    <span class=n>KEY_RAND_SEED</span><span class=p>,</span>
+    <span class=n>PROGRESS_CURRENT_F</span><span class=p>,</span>
+    <span class=n>PROGRESS_FES</span><span class=p>,</span>
+    <span class=n>PROGRESS_TIME_MILLIS</span><span class=p>,</span>
+    <span class=n>SECTION_PROGRESS</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.base</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>F_NAME_RAW</span><span class=p>,</span>
+    <span class=n>F_NAME_SCALED</span><span class=p>,</span>
+    <span class=n>KEY_ENCODING</span><span class=p>,</span>
+    <span class=n>KEY_OBJECTIVE_FUNCTION</span><span class=p>,</span>
+    <span class=n>TIME_UNIT_FES</span><span class=p>,</span>
+    <span class=n>TIME_UNIT_MILLIS</span><span class=p>,</span>
+    <span class=n>PerRunData</span><span class=p>,</span>
+    <span class=n>check_f_name</span><span class=p>,</span>
+    <span class=n>check_time_unit</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.log_parser</span><span class=w> </span><span class=kn>import</span> <span class=n>SetupAndStateParser</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>KEY_VALUE_SEPARATOR</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>is_all_finite</span><span class=p>,</span> <span class=n>is_np_float</span><span class=p>,</span> <span class=n>is_np_int</span>
+
+
+<div class=viewcode-block id=Progress>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.progress.Progress>[docs]</a>
+<span class=nd>@dataclass</span><span class=p>(</span><span class=n>frozen</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>init</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>order</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>eq</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>class</span><span class=w> </span><span class=nc>Progress</span><span class=p>(</span><span class=n>PerRunData</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""An immutable record of progress information over a single run."""</span>
+
+    <span class=c1>#: The time axis data.</span>
+    <span class=n>time</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span>
+
+    <span class=c1>#: The unit of the time axis.</span>
+    <span class=n>time_unit</span><span class=p>:</span> <span class=nb>str</span>
+
+    <span class=c1>#: The objective value data.</span>
+    <span class=n>f</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span>
+
+    <span class=c1>#: the name of the objective value axis.</span>
+    <span class=n>f_name</span><span class=p>:</span> <span class=nb>str</span>
+
+    <span class=c1>#: the standard value of the objective dimension.</span>
+    <span class=c1>#: If :attr:`f_name` is `F_NAME_SCALED` or `F_NAME_NORMALIZED`.</span>
+    <span class=c1>#: then this value has been used to normalize the data.</span>
+    <span class=n>f_standard</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                 <span class=n>algorithm</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>instance</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>objective</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>encoding</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>rand_seed</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>time</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                 <span class=n>time_unit</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>f</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                 <span class=n>f_name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>f_standard</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>only_improvements</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a consistent instance of :class:`EndResult`.</span>
+
+<span class=sd>        :param algorithm: the algorithm name</span>
+<span class=sd>        :param instance: the instance name</span>
+<span class=sd>        :param objective: the name of the objective function</span>
+<span class=sd>        :param encoding: the name of the encoding that was used, if any, or</span>
+<span class=sd>            `None` if no encoding was used</span>
+<span class=sd>        :param rand_seed: the random seed</span>
+<span class=sd>        :param time: the time axis data</span>
+<span class=sd>        :param time_unit: the unit of the time axis</span>
+<span class=sd>        :param f: the objective value axis data</span>
+<span class=sd>        :param f_name: the name of the objective value axis data</span>
+<span class=sd>        :param f_standard: the value used to standardize of the objective</span>
+<span class=sd>            value dimension</span>
+<span class=sd>        :param only_improvements: enforce that f-values should be</span>
+<span class=sd>            improving and time values increasing</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>instance</span><span class=p>,</span> <span class=n>objective</span><span class=p>,</span> <span class=n>encoding</span><span class=p>,</span> <span class=n>rand_seed</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>time</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>time</span><span class=p>,</span> <span class=s2>"time data"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span>
+        <span class=n>time</span><span class=o>.</span><span class=n>flags</span><span class=o>.</span><span class=n>writeable</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>time</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"time array must be one-dimensional, but "</span>
+                             <span class=sa>f</span><span class=s2>"has shape </span><span class=si>{</span><span class=n>time</span><span class=o>.</span><span class=n>shape</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>is_np_int</span><span class=p>(</span><span class=n>time</span><span class=o>.</span><span class=n>dtype</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>TypeError</span><span class=p>(</span><span class=s2>"time data must be integer-valued, "</span>
+                            <span class=sa>f</span><span class=s2>"but has type </span><span class=si>{</span><span class=n>time</span><span class=o>.</span><span class=n>dtype</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>tl</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>size</span>
+        <span class=k>if</span> <span class=n>tl</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"time data must not be empty."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>tl</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>only_improvements</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>np</span><span class=o>.</span><span class=n>any</span><span class=p>(</span><span class=n>time</span><span class=p>[</span><span class=mi>1</span><span class=p>:]</span> <span class=o><=</span> <span class=n>time</span><span class=p>[:</span><span class=o>-</span><span class=mi>1</span><span class=p>]):</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"time data must be strictly increasing,"</span>
+                                     <span class=sa>f</span><span class=s2>"but encountered </span><span class=si>{</span><span class=n>time</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>elif</span> <span class=n>np</span><span class=o>.</span><span class=n>any</span><span class=p>(</span><span class=n>time</span><span class=p>[</span><span class=mi>1</span><span class=p>:]</span> <span class=o><</span> <span class=n>time</span><span class=p>[:</span><span class=o>-</span><span class=mi>1</span><span class=p>]):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"time data must be monotonously"</span>
+                                 <span class=sa>f</span><span class=s2>"increasing, but encountered </span><span class=si>{</span><span class=n>time</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"time"</span><span class=p>,</span> <span class=n>time</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"time_unit"</span><span class=p>,</span> <span class=n>check_time_unit</span><span class=p>(</span><span class=n>time_unit</span><span class=p>))</span>
+
+        <span class=n>mintime</span> <span class=o>=</span> <span class=mi>1</span> <span class=k>if</span> <span class=n>time_unit</span> <span class=o>==</span> <span class=n>TIME_UNIT_FES</span> <span class=k>else</span> <span class=mi>0</span>
+        <span class=k>if</span> <span class=n>np</span><span class=o>.</span><span class=n>any</span><span class=p>(</span><span class=n>time</span> <span class=o><</span> <span class=n>mintime</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"No time value can be less than </span><span class=si>{</span><span class=n>mintime</span><span class=si>}</span><span class=s2> if"</span>
+                             <span class=sa>f</span><span class=s2>" time unit is </span><span class=si>{</span><span class=n>time_unit</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>f</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>f</span><span class=p>,</span> <span class=s2>"f data"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span>
+        <span class=n>f</span><span class=o>.</span><span class=n>flags</span><span class=o>.</span><span class=n>writeable</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"f array must be one-dimensional, but has shape </span><span class=si>{</span><span class=n>f</span><span class=o>.</span><span class=n>shape</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>is_np_float</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>dtype</span><span class=p>):</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>is_all_finite</span><span class=p>(</span><span class=n>f</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"f must be all finite."</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=ow>not</span> <span class=n>is_np_int</span><span class=p>(</span><span class=n>f</span><span class=o>.</span><span class=n>dtype</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>TypeError</span><span class=p>(</span><span class=s2>"f data must be integer- or float valued, but"</span>
+                            <span class=sa>f</span><span class=s2>" encountered an </span><span class=si>{</span><span class=nb>type</span><span class=p>(</span><span class=n>f</span><span class=p>)</span><span class=si>}</span><span class=s2> of </span><span class=si>{</span><span class=n>f</span><span class=o>.</span><span class=n>dtype</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>fl</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>size</span>
+        <span class=k>if</span> <span class=n>fl</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"f data must not be empty."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>fl</span> <span class=o>!=</span> <span class=n>tl</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Length </span><span class=si>{</span><span class=n>fl</span><span class=si>}</span><span class=s2> of f data and length </span><span class=si>{</span><span class=n>tl</span><span class=si>}</span><span class=s2> of "</span>
+                             <span class=s2>"time data must be the same."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>only_improvements</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>only_improvements</span><span class=p>,</span> <span class=s2>"only_improvements"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>only_improvements</span> <span class=ow>and</span> <span class=p>(</span><span class=n>fl</span> <span class=o>></span> <span class=mi>1</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>np</span><span class=o>.</span><span class=n>any</span><span class=p>(</span><span class=n>f</span><span class=p>[</span><span class=mi>1</span><span class=p>:</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>>=</span> <span class=n>f</span><span class=p>[:</span><span class=o>-</span><span class=mi>2</span><span class=p>]):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"f data must be strictly decreasing, with "</span>
+                    <span class=s2>"only the entry being permitted as exception."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>f</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>></span> <span class=n>f</span><span class=p>[</span><span class=o>-</span><span class=mi>2</span><span class=p>]:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"last f-value (</span><span class=si>{</span><span class=n>f</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span><span class=si>}</span><span class=s2>) cannot be greater"</span>
+                                 <span class=sa>f</span><span class=s2>"than second-to-last (</span><span class=si>{</span><span class=n>f</span><span class=p>[</span><span class=o>-</span><span class=mi>2</span><span class=p>]</span><span class=si>}</span><span class=s2>)."</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"f"</span><span class=p>,</span> <span class=n>f</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"f_name"</span><span class=p>,</span> <span class=n>check_f_name</span><span class=p>(</span><span class=n>f_name</span><span class=p>))</span>
+
+        <span class=k>if</span> <span class=p>(</span><span class=n>f_name</span> <span class=o>!=</span> <span class=n>F_NAME_RAW</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>f_standard</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"If f_name is </span><span class=si>{</span><span class=n>F_NAME_RAW</span><span class=si>}</span><span class=s2>, "</span>
+                             <span class=sa>f</span><span class=s2>"then f_standard cannot be </span><span class=si>{</span><span class=n>f_standard</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>f_standard</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>f_standard</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>f_standard</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"f_standard cannot be </span><span class=si>{</span><span class=n>f_standard</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>elif</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>f_standard</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>f_standard</span><span class=p>,</span> <span class=s2>"f_standard"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"f_standard"</span><span class=p>,</span> <span class=n>f_standard</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=to_csv>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.progress.to_csv>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>to_csv</span><span class=p>(</span><span class=n>progress</span><span class=p>:</span> <span class=n>Progress</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+           <span class=n>put_header</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Store a :class:`Progress` record in a CSV file.</span>
+
+<span class=sd>    :param file: the file to generate</span>
+<span class=sd>    :param put_header: should we put a header with meta-data?</span>
+<span class=sd>    :return: the fully resolved file name</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>progress</span><span class=p>,</span> <span class=n>Progress</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>progress</span><span class=p>,</span> <span class=s2>"progress"</span><span class=p>,</span> <span class=n>Progress</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>put_header</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>put_header</span><span class=p>,</span> <span class=s2>"put_header"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=n>path</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Writing progress object to CSV file </span><span class=si>{</span><span class=n>path</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>path</span><span class=o>.</span><span class=n>ensure_parent_dir_exists</span><span class=p>()</span>
+
+    <span class=k>with</span> <span class=n>path</span><span class=o>.</span><span class=n>open_for_write</span><span class=p>()</span> <span class=k>as</span> <span class=n>out</span><span class=p>:</span>
+        <span class=n>sep</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>CSV_SEPARATOR</span>
+        <span class=n>write</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=n>out</span><span class=o>.</span><span class=n>write</span>
+        <span class=k>if</span> <span class=n>put_header</span><span class=p>:</span>
+            <span class=n>kv</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>KEY_VALUE_SEPARATOR</span>
+            <span class=n>cmt</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>COMMENT_START</span>
+            <span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>cmt</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>KEY_ALGORITHM</span><span class=si>}{</span><span class=n>kv</span><span class=si>}{</span><span class=n>progress</span><span class=o>.</span><span class=n>algorithm</span><span class=si>}</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>cmt</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>KEY_INSTANCE</span><span class=si>}{</span><span class=n>kv</span><span class=si>}{</span><span class=n>progress</span><span class=o>.</span><span class=n>instance</span><span class=si>}</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>cmt</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>KEY_OBJECTIVE_FUNCTION</span><span class=si>}{</span><span class=n>kv</span><span class=si>}{</span><span class=n>progress</span><span class=o>.</span><span class=n>objective</span><span class=si>}</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>progress</span><span class=o>.</span><span class=n>encoding</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>cmt</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>KEY_ENCODING</span><span class=si>}{</span><span class=n>kv</span><span class=si>}{</span><span class=n>progress</span><span class=o>.</span><span class=n>objective</span><span class=si>}</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>cmt</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>KEY_RAND_SEED</span><span class=si>}{</span><span class=n>kv</span><span class=si>}{</span><span class=nb>hex</span><span class=p>(</span><span class=n>progress</span><span class=o>.</span><span class=n>rand_seed</span><span class=p>)</span><span class=si>}</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>progress</span><span class=o>.</span><span class=n>f_standard</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>cmt</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>KEY_GOAL_F</span><span class=si>}{</span><span class=n>kv</span><span class=si>}{</span><span class=n>progress</span><span class=o>.</span><span class=n>f_standard</span><span class=si>}</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+        <span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>progress</span><span class=o>.</span><span class=n>time_unit</span><span class=si>}{</span><span class=n>sep</span><span class=si>}{</span><span class=n>progress</span><span class=o>.</span><span class=n>f_name</span><span class=si>}</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>t</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>progress</span><span class=o>.</span><span class=n>time</span><span class=p>):</span>
+            <span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>t</span><span class=si>}{</span><span class=n>sep</span><span class=si>}{</span><span class=n>num_to_str</span><span class=p>(</span><span class=n>progress</span><span class=o>.</span><span class=n>f</span><span class=p>[</span><span class=n>i</span><span class=p>])</span><span class=si>}</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Done writing progress object to CSV file </span><span class=si>{</span><span class=n>path</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=n>path</span><span class=o>.</span><span class=n>enforce_file</span><span class=p>()</span>
+    <span class=k>return</span> <span class=n>path</span></div>
+
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__InnerLogParser</span><span class=p>(</span><span class=n>SetupAndStateParser</span><span class=p>[</span><span class=n>Progress</span><span class=p>]):</span>
+<span class=w>    </span><span class=sd>"""The internal log parser class."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>time_unit</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>f_name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>f_standard</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>only_improvements</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span>
+                 <span class=n>path_filter</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Path</span><span class=p>],</span> <span class=nb>bool</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the internal log parser.</span>
+
+<span class=sd>        :param time_unit: the time unit</span>
+<span class=sd>        :param f_name: the objective name</span>
+<span class=sd>        :param f_standard: a dictionary mapping instances to standard values</span>
+<span class=sd>        :param only_improvements: enforce that f-values should be improving</span>
+<span class=sd>            and time values increasing</span>
+<span class=sd>        :param path_filter: the path filter</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>path_filter</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__time_unit</span> <span class=o>=</span> <span class=n>check_time_unit</span><span class=p>(</span><span class=n>time_unit</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__f_name</span> <span class=o>=</span> <span class=n>check_f_name</span><span class=p>(</span><span class=n>f_name</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__last_fe</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__t_collector</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__f_collector</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>only_improvements</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>only_improvements</span><span class=p>,</span> <span class=s2>"only_improvements"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__only_improvements</span> <span class=o>=</span> <span class=n>only_improvements</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>f_standard</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>f_standard</span><span class=p>,</span> <span class=nb>dict</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>f_standard</span><span class=p>,</span> <span class=s2>"f_standard"</span><span class=p>,</span> <span class=nb>dict</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__f_standard</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> \
+            <span class=o>=</span> <span class=n>f_standard</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__state</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_parse_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=n>Progress</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_parse_file</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>!=</span> <span class=mi>2</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=s2>"Illegal state, log file must have a "</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SECTION_PROGRESS</span><span class=si>!r}</span><span class=s2> section."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=bp>self</span><span class=o>.</span><span class=n>__f_collector</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"f-collector cannot be empty."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=bp>self</span><span class=o>.</span><span class=n>__t_collector</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"time-collector cannot be empty."</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>=</span> <span class=mi>0</span>
+
+        <span class=n>f_standard</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__f_standard</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> \
+                <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>instance</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>__f_standard</span><span class=p>):</span>
+            <span class=n>f_standard</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__f_standard</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=p>]</span>
+        <span class=k>if</span> <span class=n>f_standard</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>f_standard</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span>
+        <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__f_name</span> <span class=o>!=</span> <span class=n>F_NAME_RAW</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>f_standard</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"f_standard cannot be </span><span class=si>{</span><span class=n>f_standard</span><span class=si>}</span><span class=s2> if f_name "</span>
+                             <span class=sa>f</span><span class=s2>"is </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__f_name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>tt</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>total_time_millis</span> <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__time_unit</span> <span class=o>==</span> <span class=n>TIME_UNIT_MILLIS</span><span class=p>)</span> \
+            <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>total_fes</span>
+        <span class=k>if</span> <span class=n>tt</span> <span class=o><</span> <span class=bp>self</span><span class=o>.</span><span class=n>__t_collector</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"Last time units </span><span class=si>{</span><span class=n>tt</span><span class=si>}</span><span class=s2> inconsistent with last"</span>
+                <span class=sa>f</span><span class=s2>"recorded time unit </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__t_collector</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__last_fe</span> <span class=o><</span> <span class=bp>self</span><span class=o>.</span><span class=n>total_fes</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>tt</span> <span class=o>></span> <span class=bp>self</span><span class=o>.</span><span class=n>__t_collector</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]:</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__t_collector</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>tt</span><span class=p>)</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__f_collector</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__f_collector</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>])</span>
+        <span class=k>elif</span> <span class=bp>self</span><span class=o>.</span><span class=n>__last_fe</span> <span class=o>></span> <span class=bp>self</span><span class=o>.</span><span class=n>total_fes</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"Last FE </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__last_fe</span><span class=si>}</span><span class=s2> inconsistent with total number"</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>total_fes</span><span class=si>}</span><span class=s2> of FEs."</span><span class=p>)</span>
+
+        <span class=n>ff</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__f_name</span> <span class=o>==</span> <span class=n>F_NAME_RAW</span><span class=p>:</span>
+            <span class=n>ff</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__f_collector</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=bp>self</span><span class=o>.</span><span class=n>__f_name</span> <span class=o>==</span> <span class=n>F_NAME_SCALED</span><span class=p>:</span>
+            <span class=n>ff</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([</span><span class=n>f</span> <span class=o>/</span> <span class=n>f_standard</span> <span class=k>for</span> <span class=n>f</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>__f_collector</span><span class=p>])</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>ff</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([(</span><span class=n>f</span> <span class=o>-</span> <span class=n>f_standard</span><span class=p>)</span> <span class=o>/</span> <span class=n>f_standard</span>
+                           <span class=k>for</span> <span class=n>f</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>__f_collector</span><span class=p>])</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__f_collector</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+
+        <span class=k>return</span> <span class=n>Progress</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span>
+                        <span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span>
+                        <span class=bp>self</span><span class=o>.</span><span class=n>objective</span><span class=p>,</span>
+                        <span class=bp>self</span><span class=o>.</span><span class=n>encoding</span><span class=p>,</span>
+                        <span class=bp>self</span><span class=o>.</span><span class=n>rand_seed</span><span class=p>,</span>
+                        <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__t_collector</span><span class=p>),</span>
+                        <span class=bp>self</span><span class=o>.</span><span class=n>__time_unit</span><span class=p>,</span>
+                        <span class=n>ff</span><span class=p>,</span>
+                        <span class=bp>self</span><span class=o>.</span><span class=n>__f_name</span><span class=p>,</span>
+                        <span class=n>f_standard</span><span class=p>,</span>
+                        <span class=bp>self</span><span class=o>.</span><span class=n>__only_improvements</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_end_parse_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Clean up."""</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__t_collector</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__last_fe</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_end_parse_file</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_start_section</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>title</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>title</span> <span class=o>==</span> <span class=n>SECTION_PROGRESS</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Already did section </span><span class=si>{</span><span class=n>title</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>=</span> <span class=mi>1</span>
+            <span class=k>return</span> <span class=kc>True</span>
+        <span class=k>return</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_start_section</span><span class=p>(</span><span class=n>title</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_needs_more_lines</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+        <span class=k>return</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o><</span> <span class=mi>2</span><span class=p>)</span> <span class=ow>or</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_needs_more_lines</span><span class=p>()</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_lines</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>lines</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lines</span><span class=p>,</span> <span class=nb>list</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>lines</span><span class=p>,</span> <span class=s2>"lines"</span><span class=p>,</span> <span class=nb>list</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>return</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_lines</span><span class=p>(</span><span class=n>lines</span><span class=p>)</span>
+        <span class=n>n_rows</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>lines</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>n_rows</span> <span class=o><</span> <span class=mi>2</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"lines must contain at least two elements,"</span>
+                             <span class=sa>f</span><span class=s2>"but contains </span><span class=si>{</span><span class=n>n_rows</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=n>columns</span> <span class=o>=</span> <span class=p>[</span><span class=n>c</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>lines</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>CSV_SEPARATOR</span><span class=p>)]</span>
+        <span class=n>n_cols</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>columns</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>n_cols</span> <span class=o><</span> <span class=mi>3</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"There must be at least three columns, "</span>
+                             <span class=sa>f</span><span class=s2>"but found </span><span class=si>{</span><span class=n>n_cols</span><span class=si>}</span><span class=s2> in </span><span class=si>{</span><span class=n>lines</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=n>time_col_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>PROGRESS_TIME_MILLIS</span> <span class=k>if</span> \
+            <span class=bp>self</span><span class=o>.</span><span class=n>__time_unit</span> <span class=o>==</span> <span class=n>TIME_UNIT_MILLIS</span> <span class=k>else</span> <span class=n>PROGRESS_FES</span>
+        <span class=n>time_col_idx</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=n>f_col_idx</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=n>fe_col_idx</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=k>for</span> <span class=n>idx</span><span class=p>,</span> <span class=n>col</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>columns</span><span class=p>):</span>  <span class=c1># find the columns we</span>
+            <span class=k>if</span> <span class=n>col</span> <span class=o>==</span> <span class=n>PROGRESS_FES</span><span class=p>:</span>
+                <span class=n>fe_col_idx</span> <span class=o>=</span> <span class=n>idx</span>
+            <span class=k>if</span> <span class=n>col</span> <span class=o>==</span> <span class=n>time_col_name</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>time_col_idx</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Time column </span><span class=si>{</span><span class=n>time_col_name</span><span class=si>}</span><span class=s2> "</span>
+                                     <span class=s2>"appears twice."</span><span class=p>)</span>
+                <span class=n>time_col_idx</span> <span class=o>=</span> <span class=n>idx</span>
+            <span class=k>elif</span> <span class=n>col</span> <span class=o>==</span> <span class=n>PROGRESS_CURRENT_F</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>f_col_idx</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"F column </span><span class=si>{</span><span class=n>PROGRESS_CURRENT_F</span><span class=si>}</span><span class=s2> "</span>
+                        <span class=s2>"appears twice."</span><span class=p>)</span>
+                <span class=n>f_col_idx</span> <span class=o>=</span> <span class=n>idx</span>
+
+        <span class=k>def</span><span class=w> </span><span class=nf>aa</span><span class=p>(</span><span class=n>splt</span><span class=p>):</span>  <span class=c1># noqa</span>
+            <span class=k>return</span> <span class=n>splt</span><span class=p>[</span><span class=n>time_col_idx</span><span class=p>],</span> <span class=n>splt</span><span class=p>[</span><span class=n>f_col_idx</span><span class=p>]</span>
+
+        <span class=n>time</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span>
+        <span class=n>f</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Any</span><span class=p>]</span>
+        <span class=n>time</span><span class=p>,</span> <span class=n>f</span> <span class=o>=</span> <span class=nb>zip</span><span class=p>(</span><span class=o>*</span><span class=p>[[</span><span class=n>c</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+                         <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>aa</span><span class=p>(</span><span class=n>line</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>CSV_SEPARATOR</span><span class=p>))]</span>
+                        <span class=k>for</span> <span class=n>line</span> <span class=ow>in</span> <span class=n>lines</span><span class=p>[</span><span class=mi>1</span><span class=p>:]],</span> <span class=n>strict</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=n>time</span> <span class=o>=</span> <span class=p>[</span><span class=nb>int</span><span class=p>(</span><span class=n>t</span><span class=p>)</span> <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>time</span><span class=p>]</span>
+        <span class=n>f</span> <span class=o>=</span> <span class=p>[</span><span class=n>str_to_num</span><span class=p>(</span><span class=n>v</span><span class=p>)</span> <span class=k>for</span> <span class=n>v</span> <span class=ow>in</span> <span class=n>f</span><span class=p>]</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__only_improvements</span><span class=p>:</span>
+            <span class=n>biggest_t</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+            <span class=n>best_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span>
+            <span class=k>for</span> <span class=n>idx</span><span class=p>,</span> <span class=n>t</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>time</span><span class=p>):</span>
+                <span class=n>v</span> <span class=o>=</span> <span class=n>f</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span>
+                <span class=k>if</span> <span class=n>t</span> <span class=o>></span> <span class=n>biggest_t</span><span class=p>:</span>
+                    <span class=k>if</span> <span class=n>biggest_t</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>:</span>
+                        <span class=bp>self</span><span class=o>.</span><span class=n>__t_collector</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>biggest_t</span><span class=p>)</span>
+                        <span class=bp>self</span><span class=o>.</span><span class=n>__f_collector</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>best_f</span><span class=p>)</span>
+                    <span class=n>best_f</span> <span class=o>=</span> <span class=n>v</span>
+                    <span class=n>biggest_t</span> <span class=o>=</span> <span class=n>t</span>
+                <span class=k>elif</span> <span class=n>v</span> <span class=o><</span> <span class=n>best_f</span><span class=p>:</span>
+                    <span class=n>best_f</span> <span class=o>=</span> <span class=n>v</span>
+            <span class=k>if</span> <span class=n>biggest_t</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__t_collector</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>biggest_t</span><span class=p>)</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__f_collector</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>best_f</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__t_collector</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>time</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__f_collector</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>f</span><span class=p>)</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>__last_fe</span> <span class=o>=</span> <span class=nb>int</span><span class=p>((</span><span class=n>lines</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>CSV_SEPARATOR</span><span class=p>))[</span><span class=n>fe_col_idx</span><span class=p>])</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__last_fe</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Last FE cannot be </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__last_fe</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>=</span> <span class=mi>2</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>_needs_more_lines</span><span class=p>()</span>
+
+
+<div class=viewcode-block id=from_logs>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.progress.from_logs>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>from_logs</span><span class=p>(</span><span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+              <span class=n>time_unit</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>TIME_UNIT_FES</span><span class=p>,</span>
+              <span class=n>f_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>F_NAME_RAW</span><span class=p>,</span>
+              <span class=n>f_standard</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+              <span class=n>only_improvements</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+              <span class=n>path_filter</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Path</span><span class=p>],</span> <span class=nb>bool</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=n>Generator</span><span class=p>[</span><span class=n>Progress</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Parse a given path and pass yield all progress data found.</span>
+
+<span class=sd>    If `path` identifies a file with suffix `.txt`, then this file is</span>
+<span class=sd>    parsed. The appropriate :class:`Progress` is created. If `path` identifies</span>
+<span class=sd>    a directory, then this directory is parsed recursively for each log file</span>
+<span class=sd>    found, one record is returned.</span>
+
+<span class=sd>    :param path: the path to parse</span>
+<span class=sd>    :param time_unit: the time unit</span>
+<span class=sd>    :param f_name: the objective name</span>
+<span class=sd>    :param f_standard: a dictionary mapping instances to standard values</span>
+<span class=sd>    :param only_improvements: enforce that f-values should be improving and</span>
+<span class=sd>        time values increasing</span>
+<span class=sd>    :param path_filter: a function to filter paths</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>__InnerLogParser</span><span class=p>(</span><span class=n>time_unit</span><span class=p>,</span> <span class=n>f_name</span><span class=p>,</span> <span class=n>f_standard</span><span class=p>,</span>
+                            <span class=n>only_improvements</span><span class=p>,</span> <span class=n>path_filter</span><span class=p>)</span><span class=o>.</span><span class=n>parse</span><span class=p>(</span><span class=n>path</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.progress</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

@@ -1,0 +1,247 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.tests.mo_algorithm — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/tests/mo_algorithm.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.mo_algorithm</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.tests.mo_algorithm</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Functions that can be used to test multi-objective algorithms."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=kn>import</span> <span class=n>array_equal</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>default_rng</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>Algorithm0</span><span class=p>,</span>
+    <span class=n>Algorithm1</span><span class=p>,</span>
+    <span class=n>Algorithm2</span><span class=p>,</span>
+    <span class=n>check_algorithm</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.encoding</span><span class=w> </span><span class=kn>import</span> <span class=n>Encoding</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>MOAlgorithm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_archive</span><span class=w> </span><span class=kn>import</span> <span class=n>MOArchivePruner</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_execution</span><span class=w> </span><span class=kn>import</span> <span class=n>MOExecution</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>MOProblem</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>check_op0</span><span class=p>,</span> <span class=n>check_op1</span><span class=p>,</span> <span class=n>check_op2</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.space</span><span class=w> </span><span class=kn>import</span> <span class=n>Space</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.mo.archive.keep_farthest</span><span class=w> </span><span class=kn>import</span> <span class=n>KeepFarthest</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.component</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_component</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.encoding</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_encoding</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.mo_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_mo_problem</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.space</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_space</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>rand_seed_generate</span>
+
+
+<div class=viewcode-block id=validate_mo_algorithm>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.mo_algorithm.validate_mo_algorithm>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_mo_algorithm</span><span class=p>(</span>
+        <span class=n>algorithm</span><span class=p>:</span> <span class=n>MOAlgorithm</span><span class=p>,</span>
+        <span class=n>solution_space</span><span class=p>:</span> <span class=n>Space</span><span class=p>,</span>
+        <span class=n>problem</span><span class=p>:</span> <span class=n>MOProblem</span><span class=p>,</span>
+        <span class=n>search_space</span><span class=p>:</span> <span class=n>Space</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>encoding</span><span class=p>:</span> <span class=n>Encoding</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>100</span><span class=p>,</span>
+        <span class=n>is_encoding_deterministic</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether a multi-objective algorithm follows the moptipy API.</span>
+
+<span class=sd>    :param algorithm: the algorithm to test</span>
+<span class=sd>    :param solution_space: the solution space</span>
+<span class=sd>    :param problem: the problem to solve</span>
+<span class=sd>    :param search_space: the optional search space</span>
+<span class=sd>    :param encoding: the optional encoding</span>
+<span class=sd>    :param max_fes: the maximum number of FEs</span>
+<span class=sd>    :param is_encoding_deterministic: is the encoding deterministic?</span>
+<span class=sd>    :raises TypeError: if `algorithm` is not a</span>
+<span class=sd>        :class:`~moptipy.api.mo_algorithm.MOAlgorithm` instance</span>
+<span class=sd>    :raises ValueError: if `algorithm` does not behave like it should</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>MOAlgorithm</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=s2>"algorithm"</span><span class=p>,</span> <span class=n>MOAlgorithm</span><span class=p>)</span>
+
+    <span class=n>check_algorithm</span><span class=p>(</span><span class=n>algorithm</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>Algorithm0</span><span class=p>):</span>
+        <span class=n>check_op0</span><span class=p>(</span><span class=n>algorithm</span><span class=o>.</span><span class=n>op0</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>Algorithm1</span><span class=p>):</span>
+            <span class=n>check_op1</span><span class=p>(</span><span class=n>algorithm</span><span class=o>.</span><span class=n>op1</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>Algorithm2</span><span class=p>):</span>
+                <span class=n>check_op2</span><span class=p>(</span><span class=n>algorithm</span><span class=o>.</span><span class=n>op2</span><span class=p>)</span>
+
+    <span class=n>validate_component</span><span class=p>(</span><span class=n>algorithm</span><span class=p>)</span>
+    <span class=n>validate_mo_problem</span><span class=p>(</span><span class=n>problem</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span><span class=p>)</span>
+    <span class=n>validate_space</span><span class=p>(</span><span class=n>solution_space</span><span class=p>,</span> <span class=kc>None</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>encoding</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>validate_encoding</span><span class=p>(</span><span class=n>encoding</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span>
+                          <span class=n>is_encoding_deterministic</span><span class=p>)</span>
+        <span class=n>validate_space</span><span class=p>(</span><span class=n>search_space</span><span class=p>,</span> <span class=kc>None</span><span class=p>)</span>
+
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>max_fes</span><span class=p>,</span> <span class=s2>"max_fes"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000</span><span class=p>)</span>
+    <span class=n>lb</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>problem</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>()</span>
+    <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>lb</span><span class=p>))</span> <span class=ow>and</span> <span class=p>(</span><span class=n>lb</span> <span class=o>!=</span> <span class=o>-</span><span class=n>inf</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"objective lower bound cannot be </span><span class=si>{</span><span class=n>lb</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>ub</span> <span class=o>=</span> <span class=n>problem</span><span class=o>.</span><span class=n>upper_bound</span><span class=p>()</span>
+    <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>ub</span><span class=p>))</span> <span class=ow>and</span> <span class=p>(</span><span class=n>ub</span> <span class=o>!=</span> <span class=n>inf</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"objective upper bound cannot be </span><span class=si>{</span><span class=n>ub</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=n>exp</span> <span class=o>=</span> <span class=n>MOExecution</span><span class=p>()</span>
+    <span class=n>exp</span><span class=o>.</span><span class=n>set_algorithm</span><span class=p>(</span><span class=n>algorithm</span><span class=p>)</span>
+    <span class=n>exp</span><span class=o>.</span><span class=n>set_max_fes</span><span class=p>(</span><span class=n>max_fes</span><span class=p>)</span>
+    <span class=n>exp</span><span class=o>.</span><span class=n>set_solution_space</span><span class=p>(</span><span class=n>solution_space</span><span class=p>)</span>
+    <span class=n>exp</span><span class=o>.</span><span class=n>set_objective</span><span class=p>(</span><span class=n>problem</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>search_space</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>exp</span><span class=o>.</span><span class=n>set_search_space</span><span class=p>(</span><span class=n>search_space</span><span class=p>)</span>
+        <span class=n>exp</span><span class=o>.</span><span class=n>set_encoding</span><span class=p>(</span><span class=n>encoding</span><span class=p>)</span>
+
+    <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>()</span>
+    <span class=n>max_archive_size</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span>
+        <span class=mi>1</span><span class=p>,</span> <span class=mi>1</span> <span class=o><<</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>6</span><span class=p>))))</span>
+    <span class=n>exp</span><span class=o>.</span><span class=n>set_archive_max_size</span><span class=p>(</span><span class=n>max_archive_size</span><span class=p>)</span>
+    <span class=n>exp</span><span class=o>.</span><span class=n>set_archive_pruning_limit</span><span class=p>(</span>
+        <span class=n>max_archive_size</span> <span class=o>+</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>8</span><span class=p>)))</span>
+    <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=n>choice</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>))</span>
+        <span class=n>pruner</span><span class=p>:</span> <span class=n>MOArchivePruner</span>
+        <span class=k>if</span> <span class=n>choice</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>lst</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span>
+            <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+                <span class=n>lst</span> <span class=o>=</span> <span class=p>[</span><span class=n>i</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>problem</span><span class=o>.</span><span class=n>f_dimension</span><span class=p>())</span>
+                       <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>]</span>
+                <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>lst</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>break</span>
+            <span class=n>pruner</span> <span class=o>=</span> <span class=n>KeepFarthest</span><span class=p>(</span><span class=n>problem</span><span class=p>,</span> <span class=n>lst</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>pruner</span> <span class=o>=</span> <span class=n>MOArchivePruner</span><span class=p>()</span>
+        <span class=n>exp</span><span class=o>.</span><span class=n>set_archive_pruner</span><span class=p>(</span><span class=n>pruner</span><span class=p>)</span>
+
+    <span class=n>seed</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand_seed_generate</span><span class=p>(</span><span class=n>random</span><span class=p>)</span>
+    <span class=n>exp</span><span class=o>.</span><span class=n>set_rand_seed</span><span class=p>(</span><span class=n>seed</span><span class=p>)</span>
+
+    <span class=n>l_consumed_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+    <span class=n>l_last_improvement_fe</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+    <span class=n>l_res_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span>
+    <span class=n>l_y</span><span class=p>:</span> <span class=n>Any</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>l_fs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>l_x</span><span class=p>:</span> <span class=n>Any</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=k>for</span> <span class=n>is_check</span> <span class=ow>in</span> <span class=p>[</span><span class=kc>False</span><span class=p>,</span> <span class=kc>True</span><span class=p>]:</span>
+        <span class=k>with</span> <span class=n>exp</span><span class=o>.</span><span class=n>execute</span><span class=p>()</span> <span class=k>as</span> <span class=n>process</span><span class=p>:</span>
+            <span class=c1># re-raise any exception that was caught</span>
+            <span class=k>if</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=s2>"_caught"</span><span class=p>):</span>
+                <span class=n>error</span> <span class=o>=</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=s2>"_caught"</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>error</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=n>error</span>
+            <span class=c1># no exception? ok, let's check the data</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>process</span><span class=o>.</span><span class=n>has_best</span><span class=p>():</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"The algorithm did not produce any solution."</span><span class=p>)</span>
+
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span><span class=p>():</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"The algorithm stopped before hitting the "</span>
+                    <span class=s2>"termination criterion."</span><span class=p>)</span>
+            <span class=n>consumed_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+                <span class=n>process</span><span class=o>.</span><span class=n>get_consumed_fes</span><span class=p>(),</span> <span class=s2>"consumed_fes"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>is_check</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>consumed_fes</span> <span class=o>!=</span> <span class=n>l_consumed_fes</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"consumed FEs changed from </span><span class=si>{</span><span class=n>l_consumed_fes</span><span class=si>}</span><span class=s2> to "</span>
+                        <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>consumed_fes</span><span class=si>}</span><span class=s2> in second run for seed </span><span class=si>{</span><span class=n>seed</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>l_consumed_fes</span> <span class=o>=</span> <span class=n>consumed_fes</span>
+            <span class=n>last_improvement_fe</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>get_last_improvement_fe</span><span class=p>()</span>
+            <span class=n>check_int_range</span><span class=p>(</span><span class=n>last_improvement_fe</span><span class=p>,</span> <span class=s2>"last_improvement_fe"</span><span class=p>,</span>
+                            <span class=mi>1</span><span class=p>,</span> <span class=n>consumed_fes</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>is_check</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>last_improvement_fe</span> <span class=o>!=</span> <span class=n>l_last_improvement_fe</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=s2>"last improvement FEs changed from "</span>
+                        <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>l_last_improvement_fe</span><span class=si>}</span><span class=s2> to </span><span class=si>{</span><span class=n>last_improvement_fe</span><span class=si>}</span><span class=s2> in"</span>
+                        <span class=sa>f</span><span class=s2>" second run for seed </span><span class=si>{</span><span class=n>seed</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>l_last_improvement_fe</span> <span class=o>=</span> <span class=n>last_improvement_fe</span>
+
+            <span class=n>consumed_time</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+                <span class=n>process</span><span class=o>.</span><span class=n>get_consumed_time_millis</span><span class=p>(),</span> <span class=s2>"consumed_time"</span><span class=p>,</span>
+                <span class=mi>0</span><span class=p>,</span> <span class=mi>100_0000_000</span><span class=p>)</span>
+            <span class=n>check_int_range</span><span class=p>(</span>
+                <span class=n>process</span><span class=o>.</span><span class=n>get_last_improvement_time_millis</span><span class=p>(),</span>
+                <span class=s2>"last_improvement_time"</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=n>consumed_time</span><span class=p>)</span>
+
+            <span class=k>if</span> <span class=n>lb</span> <span class=o>!=</span> <span class=n>process</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>():</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"Inconsistent lower bounds between process "</span>
+                    <span class=sa>f</span><span class=s2>"(</span><span class=si>{</span><span class=n>process</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>()</span><span class=si>}</span><span class=s2>) and scalarized "</span>
+                    <span class=sa>f</span><span class=s2>"objective (</span><span class=si>{</span><span class=n>lb</span><span class=si>}</span><span class=s2>)."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>ub</span> <span class=o>!=</span> <span class=n>process</span><span class=o>.</span><span class=n>upper_bound</span><span class=p>():</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"Inconsistent upper bounds between process "</span>
+                    <span class=sa>f</span><span class=s2>"(</span><span class=si>{</span><span class=n>process</span><span class=o>.</span><span class=n>upper_bound</span><span class=p>()</span><span class=si>}</span><span class=s2>) and scalarized "</span>
+                    <span class=sa>f</span><span class=s2>"objective (</span><span class=si>{</span><span class=n>ub</span><span class=si>}</span><span class=s2>)."</span><span class=p>)</span>
+
+            <span class=n>res_f</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>get_best_f</span><span class=p>()</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>res_f</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"Infinite scalarized objective value of result."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>res_f</span> <span class=o><</span> <span class=n>lb</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>res_f</span> <span class=o>></span> <span class=n>ub</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Objective value </span><span class=si>{</span><span class=n>res_f</span><span class=si>}</span><span class=s2> outside of bounds [</span><span class=si>{</span><span class=n>lb</span><span class=si>}</span><span class=s2>,</span><span class=si>{</span><span class=n>ub</span><span class=si>}</span><span class=s2>]."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>is_check</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>res_f</span> <span class=o>!=</span> <span class=n>l_res_f</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"result f changed from </span><span class=si>{</span><span class=n>l_res_f</span><span class=si>}</span><span class=s2> to </span><span class=si>{</span><span class=n>res_f</span><span class=si>}</span><span class=s2> in"</span>
+                        <span class=sa>f</span><span class=s2>" second run for seed </span><span class=si>{</span><span class=n>seed</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>l_res_f</span> <span class=o>=</span> <span class=n>res_f</span>
+
+            <span class=n>y</span> <span class=o>=</span> <span class=n>solution_space</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>
+            <span class=n>process</span><span class=o>.</span><span class=n>get_copy_of_best_y</span><span class=p>(</span><span class=n>y</span><span class=p>)</span>
+            <span class=n>solution_space</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>y</span><span class=p>)</span>
+            <span class=n>fs1</span> <span class=o>=</span> <span class=n>problem</span><span class=o>.</span><span class=n>f_create</span><span class=p>()</span>
+            <span class=n>fs2</span> <span class=o>=</span> <span class=n>problem</span><span class=o>.</span><span class=n>f_create</span><span class=p>()</span>
+            <span class=n>process</span><span class=o>.</span><span class=n>get_copy_of_best_y</span><span class=p>(</span><span class=n>y</span><span class=p>)</span>
+            <span class=n>check_f</span> <span class=o>=</span> <span class=n>problem</span><span class=o>.</span><span class=n>f_evaluate</span><span class=p>(</span><span class=n>y</span><span class=p>,</span> <span class=n>fs1</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>check_f</span> <span class=o>!=</span> <span class=n>res_f</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Inconsistent objective value </span><span class=si>{</span><span class=n>res_f</span><span class=si>}</span><span class=s2> from process "</span>
+                    <span class=sa>f</span><span class=s2>"compared to </span><span class=si>{</span><span class=n>check_f</span><span class=si>}</span><span class=s2> from objective function."</span><span class=p>)</span>
+            <span class=n>process</span><span class=o>.</span><span class=n>get_copy_of_best_fs</span><span class=p>(</span><span class=n>fs2</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>array_equal</span><span class=p>(</span><span class=n>fs1</span><span class=p>,</span> <span class=n>fs2</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Inconsistent objective vectors </span><span class=si>{</span><span class=n>fs1</span><span class=si>}</span><span class=s2> and </span><span class=si>{</span><span class=n>fs2</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+            <span class=k>if</span> <span class=n>is_check</span><span class=p>:</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=n>solution_space</span><span class=o>.</span><span class=n>is_equal</span><span class=p>(</span><span class=n>y</span><span class=p>,</span> <span class=n>l_y</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"solution changed from </span><span class=si>{</span><span class=n>l_y</span><span class=si>}</span><span class=s2> to </span><span class=si>{</span><span class=n>y</span><span class=si>}</span><span class=s2> in "</span>
+                                     <span class=sa>f</span><span class=s2>"the second run of seed </span><span class=si>{</span><span class=n>seed</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>res_f</span> <span class=o>!=</span> <span class=n>l_res_f</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"result f changed from </span><span class=si>{</span><span class=n>l_res_f</span><span class=si>}</span><span class=s2> to </span><span class=si>{</span><span class=n>res_f</span><span class=si>}</span><span class=s2> in the "</span>
+                        <span class=sa>f</span><span class=s2>"second run of seed </span><span class=si>{</span><span class=n>seed</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=n>np</span><span class=o>.</span><span class=n>array_equal</span><span class=p>(</span><span class=n>fs1</span><span class=p>,</span> <span class=n>l_fs</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"result fs changed from </span><span class=si>{</span><span class=n>l_fs</span><span class=si>}</span><span class=s2> to </span><span class=si>{</span><span class=n>fs1</span><span class=si>}</span><span class=s2> in the "</span>
+                        <span class=sa>f</span><span class=s2>"second run of seed </span><span class=si>{</span><span class=n>seed</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>l_y</span> <span class=o>=</span> <span class=n>y</span>
+                <span class=n>l_fs</span> <span class=o>=</span> <span class=n>fs1</span>
+                <span class=n>l_res_f</span> <span class=o>=</span> <span class=n>res_f</span>
+
+            <span class=n>x</span><span class=p>:</span> <span class=n>Any</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=k>if</span> <span class=n>search_space</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>x</span> <span class=o>=</span> <span class=n>search_space</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>
+                <span class=n>process</span><span class=o>.</span><span class=n>get_copy_of_best_x</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+                <span class=n>search_space</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+
+                <span class=k>if</span> <span class=n>is_check</span><span class=p>:</span>
+                    <span class=k>if</span> <span class=ow>not</span> <span class=n>search_space</span><span class=o>.</span><span class=n>is_equal</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>l_x</span><span class=p>):</span>
+                        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                            <span class=sa>f</span><span class=s2>"result x changed from </span><span class=si>{</span><span class=n>l_x</span><span class=si>}</span><span class=s2> to </span><span class=si>{</span><span class=n>x</span><span class=si>}</span><span class=s2> in the "</span>
+                            <span class=sa>f</span><span class=s2>"second run of seed </span><span class=si>{</span><span class=n>seed</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>l_x</span> <span class=o>=</span> <span class=n>x</span>
+
+            <span class=k>if</span> <span class=n>encoding</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>y2</span> <span class=o>=</span> <span class=n>solution_space</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>
+                <span class=n>encoding</span><span class=o>.</span><span class=n>decode</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>y2</span><span class=p>)</span>
+                <span class=n>solution_space</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>y2</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>is_encoding_deterministic</span><span class=p>:</span>
+                    <span class=n>solution_space</span><span class=o>.</span><span class=n>is_equal</span><span class=p>(</span><span class=n>y</span><span class=p>,</span> <span class=n>y2</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.mo_algorithm</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

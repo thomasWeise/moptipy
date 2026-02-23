@@ -1,0 +1,471 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.mock.utils — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/mock/utils.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.mock.utils</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.mock.utils</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Utilities for mock objects."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>ceil</span><span class=p>,</span> <span class=n>floor</span><span class=p>,</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isfinite</span><span class=p>,</span> <span class=n>nextafter</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Sequence</span><span class=p>,</span> <span class=n>cast</span>  <span class=c1># pylint: disable=W0611</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=c1>#: The default types to be used for testing.</span>
+<span class=n>DEFAULT_TEST_DTYPES</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=nb>sorted</span><span class=p>({</span>
+    <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>(</span><span class=n>bdt</span><span class=p>)</span> <span class=k>for</span> <span class=n>bdt</span> <span class=ow>in</span> <span class=p>[</span>
+        <span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>int8</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>int16</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>uint8</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>uint16</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>int32</span><span class=p>,</span>
+        <span class=n>np</span><span class=o>.</span><span class=n>uint32</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>int64</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>uint64</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>float16</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>float32</span><span class=p>,</span>
+        <span class=n>np</span><span class=o>.</span><span class=n>float64</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>float128</span><span class=p>]},</span> <span class=n>key</span><span class=o>=</span><span class=k>lambda</span> <span class=n>dt</span><span class=p>:</span> <span class=p>(</span><span class=n>dt</span><span class=o>.</span><span class=n>kind</span><span class=p>,</span> <span class=n>dt</span><span class=o>.</span><span class=n>itemsize</span><span class=p>)))</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_lb_int</span><span class=p>(</span><span class=n>lb</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Convert a finite lower bound to an integer.</span>
+
+<span class=sd>    :param lb: the lower bound</span>
+<span class=sd>    :retruns: the integer lower bound</span>
+
+<span class=sd>    >>> _lb_int(1)</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> type(_lb_int(1))</span>
+<span class=sd>    &LTclass 'int'></span>
+<span class=sd>    >>> _lb_int(1.4)</span>
+<span class=sd>    2</span>
+<span class=sd>    >>> type(_lb_int(1.4))</span>
+<span class=sd>    &LTclass 'int'></span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>lb</span> <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span> <span class=k>else</span> <span class=n>ceil</span><span class=p>(</span><span class=n>lb</span><span class=p>)</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_ub_int</span><span class=p>(</span><span class=n>ub</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Convert a finite upper bound to an integer.</span>
+
+<span class=sd>    :param ub: the upper bound</span>
+<span class=sd>    :retruns: the integer upper bound</span>
+
+<span class=sd>    >>> _ub_int(1)</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> type(_ub_int(1))</span>
+<span class=sd>    &LTclass 'int'></span>
+<span class=sd>    >>> _ub_int(1.4)</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> type(_ub_int(1.4))</span>
+<span class=sd>    &LTclass 'int'></span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>ub</span> <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ub</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span> <span class=k>else</span> <span class=n>floor</span><span class=p>(</span><span class=n>ub</span><span class=p>)</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_float_beautify</span><span class=p>(</span><span class=n>f</span><span class=p>:</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get a slightly beautified float, if possible.</span>
+
+<span class=sd>    :param f: the float</span>
+<span class=sd>    :return: the beautified number</span>
+<span class=sd>    """</span>
+    <span class=n>vb</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>round</span><span class=p>(</span><span class=mf>1000.0</span> <span class=o>*</span> <span class=n>f</span><span class=p>)</span>
+    <span class=n>r1</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.001</span> <span class=o>*</span> <span class=n>vb</span>
+    <span class=n>l1</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>r1</span><span class=p>))</span>
+
+    <span class=n>r2</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.001</span> <span class=o>*</span> <span class=p>(</span><span class=n>vb</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span>
+    <span class=n>l2</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>r2</span><span class=p>))</span>
+    <span class=k>if</span> <span class=n>l2</span> <span class=o><</span> <span class=n>l1</span><span class=p>:</span>
+        <span class=n>l1</span> <span class=o>=</span> <span class=n>l2</span>
+        <span class=n>r1</span> <span class=o>=</span> <span class=n>r2</span>
+
+    <span class=n>r2</span> <span class=o>=</span> <span class=mf>0.001</span> <span class=o>*</span> <span class=p>(</span><span class=n>vb</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span>
+    <span class=n>l2</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>r2</span><span class=p>))</span>
+    <span class=k>if</span> <span class=n>l2</span> <span class=o><</span> <span class=n>l1</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>r2</span>
+    <span class=k>return</span> <span class=n>r1</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_before_int</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span>
+                <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get an `int` value before the given limit.</span>
+
+<span class=sd>    :param upper_bound: the upper bound</span>
+<span class=sd>    :param random: the generator</span>
+<span class=sd>    :returns: the value, if it could be generated, `None` otherwise</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=n>upper_bound</span> <span class=o>>=</span> <span class=n>inf</span><span class=p>:</span>
+        <span class=n>upper_bound</span> <span class=o>=</span> <span class=mi>10000</span>
+    <span class=k>elif</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>):</span>
+        <span class=k>return</span> <span class=kc>None</span>
+    <span class=n>lov</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=mf>0.6</span> <span class=o>*</span> <span class=n>upper_bound</span><span class=p>),</span> <span class=n>upper_bound</span> <span class=o>-</span> <span class=mi>22</span><span class=p>)</span> \
+        <span class=k>if</span> <span class=n>upper_bound</span> <span class=o>></span> <span class=mi>0</span> <span class=k>else</span> <span class=nb>max</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>upper_bound</span> <span class=o>/</span> <span class=mf>0.6</span><span class=p>),</span> <span class=n>upper_bound</span> <span class=o>-</span> <span class=mi>22</span><span class=p>)</span>
+    <span class=n>lo</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>_lb_int</span><span class=p>(</span><span class=nb>max</span><span class=p>(</span><span class=n>lov</span><span class=p>,</span> <span class=o>-</span><span class=mi>9223372036854775806</span><span class=p>))</span>
+    <span class=n>up</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>_ub_int</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>lo</span> <span class=o>>=</span> <span class=n>up</span><span class=p>:</span>
+        <span class=k>return</span> <span class=kc>None</span>
+    <span class=n>res</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>lo</span><span class=p>,</span> <span class=n>up</span><span class=p>))</span>
+    <span class=k>if</span> <span class=n>res</span> <span class=o>>=</span> <span class=n>upper_bound</span><span class=p>:</span>
+        <span class=k>return</span> <span class=kc>None</span>
+    <span class=k>return</span> <span class=n>res</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_before_float</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span>
+                  <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get a `float` value before the given limit.</span>
+
+<span class=sd>    :param upper_bound: the upper bound</span>
+<span class=sd>    :param random: the generator</span>
+<span class=sd>    :returns: the value, if it could be generated, `None` otherwise</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=n>upper_bound</span> <span class=o>>=</span> <span class=n>inf</span><span class=p>:</span>
+        <span class=n>upper_bound</span> <span class=o>=</span> <span class=mf>10000.0</span>
+    <span class=k>elif</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>):</span>
+        <span class=k>return</span> <span class=kc>None</span>
+    <span class=n>ulp</span> <span class=o>=</span> <span class=mf>1E16</span> <span class=o>*</span> <span class=p>(</span><span class=n>upper_bound</span> <span class=o>-</span> <span class=n>nextafter</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>,</span> <span class=o>-</span><span class=n>inf</span><span class=p>))</span> \
+        <span class=k>if</span> <span class=p>(</span><span class=n>upper_bound</span> <span class=o><</span> <span class=mi>0</span><span class=p>)</span> <span class=k>else</span> <span class=mf>1E-8</span> <span class=k>if</span> <span class=n>upper_bound</span> <span class=o><=</span> <span class=mi>0</span> \
+        <span class=k>else</span> <span class=mf>1E16</span> <span class=o>*</span> <span class=p>(</span><span class=n>nextafter</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>,</span> <span class=n>inf</span><span class=p>)</span> <span class=o>-</span> <span class=n>upper_bound</span><span class=p>)</span>
+    <span class=n>lo</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>upper_bound</span> <span class=o>*</span> <span class=mf>0.6</span><span class=p>,</span> <span class=n>upper_bound</span> <span class=o>-</span> <span class=n>ulp</span><span class=p>)</span> \
+        <span class=k>if</span> <span class=n>upper_bound</span> <span class=o>></span> <span class=mf>0.0</span> <span class=k>else</span> <span class=nb>min</span><span class=p>(</span><span class=n>upper_bound</span> <span class=o>/</span> <span class=mf>0.6</span><span class=p>,</span> <span class=n>upper_bound</span> <span class=o>-</span> <span class=n>ulp</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>lo</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=n>lo</span> <span class=o>>=</span> <span class=n>upper_bound</span><span class=p>):</span>
+        <span class=k>return</span> <span class=kc>None</span>
+    <span class=n>res</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=n>lo</span><span class=p>,</span> <span class=n>upper_bound</span><span class=p>))</span>
+
+    <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>res</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=n>res</span> <span class=o>>=</span> <span class=n>upper_bound</span><span class=p>):</span>
+        <span class=k>return</span> <span class=kc>None</span>
+    <span class=n>resb</span> <span class=o>=</span> <span class=n>_float_beautify</span><span class=p>(</span><span class=n>res</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>resb</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>resb</span> <span class=o><</span> <span class=n>upper_bound</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>resb</span>
+    <span class=k>return</span> <span class=n>res</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_after_int</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span>
+               <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get an `int` value after the given limit.</span>
+
+<span class=sd>    :param lower_bound: the upper bound</span>
+<span class=sd>    :param random: the generator</span>
+<span class=sd>    :returns: the value, if it could be generated, `None` otherwise</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=n>lower_bound</span> <span class=o><=</span> <span class=o>-</span><span class=n>inf</span><span class=p>:</span>
+        <span class=n>lower_bound</span> <span class=o>=</span> <span class=o>-</span><span class=mi>10000</span>
+    <span class=k>elif</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>):</span>
+        <span class=k>return</span> <span class=kc>None</span>
+    <span class=n>uv</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>lower_bound</span> <span class=o>/</span> <span class=mf>0.6</span><span class=p>),</span> <span class=n>lower_bound</span> <span class=o>+</span> <span class=mi>22</span><span class=p>)</span> \
+        <span class=k>if</span> <span class=n>lower_bound</span> <span class=o>></span> <span class=mi>0</span> <span class=k>else</span> <span class=nb>max</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>lower_bound</span> <span class=o>*</span> <span class=mf>0.6</span><span class=p>),</span> <span class=n>lower_bound</span> <span class=o>+</span> <span class=mi>22</span><span class=p>)</span>
+    <span class=n>ub</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>_ub_int</span><span class=p>(</span><span class=nb>min</span><span class=p>(</span><span class=n>uv</span><span class=p>,</span> <span class=mi>9223372036854775806</span><span class=p>))</span>
+    <span class=n>lb</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>_lb_int</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>lb</span> <span class=o>>=</span> <span class=n>ub</span><span class=p>:</span>
+        <span class=k>return</span> <span class=kc>None</span>
+    <span class=n>res</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=n>ub</span><span class=p>))</span>
+    <span class=k>if</span> <span class=n>res</span> <span class=o><=</span> <span class=n>lower_bound</span><span class=p>:</span>
+        <span class=k>return</span> <span class=kc>None</span>
+    <span class=k>return</span> <span class=n>res</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_after_float</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span>
+                 <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get a `float` value after the given limit.</span>
+
+<span class=sd>    :param lower_bound: the upper bound</span>
+<span class=sd>    :param random: the generator</span>
+<span class=sd>    :returns: the value, if it could be generated, `None` otherwise</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=n>lower_bound</span> <span class=o><=</span> <span class=o>-</span><span class=n>inf</span><span class=p>:</span>
+        <span class=n>lower_bound</span> <span class=o>=</span> <span class=o>-</span><span class=mf>10000.0</span>
+    <span class=k>elif</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>):</span>
+        <span class=k>return</span> <span class=kc>None</span>
+    <span class=n>ulp</span> <span class=o>=</span> <span class=mf>1E16</span> <span class=o>*</span> <span class=p>(</span><span class=n>lower_bound</span> <span class=o>-</span> <span class=n>nextafter</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>,</span> <span class=o>-</span><span class=n>inf</span><span class=p>))</span> \
+        <span class=k>if</span> <span class=p>(</span><span class=n>lower_bound</span> <span class=o><</span> <span class=mi>0</span><span class=p>)</span> <span class=k>else</span> <span class=mf>1E-8</span> <span class=k>if</span> <span class=n>lower_bound</span> <span class=o><=</span> <span class=mi>0</span> \
+        <span class=k>else</span> <span class=mf>1E16</span> <span class=o>*</span> <span class=p>(</span><span class=n>nextafter</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>,</span> <span class=n>inf</span><span class=p>)</span> <span class=o>-</span> <span class=n>lower_bound</span><span class=p>)</span>
+    <span class=n>hi</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>lower_bound</span> <span class=o>/</span> <span class=mf>0.6</span><span class=p>,</span> <span class=n>lower_bound</span> <span class=o>+</span> <span class=n>ulp</span><span class=p>)</span> \
+        <span class=k>if</span> <span class=n>lower_bound</span> <span class=o>></span> <span class=mf>0.0</span> <span class=k>else</span> <span class=nb>max</span><span class=p>(</span><span class=n>lower_bound</span> <span class=o>*</span> <span class=mf>0.6</span><span class=p>,</span> <span class=n>lower_bound</span> <span class=o>+</span> <span class=n>ulp</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>hi</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=n>hi</span> <span class=o><=</span> <span class=n>lower_bound</span><span class=p>):</span>
+        <span class=k>return</span> <span class=kc>None</span>
+    <span class=n>res</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>,</span> <span class=n>hi</span><span class=p>))</span>
+    <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>res</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=n>res</span> <span class=o><=</span> <span class=n>lower_bound</span><span class=p>):</span>
+        <span class=k>return</span> <span class=kc>None</span>
+    <span class=n>resb</span> <span class=o>=</span> <span class=n>_float_beautify</span><span class=p>(</span><span class=n>res</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>resb</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>resb</span> <span class=o>></span> <span class=n>lower_bound</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>resb</span>
+    <span class=k>return</span> <span class=n>res</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_between_int</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span>
+                 <span class=n>upper_bound</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span>
+                 <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute a number between two others.</span>
+
+<span class=sd>    :param lower_bound: the minimum</span>
+<span class=sd>    :param upper_bound: the maximum</span>
+<span class=sd>    :param random: the generator</span>
+<span class=sd>    :returns: the value, if it could be generated, `None` otherwise</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>):</span>
+        <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>):</span>
+            <span class=n>lb</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>_lb_int</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span>
+            <span class=n>ub</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>_ub_int</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>lb</span> <span class=o><</span> <span class=n>ub</span><span class=p>:</span>
+                <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=n>ub</span><span class=p>))</span>
+            <span class=k>return</span> <span class=kc>None</span>
+        <span class=k>return</span> <span class=n>_after_int</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>,</span> <span class=n>random</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>_before_int</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>,</span> <span class=n>random</span><span class=p>)</span>
+    <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mf>1000.0</span><span class=p>))</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_between_float</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span>
+                   <span class=n>upper_bound</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span>
+                   <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute a number between two others.</span>
+
+<span class=sd>    :param lower_bound: the minimum</span>
+<span class=sd>    :param upper_bound: the maximum</span>
+<span class=sd>    :param random: the generator</span>
+<span class=sd>    :returns: the value, if it could be generated, `None` otherwise</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>):</span>
+        <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>):</span>
+            <span class=n>a</span> <span class=o>=</span> <span class=n>lower_bound</span>
+            <span class=n>b</span> <span class=o>=</span> <span class=n>upper_bound</span>
+            <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>5</span><span class=p>):</span>
+                <span class=n>a</span> <span class=o>=</span> <span class=n>nextafter</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=n>inf</span><span class=p>)</span>
+                <span class=n>b</span> <span class=o>=</span> <span class=n>nextafter</span><span class=p>(</span><span class=n>b</span><span class=p>,</span> <span class=o>-</span><span class=n>inf</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>a</span> <span class=o><</span> <span class=n>b</span><span class=p>:</span>
+                <span class=n>res</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=nb>min</span><span class=p>(</span><span class=n>b</span><span class=p>,</span> <span class=nb>float</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=n>b</span><span class=p>))))</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>res</span><span class=p>)</span> <span class=ow>or</span> <span class=ow>not</span> <span class=p>(</span><span class=n>lower_bound</span> <span class=o><</span> <span class=n>res</span> <span class=o><</span> <span class=n>upper_bound</span><span class=p>):</span>
+                    <span class=k>return</span> <span class=kc>None</span>
+                <span class=n>resb</span> <span class=o>=</span> <span class=n>_float_beautify</span><span class=p>(</span><span class=n>res</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>resb</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>lower_bound</span> <span class=o><</span> <span class=n>resb</span> <span class=o><</span> <span class=n>upper_bound</span><span class=p>):</span>
+                    <span class=k>return</span> <span class=n>resb</span>
+                <span class=k>return</span> <span class=n>res</span>
+            <span class=k>return</span> <span class=kc>None</span>
+        <span class=k>return</span> <span class=n>_after_float</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>,</span> <span class=n>random</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>_before_float</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>,</span> <span class=n>random</span><span class=p>)</span>
+    <span class=k>return</span> <span class=nb>float</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mf>1000.0</span><span class=p>))</span>
+
+
+<div class=viewcode-block id=make_ordered_list>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.utils.make_ordered_list>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>make_ordered_list</span><span class=p>(</span><span class=n>definition</span><span class=p>:</span> <span class=n>Sequence</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>],</span>
+                      <span class=n>is_int</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span> <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Make an ordered list of elements, filling in gaps.</span>
+
+<span class=sd>    This function takes a list template where some values may be defined</span>
+<span class=sd>    and some may be left `None`.</span>
+<span class=sd>    The `None` values are then replaced such that an overall ordered list</span>
+<span class=sd>    is created where each value is larger than its predecessor.</span>
+<span class=sd>    The original non-`None` elements are kept in place.</span>
+<span class=sd>    Of course, this process may fail, in which case `None` is returned.</span>
+
+<span class=sd>    :param definition: a template with `None` for gaps to be filled</span>
+<span class=sd>    :param is_int: should all generated values be integers?</span>
+<span class=sd>    :param random: the generator</span>
+<span class=sd>    :returns: the refined tuple with all values filled in</span>
+
+<span class=sd>    >>> from numpy.random import default_rng</span>
+<span class=sd>    >>> rg = default_rng(11)</span>
+<span class=sd>    >>> make_ordered_list([None, 10, None, None, 50], True, rg)</span>
+<span class=sd>    [-10, 10, 42, 47, 50]</span>
+<span class=sd>    >>> make_ordered_list([None, 10, None, None, 50, None, None], False, rg)</span>
+<span class=sd>    [-5.136, 10, 13.228, 15.19, 50, 115.953, 125.961]</span>
+<span class=sd>    >>> print(make_ordered_list([9, None, 10, None, None, 50], True, rg))</span>
+<span class=sd>    None</span>
+<span class=sd>    >>> make_ordered_list([8, None, 10, None, None, 50], True, rg)</span>
+<span class=sd>    [8, 9, 10, 45, 47, 50]</span>
+<span class=sd>    >>> make_ordered_list([9, None, 10, None, None, 50], False, rg)</span>
+<span class=sd>    [9, 9.568, 10, 47.576, 49.482, 50]</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>definition</span><span class=p>,</span> <span class=n>Sequence</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>definition</span><span class=p>,</span> <span class=s2>"definition"</span><span class=p>,</span> <span class=n>Sequence</span><span class=p>)</span>
+    <span class=n>total</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>definition</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>total</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>return</span> <span class=p>[]</span>
+
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>Generator</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=s2>"random"</span><span class=p>,</span> <span class=n>Generator</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>is_int</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>is_int</span><span class=p>,</span> <span class=s2>"is_int"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>is_int</span><span class=p>:</span>
+        <span class=n>lbefore</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[int | float, Generator], "</span>
+                       <span class=s2>"int | float | None]"</span><span class=p>,</span> <span class=n>_before_int</span><span class=p>)</span>
+        <span class=n>lafter</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[int | float, Generator], "</span>
+                      <span class=s2>"int | float | None]"</span><span class=p>,</span> <span class=n>_after_int</span><span class=p>)</span>
+        <span class=n>lbetween</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[int | float, int | float, "</span>
+                        <span class=s2>"Generator], int | float | None]"</span><span class=p>,</span>
+                        <span class=n>_between_int</span><span class=p>)</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=n>lbefore</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[int | float, Generator], "</span>
+                       <span class=s2>"int | float | None]"</span><span class=p>,</span> <span class=n>_before_float</span><span class=p>)</span>
+        <span class=n>lafter</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[int | float, Generator], "</span>
+                      <span class=s2>"int | float | None]"</span><span class=p>,</span> <span class=n>_after_float</span><span class=p>)</span>
+        <span class=n>lbetween</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[int | float, "</span>
+                        <span class=s2>"int | float, Generator], int | float | None]"</span><span class=p>,</span>
+                        <span class=n>_between_float</span><span class=p>)</span>
+
+    <span class=n>max_trials</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1000</span>
+    <span class=k>while</span> <span class=n>max_trials</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+        <span class=n>max_trials</span> <span class=o>-=</span> <span class=mi>1</span>
+        <span class=n>result</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>definition</span><span class=p>)</span>
+
+        <span class=n>failed</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+
+        <span class=c1># create one random midpoint if necessary</span>
+        <span class=n>has_defined</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>total</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>result</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>has_defined</span> <span class=o>=</span> <span class=kc>True</span>
+                <span class=k>break</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>has_defined</span><span class=p>:</span>
+            <span class=n>val</span> <span class=o>=</span> <span class=n>lbetween</span><span class=p>(</span><span class=o>-</span><span class=n>inf</span><span class=p>,</span> <span class=n>inf</span><span class=p>,</span> <span class=n>random</span><span class=p>)</span>
+            <span class=n>result</span><span class=p>[</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>total</span><span class=p>))]</span> <span class=o>=</span> <span class=n>val</span>
+            <span class=n>failed</span> <span class=o>=</span> <span class=n>val</span> <span class=ow>is</span> <span class=kc>None</span>
+        <span class=k>if</span> <span class=n>failed</span><span class=p>:</span>
+            <span class=k>continue</span>
+
+        <span class=c1># fill front backwards</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>total</span><span class=p>):</span>
+            <span class=n>ub</span> <span class=o>=</span> <span class=n>result</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+            <span class=k>if</span> <span class=n>ub</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>i</span> <span class=o>-</span> <span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>):</span>
+                    <span class=n>ub</span> <span class=o>=</span> <span class=n>lbefore</span><span class=p>(</span><span class=n>ub</span><span class=p>,</span> <span class=n>random</span><span class=p>)</span>
+                    <span class=k>if</span> <span class=n>ub</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                        <span class=n>failed</span> <span class=o>=</span> <span class=kc>True</span>
+                        <span class=k>break</span>
+                    <span class=n>result</span><span class=p>[</span><span class=n>j</span><span class=p>]</span> <span class=o>=</span> <span class=n>ub</span>
+                <span class=k>break</span>
+        <span class=k>if</span> <span class=n>failed</span><span class=p>:</span>
+            <span class=k>continue</span>
+
+        <span class=c1># fill end forward</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>total</span> <span class=o>-</span> <span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>):</span>
+            <span class=n>lb</span> <span class=o>=</span> <span class=n>result</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+            <span class=k>if</span> <span class=n>lb</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>total</span><span class=p>):</span>
+                    <span class=n>lb</span> <span class=o>=</span> <span class=n>lafter</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=n>random</span><span class=p>)</span>
+                    <span class=k>if</span> <span class=n>lb</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                        <span class=n>failed</span> <span class=o>=</span> <span class=kc>True</span>
+                        <span class=k>break</span>
+                    <span class=n>result</span><span class=p>[</span><span class=n>j</span><span class=p>]</span> <span class=o>=</span> <span class=n>lb</span>
+                <span class=k>break</span>
+        <span class=k>if</span> <span class=n>failed</span><span class=p>:</span>
+            <span class=k>continue</span>
+
+        <span class=c1># fill all the gaps in between</span>
+        <span class=k>while</span> <span class=ow>not</span> <span class=n>failed</span><span class=p>:</span>
+            <span class=c1># find random gap</span>
+            <span class=n>has_missing</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+            <span class=n>ofs</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>total</span><span class=p>))</span>
+            <span class=n>missing</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+            <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>total</span><span class=p>):</span>
+                <span class=n>missing</span> <span class=o>=</span> <span class=p>(</span><span class=n>ofs</span> <span class=o>+</span> <span class=n>i</span><span class=p>)</span> <span class=o>%</span> <span class=n>total</span>
+                <span class=k>if</span> <span class=n>result</span><span class=p>[</span><span class=n>missing</span><span class=p>]</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                    <span class=n>has_missing</span> <span class=o>=</span> <span class=kc>True</span>
+                    <span class=k>break</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>has_missing</span><span class=p>:</span>
+                <span class=k>break</span>
+
+            <span class=c1># find start of gap and lower bound</span>
+            <span class=n>prev_idx</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>missing</span>
+            <span class=n>prev</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>missing</span> <span class=o>-</span> <span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>):</span>
+                <span class=n>prev</span> <span class=o>=</span> <span class=n>result</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+                <span class=k>if</span> <span class=n>prev</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                    <span class=n>prev_idx</span> <span class=o>=</span> <span class=n>i</span>
+                    <span class=k>break</span>
+
+            <span class=c1># find end of gap and upper bound</span>
+            <span class=n>nxt_idx</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>missing</span>
+            <span class=n>nxt</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>missing</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>total</span><span class=p>):</span>
+                <span class=n>nxt</span> <span class=o>=</span> <span class=n>result</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+                <span class=k>if</span> <span class=n>nxt</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                    <span class=n>nxt_idx</span> <span class=o>=</span> <span class=n>i</span>
+                    <span class=k>break</span>
+
+            <span class=c1># generate new value and store at random position in gap</span>
+            <span class=n>val</span> <span class=o>=</span> <span class=n>lbetween</span><span class=p>(</span><span class=n>prev</span><span class=p>,</span> <span class=n>nxt</span><span class=p>,</span> <span class=n>random</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>val</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>failed</span> <span class=o>=</span> <span class=kc>True</span>
+                <span class=k>break</span>
+            <span class=n>result</span><span class=p>[</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>prev_idx</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>nxt_idx</span><span class=p>))]</span> <span class=o>=</span> <span class=n>val</span>
+
+        <span class=k>if</span> <span class=n>failed</span><span class=p>:</span>
+            <span class=k>continue</span>
+
+        <span class=c1># now check and return result</span>
+        <span class=n>prev</span> <span class=o>=</span> <span class=n>result</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+        <span class=k>if</span> <span class=n>prev</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>continue</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>total</span><span class=p>):</span>
+            <span class=n>nxt</span> <span class=o>=</span> <span class=n>result</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>nxt</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>nxt</span> <span class=o><=</span> <span class=n>prev</span><span class=p>):</span>
+                <span class=n>failed</span> <span class=o>=</span> <span class=kc>True</span>
+                <span class=k>break</span>
+            <span class=n>prev</span> <span class=o>=</span> <span class=n>nxt</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>failed</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>result</span>
+
+    <span class=k>return</span> <span class=kc>None</span></div>
+
+
+
+<div class=viewcode-block id=sample_from_attractors>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.utils.sample_from_attractors>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>sample_from_attractors</span><span class=p>(</span><span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span>
+                           <span class=n>attractors</span><span class=p>:</span> <span class=n>Sequence</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+                           <span class=n>is_int</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+                           <span class=n>lb</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span><span class=p>,</span>
+                           <span class=n>ub</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Sample from a given range using the specified attractors.</span>
+
+<span class=sd>    :param random: the random number generator</span>
+<span class=sd>    :param attractors: the attractor points</span>
+<span class=sd>    :param lb: the lower bound</span>
+<span class=sd>    :param ub: the upper bound</span>
+<span class=sd>    :param is_int: shall we sample integer values?</span>
+<span class=sd>    :return: the value</span>
+<span class=sd>    :raises ValueError: if the sampling failed</span>
+
+<span class=sd>    >>> from numpy.random import default_rng</span>
+<span class=sd>    >>> rg = default_rng(11)</span>
+<span class=sd>    >>> sample_from_attractors(rg, [5, 20])</span>
+<span class=sd>    15.198106552324713</span>
+<span class=sd>    >>> sample_from_attractors(rg, [2], lb=0, ub=10, is_int=True)</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> sample_from_attractors(rg, [5, 20], lb=4)</span>
+<span class=sd>    4.7448464616061665</span>
+<span class=sd>    >>> sample_from_attractors(rg, [5, 20], ub=22)</span>
+<span class=sd>    1.044618552249311</span>
+<span class=sd>    >>> sample_from_attractors(rg, [5, 20], lb=0, ub=30, is_int=True)</span>
+<span class=sd>    6</span>
+<span class=sd>    >>> sample_from_attractors(rg, [5, 20], lb=4, ub=22, is_int=True)</span>
+<span class=sd>    20</span>
+<span class=sd>    """</span>
+    <span class=n>max_trials</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1000</span>
+    <span class=n>al</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>attractors</span><span class=p>)</span>
+    <span class=k>while</span> <span class=n>max_trials</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+        <span class=n>max_trials</span> <span class=o>-=</span> <span class=mi>1</span>
+
+        <span class=n>chosen_idx</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>al</span><span class=p>))</span>
+        <span class=n>chosen</span> <span class=o>=</span> <span class=n>attractors</span><span class=p>[</span><span class=n>chosen_idx</span><span class=p>]</span>
+        <span class=n>lo</span> <span class=o>=</span> <span class=n>attractors</span><span class=p>[</span><span class=n>chosen_idx</span> <span class=o>-</span> <span class=mi>1</span><span class=p>]</span> <span class=k>if</span> <span class=p>(</span><span class=n>chosen_idx</span> <span class=o>></span> <span class=mi>0</span><span class=p>)</span> <span class=k>else</span> <span class=n>lb</span>
+        <span class=n>hi</span> <span class=o>=</span> <span class=n>attractors</span><span class=p>[</span><span class=n>chosen_idx</span> <span class=o>+</span> <span class=mi>1</span><span class=p>]</span> <span class=k>if</span> <span class=p>(</span><span class=n>chosen_idx</span> <span class=o><</span> <span class=p>(</span><span class=n>al</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span> <span class=k>else</span> <span class=n>ub</span>
+
+        <span class=n>sd</span> <span class=o>=</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=nb>min</span><span class=p>(</span><span class=n>hi</span> <span class=o>-</span> <span class=n>chosen</span><span class=p>,</span> <span class=n>chosen</span> <span class=o>-</span> <span class=n>lo</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>sd</span><span class=p>):</span>
+            <span class=n>sd</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=mf>1.0</span><span class=p>,</span> <span class=mf>0.05</span> <span class=o>*</span> <span class=nb>abs</span><span class=p>(</span><span class=n>chosen</span><span class=p>))</span>
+        <span class=n>sample</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>chosen</span><span class=p>,</span> <span class=n>sd</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>sample</span><span class=p>):</span>
+            <span class=k>continue</span>
+        <span class=n>sample</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>sample</span><span class=p>)</span> <span class=k>if</span> <span class=n>is_int</span> <span class=k>else</span> <span class=nb>float</span><span class=p>(</span><span class=n>sample</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>lb</span> <span class=o><=</span> <span class=n>sample</span> <span class=o><=</span> <span class=n>ub</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>sample</span>
+
+    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Failed to sample with lb=</span><span class=si>{</span><span class=n>lb</span><span class=si>}</span><span class=s2>, ub=</span><span class=si>{</span><span class=n>ub</span><span class=si>}</span><span class=s2>, "</span>
+                     <span class=sa>f</span><span class=s2>"attractors=</span><span class=si>{</span><span class=n>attractors</span><span class=si>}</span><span class=s2>, is_int=</span><span class=si>{</span><span class=n>is_int</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.mock.utils</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

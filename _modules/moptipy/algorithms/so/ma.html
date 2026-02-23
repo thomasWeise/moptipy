@@ -1,0 +1,247 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.ma — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/ma.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.ma</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.ma</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>A simple implementation of a (mu+lambda) Memetic Algorithm.</span>
+
+<span class=sd>A memetic algorithm (:class:`~moptipy.algorithms.so.ma.MA`) works similar to a</span>
+<span class=sd>(mu+lambda) :class:`~moptipy.algorithms.so.ea.EA`, but it refines all results</span>
+<span class=sd>of the search operators with a local search</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ma.MA.ls` executed for</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ma.MA.ls_fes` objective function evaluations.</span>
+<span class=sd>It also only employs the nullary search operator (to create the initial random</span>
+<span class=sd>solutions) and the binary search operator (to combine two selected parental</span>
+<span class=sd>solutions).</span>
+
+<span class=sd>This is the general form of the Memetic Algorithm of the type</span>
+<span class=sd>"EA+something else." A specialized version combining an</span>
+<span class=sd>:mod:`~moptipy.algorithms.so.ea` with</span>
+<span class=sd>:mod:`~moptipy.algorithms.so.rls` can be found in</span>
+<span class=sd>:mod:`~moptipy.algorithms.so.marls`.</span>
+
+<span class=sd>This Memetic Algorithm implementation begins by sampling</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ma.MA.mu`</span>
+<span class=sd>solutions using the nullary search operation</span>
+<span class=sd>:attr:`~moptipy.api.algorithm.Algorithm0.op0`. Each of these initial solutions</span>
+<span class=sd>is used as a starting point of a local search</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ma.MA.ls`, which is executed for</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ma.MA.ls_fes` objective function evaluations.</span>
+<span class=sd>In each iteration, it then uses the</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ma.MA.mu` existing solutions as input for</span>
+<span class=sd>the binary search operator :attr:`~moptipy.algorithms.so.ma.MA.op2` to create</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ma.MA.lambda_` new solutions, each of which is</span>
+<span class=sd>again used as a starting point of a local search</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ma.MA.ls` executed for</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ma.MA.ls_fes` objective function evaluations.</span>
+<span class=sd>The results of the local searches enter the population and in the next</span>
+<span class=sd>iteration, the :attr:`~moptipy.algorithms.so.ma.MA.mu` best solutions of the</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ma.MA.mu` +</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ma.MA.lambda_` ones in the population are</span>
+<span class=sd>retained.</span>
+
+<span class=sd>Due to the :class:`~moptipy.api.process.Process` and</span>
+<span class=sd>:mod:`~moptipy.api.subprocesses` API of `moptipy`, you can use almost arbitrary</span>
+<span class=sd>algorithms as local search :attr:`~moptipy.algorithms.so.ma.MA.ls`. The only</span>
+<span class=sd>requirement is that is a subclass of</span>
+<span class=sd>:class:`~moptipy.api.algorithm.Algorithm0` and uses</span>
+<span class=sd>it uses an instance of</span>
+<span class=sd>:class:`moptipy.operators.op0_forward.Op0Forward` as nullary search operator</span>
+<span class=sd>(:attr:`~moptipy.api.algorithm.Algorithm0.op0`).</span>
+<span class=sd>This allows the MA to set a solution as starting point for the inner algorithm</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ma.MA.ls`.</span>
+
+<span class=sd>It should be noted that it is by no means required that the inner algorithm</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ma.MA.ls` needs to be a local search. Any</span>
+<span class=sd>algorithm that fulfills the above requirements could be used. For example, if</span>
+<span class=sd>we were conducting numerical optimization, it would be totally OK to plug an</span>
+<span class=sd>instance of the Sequential Least Squares Programming</span>
+<span class=sd>(:class:`~moptipy.algorithms.so.vector.scipy.SLSQP`) algorithm into the</span>
+<span class=sd>memetic algorithm&amphellip;</span>
+
+<span class=sd>Further reading on how to realize using one algorithm as a sub-algorithm</span>
+<span class=sd>of another one can be found in the documentation of</span>
+<span class=sd>:func:`~moptipy.api.subprocesses.from_starting_point`,</span>
+<span class=sd>:func:`~moptipy.api.subprocesses.for_fes`, and</span>
+<span class=sd>:class:`moptipy.operators.op0_forward.Op0Forward`.</span>
+
+<span class=sd>1. Pablo Moscato. *On Evolution, Search, Optimization, Genetic Algorithms and</span>
+<span class=sd>   Martial Arts: Towards Memetic Algorithms.* Caltech Concurrent Computation</span>
+<span class=sd>   Program Report C3P 826. 1989. Pasadena, CA, USA: California Institute of</span>
+<span class=sd>   Technology (Caltech), Caltech Concurrent Computation Program (C3P).</span>
+<span class=sd>   https://www.researchgate.net/publication/2354457</span>
+<span class=sd>2. Carlos Cotta, Luke Mathieson, and Pablo Moscato. Memetic Algorithms. In</span>
+<span class=sd>   Rafael Martí, Panos M. Pardalos, and Mauricio G. C. Resende, editors,</span>
+<span class=sd>   *Handbook of Heuristics.* Part~III: Metaheuristics, pages 607-638. 2018.</span>
+<span class=sd>   Cham, Switzerland: Springer. ISBN: 978-3-319-07123-7.</span>
+<span class=sd>   doi: https://doi.org/10.1007/978-3-319-07153-4_29-1</span>
+<span class=sd>   https://www.researchgate.net/publication/315660932</span>
+<span class=sd>3. William Eugene Hart, James E. Smith, and Natalio Krasnogor, editors.</span>
+<span class=sd>   *Recent Advances in Memetic Algorithms.* Studies in Fuzziness and Soft</span>
+<span class=sd>   Computing (STUDFUZZ), volume 166. 2005. Berlin/Heidelberg, Germany:</span>
+<span class=sd>   Springer. ISBN: 978-3-540-22904-9.</span>
+<span class=sd>   doi: https://doi.org/10.1007/3-540-32363-5</span>
+<span class=sd>4. Ferrante Neri, Carlos Cotta, and Pablo Moscato. *Handbook of Memetic</span>
+<span class=sd>   Algorithms.* Volume 379 of Studies in Computational Intelligence (SCI).</span>
+<span class=sd>   2012. Berlin/Heidelberg, Germany: Springer. ISBN: 978-3-642-23246-6</span>
+<span class=sd>   doi https://doi.org/10.1007/978-3-642-23247-3.</span>
+<span class=sd>5. L. Darrell Whitley, V. Scott Gordon, and Keith E. Mathias. Lamarckian</span>
+<span class=sd>   Evolution, The Baldwin Effect and Function Optimization. In Yuval Davidor,</span>
+<span class=sd>   Hans-Paul Schwefel, and Reinhard Männer, editors, *Proceedings of the Third</span>
+<span class=sd>   Conference on Parallel Problem Solving from Nature; International</span>
+<span class=sd>   Conference on Evolutionary Computation (PPSN III),* October 9-14, 1994,</span>
+<span class=sd>   Jerusalem, Israel, pages 5-15. Volume 866/1994 of Lecture Notes in Computer</span>
+<span class=sd>   Science, Berlin, Germany: Springer-Verlag GmbH. ISBN 0387584846.</span>
+<span class=sd>   doi: https://doi.org/10.1007/3-540-58484-6_245.</span>
+<span class=sd>   https://www.researchgate.net/publication/2521727</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.record</span><span class=w> </span><span class=kn>import</span> <span class=n>Record</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm0</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=n>SCOPE_OP2</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>Op2</span><span class=p>,</span> <span class=n>check_op2</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.subprocesses</span><span class=w> </span><span class=kn>import</span> <span class=n>for_fes</span><span class=p>,</span> <span class=n>from_starting_point</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.operators.op0_forward</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0Forward</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=n>PART_SEPARATOR</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=MA>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.ma.MA>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>MA</span><span class=p>(</span><span class=n>Algorithm0</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""An MA is a population-based algorithm using binary operators."""</span>
+
+<div class=viewcode-block id=MA.solve>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.ma.MA.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the MA to an optimization problem.</span>
+
+<span class=sd>        :param process: the black-box process object</span>
+<span class=sd>        """</span>
+        <span class=c1># initialization of some variables omitted in book for brevity</span>
+        <span class=c1># end book</span>
+        <span class=n>mu</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>mu</span>  <span class=c1># mu: number of best solutions kept</span>
+        <span class=n>mu_plus_lambda</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>mu</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>lambda_</span>  <span class=c1># size</span>
+        <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>()</span>  <span class=c1># random gen</span>
+        <span class=n>create</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span>  <span class=c1># create x container</span>
+        <span class=n>evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>evaluate</span>  <span class=c1># the objective</span>
+        <span class=n>op0</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op0</span><span class=o>.</span><span class=n>op0</span>  <span class=c1># the nullary operator</span>
+        <span class=n>op2</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op2</span><span class=o>.</span><span class=n>op2</span>  <span class=c1># the binary operator</span>
+        <span class=n>ls_fes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>ls_fes</span>  <span class=c1># the number of FEs per ls run</span>
+        <span class=n>ls_solve</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Process</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>ls</span><span class=o>.</span><span class=n>solve</span>  <span class=c1># +book</span>
+        <span class=n>forward_ls_op0_to</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span>  <span class=c1># forward starting</span>
+            <span class=s2>"Op0Forward"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>ls</span><span class=o>.</span><span class=n>op0</span><span class=p>)</span><span class=o>.</span><span class=n>forward_to</span>  <span class=c1># point of ls to...</span>
+        <span class=n>should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>
+        <span class=n>r0i</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>],</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span>  <span class=c1># random integers</span>
+            <span class=s2>"Callable[[int], int]"</span><span class=p>,</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>)</span>
+        <span class=c1># start book</span>
+        <span class=c1># create list of mu random+ls records and lambda empty records</span>
+        <span class=n>lst</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=kc>None</span><span class=p>]</span> <span class=o>*</span> <span class=n>mu_plus_lambda</span>  <span class=c1># pre-allocate list</span>
+        <span class=n>f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># variable to hold objective values</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>mu_plus_lambda</span><span class=p>):</span>  <span class=c1># fill list of size mu+lambda</span>
+            <span class=n>x</span> <span class=o>=</span> <span class=n>create</span><span class=p>()</span>  <span class=c1># by creating point in search space</span>
+            <span class=k>if</span> <span class=n>i</span> <span class=o><</span> <span class=n>mu</span><span class=p>:</span>  <span class=c1># only the first mu records are initialized by</span>
+                <span class=n>op0</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span>  <span class=c1># applying nullary operator = randomize</span>
+                <span class=k>if</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># should we stop now?</span>
+                    <span class=n>cast</span><span class=p>(</span><span class=s2>"Op0Forward"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>ls</span><span class=o>.</span><span class=n>op0</span><span class=p>)</span><span class=o>.</span><span class=n>stop_forwarding</span><span class=p>()</span>  <span class=c1># -book</span>
+                    <span class=k>return</span>   <span class=c1># computational budget exhausted -> quit</span>
+                <span class=k>with</span> <span class=n>for_fes</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=n>ls_fes</span><span class=p>)</span> <span class=k>as</span> <span class=n>s1</span><span class=p>,</span> \
+                        <span class=n>from_starting_point</span><span class=p>(</span><span class=n>s1</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>))</span> <span class=k>as</span> <span class=n>s2</span><span class=p>:</span>
+                    <span class=n>forward_ls_op0_to</span><span class=p>(</span><span class=n>s2</span><span class=o>.</span><span class=n>get_copy_of_best_x</span><span class=p>)</span>
+                    <span class=n>ls_solve</span><span class=p>(</span><span class=n>s2</span><span class=p>)</span>  <span class=c1># apply local search modifying x</span>
+                    <span class=n>f</span> <span class=o>=</span> <span class=n>s2</span><span class=o>.</span><span class=n>get_best_f</span><span class=p>()</span>  <span class=c1># get quality of x</span>
+            <span class=n>lst</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>Record</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>)</span>  <span class=c1># create and store record</span>
+
+        <span class=n>it</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># set iteration counter=0 (but immediately increment)</span>
+        <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>  <span class=c1># lst: keep 0..mu-1, overwrite mu..mu+lambda-1</span>
+            <span class=n>it</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># step iteration counter</span>
+            <span class=k>for</span> <span class=n>oi</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>mu</span><span class=p>,</span> <span class=n>mu_plus_lambda</span><span class=p>):</span>  <span class=c1># for all offspring</span>
+                <span class=k>if</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># should we stop now?</span>
+                    <span class=n>cast</span><span class=p>(</span><span class=s2>"Op0Forward"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>ls</span><span class=o>.</span><span class=n>op0</span><span class=p>)</span><span class=o>.</span><span class=n>stop_forwarding</span><span class=p>()</span>  <span class=c1># -book</span>
+                    <span class=k>return</span>   <span class=c1># computational budget exhausted -> quit</span>
+                <span class=n>dest</span><span class=p>:</span> <span class=n>Record</span> <span class=o>=</span> <span class=n>lst</span><span class=p>[</span><span class=n>oi</span><span class=p>]</span>  <span class=c1># pick destination record</span>
+                <span class=n>x</span> <span class=o>=</span> <span class=n>dest</span><span class=o>.</span><span class=n>x</span>  <span class=c1># the destination "x" value</span>
+                <span class=n>dest</span><span class=o>.</span><span class=n>it</span> <span class=o>=</span> <span class=n>it</span>  <span class=c1># remember iteration of solution creation</span>
+
+                <span class=n>sx</span> <span class=o>=</span> <span class=n>lst</span><span class=p>[</span><span class=n>r0i</span><span class=p>(</span><span class=n>mu</span><span class=p>)]</span><span class=o>.</span><span class=n>x</span>  <span class=c1># pick random first source "x"</span>
+                <span class=n>sx2</span> <span class=o>=</span> <span class=n>sx</span>    <span class=c1># second source "x" initially=first sx</span>
+                <span class=k>while</span> <span class=n>sx2</span> <span class=ow>is</span> <span class=n>sx</span><span class=p>:</span>     <span class=c1># until different from sx...</span>
+                    <span class=n>sx2</span> <span class=o>=</span> <span class=n>lst</span><span class=p>[</span><span class=n>r0i</span><span class=p>(</span><span class=n>mu</span><span class=p>)]</span><span class=o>.</span><span class=n>x</span>  <span class=c1># ..get random second "x"</span>
+                <span class=n>op2</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>sx</span><span class=p>,</span> <span class=n>sx2</span><span class=p>)</span>  <span class=c1># apply binary operator</span>
+                <span class=k>with</span> <span class=n>for_fes</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=n>ls_fes</span><span class=p>)</span> <span class=k>as</span> <span class=n>s1</span><span class=p>,</span> \
+                        <span class=n>from_starting_point</span><span class=p>(</span><span class=n>s1</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>))</span> <span class=k>as</span> <span class=n>s2</span><span class=p>:</span>
+                    <span class=n>forward_ls_op0_to</span><span class=p>(</span><span class=n>s2</span><span class=o>.</span><span class=n>get_copy_of_best_x</span><span class=p>)</span>
+                    <span class=n>ls_solve</span><span class=p>(</span><span class=n>s2</span><span class=p>)</span>  <span class=c1># apply local search modifying x</span>
+                    <span class=n>dest</span><span class=o>.</span><span class=n>f</span> <span class=o>=</span> <span class=n>s2</span><span class=o>.</span><span class=n>get_best_f</span><span class=p>()</span>  <span class=c1># get quality of x</span>
+            <span class=n>lst</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>  <span class=c1># best records come first, ties broken by age</span></div>
+
+            <span class=c1># end book</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span>
+                 <span class=n>op2</span><span class=p>:</span> <span class=n>Op2</span><span class=p>,</span> <span class=n>ls</span><span class=p>:</span> <span class=n>Algorithm0</span><span class=p>,</span>
+                 <span class=n>mu</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>2</span><span class=p>,</span> <span class=n>lambda_</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span><span class=p>,</span>
+                 <span class=n>ls_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1000</span><span class=p>,</span>
+                 <span class=n>name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"ma"</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the Memetic Algorithm (MA).</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param op2: the binary search operator</span>
+<span class=sd>        :param ls: the local search to apply to each new solution</span>
+<span class=sd>        :param mu: the number of best solutions to survive in each generation</span>
+<span class=sd>        :param lambda_: the number of offspring in each generation</span>
+<span class=sd>        :param ls_fes: the number of FEs (steps) per local search run</span>
+<span class=sd>        :param name: the base name of the algorithm</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>name</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}{</span><span class=n>mu</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}</span><span class=s2>"</span>
+                         <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>lambda_</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}{</span><span class=n>ls_fes</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}</span><span class=s2>"</span>
+                         <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>op2</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}{</span><span class=n>ls</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=n>op0</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ls</span><span class=p>,</span> <span class=n>Algorithm0</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>ls</span><span class=p>,</span> <span class=s2>"ls"</span><span class=p>,</span> <span class=n>Algorithm0</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ls</span><span class=o>.</span><span class=n>op0</span><span class=p>,</span> <span class=n>Op0Forward</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>ls</span><span class=o>.</span><span class=n>op0</span><span class=p>,</span> <span class=s2>"ls.op0"</span><span class=p>,</span> <span class=n>Op0Forward</span><span class=p>)</span>
+        <span class=c1>#: the number of records to survive in each generation</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>mu</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>mu</span><span class=p>,</span> <span class=s2>"mu"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+        <span class=c1>#: the number of offsprings per generation</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>lambda_</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>lambda_</span><span class=p>,</span> <span class=s2>"lambda"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+        <span class=c1>#: the number of FEs per local search run</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>ls_fes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>ls_fes</span><span class=p>,</span> <span class=s2>"ls_fes"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>100_000_000</span><span class=p>)</span>
+        <span class=c1>#: The binary search operator.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>op2</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Op2</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_op2</span><span class=p>(</span><span class=n>op2</span><span class=p>)</span>
+        <span class=c1>#: the local search algorithm</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>ls</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Algorithm0</span><span class=p>]</span> <span class=o>=</span> <span class=n>ls</span>
+
+<div class=viewcode-block id=MA.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.ma.MA.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of the algorithm to a logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"mu"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>mu</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"lambda"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>lambda_</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"lsFEs"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>ls_fes</span><span class=p>)</span>
+        <span class=k>with</span> <span class=n>logger</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=n>SCOPE_OP2</span><span class=p>)</span> <span class=k>as</span> <span class=n>o</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>op2</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>o</span><span class=p>)</span>
+        <span class=k>with</span> <span class=n>logger</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=s2>"ls"</span><span class=p>)</span> <span class=k>as</span> <span class=n>ls</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>ls</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>ls</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=MA.initialize>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.ma.MA.initialize>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>initialize</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize the memetic algorithm."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>ls</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>op2</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.ma</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

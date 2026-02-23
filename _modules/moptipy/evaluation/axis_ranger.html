@@ -1,0 +1,506 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.axis_ranger — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/axis_ranger.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.axis_ranger</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.axis_ranger</h1><div class=highlight><pre>
+<span></span><span class=sd>"""A utility to specify axis ranges."""</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>sys</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib.axes</span><span class=w> </span><span class=kn>import</span> <span class=n>Axes</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>KEY_BEST_F</span><span class=p>,</span>
+    <span class=n>KEY_LAST_IMPROVEMENT_FE</span><span class=p>,</span>
+    <span class=n>KEY_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=p>,</span>
+    <span class=n>KEY_TOTAL_FES</span><span class=p>,</span>
+    <span class=n>KEY_TOTAL_TIME_MILLIS</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.base</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>F_NAME_NORMALIZED</span><span class=p>,</span>
+    <span class=n>F_NAME_RAW</span><span class=p>,</span>
+    <span class=n>F_NAME_SCALED</span><span class=p>,</span>
+    <span class=n>TIME_UNIT_FES</span><span class=p>,</span>
+    <span class=n>TIME_UNIT_MILLIS</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_statistics</span><span class=w> </span><span class=kn>import</span> <span class=n>KEY_ERT_FES</span><span class=p>,</span> <span class=n>KEY_ERT_TIME_MILLIS</span>
+
+<span class=c1>#: The internal minimum float value for log-scaled axes.</span>
+<span class=n>_MIN_LOG_FLOAT</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>sys</span><span class=o>.</span><span class=n>float_info</span><span class=o>.</span><span class=n>min</span>
+
+
+<div class=viewcode-block id=AxisRanger>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.axis_ranger.AxisRanger>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>AxisRanger</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""An object for simplifying axis range computations."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                 <span class=n>chosen_min</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>chosen_max</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>use_data_min</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+                 <span class=n>use_data_max</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+                 <span class=n>log_scale</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+                 <span class=n>log_base</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the axis ranger.</span>
+
+<span class=sd>        :param chosen_min: the chosen minimum</span>
+<span class=sd>        :param chosen_max: the chosen maximum</span>
+<span class=sd>        :param use_data_min: use the minimum found in the data?</span>
+<span class=sd>        :param use_data_max:  use the maximum found in the data?</span>
+<span class=sd>        :param log_scale: should the axis be log-scaled?</span>
+<span class=sd>        :param log_base: the base to be used for the logarithm</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>log_scale</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>log_scale</span><span class=p>,</span> <span class=s2>"log_scale"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=c1>#: Should the axis be log-scaled?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>log_scale</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>log_scale</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>__log_base</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> \
+            <span class=n>log_base</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>log_scale</span> <span class=k>else</span> <span class=kc>None</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__log_base</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>log_base</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>log_base</span><span class=p>,</span> <span class=s2>"log_base"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>log_base</span> <span class=o><=</span> <span class=mf>1.0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"log_base must be > 1, but is </span><span class=si>{</span><span class=n>log_base</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>chosen_min</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>chosen_min</span><span class=p>,</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>chosen_min</span><span class=p>,</span> <span class=s2>"chosen_min"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+            <span class=n>chosen_min</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>chosen_min</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>chosen_min</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"chosen_min cannot be </span><span class=si>{</span><span class=n>chosen_min</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>log_scale</span> <span class=ow>and</span> <span class=p>(</span><span class=n>chosen_min</span> <span class=o><=</span> <span class=mi>0</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"if log_scale=</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>log_scale</span><span class=si>}</span><span class=s2>, then chosen_min must "</span>
+                    <span class=sa>f</span><span class=s2>"be > 0, but is </span><span class=si>{</span><span class=n>chosen_min</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=c1>#: The pre-defined, chosen minimum axis value.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__chosen_min</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>chosen_min</span>
+
+        <span class=k>if</span> <span class=n>chosen_max</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>chosen_max</span><span class=p>,</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>chosen_max</span><span class=p>,</span> <span class=s2>"chosen_max"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+            <span class=n>chosen_max</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>chosen_max</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>chosen_max</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"chosen_max cannot be </span><span class=si>{</span><span class=n>chosen_max</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__chosen_min</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> \
+                    <span class=p>(</span><span class=n>chosen_max</span> <span class=o><=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__chosen_min</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"If chosen_min is </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__chosen_min</span><span class=si>}</span><span class=s2>, then"</span>
+                                 <span class=sa>f</span><span class=s2>" chosen_max cannot be </span><span class=si>{</span><span class=n>chosen_max</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=c1>#: The pre-defined, chosen maximum axis value.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__chosen_max</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>chosen_max</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>use_data_min</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>use_data_min</span><span class=p>,</span> <span class=s2>"use_data_min"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=c1>#: Should we use the data min value?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__use_data_min</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>use_data_min</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>use_data_max</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>use_data_max</span><span class=p>,</span> <span class=s2>"use_data_max"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=c1>#: Should we use the data max value?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__use_data_max</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>use_data_max</span>
+
+        <span class=c1>#: The minimum detected from the data.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__detected_min</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span>
+
+        <span class=c1>#: The maximum detected from the data.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__detected_max</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>_MIN_LOG_FLOAT</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>log_scale</span> \
+            <span class=k>else</span> <span class=o>-</span><span class=n>inf</span>
+
+        <span class=c1>#: Did we detect a minimum?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__has_detected_min</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=c1>#: Did we detect a maximum?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__has_detected_max</span> <span class=o>=</span> <span class=kc>False</span>
+
+<div class=viewcode-block id=AxisRanger.register_array>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.axis_ranger.AxisRanger.register_array>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>register_array</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>data</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Register a data array.</span>
+
+<span class=sd>        :param data: the data to register</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__use_data_min</span> <span class=ow>or</span> <span class=bp>self</span><span class=o>.</span><span class=n>__use_data_max</span><span class=p>:</span>
+            <span class=n>d</span> <span class=o>=</span> <span class=n>data</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>isfinite</span><span class=p>(</span><span class=n>data</span><span class=p>)]</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__use_data_min</span><span class=p>:</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>register_value</span><span class=p>(</span><span class=nb>float</span><span class=p>(</span><span class=n>d</span><span class=o>.</span><span class=n>min</span><span class=p>()))</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__use_data_max</span><span class=p>:</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>register_value</span><span class=p>(</span><span class=nb>float</span><span class=p>(</span><span class=n>d</span><span class=o>.</span><span class=n>max</span><span class=p>()))</span></div>
+
+
+<div class=viewcode-block id=AxisRanger.register_value>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.axis_ranger.AxisRanger.register_value>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>register_value</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>value</span><span class=p>:</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Register a single value.</span>
+
+<span class=sd>        :param value: the data to register</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>value</span><span class=p>):</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__use_data_min</span> <span class=ow>and</span> <span class=p>(</span>
+                    <span class=p>(</span><span class=n>value</span> <span class=o><</span> <span class=bp>self</span><span class=o>.</span><span class=n>__detected_min</span><span class=p>)</span>
+                    <span class=ow>and</span> <span class=p>((</span><span class=n>value</span> <span class=o>></span> <span class=mf>0.0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=ow>not</span> <span class=bp>self</span><span class=o>.</span><span class=n>log_scale</span><span class=p>))):</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__detected_min</span> <span class=o>=</span> <span class=n>value</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__has_detected_min</span> <span class=o>=</span> <span class=kc>True</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__use_data_max</span> <span class=ow>and</span> <span class=p>(</span><span class=n>value</span> <span class=o>></span> <span class=bp>self</span><span class=o>.</span><span class=n>__detected_max</span><span class=p>):</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__detected_max</span> <span class=o>=</span> <span class=n>value</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__has_detected_max</span> <span class=o>=</span> <span class=kc>True</span></div>
+
+
+<div class=viewcode-block id=AxisRanger.pad_detected_range>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.axis_ranger.AxisRanger.pad_detected_range>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>pad_detected_range</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>pad_min</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+                           <span class=n>pad_max</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Add some padding to the current detected range.</span>
+
+<span class=sd>        This function increases the current detected or chosen maximum value</span>
+<span class=sd>        and/or decreases the current detected minimum by a small amount. This</span>
+<span class=sd>        can be useful when we want to plot stuff that otherwise would become</span>
+<span class=sd>        invisible because it would be directly located at the boundary of a</span>
+<span class=sd>        plot.</span>
+
+<span class=sd>        This function works by computing a slightly smaller/larger value than</span>
+<span class=sd>        the current detected minimum/maximum and then passing it to</span>
+<span class=sd>        :meth:`register_value`. It can only work if the end(s) chosen for</span>
+<span class=sd>        padding are in "detect" mode and the other end is either in "detect"</span>
+<span class=sd>        or "chosen" mode.</span>
+
+<span class=sd>        This method should be called *only* once and *only* after all data has</span>
+<span class=sd>        been registered (via :meth:`register_value` :meth:`register_array`)</span>
+<span class=sd>        and before calling :meth:`apply`.</span>
+
+<span class=sd>        :param pad_min: should we pad the minimum?</span>
+<span class=sd>        :param pad_max: should we pad the maximum?</span>
+
+<span class=sd>        :raises ValueError: if this axis ranger is not configured to use a</span>
+<span class=sd>            detected minimum/maximum or does not have a detected</span>
+<span class=sd>            minimum/maximum or any other invalid situation occurs</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>pad_min</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>pad_min</span><span class=p>,</span> <span class=s2>"pad_min"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>pad_max</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>pad_max</span><span class=p>,</span> <span class=s2>"pad_max"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>pad_min</span> <span class=ow>or</span> <span class=n>pad_max</span><span class=p>):</span>
+            <span class=k>return</span>
+
+        <span class=n>max_value</span><span class=p>:</span> <span class=nb>float</span>
+        <span class=n>min_value</span><span class=p>:</span> <span class=nb>float</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__use_data_min</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=bp>self</span><span class=o>.</span><span class=n>__has_detected_min</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"No minimum detected so far."</span><span class=p>)</span>
+            <span class=n>min_value</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__detected_min</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>pad_min</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Can only pad minimum if use_data_min."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__chosen_min</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Chosen min is None!"</span><span class=p>)</span>
+            <span class=n>min_value</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__chosen_min</span>
+
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__use_data_max</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=bp>self</span><span class=o>.</span><span class=n>__has_detected_max</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"No maximum detected so far."</span><span class=p>)</span>
+            <span class=n>max_value</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__detected_max</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>pad_max</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Can only pad maximum if use_data_max."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__chosen_max</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Chosen max is None!"</span><span class=p>)</span>
+            <span class=n>max_value</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__chosen_max</span>
+
+        <span class=k>if</span> <span class=n>min_value</span> <span class=o>>=</span> <span class=n>max_value</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"minimum=</span><span class=si>{</span><span class=n>min_value</span><span class=si>}</span><span class=s2> while maximum=</span><span class=si>{</span><span class=n>max_value</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=n>new_max</span><span class=p>:</span> <span class=nb>float</span>
+        <span class=k>if</span> <span class=n>pad_max</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>max_value</span> <span class=o>>=</span> <span class=n>inf</span><span class=p>:</span>
+                <span class=k>return</span>
+            <span class=n>new_max</span> <span class=o>=</span> <span class=n>max_value</span> <span class=o>+</span> <span class=p>(</span><span class=mf>3.0</span> <span class=o>*</span> <span class=p>(</span><span class=n>max_value</span> <span class=o>-</span> <span class=n>min_value</span><span class=p>))</span> <span class=o>/</span> <span class=mf>100.0</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>new_max</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>new_max</span> <span class=o><=</span> <span class=n>max_value</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid padded max=</span><span class=si>{</span><span class=n>new_max</span><span class=si>}</span><span class=s2> at min="</span>
+                                 <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>min_value</span><span class=si>}</span><span class=s2> and max=</span><span class=si>{</span><span class=n>max_value</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>register_value</span><span class=p>(</span><span class=n>new_max</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>new_max</span> <span class=o>=</span> <span class=n>max_value</span>
+
+        <span class=n>new_min</span><span class=p>:</span> <span class=nb>float</span>
+        <span class=k>if</span> <span class=n>pad_min</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>min_value</span> <span class=o><=</span> <span class=o>-</span><span class=n>inf</span><span class=p>:</span>
+                <span class=k>return</span>
+            <span class=n>new_min</span> <span class=o>=</span> <span class=n>min_value</span> <span class=o>-</span> <span class=p>(</span><span class=mf>3.0</span> <span class=o>*</span> <span class=p>(</span><span class=n>max_value</span> <span class=o>-</span> <span class=n>min_value</span><span class=p>))</span> <span class=o>/</span> <span class=mf>100.0</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>log_scale</span> <span class=ow>and</span> <span class=p>(</span><span class=n>new_min</span> <span class=o><=</span> <span class=mf>0.0</span> <span class=o><</span> <span class=n>min_value</span><span class=p>):</span>
+                <span class=n>new_min</span> <span class=o>=</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>min_value</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>new_min</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>new_min</span> <span class=o>>=</span> <span class=n>min_value</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid padded min=</span><span class=si>{</span><span class=n>new_min</span><span class=si>}</span><span class=s2> at min="</span>
+                                 <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>min_value</span><span class=si>}</span><span class=s2> and max=</span><span class=si>{</span><span class=n>max_value</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>register_value</span><span class=p>(</span><span class=n>new_min</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>new_min</span> <span class=o>=</span> <span class=n>min_value</span>
+
+        <span class=k>if</span> <span class=n>new_min</span> <span class=o>></span> <span class=n>new_max</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"new_min=</span><span class=si>{</span><span class=n>new_min</span><span class=si>}</span><span class=s2>, new_max=</span><span class=si>{</span><span class=n>new_max</span><span class=si>}</span><span class=s2>??"</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=AxisRanger.apply>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.axis_ranger.AxisRanger.apply>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>apply</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>axes</span><span class=p>:</span> <span class=n>Axes</span><span class=p>,</span> <span class=n>which_axis</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply this axis ranger to the given axis.</span>
+
+<span class=sd>        :param axes: the axes object to which the ranger shall be applied</span>
+<span class=sd>        :param which_axis: the axis to which it should be applied, either</span>
+<span class=sd>            `"x"` or `"y"` or both (`"xy"`)</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>which_axis</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>which_axis</span><span class=p>,</span> <span class=s2>"which_axis"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+
+        <span class=k>for</span> <span class=n>is_x_axis</span> <span class=ow>in</span> <span class=p>(</span><span class=kc>True</span><span class=p>,</span> <span class=kc>False</span><span class=p>):</span>
+            <span class=k>if</span> <span class=p>(</span><span class=s2>"x"</span> <span class=k>if</span> <span class=n>is_x_axis</span> <span class=k>else</span> <span class=s2>"y"</span><span class=p>)</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>which_axis</span><span class=p>:</span>
+                <span class=k>continue</span>
+
+            <span class=n>use_min</span><span class=p>,</span> <span class=n>use_max</span> <span class=o>=</span> \
+                <span class=n>axes</span><span class=o>.</span><span class=n>get_xlim</span><span class=p>()</span> <span class=k>if</span> <span class=n>is_x_axis</span> <span class=k>else</span> <span class=n>axes</span><span class=o>.</span><span class=n>get_ylim</span><span class=p>()</span>
+
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>use_min</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Minimum data interval cannot be </span><span class=si>{</span><span class=n>use_min</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>use_max</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Maximum data interval cannot be </span><span class=si>{</span><span class=n>use_max</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>use_max</span> <span class=o><=</span> <span class=n>use_min</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid axis range[</span><span class=si>{</span><span class=n>use_min</span><span class=si>}</span><span class=s2>,</span><span class=si>{</span><span class=n>use_max</span><span class=si>}</span><span class=s2>]."</span><span class=p>)</span>
+
+            <span class=n>replace_range</span> <span class=o>=</span> <span class=kc>False</span>
+
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__chosen_min</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>use_min</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__chosen_min</span>
+                <span class=n>replace_range</span> <span class=o>=</span> <span class=kc>True</span>
+            <span class=k>elif</span> <span class=bp>self</span><span class=o>.</span><span class=n>__use_data_min</span><span class=p>:</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=bp>self</span><span class=o>.</span><span class=n>__has_detected_min</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"No minimum in data detected."</span><span class=p>)</span>
+                <span class=n>use_min</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__detected_min</span>
+                <span class=n>replace_range</span> <span class=o>=</span> <span class=kc>True</span>
+
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__chosen_max</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>use_max</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__chosen_max</span>
+                <span class=n>replace_range</span> <span class=o>=</span> <span class=kc>True</span>
+            <span class=k>elif</span> <span class=bp>self</span><span class=o>.</span><span class=n>__use_data_max</span><span class=p>:</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=bp>self</span><span class=o>.</span><span class=n>__has_detected_max</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"No maximum in data detected."</span><span class=p>)</span>
+                <span class=n>use_max</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__detected_max</span>
+                <span class=n>replace_range</span> <span class=o>=</span> <span class=kc>True</span>
+
+            <span class=k>if</span> <span class=n>replace_range</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>use_min</span> <span class=o>>=</span> <span class=n>use_max</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"Invalid computed range [</span><span class=si>{</span><span class=n>use_min</span><span class=si>}</span><span class=s2>,</span><span class=si>{</span><span class=n>use_max</span><span class=si>}</span><span class=s2>]."</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>is_x_axis</span><span class=p>:</span>
+                    <span class=n>axes</span><span class=o>.</span><span class=n>set_xlim</span><span class=p>(</span><span class=n>use_min</span><span class=p>,</span> <span class=n>use_max</span><span class=p>)</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>axes</span><span class=o>.</span><span class=n>set_ylim</span><span class=p>(</span><span class=n>use_min</span><span class=p>,</span> <span class=n>use_max</span><span class=p>)</span>
+
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>log_scale</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>use_min</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"minimum must be positive if log scale "</span>
+                                     <span class=sa>f</span><span class=s2>"is defined, but found </span><span class=si>{</span><span class=n>use_min</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>is_x_axis</span><span class=p>:</span>
+                    <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__log_base</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                        <span class=n>axes</span><span class=o>.</span><span class=n>semilogx</span><span class=p>()</span>
+                    <span class=k>else</span><span class=p>:</span>
+                        <span class=n>axes</span><span class=o>.</span><span class=n>semilogx</span><span class=p>(</span><span class=n>base</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>__log_base</span><span class=p>)</span>
+                <span class=k>elif</span> <span class=bp>self</span><span class=o>.</span><span class=n>__log_base</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                    <span class=n>axes</span><span class=o>.</span><span class=n>semilogy</span><span class=p>()</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>axes</span><span class=o>.</span><span class=n>semilogy</span><span class=p>(</span><span class=n>base</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>__log_base</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=AxisRanger.get_pinf_replacement>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.axis_ranger.AxisRanger.get_pinf_replacement>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_pinf_replacement</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get a reasonable finite value that can replace positive infinity.</span>
+
+<span class=sd>        :return: a reasonable finite value that can be used to replace</span>
+<span class=sd>            positive infinity</span>
+<span class=sd>        """</span>
+        <span class=n>data_max</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.0</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__chosen_max</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>data_max</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__chosen_max</span>
+        <span class=k>elif</span> <span class=bp>self</span><span class=o>.</span><span class=n>__has_detected_max</span><span class=p>:</span>
+            <span class=n>data_max</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__detected_max</span>
+        <span class=k>return</span> <span class=nb>min</span><span class=p>(</span><span class=mf>1e100</span><span class=p>,</span> <span class=nb>max</span><span class=p>(</span><span class=mf>1e70</span><span class=p>,</span> <span class=mf>1e5</span> <span class=o>*</span> <span class=n>data_max</span><span class=p>))</span></div>
+
+
+<div class=viewcode-block id=AxisRanger.get_0_replacement>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.axis_ranger.AxisRanger.get_0_replacement>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_0_replacement</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get a reasonable positive finite value that can replace `0`.</span>
+
+<span class=sd>        :return: a reasonable finite value that can be used to replace</span>
+<span class=sd>            `0`</span>
+<span class=sd>        """</span>
+        <span class=n>data_min</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>1e-100</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__chosen_min</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>data_min</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__chosen_min</span>
+        <span class=k>elif</span> <span class=bp>self</span><span class=o>.</span><span class=n>__has_detected_min</span><span class=p>:</span>
+            <span class=n>data_min</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__detected_min</span>
+        <span class=k>return</span> <span class=nb>max</span><span class=p>(</span><span class=mf>1e-100</span><span class=p>,</span> <span class=nb>min</span><span class=p>(</span><span class=mf>1e-70</span><span class=p>,</span> <span class=mf>1e-5</span> <span class=o>*</span> <span class=n>data_min</span><span class=p>))</span></div>
+
+
+<div class=viewcode-block id=AxisRanger.for_axis>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.axis_ranger.AxisRanger.for_axis>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>for_axis</span><span class=p>(</span><span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>chosen_min</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>chosen_max</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>use_data_min</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>use_data_max</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>log_scale</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>log_base</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"AxisRanger"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a default axis ranger based on the axis type.</span>
+
+<span class=sd>        The axis ranger will use the minimal values and log scaling options</span>
+<span class=sd>        that usually make sense for the dimension, unless overridden by the</span>
+<span class=sd>        optional arguments.</span>
+
+<span class=sd>        :param name: the axis type name, supporting `"ms"`, `"FEs"`,</span>
+<span class=sd>            `"plainF"`, `"scaledF"`, and `"normalizedF"`</span>
+<span class=sd>        :param chosen_min: the chosen minimum</span>
+<span class=sd>        :param chosen_max: the chosen maximum</span>
+<span class=sd>        :param use_data_min: should the data minimum be used</span>
+<span class=sd>        :param use_data_max: should the data maximum be used</span>
+<span class=sd>        :param log_scale: the log scale indicator</span>
+<span class=sd>        :param log_base: the log base</span>
+<span class=sd>        :return: the `AxisRanger`</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=s2>"axis name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+
+        <span class=n>l_log</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=n>l_min</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>l_max</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>l_data_min</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=n>chosen_min</span> <span class=ow>is</span> <span class=kc>None</span>
+        <span class=n>l_data_max</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=n>chosen_max</span> <span class=ow>is</span> <span class=kc>None</span>
+
+        <span class=k>if</span> <span class=n>name</span> <span class=ow>in</span> <span class=p>{</span><span class=n>TIME_UNIT_MILLIS</span><span class=p>,</span> <span class=n>KEY_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=p>,</span>
+                    <span class=n>KEY_TOTAL_TIME_MILLIS</span><span class=p>,</span> <span class=n>KEY_ERT_TIME_MILLIS</span><span class=p>}:</span>
+            <span class=k>if</span> <span class=n>chosen_min</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=k>if</span> <span class=p>(</span><span class=n>chosen_min</span> <span class=o><</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>chosen_min</span><span class=p>)):</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"chosen_min must be >= 0 for axis "</span>
+                                     <span class=sa>f</span><span class=s2>"type </span><span class=si>{</span><span class=n>name</span><span class=si>}</span><span class=s2>, but is </span><span class=si>{</span><span class=n>chosen_min</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=n>l_log</span> <span class=o>=</span> <span class=p>(</span><span class=n>chosen_min</span> <span class=o>></span> <span class=mi>0</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>log_scale</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                    <span class=k>if</span> <span class=n>log_scale</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=n>l_log</span><span class=p>):</span>
+                        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Cannot set log_scale=</span><span class=si>{</span><span class=n>log_scale</span><span class=si>}</span><span class=s2> "</span>
+                                         <span class=sa>f</span><span class=s2>"and chosen_min=</span><span class=si>{</span><span class=n>chosen_min</span><span class=si>}</span><span class=s2> for "</span>
+                                         <span class=sa>f</span><span class=s2>"axis type </span><span class=si>{</span><span class=n>name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+                    <span class=n>l_log</span> <span class=o>=</span> <span class=n>log_scale</span>
+            <span class=k>elif</span> <span class=n>log_scale</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>l_log</span> <span class=o>=</span> <span class=kc>True</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>l_log</span> <span class=o>=</span> <span class=n>log_scale</span>
+
+            <span class=n>l_min</span> <span class=o>=</span> <span class=p>(</span><span class=mi>1</span> <span class=k>if</span> <span class=n>l_log</span> <span class=k>else</span> <span class=mi>0</span><span class=p>)</span> <span class=k>if</span> <span class=n>chosen_min</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>chosen_min</span>
+
+            <span class=k>if</span> <span class=n>use_data_max</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>l_data_max</span> <span class=o>=</span> <span class=n>use_data_max</span>
+
+            <span class=n>l_data_min</span> <span class=o>=</span> <span class=kc>False</span> <span class=k>if</span> <span class=n>use_data_min</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>use_data_min</span>
+
+            <span class=k>if</span> <span class=n>chosen_max</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>l_max</span> <span class=o>=</span> <span class=n>chosen_max</span>
+
+            <span class=k>return</span> <span class=n>AxisRanger</span><span class=p>(</span><span class=n>l_min</span><span class=p>,</span> <span class=n>l_max</span><span class=p>,</span> <span class=n>l_data_min</span><span class=p>,</span> <span class=n>l_data_max</span><span class=p>,</span>
+                              <span class=n>l_log</span><span class=p>,</span> <span class=n>log_base</span> <span class=k>if</span> <span class=n>l_log</span> <span class=k>else</span> <span class=kc>None</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>name</span> <span class=ow>in</span> <span class=p>{</span><span class=n>TIME_UNIT_FES</span><span class=p>,</span> <span class=n>KEY_LAST_IMPROVEMENT_FE</span><span class=p>,</span> <span class=n>KEY_TOTAL_FES</span><span class=p>,</span>
+                    <span class=n>KEY_ERT_FES</span><span class=p>}:</span>
+            <span class=k>if</span> <span class=n>chosen_min</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>l_min</span> <span class=o>=</span> <span class=mi>1</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=k>if</span> <span class=p>(</span><span class=n>chosen_min</span> <span class=o><</span> <span class=mi>1</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>chosen_min</span><span class=p>)):</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"chosen_min must be >= 1 for axis "</span>
+                                     <span class=sa>f</span><span class=s2>"type </span><span class=si>{</span><span class=n>name</span><span class=si>}</span><span class=s2>, but is </span><span class=si>{</span><span class=n>chosen_min</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=n>l_min</span> <span class=o>=</span> <span class=n>chosen_min</span>
+            <span class=n>l_log</span> <span class=o>=</span> <span class=kc>True</span> <span class=k>if</span> <span class=p>(</span><span class=n>log_scale</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=k>else</span> <span class=n>log_scale</span>
+
+            <span class=k>if</span> <span class=n>use_data_max</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>l_data_max</span> <span class=o>=</span> <span class=n>use_data_max</span>
+
+            <span class=n>l_data_min</span> <span class=o>=</span> <span class=kc>False</span> <span class=k>if</span> <span class=n>use_data_min</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>use_data_min</span>
+
+            <span class=k>return</span> <span class=n>AxisRanger</span><span class=p>(</span><span class=n>l_min</span><span class=p>,</span> <span class=n>chosen_max</span><span class=p>,</span> <span class=n>l_data_min</span><span class=p>,</span> <span class=n>l_data_max</span><span class=p>,</span>
+                              <span class=n>l_log</span><span class=p>,</span> <span class=n>log_base</span> <span class=k>if</span> <span class=n>l_log</span> <span class=k>else</span> <span class=kc>None</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>name</span> <span class=ow>in</span> <span class=p>{</span><span class=n>F_NAME_RAW</span><span class=p>,</span> <span class=n>KEY_BEST_F</span><span class=p>}:</span>
+            <span class=k>if</span> <span class=n>use_data_max</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>l_data_max</span> <span class=o>=</span> <span class=n>use_data_max</span>
+            <span class=k>if</span> <span class=n>use_data_min</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>l_data_min</span> <span class=o>=</span> <span class=n>use_data_min</span>
+            <span class=k>if</span> <span class=n>log_scale</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>l_log</span> <span class=o>=</span> <span class=n>log_scale</span>
+            <span class=k>return</span> <span class=n>AxisRanger</span><span class=p>(</span><span class=n>chosen_min</span><span class=p>,</span> <span class=n>chosen_max</span><span class=p>,</span> <span class=n>l_data_min</span><span class=p>,</span> <span class=n>l_data_max</span><span class=p>,</span>
+                              <span class=n>l_log</span><span class=p>,</span> <span class=n>log_base</span> <span class=k>if</span> <span class=n>l_log</span> <span class=k>else</span> <span class=kc>None</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>name</span> <span class=o>==</span> <span class=n>F_NAME_SCALED</span><span class=p>:</span>
+            <span class=n>l_min</span> <span class=o>=</span> <span class=mi>1</span>
+        <span class=k>elif</span> <span class=n>name</span> <span class=o>==</span> <span class=n>F_NAME_NORMALIZED</span><span class=p>:</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>log_scale</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=ow>not</span> <span class=n>log_scale</span><span class=p>):</span>
+                <span class=n>l_min</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>elif</span> <span class=n>name</span> <span class=o>==</span> <span class=s2>"ecdf"</span><span class=p>:</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>log_scale</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=ow>not</span> <span class=n>log_scale</span><span class=p>):</span>
+                <span class=n>l_min</span> <span class=o>=</span> <span class=mi>0</span>
+            <span class=n>l_max</span> <span class=o>=</span> <span class=mi>1</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Axis type </span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2> is unknown."</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>chosen_min</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>l_min</span> <span class=o>=</span> <span class=n>chosen_min</span>
+
+        <span class=k>if</span> <span class=n>log_scale</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>l_log</span> <span class=o>=</span> <span class=n>log_scale</span>
+        <span class=k>if</span> <span class=n>use_data_max</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>l_data_max</span> <span class=o>=</span> <span class=n>use_data_max</span>
+        <span class=k>if</span> <span class=n>use_data_min</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>l_data_min</span> <span class=o>=</span> <span class=n>use_data_min</span>
+
+        <span class=k>return</span> <span class=n>AxisRanger</span><span class=p>(</span><span class=n>l_min</span><span class=p>,</span> <span class=n>chosen_max</span><span class=p>,</span> <span class=n>l_data_min</span><span class=p>,</span> <span class=n>l_data_max</span><span class=p>,</span>
+                          <span class=n>l_log</span><span class=p>,</span> <span class=n>log_base</span> <span class=k>if</span> <span class=n>l_log</span> <span class=k>else</span> <span class=kc>None</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=AxisRanger.for_axis_func>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.axis_ranger.AxisRanger.for_axis_func>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>for_axis_func</span><span class=p>(</span><span class=n>chosen_min</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                      <span class=n>chosen_max</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                      <span class=n>use_data_min</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                      <span class=n>use_data_max</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                      <span class=n>log_scale</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                      <span class=n>log_base</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=n>Callable</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Generate a function that provides the default per-axis ranger.</span>
+
+<span class=sd>        :param chosen_min: the chosen minimum</span>
+<span class=sd>        :param chosen_max: the chosen maximum</span>
+<span class=sd>        :param use_data_min: should the data minimum be used</span>
+<span class=sd>        :param use_data_max: should the data maximum be used</span>
+<span class=sd>        :param log_scale: the log scale indicator</span>
+<span class=sd>        :param log_base: the log base</span>
+<span class=sd>        :return: a function in the shape of :meth:`for_axis` with the</span>
+<span class=sd>            provided defaults</span>
+<span class=sd>        """</span>
+        <span class=k>def</span><span class=w> </span><span class=nf>__func</span><span class=p>(</span><span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                   <span class=n>cmi</span><span class=o>=</span><span class=n>chosen_min</span><span class=p>,</span>
+                   <span class=n>cma</span><span class=o>=</span><span class=n>chosen_max</span><span class=p>,</span>
+                   <span class=n>udmi</span><span class=o>=</span><span class=n>use_data_min</span><span class=p>,</span>
+                   <span class=n>udma</span><span class=o>=</span><span class=n>use_data_max</span><span class=p>,</span>
+                   <span class=n>ls</span><span class=o>=</span><span class=n>log_scale</span><span class=p>,</span>
+                   <span class=n>lb</span><span class=o>=</span><span class=n>log_base</span><span class=p>)</span> <span class=o>-></span> <span class=n>AxisRanger</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>AxisRanger</span><span class=o>.</span><span class=n>for_axis</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=n>cmi</span><span class=p>,</span> <span class=n>cma</span><span class=p>,</span> <span class=n>udmi</span><span class=p>,</span> <span class=n>udma</span><span class=p>,</span> <span class=n>ls</span><span class=p>,</span> <span class=n>lb</span><span class=p>)</span>
+
+        <span class=k>return</span> <span class=n>__func</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.axis_ranger</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

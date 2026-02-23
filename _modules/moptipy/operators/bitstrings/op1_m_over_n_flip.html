@@ -1,0 +1,125 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.operators.bitstrings.op1_m_over_n_flip — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/operators/bitstrings/op1_m_over_n_flip.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.bitstrings.op1_m_over_n_flip</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.operators.bitstrings.op1_m_over_n_flip</h1><div class=highlight><pre>
+<span></span><span class=sd>"""A unary operator flipping each bit with probability m/n."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op1</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>fill_in_canonical_permutation</span><span class=p>,</span>
+    <span class=n>int_range_to_dtype</span><span class=p>,</span>
+<span class=p>)</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>_op1_movern</span><span class=p>(</span><span class=n>m</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>none_is_ok</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span> <span class=n>permutation</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>dest</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Copy `x` into `dest` and flip each bit with probability m/n.</span>
+
+<span class=sd>    This method will first copy `x` to `dest`. Then it will flip each bit</span>
+<span class=sd>    in `dest` with probability `m/n`, where `n` is the length of `dest`.</span>
+<span class=sd>    Regardless of the probability, at least one bit will always be</span>
+<span class=sd>    flipped if self.at_least_1 is True.</span>
+
+<span class=sd>    :param m: the value of m</span>
+<span class=sd>    :param none_is_ok: is it OK to flip nothing?</span>
+<span class=sd>    :param permutation: the internal permutation</span>
+<span class=sd>    :param random: the random number generator</span>
+<span class=sd>    :param dest: the destination array to receive the new point</span>
+<span class=sd>    :param x: the existing point in the search space</span>
+<span class=sd>    """</span>
+    <span class=n>dest</span><span class=p>[:]</span> <span class=o>=</span> <span class=n>x</span><span class=p>[:]</span>  <span class=c1># copy source to destination</span>
+    <span class=n>length</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>dest</span><span class=p>)</span>  <span class=c1># get n</span>
+    <span class=n>p</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>m</span> <span class=o>/</span> <span class=n>length</span>  <span class=c1># probability to flip bit</span>
+
+    <span class=n>flips</span><span class=p>:</span> <span class=nb>int</span>  <span class=c1># the number of bits to flip</span>
+    <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+        <span class=n>flips</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>binomial</span><span class=p>(</span><span class=n>length</span><span class=p>,</span> <span class=n>p</span><span class=p>)</span>  <span class=c1># get the number of bits to flip</span>
+        <span class=k>if</span> <span class=n>flips</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>break</span>  <span class=c1># we will flip some bit</span>
+        <span class=k>if</span> <span class=n>none_is_ok</span><span class=p>:</span>
+            <span class=k>return</span>  <span class=c1># we will flip no bit</span>
+
+    <span class=n>i</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>length</span>
+    <span class=n>end</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>length</span> <span class=o>-</span> <span class=n>flips</span>
+    <span class=k>while</span> <span class=n>i</span> <span class=o>></span> <span class=n>end</span><span class=p>:</span>  <span class=c1># we iterate from i=length down to end=length-flips</span>
+        <span class=n>k</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>i</span><span class=p>)</span>  <span class=c1># index of next bit index in permutation</span>
+        <span class=n>i</span> <span class=o>-=</span> <span class=mi>1</span>  <span class=c1># decrease i</span>
+        <span class=n>idx</span> <span class=o>=</span> <span class=n>permutation</span><span class=p>[</span><span class=n>k</span><span class=p>]</span>  <span class=c1># get index of bit to flip and move to end</span>
+        <span class=n>permutation</span><span class=p>[</span><span class=n>i</span><span class=p>],</span> <span class=n>permutation</span><span class=p>[</span><span class=n>k</span><span class=p>]</span> <span class=o>=</span> <span class=n>idx</span><span class=p>,</span> <span class=n>permutation</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+        <span class=n>dest</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span> <span class=o>=</span> <span class=ow>not</span> <span class=n>dest</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span>  <span class=c1># flip bit</span>
+
+
+<div class=viewcode-block id=Op1MoverNflip>
+<a class=viewcode-back href=../../../../moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op1_m_over_n_flip.Op1MoverNflip>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Op1MoverNflip</span><span class=p>(</span><span class=n>Op1</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A unary search operation that flips each bit with probability of `m/n`.</span>
+
+<span class=sd>    For bit strings of length `n`, draw the number `z` of bits to flip from a</span>
+<span class=sd>    binomial distribution with `p=m/n`. If `at_least_1` is set to `True`, then</span>
+<span class=sd>    we repeat drawing `z` until `z>0`.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>m</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span><span class=p>,</span> <span class=n>at_least_1</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the operator.</span>
+
+<span class=sd>        :param n: the length of the bit strings</span>
+<span class=sd>        :param m: the factor for computing the probability of flipping</span>
+<span class=sd>            the bits</span>
+<span class=sd>        :param at_least_1: should at least one bit be flipped?</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+        <span class=c1>#: the value of m in p=m/n</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__m</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>m</span><span class=p>,</span> <span class=s2>"m"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=n>n</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>at_least_1</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>at_least_1</span><span class=p>,</span> <span class=s2>"at_least_1"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=c1>#: is it OK to not flip any bit?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__none_is_ok</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=ow>not</span> <span class=n>at_least_1</span>
+        <span class=c1>#: the internal permutation</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__permutation</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span>
+            <span class=n>n</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>int_range_to_dtype</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>n</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span>
+
+<div class=viewcode-block id=Op1MoverNflip.initialize>
+<a class=viewcode-back href=../../../../moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op1_m_over_n_flip.Op1MoverNflip.initialize>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>initialize</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize this operator."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+        <span class=n>fill_in_canonical_permutation</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__permutation</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=Op1MoverNflip.op1>
+<a class=viewcode-back href=../../../../moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op1_m_over_n_flip.Op1MoverNflip.op1>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>op1</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>dest</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Copy `x` into `dest` and flip each bit with probability m/n.</span>
+
+<span class=sd>        This method will first copy `x` to `dest`. Then it will flip each bit</span>
+<span class=sd>        in `dest` with probability `m/n`, where `n` is the length of `dest`.</span>
+<span class=sd>        Regardless of the probability, at least one bit will always be</span>
+<span class=sd>        flipped if self.at_least_1 is True.</span>
+
+<span class=sd>        :param self: the self pointer</span>
+<span class=sd>        :param random: the random number generator</span>
+<span class=sd>        :param dest: the destination array to receive the new point</span>
+<span class=sd>        :param x: the existing point in the search space</span>
+<span class=sd>        """</span>
+        <span class=n>_op1_movern</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__m</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__none_is_ok</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__permutation</span><span class=p>,</span>
+                    <span class=n>random</span><span class=p>,</span> <span class=n>dest</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this unary operator.</span>
+
+<span class=sd>        :return: "fileB" + m + "n" if none-is-ok else ""</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"flipB</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__m</span><span class=si>}{</span><span class=s1>'n'</span><span class=w> </span><span class=k>if</span><span class=w> </span><span class=bp>self</span><span class=o>.</span><span class=n>__none_is_ok</span><span class=w> </span><span class=k>else</span><span class=w> </span><span class=s1>''</span><span class=si>}</span><span class=s2>"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.bitstrings.op1_m_over_n_flip</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

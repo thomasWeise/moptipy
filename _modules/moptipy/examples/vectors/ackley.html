@@ -1,0 +1,87 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.vectors.ackley — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/vectors/ackley.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.vectors.ackley</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.vectors.ackley</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Ackley's Function.</span>
+
+<span class=sd>Ackley's function is a continuous, multimodal, differentiable, non-separable,</span>
+<span class=sd>and scalable benchmark function for continuous optimization.</span>
+
+<span class=sd>1. David H. Ackley. *A Connectionist Machine for Genetic Hillclimbing.* 1987.</span>
+<span class=sd>   Volume 28 of The Kluwer International Series in Engineering and Computer</span>
+<span class=sd>   Science. Norwell, MA, USA: Kluwer Academic Publisher.</span>
+<span class=sd>   ISBN: 978-1-4612-9192. doi:10.1007/978-1-4613-199</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>tau</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=kn>import</span> <span class=n>cos</span><span class=p>,</span> <span class=n>exp</span><span class=p>,</span> <span class=n>mean</span><span class=p>,</span> <span class=n>ndarray</span><span class=p>,</span> <span class=n>sqrt</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>Objective</span>
+
+
+<div class=viewcode-block id=ackley>
+<a class=viewcode-back href=../../../../moptipy.examples.vectors.html#moptipy.examples.vectors.ackley.ackley>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>ackley</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute Ackley's function.</span>
+
+<span class=sd>    :param x: the np array</span>
+<span class=sd>    :return: the result of Ackley's function</span>
+
+<span class=sd>    >>> from numpy import array</span>
+<span class=sd>    >>> print(ackley(array([0.0, 0.0, 0.0])))</span>
+<span class=sd>    0.0</span>
+<span class=sd>    >>> ackley(array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]))</span>
+<span class=sd>    0.0</span>
+<span class=sd>    >>> print(abs(ackley(array([0.0, 0.0, 0.0]))) < 1e-15)</span>
+<span class=sd>    True</span>
+<span class=sd>    >>> print(ackley(array([2.0, 2.0])))</span>
+<span class=sd>    6.593599079287213</span>
+<span class=sd>    >>> print(ackley(array([-3.0, 2.0])))</span>
+<span class=sd>    7.9889108105187</span>
+<span class=sd>    """</span>
+    <span class=c1># 22.718281828459045 equals 20.0 + e</span>
+    <span class=c1># 6.283185307179586 equals 2.0 * pi</span>
+    <span class=n>res</span> <span class=o>=</span> <span class=mf>22.718281828459045</span> <span class=o>+</span> <span class=p>(</span><span class=o>-</span><span class=mf>20.0</span> <span class=o>*</span> <span class=n>exp</span><span class=p>(</span><span class=o>-</span><span class=mf>0.2</span> <span class=o>*</span> <span class=n>sqrt</span><span class=p>(</span>
+        <span class=n>mean</span><span class=p>(</span><span class=n>x</span> <span class=o>**</span> <span class=mi>2</span><span class=p>))))</span> <span class=o>-</span> <span class=n>exp</span><span class=p>(</span><span class=n>mean</span><span class=p>(</span><span class=n>cos</span><span class=p>(</span><span class=n>tau</span> <span class=o>*</span> <span class=n>x</span><span class=p>)))</span>
+    <span class=k>return</span> <span class=mf>0.0</span> <span class=k>if</span> <span class=n>res</span> <span class=o><=</span> <span class=mf>0.0</span> <span class=k>else</span> <span class=nb>float</span><span class=p>(</span><span class=n>res</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=Ackley>
+<a class=viewcode-back href=../../../../moptipy.examples.vectors.html#moptipy.examples.vectors.ackley.Ackley>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Ackley</span><span class=p>(</span><span class=n>Objective</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""Ackley's function."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize Ackley's function."""</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>evaluate</span> <span class=o>=</span> <span class=n>ackley</span>  <span class=c1># type: ignore</span>
+
+<div class=viewcode-block id=Ackley.lower_bound>
+<a class=viewcode-back href=../../../../moptipy.examples.vectors.html#moptipy.examples.vectors.ackley.Ackley.lower_bound>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>lower_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the lower bound of the sphere problem.</span>
+
+<span class=sd>        :return: 0</span>
+
+<span class=sd>        >>> print(Ackley().lower_bound())</span>
+<span class=sd>        0.0</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=mf>0.0</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of Ackley's function.</span>
+
+<span class=sd>        :return: `ackley`</span>
+<span class=sd>        :retval "ackley": always</span>
+
+<span class=sd>        >>> print(Ackley())</span>
+<span class=sd>        ackley</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"ackley"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.vectors.ackley</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

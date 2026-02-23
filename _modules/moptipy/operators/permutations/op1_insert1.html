@@ -1,0 +1,182 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.operators.permutations.op1_insert1 — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/operators/permutations/op1_insert1.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.permutations.op1_insert1</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.operators.permutations.op1_insert1</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>An operator deleting an element from a permutation and inserting it elsewhere.</span>
+
+<span class=sd>The operator is similar to a combination of the `rol` and `ror` operators</span>
+<span class=sd>in [1]. If the permutation represents, e.g., a tour in the Traveling</span>
+<span class=sd>Salesperson Problem (TSP), then a rotation replaces two edges (if two</span>
+<span class=sd>neighboring elements are rotated = swapped) or three edges (if at least three</span>
+<span class=sd>elements take part in the rotation). It may therefore be considered as a</span>
+<span class=sd>possible 3-opt move on the TSP.</span>
+
+<span class=sd>An alternative way to look at this is given in [2, 3, 4], where the operator</span>
+<span class=sd>is called "Insertion Mutation": An element of the permutation is removed from</span>
+<span class=sd>its current position (`i1`) and inserted at another position (`i2`). The</span>
+<span class=sd>operator is therefore called "position based mutation operator" in [5].</span>
+
+<span class=sd>1. Thomas Weise, Raymond Chiong, Ke Tang, Jörg Lässig, Shigeyoshi Tsutsui,</span>
+<span class=sd>   Wenxiang Chen, Zbigniew Michalewicz, and Xin Yao. Benchmarking Optimization</span>
+<span class=sd>   Algorithms: An Open Source Framework for the Traveling Salesman Problem.</span>
+<span class=sd>   *IEEE Computational Intelligence Magazine (CIM)* 9(3):40-52, August 2014.</span>
+<span class=sd>   https://doi.org/10.1109/MCI.2014.2326101</span>
+<span class=sd>2. Pedro Larrañaga, Cindy M. H. Kuijpers, Roberto H. Murga, I. Inza, and</span>
+<span class=sd>   S. Dizdarevic. Genetic Algorithms for the Travelling Salesman Problem: A</span>
+<span class=sd>   Review of Representations and Operators. *Artificial Intelligence Review,*</span>
+<span class=sd>   13(2):129-170, April 1999. Kluwer Academic Publishers, The Netherlands.</span>
+<span class=sd>   https://doi.org/10.1023/A:1006529012972</span>
+<span class=sd>3. David B. Fogel. An Evolutionary Approach to the Traveling Salesman Problem.</span>
+<span class=sd>   *Biological Cybernetics* 60(2):139-144, December 1988.</span>
+<span class=sd>   https://doi.org/10.1007/BF00202901</span>
+<span class=sd>4. Zbigniew Michalewicz. *Genetic Algorithms + Data Structures = Evolution</span>
+<span class=sd>   Programs,* Berlin, Germany: Springer-Verlag GmbH. 1996. ISBN:3-540-58090-5.</span>
+<span class=sd>   https://doi.org/10.1007/978-3-662-03315-9</span>
+<span class=sd>5. Gilbert Syswerda. Schedule Optimization Using Genetic Algorithms. In</span>
+<span class=sd>   Lawrence Davis, (ed.), *Handbook of Genetic Algorithms,* pages 332-349.</span>
+<span class=sd>   1991. New York, NY, USA: Van Nostrand Reinhold.</span>
+<span class=sd>6. Yuezhong Wu, Thomas Weise, and Raymond Chiong. Local Search for the</span>
+<span class=sd>   Traveling Salesman Problem: A Comparative Study. In *Proceedings of the</span>
+<span class=sd>   14th IEEE Conference on Cognitive Informatics & Cognitive Computing</span>
+<span class=sd>   (ICCI*CC'15),* July 6-8, 2015, Beijing, China, pages 213-220, Los Alamitos,</span>
+<span class=sd>   CA, USA: IEEE Computer Society Press, ISBN: 978-1-4673-7289-3.</span>
+<span class=sd>   https://doi.org/10.1109/ICCI-CC.2015.7259388</span>
+<span class=sd>7. Dan Xu, Thomas Weise, Yuezhong Wu, Jörg Lässig, and Raymond Chiong. An</span>
+<span class=sd>   Investigation of Hybrid Tabu Search for the Traveling Salesman Problem. In</span>
+<span class=sd>   *Proceedings of the 10th International Conference on Bio-Inspired Computing</span>
+<span class=sd>   &ampmdash; Theories and Applications (BIC-TA'15),* September 25-28, 2015,</span>
+<span class=sd>   Hefei, Anhui, China, volume 562 of Communications in Computer and</span>
+<span class=sd>   Information Science. Berlin/Heidelberg: Springer-Verlag, pages 523-537,</span>
+<span class=sd>   ISBN 978-3-662-49013-6. https://doi.org/10.1007/978-3-662-49014-3_47</span>
+<span class=sd>8. Weichen Liu, Thomas Weise, Yuezhong Wu, and Raymond Chiong. Hybrid Ejection</span>
+<span class=sd>   Chain Methods for the Traveling Salesman Problem. In *Proceedings of the</span>
+<span class=sd>   10th International Conference on Bio-Inspired Computing &ampmdash; Theories</span>
+<span class=sd>   and Applications (BIC-TA'15),* September 25-28, 2015, Hefei, Anhui, China,</span>
+<span class=sd>   volume 562 of Communications in Computer and Information Science.</span>
+<span class=sd>   Berlin/Heidelberg: Springer-Verlag, pages 268-282, ISBN 978-3-662-49013-6.</span>
+<span class=sd>   https://doi.org/10.1007/978-3-662-49014-3_25</span>
+<span class=sd>9. Yuezhong Wu, Thomas Weise, and Weichen Liu. Hybridizing Different Local</span>
+<span class=sd>   Search Algorithms with Each Other and Evolutionary Computation: Better</span>
+<span class=sd>   Performance on the Traveling Salesman Problem. In *Proceedings of the 18th</span>
+<span class=sd>   Genetic and Evolutionary Computation Conference (GECCO'16),* July 20-24,</span>
+<span class=sd>   2016, Denver, CO, USA, pages 57-58, New York, NY, USA: ACM.</span>
+<span class=sd>   ISBN: 978-1-4503-4323-7. https://doi.org/10.1145/2908961.2909001</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op1</span>
+
+
+<div class=viewcode-block id=rotate>
+<a class=viewcode-back href=../../../../moptipy.operators.permutations.html#moptipy.operators.permutations.op1_insert1.rotate>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>rotate</span><span class=p>(</span><span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>dest</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Copy `x` into `dest` and then rotate a subsequence by one step.</span>
+
+<span class=sd>    The function repeatedly tries to rotate a portion of an array to the left</span>
+<span class=sd>    or right in place. It will continue trying until something changed.</span>
+<span class=sd>    In each step, it draws two indices `i1` and `i2`.</span>
+
+<span class=sd>    If `i1 < i2`, then a left rotation by one step is performed. In other</span>
+<span class=sd>    words, the element at index `i1 + 1` goes to index `i1`, the element at</span>
+<span class=sd>    index `i1 + 2` goes to index `i1 + 1`, and so on. The lst element, i.e.,</span>
+<span class=sd>    the one at index `i2` goes to index `i2 - 1`. Finally, the element that</span>
+<span class=sd>    originally was at index `i1` goes to index `i2`. If any element in the</span>
+<span class=sd>    array has changed, this function is done, otherwise it tries again.</span>
+
+<span class=sd>    If `i1 > i2`, then a right rotation by one step is performed. In other</span>
+<span class=sd>    words, the element at index `i1 - 1` goes to index `i1`, the element at</span>
+<span class=sd>    index `i1 - 2` goes to index `i1 - 1`, and so on. Finally, the element</span>
+<span class=sd>    that originally was at index `i1` goes to index `i2`. If any element in</span>
+<span class=sd>    the array has changed, this function tries again, otherwise it stops.</span>
+
+<span class=sd>    This corresponds to extracting the element at index `i1` and re-inserting</span>
+<span class=sd>    it at index `i2`.</span>
+
+<span class=sd>    :param random: the random number generator</span>
+<span class=sd>    :param dest: the array to receive the modified copy of `x`</span>
+<span class=sd>    :param x: the existing point in the search space</span>
+
+<span class=sd>    >>> rand = np.random.default_rng(10)</span>
+<span class=sd>    >>> xx = np.array(range(10), int)</span>
+<span class=sd>    >>> out = np.empty(len(xx), int)</span>
+<span class=sd>    >>> rotate(rand, out, xx)</span>
+<span class=sd>    >>> print(out)</span>
+<span class=sd>    [0 1 2 3 4 5 6 8 9 7]</span>
+<span class=sd>    >>> rotate(rand, out, xx)</span>
+<span class=sd>    >>> print(out)</span>
+<span class=sd>    [0 1 2 3 4 5 6 8 7 9]</span>
+<span class=sd>    >>> rotate(rand, out, xx)</span>
+<span class=sd>    >>> print(out)</span>
+<span class=sd>    [0 5 1 2 3 4 6 7 8 9]</span>
+<span class=sd>    >>> rotate(rand, out, xx)</span>
+<span class=sd>    >>> print(out)</span>
+<span class=sd>    [0 1 2 3 4 8 5 6 7 9]</span>
+<span class=sd>    """</span>
+    <span class=n>dest</span><span class=p>[:]</span> <span class=o>=</span> <span class=n>x</span><span class=p>[:]</span>
+    <span class=n>length</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>dest</span><span class=p>)</span>  <span class=c1># Get the length of `dest`.</span>
+    <span class=n>unchanged</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+    <span class=c1># try to rotate the dest array until something changes</span>
+    <span class=k>while</span> <span class=n>unchanged</span><span class=p>:</span>
+        <span class=n>i1</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>length</span><span class=p>)</span>
+        <span class=n>i2</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>length</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>i1</span> <span class=o>==</span> <span class=n>i2</span><span class=p>:</span>  <span class=c1># nothing to be done</span>
+            <span class=k>continue</span>  <span class=c1># array will not be changed</span>
+
+        <span class=k>if</span> <span class=n>i1</span> <span class=o><</span> <span class=n>i2</span><span class=p>:</span>  <span class=c1># rotate to the left: move elements to lower indices?</span>
+            <span class=n>first</span> <span class=o>=</span> <span class=n>dest</span><span class=p>[</span><span class=n>i1</span><span class=p>]</span>  <span class=c1># get the element to be removed</span>
+            <span class=k>while</span> <span class=n>i1</span> <span class=o><</span> <span class=n>i2</span><span class=p>:</span>  <span class=c1># iterate the indices</span>
+                <span class=n>i3</span> <span class=o>=</span> <span class=n>i1</span> <span class=o>+</span> <span class=mi>1</span>  <span class=c1># get next higher index</span>
+                <span class=n>cpy</span> <span class=o>=</span> <span class=n>dest</span><span class=p>[</span><span class=n>i3</span><span class=p>]</span>  <span class=c1># get next element at that higher index</span>
+                <span class=n>unchanged</span> <span class=o>&=</span> <span class=p>(</span><span class=n>cpy</span> <span class=o>==</span> <span class=n>dest</span><span class=p>[</span><span class=n>i1</span><span class=p>])</span>  <span class=c1># is a change?</span>
+                <span class=n>dest</span><span class=p>[</span><span class=n>i1</span><span class=p>]</span> <span class=o>=</span> <span class=n>cpy</span>  <span class=c1># store next element at the lower index</span>
+                <span class=n>i1</span> <span class=o>=</span> <span class=n>i3</span>  <span class=c1># move to next higher index</span>
+            <span class=n>unchanged</span> <span class=o>&=</span> <span class=p>(</span><span class=n>first</span> <span class=o>==</span> <span class=n>dest</span><span class=p>[</span><span class=n>i2</span><span class=p>])</span>  <span class=c1># check if change</span>
+            <span class=n>dest</span><span class=p>[</span><span class=n>i2</span><span class=p>]</span> <span class=o>=</span> <span class=n>first</span>  <span class=c1># store removed element at highest index</span>
+            <span class=k>continue</span>
+
+        <span class=n>last</span> <span class=o>=</span> <span class=n>dest</span><span class=p>[</span><span class=n>i1</span><span class=p>]</span>  <span class=c1># last element; rotate right: move elements up</span>
+        <span class=k>while</span> <span class=n>i2</span> <span class=o><</span> <span class=n>i1</span><span class=p>:</span>  <span class=c1># iterate over indices</span>
+            <span class=n>i3</span> <span class=o>=</span> <span class=n>i1</span> <span class=o>-</span> <span class=mi>1</span>  <span class=c1># get next lower index</span>
+            <span class=n>cpy</span> <span class=o>=</span> <span class=n>dest</span><span class=p>[</span><span class=n>i3</span><span class=p>]</span>  <span class=c1># get element at that lower index</span>
+            <span class=n>unchanged</span> <span class=o>&=</span> <span class=p>(</span><span class=n>cpy</span> <span class=o>==</span> <span class=n>dest</span><span class=p>[</span><span class=n>i1</span><span class=p>])</span>  <span class=c1># is a change?</span>
+            <span class=n>dest</span><span class=p>[</span><span class=n>i1</span><span class=p>]</span> <span class=o>=</span> <span class=n>cpy</span>  <span class=c1># store element at higher index</span>
+            <span class=n>i1</span> <span class=o>=</span> <span class=n>i3</span>  <span class=c1># move to next lower index</span>
+        <span class=n>unchanged</span> <span class=o>&=</span> <span class=p>(</span><span class=n>last</span> <span class=o>==</span> <span class=n>dest</span><span class=p>[</span><span class=n>i2</span><span class=p>])</span>  <span class=c1># check if change</span>
+        <span class=n>dest</span><span class=p>[</span><span class=n>i2</span><span class=p>]</span> <span class=o>=</span> <span class=n>last</span>  <span class=c1># store removed element at lowest index</span></div>
+
+
+
+<div class=viewcode-block id=Op1Insert1>
+<a class=viewcode-back href=../../../../moptipy.operators.permutations.html#moptipy.operators.permutations.op1_insert1.Op1Insert1>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Op1Insert1</span><span class=p>(</span><span class=n>Op1</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Delete an element from a permutation and insert it elsewhere.</span>
+
+<span class=sd>    This operation keep drawing to random numbers, `i1` and `i2`. If</span>
+<span class=sd>    `i1 < i2`, then the permutation is rotated one step to the left between</span>
+<span class=sd>    `i1` and `i2`. If `i1 > i2`, then it is rotated one step to the right</span>
+<span class=sd>    between `i1` and `i2`. If the permutation has changed, the process is</span>
+<span class=sd>    stopped. This corresponds to extracting the element at index `i1` and</span>
+<span class=sd>    re-inserting it at index `i2`. This operator also works for permutations</span>
+<span class=sd>    with repetitions.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize the object."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>op1</span> <span class=o>=</span> <span class=n>rotate</span>  <span class=c1># type: ignore  # use function directly</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this unary operator.</span>
+
+<span class=sd>        :returns: "rot1", the name of this operator</span>
+<span class=sd>        :retval "rot1": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"rot1"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.permutations.op1_insert1</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

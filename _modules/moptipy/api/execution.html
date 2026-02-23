@@ -1,0 +1,446 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.api.execution — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/api/execution.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.execution</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.api.execution</h1><div class=highlight><pre>
+<span></span><span class=sd>"""The algorithm execution API."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Self</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api._process_base</span><span class=w> </span><span class=kn>import</span> <span class=n>_ProcessBase</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api._process_no_ss</span><span class=w> </span><span class=kn>import</span> <span class=n>_ProcessNoSS</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api._process_no_ss_log</span><span class=w> </span><span class=kn>import</span> <span class=n>_ProcessNoSSLog</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api._process_ss</span><span class=w> </span><span class=kn>import</span> <span class=n>_ProcessSS</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api._process_ss_log</span><span class=w> </span><span class=kn>import</span> <span class=n>_ProcessSSLog</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm</span><span class=p>,</span> <span class=n>check_algorithm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.encoding</span><span class=w> </span><span class=kn>import</span> <span class=n>Encoding</span><span class=p>,</span> <span class=n>check_encoding</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>Objective</span><span class=p>,</span> <span class=n>check_objective</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>Process</span><span class=p>,</span>
+    <span class=n>check_goal_f</span><span class=p>,</span>
+    <span class=n>check_max_fes</span><span class=p>,</span>
+    <span class=n>check_max_time_millis</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.space</span><span class=w> </span><span class=kn>import</span> <span class=n>Space</span><span class=p>,</span> <span class=n>check_space</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>rand_seed_check</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_check_log_file</span><span class=p>(</span><span class=n>log_file</span><span class=p>:</span> <span class=n>Any</span><span class=p>,</span> <span class=n>none_is_ok</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-></span> <span class=n>Path</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check a log file.</span>
+
+<span class=sd>    :param log_file: the log file</span>
+<span class=sd>    :param none_is_ok: is `None` ok for log files?</span>
+<span class=sd>    :return: the log file</span>
+
+<span class=sd>    >>> print(_check_log_file("/a/b.txt"))</span>
+<span class=sd>    /a/b.txt</span>
+<span class=sd>    >>> print(_check_log_file("/a/b.txt", False))</span>
+<span class=sd>    /a/b.txt</span>
+<span class=sd>    >>> print(_check_log_file("/a/b.txt", True))</span>
+<span class=sd>    /a/b.txt</span>
+<span class=sd>    >>> from pycommons.io.path import Path as Pth</span>
+<span class=sd>    >>> print(_check_log_file(Path("/a/b.txt"), False))</span>
+<span class=sd>    /a/b.txt</span>
+<span class=sd>    >>> print(_check_log_file(None))</span>
+<span class=sd>    None</span>
+<span class=sd>    >>> print(_check_log_file(None, True))</span>
+<span class=sd>    None</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     _check_log_file(1)  # noqa  # type: ignore</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    descriptor '__len__' requires a 'str' object but received a 'int'</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     _check_log_file(None, False)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    descriptor '__len__' requires a 'str' object but received a 'NoneType'</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>log_file</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=n>none_is_ok</span><span class=p>:</span>
+        <span class=k>return</span> <span class=kc>None</span>
+    <span class=k>return</span> <span class=n>Path</span><span class=p>(</span><span class=n>log_file</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=Execution>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.execution.Execution>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Execution</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Define all the components of an experiment and then execute it.</span>
+
+<span class=sd>    This class follows the builder pattern. It allows us to</span>
+<span class=sd>    step-by-step store all the parameters needed to execute an</span>
+<span class=sd>    experiment. Via the method :meth:`~Execution.execute`, we can then</span>
+<span class=sd>    run the experiment and obtain the instance of</span>
+<span class=sd>    :class:`~moptipy.api.process.Process` *after* the execution of the</span>
+<span class=sd>    algorithm. From this instance, we can query the final result of the</span>
+<span class=sd>    algorithm application.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize the execution builder."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_algorithm</span><span class=p>:</span> <span class=n>Algorithm</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_solution_space</span><span class=p>:</span> <span class=n>Space</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_objective</span><span class=p>:</span> <span class=n>Objective</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_search_space</span><span class=p>:</span> <span class=n>Space</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_encoding</span><span class=p>:</span> <span class=n>Encoding</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_rand_seed</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_max_time_millis</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_goal_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_log_file</span><span class=p>:</span> <span class=n>Path</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_log_improvements</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_log_all_fes</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+
+<div class=viewcode-block id=Execution.set_algorithm>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.execution.Execution.set_algorithm>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_algorithm</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>algorithm</span><span class=p>:</span> <span class=n>Algorithm</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set the algorithm to be used for this experiment.</span>
+
+<span class=sd>        :param algorithm: the algorithm</span>
+<span class=sd>        :returns: this execution</span>
+<span class=sd>        """</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_algorithm</span> <span class=o>=</span> <span class=n>check_algorithm</span><span class=p>(</span><span class=n>algorithm</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span></div>
+
+
+<div class=viewcode-block id=Execution.set_solution_space>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.execution.Execution.set_solution_space>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_solution_space</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>solution_space</span><span class=p>:</span> <span class=n>Space</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set the solution space to be used for this experiment.</span>
+
+<span class=sd>        This is the space managing the data structure holding the candidate</span>
+<span class=sd>        solutions.</span>
+
+<span class=sd>        :param solution_space: the solution space</span>
+<span class=sd>        :returns: this execution</span>
+<span class=sd>        """</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_solution_space</span> <span class=o>=</span> <span class=n>check_space</span><span class=p>(</span><span class=n>solution_space</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span></div>
+
+
+<div class=viewcode-block id=Execution.set_objective>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.execution.Execution.set_objective>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_objective</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>objective</span><span class=p>:</span> <span class=n>Objective</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set the objective function to be used for this experiment.</span>
+
+<span class=sd>        This is the function rating the quality of candidate solutions.</span>
+
+<span class=sd>        :param objective: the objective function</span>
+<span class=sd>        :returns: this execution</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>_objective</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=s2>"Cannot add more than one objective function in single-"</span>
+                <span class=sa>f</span><span class=s2>"objective optimization, attempted to add </span><span class=si>{</span><span class=n>objective</span><span class=si>}</span><span class=s2> "</span>
+                <span class=sa>f</span><span class=s2>"after </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>_objective</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_objective</span> <span class=o>=</span> <span class=n>check_objective</span><span class=p>(</span><span class=n>objective</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span></div>
+
+
+<div class=viewcode-block id=Execution.set_search_space>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.execution.Execution.set_search_space>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_search_space</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>search_space</span><span class=p>:</span> <span class=n>Space</span> <span class=o>|</span> <span class=kc>None</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set the search space to be used for this experiment.</span>
+
+<span class=sd>        This is the space from which the algorithm samples points.</span>
+
+<span class=sd>        :param search_space: the search space, or `None` of none shall be</span>
+<span class=sd>            used, i.e., if search and solution space are the same</span>
+<span class=sd>        :returns: this execution</span>
+<span class=sd>        """</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_search_space</span> <span class=o>=</span> <span class=n>check_space</span><span class=p>(</span><span class=n>search_space</span><span class=p>,</span> <span class=n>none_is_ok</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span></div>
+
+
+<div class=viewcode-block id=Execution.set_encoding>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.execution.Execution.set_encoding>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_encoding</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>encoding</span><span class=p>:</span> <span class=n>Encoding</span> <span class=o>|</span> <span class=kc>None</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set the encoding to be used for this experiment.</span>
+
+<span class=sd>        This is the function translating from the search space to the</span>
+<span class=sd>        solution space.</span>
+
+<span class=sd>        :param encoding: the encoding, or `None` of none shall be used</span>
+<span class=sd>        :returns: this execution</span>
+<span class=sd>        """</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_encoding</span> <span class=o>=</span> <span class=n>check_encoding</span><span class=p>(</span><span class=n>encoding</span><span class=p>,</span> <span class=n>none_is_ok</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span></div>
+
+
+<div class=viewcode-block id=Execution.set_rand_seed>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.execution.Execution.set_rand_seed>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_rand_seed</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>rand_seed</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set the seed to be used for initializing the random number generator.</span>
+
+<span class=sd>        :param rand_seed: the random seed, or `None` if a seed should</span>
+<span class=sd>            automatically be chosen when the experiment is executed</span>
+<span class=sd>        """</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_rand_seed</span> <span class=o>=</span> <span class=kc>None</span> <span class=k>if</span> <span class=n>rand_seed</span> <span class=ow>is</span> <span class=kc>None</span> \
+            <span class=k>else</span> <span class=n>rand_seed_check</span><span class=p>(</span><span class=n>rand_seed</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span></div>
+
+
+<div class=viewcode-block id=Execution.set_max_fes>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.execution.Execution.set_max_fes>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_max_fes</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>  <span class=c1># +book</span>
+                    <span class=n>force_override</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set the maximum FEs.</span>
+
+<span class=sd>        This is the number of candidate solutions an optimization is allowed</span>
+<span class=sd>        to evaluate. If this method is called multiple times, then the</span>
+<span class=sd>        shortest limit is used unless `force_override` is `True`.</span>
+
+<span class=sd>        :param max_fes: the maximum FEs</span>
+<span class=sd>        :param force_override: the use the value given in `max_time_millis`</span>
+<span class=sd>            regardless of what was specified before</span>
+<span class=sd>        :returns: this execution</span>
+<span class=sd>        """</span>
+        <span class=n>max_fes</span> <span class=o>=</span> <span class=n>check_max_fes</span><span class=p>(</span><span class=n>max_fes</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_max_fes</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>max_fes</span> <span class=o>>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_max_fes</span><span class=p>)</span> \
+                <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=n>force_override</span><span class=p>):</span>
+            <span class=k>return</span> <span class=bp>self</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_max_fes</span> <span class=o>=</span> <span class=n>max_fes</span>
+        <span class=k>return</span> <span class=bp>self</span></div>
+
+
+<div class=viewcode-block id=Execution.set_max_time_millis>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.execution.Execution.set_max_time_millis>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_max_time_millis</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>max_time_millis</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                            <span class=n>force_override</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set the maximum time in milliseconds.</span>
+
+<span class=sd>        This is the maximum time that the process is allowed to run. If this</span>
+<span class=sd>        method is called multiple times, the shortest time is used unless</span>
+<span class=sd>        `force_override` is `True`.</span>
+
+<span class=sd>        :param max_time_millis: the maximum time in milliseconds</span>
+<span class=sd>        :param force_override: the use the value given in `max_time_millis`</span>
+<span class=sd>            regardless of what was specified before</span>
+<span class=sd>        :returns: this execution</span>
+<span class=sd>        """</span>
+        <span class=n>max_time_millis</span> <span class=o>=</span> <span class=n>check_max_time_millis</span><span class=p>(</span><span class=n>max_time_millis</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_max_time_millis</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> \
+                <span class=ow>and</span> <span class=p>(</span><span class=n>max_time_millis</span> <span class=o>>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_max_time_millis</span><span class=p>)</span> \
+                <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=n>force_override</span><span class=p>):</span>
+            <span class=k>return</span> <span class=bp>self</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_max_time_millis</span> <span class=o>=</span> <span class=n>max_time_millis</span>
+        <span class=k>return</span> <span class=bp>self</span></div>
+
+
+<div class=viewcode-block id=Execution.set_goal_f>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.execution.Execution.set_goal_f>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_goal_f</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>goal_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set the goal objective value after which the process can stop.</span>
+
+<span class=sd>        If this method is called multiple times, then the largest value is</span>
+<span class=sd>        retained.</span>
+
+<span class=sd>        :param goal_f: the goal objective value.</span>
+<span class=sd>        :returns: this execution</span>
+<span class=sd>        """</span>
+        <span class=n>goal_f</span> <span class=o>=</span> <span class=n>check_goal_f</span><span class=p>(</span><span class=n>goal_f</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_goal_f</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>goal_f</span> <span class=o><=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_goal_f</span><span class=p>):</span>
+            <span class=k>return</span> <span class=bp>self</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_goal_f</span> <span class=o>=</span> <span class=n>goal_f</span>
+        <span class=k>return</span> <span class=bp>self</span></div>
+
+
+<div class=viewcode-block id=Execution.set_log_file>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.execution.Execution.set_log_file>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_log_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>log_file</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set the log file to write to.</span>
+
+<span class=sd>        If a path to a log file is provided, the contents of this file will be</span>
+<span class=sd>        filled based on the structure documented at</span>
+<span class=sd>        https://thomasweise.github.io/moptipy/#log-file-sections, which</span>
+<span class=sd>        includes the algorithm parameters, the instance features, the</span>
+<span class=sd>        system settings, the final solution, the corresponding point in the</span>
+<span class=sd>        search space, etc.</span>
+
+<span class=sd>        This method can be called arbitrarily often.</span>
+
+<span class=sd>        :param log_file: the log file</span>
+<span class=sd>        """</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_log_file</span> <span class=o>=</span> <span class=n>_check_log_file</span><span class=p>(</span><span class=n>log_file</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span></div>
+
+
+<div class=viewcode-block id=Execution.set_log_improvements>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.execution.Execution.set_log_improvements>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_log_improvements</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                             <span class=n>log_improvements</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set whether improvements should be logged.</span>
+
+<span class=sd>        If improvements are logged, then the `PROGRESS` section will be added</span>
+<span class=sd>        to the log files, as documented at</span>
+<span class=sd>        https://thomasweise.github.io/moptipy/#the-section-progress.</span>
+
+<span class=sd>        :param log_improvements: if improvements should be logged?</span>
+<span class=sd>        :returns: this execution</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>log_improvements</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>log_improvements</span><span class=p>,</span> <span class=s2>"log_improvements"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_log_improvements</span> <span class=o>=</span> <span class=n>log_improvements</span>
+        <span class=k>return</span> <span class=bp>self</span></div>
+
+
+<div class=viewcode-block id=Execution.set_log_all_fes>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.execution.Execution.set_log_all_fes>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_log_all_fes</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                        <span class=n>log_all_fes</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set whether all objective function evaluations (FEs) should be logged.</span>
+
+<span class=sd>        If all FEs  are logged, then the `PROGRESS` section will be added to</span>
+<span class=sd>        the log files, as documented at</span>
+<span class=sd>        https://thomasweise.github.io/moptipy/#the-section-progress.</span>
+
+<span class=sd>        :param log_all_fes: if all FEs should be logged?</span>
+<span class=sd>        :returns: this execution</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>log_all_fes</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>log_all_fes</span><span class=p>,</span> <span class=s2>"log_all_fes"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_log_all_fes</span> <span class=o>=</span> <span class=n>log_all_fes</span>
+        <span class=k>return</span> <span class=bp>self</span></div>
+
+
+<div class=viewcode-block id=Execution.execute>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.execution.Execution.execute>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>execute</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>Process</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Execute the experiment and return the process *after* the run.</span>
+
+<span class=sd>        The optimization process constructed with this object is executed.</span>
+<span class=sd>        This means that first, an instance of</span>
+<span class=sd>        :class:`~moptipy.api.process.Process` is constructed.</span>
+<span class=sd>        Then, the method :meth:`~moptipy.api.algorithm.Algorithm.solve` is</span>
+<span class=sd>        applied to this instance.</span>
+<span class=sd>        In other words, the optimization algorithm is executed until it</span>
+<span class=sd>        terminates.</span>
+<span class=sd>        Finally, this method returns the :class:`~moptipy.api.process.Process`</span>
+<span class=sd>        instance *after* algorithm completion.</span>
+<span class=sd>        This instance then can be queried for the final result of the run (via</span>
+<span class=sd>        :meth:`~moptipy.api.process.Process.get_copy_of_best_y`), the</span>
+<span class=sd>        objective value of this final best solution (via</span>
+<span class=sd>        :meth:`~moptipy.api.process.Process.get_best_f`), and other</span>
+<span class=sd>        information.</span>
+
+<span class=sd>        If a log file path was supplied to :meth:`~set_log_file`, then the</span>
+<span class=sd>        information gathered from the optimization process will be written to</span>
+<span class=sd>        the file *after*  the `with` blog using the process is left. See</span>
+<span class=sd>        https://thomasweise.github.io/moptipy/#log-file-sections for a</span>
+<span class=sd>        documentation of the log file structure and sections.</span>
+
+<span class=sd>        :return: the process *after* the run, i.e., in the state where it can</span>
+<span class=sd>            be queried for the result</span>
+<span class=sd>        """</span>
+        <span class=n>algorithm</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Algorithm</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_algorithm</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_algorithm</span><span class=p>)</span>
+        <span class=n>solution_space</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Space</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_space</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_solution_space</span><span class=p>)</span>
+        <span class=n>objective</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Objective</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_objective</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_objective</span><span class=p>)</span>
+        <span class=n>search_space</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Space</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_space</span><span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_search_space</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>_encoding</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span>
+        <span class=n>encoding</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Encoding</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_encoding</span><span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_encoding</span><span class=p>,</span> <span class=n>search_space</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span>
+        <span class=n>rand_seed</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_rand_seed</span>
+        <span class=k>if</span> <span class=n>rand_seed</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>rand_seed</span> <span class=o>=</span> <span class=n>rand_seed_check</span><span class=p>(</span><span class=n>rand_seed</span><span class=p>)</span>
+        <span class=n>max_time_millis</span> <span class=o>=</span> <span class=n>check_max_time_millis</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_max_time_millis</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+        <span class=n>max_fes</span> <span class=o>=</span> <span class=n>check_max_fes</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_max_fes</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+        <span class=n>goal_f</span> <span class=o>=</span> <span class=n>check_goal_f</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_goal_f</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+        <span class=n>f_lb</span> <span class=o>=</span> <span class=n>objective</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>()</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>f_lb</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>f_lb</span><span class=p>)</span> \
+                <span class=ow>and</span> <span class=p>((</span><span class=n>goal_f</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>f_lb</span> <span class=o>></span> <span class=n>goal_f</span><span class=p>)):</span>
+            <span class=n>goal_f</span> <span class=o>=</span> <span class=n>f_lb</span>
+
+        <span class=n>log_all_fes</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_log_all_fes</span>
+        <span class=n>log_improvements</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_log_improvements</span> <span class=ow>or</span> <span class=bp>self</span><span class=o>.</span><span class=n>_log_all_fes</span>
+
+        <span class=n>log_file</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_log_file</span>
+        <span class=k>if</span> <span class=n>log_file</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>log_all_fes</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Log file cannot be None "</span>
+                                 <span class=s2>"if all FEs should be logged."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>log_improvements</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Log file cannot be None "</span>
+                                 <span class=s2>"if improvements should be logged."</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>log_file</span><span class=o>.</span><span class=n>create_file_or_truncate</span><span class=p>()</span>
+
+        <span class=n>process</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>_ProcessBase</span><span class=p>]</span> <span class=o>=</span> \
+            <span class=p>(</span><span class=n>_ProcessNoSSLog</span><span class=p>(</span><span class=n>solution_space</span><span class=o>=</span><span class=n>solution_space</span><span class=p>,</span>
+                             <span class=n>objective</span><span class=o>=</span><span class=n>objective</span><span class=p>,</span>
+                             <span class=n>algorithm</span><span class=o>=</span><span class=n>algorithm</span><span class=p>,</span>
+                             <span class=n>log_file</span><span class=o>=</span><span class=n>log_file</span><span class=p>,</span>
+                             <span class=n>rand_seed</span><span class=o>=</span><span class=n>rand_seed</span><span class=p>,</span>
+                             <span class=n>max_fes</span><span class=o>=</span><span class=n>max_fes</span><span class=p>,</span>
+                             <span class=n>max_time_millis</span><span class=o>=</span><span class=n>max_time_millis</span><span class=p>,</span>
+                             <span class=n>goal_f</span><span class=o>=</span><span class=n>goal_f</span><span class=p>,</span>
+                             <span class=n>log_all_fes</span><span class=o>=</span><span class=n>log_all_fes</span><span class=p>)</span>
+             <span class=k>if</span> <span class=n>log_improvements</span> <span class=ow>or</span> <span class=n>log_all_fes</span> <span class=k>else</span>
+             <span class=n>_ProcessNoSS</span><span class=p>(</span><span class=n>solution_space</span><span class=o>=</span><span class=n>solution_space</span><span class=p>,</span>
+                          <span class=n>objective</span><span class=o>=</span><span class=n>objective</span><span class=p>,</span>
+                          <span class=n>algorithm</span><span class=o>=</span><span class=n>algorithm</span><span class=p>,</span>
+                          <span class=n>log_file</span><span class=o>=</span><span class=n>log_file</span><span class=p>,</span>
+                          <span class=n>rand_seed</span><span class=o>=</span><span class=n>rand_seed</span><span class=p>,</span>
+                          <span class=n>max_fes</span><span class=o>=</span><span class=n>max_fes</span><span class=p>,</span>
+                          <span class=n>max_time_millis</span><span class=o>=</span><span class=n>max_time_millis</span><span class=p>,</span>
+                          <span class=n>goal_f</span><span class=o>=</span><span class=n>goal_f</span><span class=p>))</span> <span class=k>if</span> <span class=n>search_space</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> \
+            <span class=p>(</span><span class=n>_ProcessSSLog</span><span class=p>(</span><span class=n>solution_space</span><span class=o>=</span><span class=n>solution_space</span><span class=p>,</span>
+                           <span class=n>objective</span><span class=o>=</span><span class=n>objective</span><span class=p>,</span>
+                           <span class=n>algorithm</span><span class=o>=</span><span class=n>algorithm</span><span class=p>,</span>
+                           <span class=n>search_space</span><span class=o>=</span><span class=n>search_space</span><span class=p>,</span>
+                           <span class=n>encoding</span><span class=o>=</span><span class=n>encoding</span><span class=p>,</span>
+                           <span class=n>log_file</span><span class=o>=</span><span class=n>log_file</span><span class=p>,</span>
+                           <span class=n>rand_seed</span><span class=o>=</span><span class=n>rand_seed</span><span class=p>,</span>
+                           <span class=n>max_fes</span><span class=o>=</span><span class=n>max_fes</span><span class=p>,</span>
+                           <span class=n>max_time_millis</span><span class=o>=</span><span class=n>max_time_millis</span><span class=p>,</span>
+                           <span class=n>goal_f</span><span class=o>=</span><span class=n>goal_f</span><span class=p>,</span>
+                           <span class=n>log_all_fes</span><span class=o>=</span><span class=n>log_all_fes</span><span class=p>)</span>
+             <span class=k>if</span> <span class=n>log_improvements</span> <span class=ow>or</span> <span class=n>log_all_fes</span> <span class=k>else</span>
+             <span class=n>_ProcessSS</span><span class=p>(</span><span class=n>solution_space</span><span class=o>=</span><span class=n>solution_space</span><span class=p>,</span>
+                        <span class=n>objective</span><span class=o>=</span><span class=n>objective</span><span class=p>,</span>
+                        <span class=n>algorithm</span><span class=o>=</span><span class=n>algorithm</span><span class=p>,</span>
+                        <span class=n>search_space</span><span class=o>=</span><span class=n>search_space</span><span class=p>,</span>
+                        <span class=n>encoding</span><span class=o>=</span><span class=n>encoding</span><span class=p>,</span>
+                        <span class=n>log_file</span><span class=o>=</span><span class=n>log_file</span><span class=p>,</span>
+                        <span class=n>rand_seed</span><span class=o>=</span><span class=n>rand_seed</span><span class=p>,</span>
+                        <span class=n>max_fes</span><span class=o>=</span><span class=n>max_fes</span><span class=p>,</span>
+                        <span class=n>max_time_millis</span><span class=o>=</span><span class=n>max_time_millis</span><span class=p>,</span>
+                        <span class=n>goal_f</span><span class=o>=</span><span class=n>goal_f</span><span class=p>))</span>
+        <span class=k>try</span><span class=p>:</span>
+            <span class=c1># noinspection PyProtectedMember</span>
+            <span class=n>process</span><span class=o>.</span><span class=n>_after_init</span><span class=p>()</span>  <span class=c1># finalize the created process</span>
+            <span class=n>objective</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>  <span class=c1># initialize the objective function</span>
+            <span class=k>if</span> <span class=n>encoding</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>encoding</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>   <span class=c1># initialize the encoding</span>
+            <span class=n>solution_space</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>  <span class=c1># initialize the solution space</span>
+            <span class=k>if</span> <span class=n>search_space</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>search_space</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>  <span class=c1># initialize the search space</span>
+            <span class=n>algorithm</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>  <span class=c1># initialize the algorithm</span>
+            <span class=n>algorithm</span><span class=o>.</span><span class=n>solve</span><span class=p>(</span><span class=n>process</span><span class=p>)</span>  <span class=c1># apply the algorithm</span>
+        <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>be</span><span class=p>:</span>  <span class=c1># noqa</span>
+            <span class=c1># noinspection PyProtectedMember</span>
+            <span class=k>if</span> <span class=n>process</span><span class=o>.</span><span class=n>_caught</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=c1># noinspection PyProtectedMember</span>
+                <span class=n>process</span><span class=o>.</span><span class=n>_caught</span> <span class=o>=</span> <span class=n>be</span>
+        <span class=k>return</span> <span class=n>process</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.execution</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

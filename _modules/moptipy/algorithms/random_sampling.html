@@ -1,0 +1,78 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.random_sampling — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/random_sampling.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.random_sampling</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.random_sampling</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The random sampling algorithm `rs`.</span>
+
+<span class=sd>The random sampling algorithm keeps creating random solutions until</span>
+<span class=sd>the computational budget is exhausted or any other termination</span>
+<span class=sd>criterion is met.</span>
+<span class=sd>In a loop that is repeated until the termination criterion</span>
+<span class=sd>:meth:`~moptipy.api.process.Process.should_terminate` becomes `True`,</span>
+<span class=sd>it</span>
+
+<span class=sd>- applies the nullary search operator, an implementation of</span>
+<span class=sd>  :meth:`~moptipy.api.operators.Op0.op0`, to sample exactly one single</span>
+<span class=sd>  random solution. It then</span>
+<span class=sd>- evaluates the solution by passing it to</span>
+<span class=sd>  :meth:`~moptipy.api.process.Process.evaluate`.</span>
+
+<span class=sd>This algorithm has a very bad performance. It makes no use of the</span>
+<span class=sd>information that is learned during the search. Every single solution is</span>
+<span class=sd>created completely independent on anything that has happened before</span>
+<span class=sd>in the algorithm. Only if the problem is completely random, has no</span>
+<span class=sd>structure, or is entirely deceptive, this algorithm can be of any use.</span>
+
+<span class=sd>Basically, this algorithm is an iterated version of the `1rs` algorithm</span>
+<span class=sd>implemented in</span>
+<span class=sd>:class:`~moptipy.algorithms.single_random_sample.SingleRandomSample`.</span>
+
+<span class=sd>1. Thomas Weise. *Optimization Algorithms.* 2021. Hefei, Anhui, China:</span>
+<span class=sd>   Institute of Applied Optimization (IAO), School of Artificial Intelligence</span>
+<span class=sd>   and Big Data, Hefei University. http://thomasweise.github.io/oa/</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm0</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=RandomSampling>
+<a class=viewcode-back href=../../../moptipy.algorithms.html#moptipy.algorithms.random_sampling.RandomSampling>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>RandomSampling</span><span class=p>(</span><span class=n>Algorithm0</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""In each step, random sampling creates a new, random solution."""</span>
+
+<div class=viewcode-block id=RandomSampling.solve>
+<a class=viewcode-back href=../../../moptipy.algorithms.html#moptipy.algorithms.random_sampling.RandomSampling.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the random sampling approach to an optimization problem.</span>
+
+<span class=sd>        :param process: the black-box process object</span>
+<span class=sd>        """</span>
+        <span class=n>x</span><span class=p>:</span> <span class=n>Final</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>  <span class=c1># Create the solution record.</span>
+        <span class=c1># Obtain the random number generator.</span>
+        <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>()</span>
+
+        <span class=c1># Put function references in variables to save time.</span>
+        <span class=n>evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>evaluate</span>  <span class=c1># the objective</span>
+        <span class=n>op0</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op0</span><span class=o>.</span><span class=n>op0</span>  <span class=c1># the nullary operator</span>
+        <span class=n>should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>
+
+        <span class=k>while</span> <span class=ow>not</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># Until we need to quit...</span>
+            <span class=n>op0</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span>  <span class=c1># Sample a completely random solution.</span>
+            <span class=n>evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>  <span class=c1># Evaluate the solution ... but ignore result.</span></div>
+
+<span class=c1># end book</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the random sampling algorithm.</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=s2>"rs"</span><span class=p>,</span> <span class=n>op0</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.random_sampling</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

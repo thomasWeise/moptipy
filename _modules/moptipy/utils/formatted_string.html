@@ -1,0 +1,217 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.utils.formatted_string — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/utils/formatted_string.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.formatted_string</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.utils.formatted_string</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Strings that carry format information."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isnan</span><span class=p>,</span> <span class=n>nan</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=c1>#: the formatted string represents normal text</span>
+<span class=n>TEXT</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>0</span>
+<span class=c1>#: the formatted string represents a number</span>
+<span class=n>NUMBER</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>1</span>
+<span class=c1>#: the formatted string represents NaN, i.e., "not a number"</span>
+<span class=n>NAN</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>2</span>
+<span class=c1>#: the formatted string represents positive infinity</span>
+<span class=n>POSITIVE_INFINITY</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>3</span>
+<span class=c1>#: the formatted string represents negative infinity</span>
+<span class=n>NEGATIVE_INFINITY</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>4</span>
+<span class=c1>#: the formatted string represents a special character</span>
+<span class=n>SPECIAL</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>5</span>
+
+
+<div class=viewcode-block id=FormattedStr>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.formatted_string.FormattedStr>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>FormattedStr</span><span class=p>(</span><span class=nb>str</span><span class=p>):</span>  <span class=c1># noqa: SLOT000</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A subclass of `str` capable of holding formatting information.</span>
+
+<span class=sd>    This is a version of string that also stores format information that can,</span>
+<span class=sd>    for example, be used by a text format driver when typesetting text.</span>
+<span class=sd>    Instances of this class can also be used as normal strings and be printed</span>
+<span class=sd>    to the console without any issue. However, they also hold information</span>
+<span class=sd>    about whether the text should be :attr:`bold`, :attr:`italic`, or rendered</span>
+<span class=sd>    in a monospace :attr:`code` font.</span>
+
+<span class=sd>    Furthermore, if a number or numerical string is represented as a formatted</span>
+<span class=sd>    string, the field :attr:`mode` will be non-zero. If it is `TEXT=1`, the</span>
+<span class=sd>    string is a normal number, if it is `NAN=2`, the string is "nan", if it is</span>
+<span class=sd>    `POSITIVE_INFINITY=3`, then the string is `inf`, and if it is</span>
+<span class=sd>    `NEGATIVE_INFINITY=4`, the string is `-inf`. These values permit a text</span>
+<span class=sd>    driver, for example, to replace the special numeric values with unicode</span>
+<span class=sd>    constants or certain commands. It may also choose to replace floating</span>
+<span class=sd>    point number of the form `1.5E23` with something like `1.5*10^23`. It can</span>
+<span class=sd>    do so because a non-zero :attr:`mode` indicates that the string is</span>
+<span class=sd>    definitely representing a number and that numbers in the string did not</span>
+<span class=sd>    just occur for whatever other reason.</span>
+
+<span class=sd>    If the field :attr:`mode` has value `SPECIAL=5`, then the text contains a</span>
+<span class=sd>    special sequence, e.g., a unicode character outside of the normal range.</span>
+<span class=sd>    Then, the text format driver can render this character as a special</span>
+<span class=sd>    entity.</span>
+<span class=sd>    """</span>
+
+    <span class=c1>#: should this string be formatted in bold face?</span>
+    <span class=n>bold</span><span class=p>:</span> <span class=nb>bool</span>
+    <span class=c1>#: should this string be formatted in italic face?</span>
+    <span class=n>italic</span><span class=p>:</span> <span class=nb>bool</span>
+    <span class=c1>#: should this string be formatted in code face?</span>
+    <span class=n>code</span><span class=p>:</span> <span class=nb>bool</span>
+    <span class=c1>#: the special mode: `TEXT`, `NUMBER`, `NAN`, `POSITIVE_INFINITY`,</span>
+    <span class=c1>#: `NEGATIVE_INFINITY`, or `SPECIAL`</span>
+    <span class=n>mode</span><span class=p>:</span> <span class=nb>int</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__new__</span><span class=p>(</span><span class=bp>cls</span><span class=p>,</span> <span class=n>value</span><span class=p>,</span> <span class=n>bold</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span> <span class=n>italic</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>  <span class=c1># noqa</span>
+                <span class=n>code</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span> <span class=n>mode</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>TEXT</span><span class=p>):</span>  <span class=c1># noqa</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Construct the formatted string.</span>
+
+<span class=sd>        :param value: the string value</span>
+<span class=sd>        :param bold: should the format be bold face?</span>
+<span class=sd>        :param italic: should the format be italic face?</span>
+<span class=sd>        :param code: should the format be code face?</span>
+<span class=sd>        :param mode: the mode of the formatted string</span>
+<span class=sd>        :returns: an instance of `FormattedStr`</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>value</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>value</span><span class=p>,</span> <span class=s2>"value"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>bold</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>bold</span><span class=p>,</span> <span class=s2>"bold"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>italic</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>italic</span><span class=p>,</span> <span class=s2>"italic"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>code</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>code</span><span class=p>,</span> <span class=s2>"code"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>mode</span><span class=p>,</span> <span class=s2>"mode"</span><span class=p>,</span> <span class=n>TEXT</span><span class=p>,</span> <span class=n>SPECIAL</span><span class=p>)</span>
+        <span class=n>ret</span> <span class=o>=</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__new__</span><span class=p>(</span><span class=bp>cls</span><span class=p>,</span> <span class=n>value</span><span class=p>)</span>
+        <span class=n>ret</span><span class=o>.</span><span class=n>bold</span> <span class=o>=</span> <span class=n>bold</span>
+        <span class=n>ret</span><span class=o>.</span><span class=n>italic</span> <span class=o>=</span> <span class=n>italic</span>
+        <span class=n>ret</span><span class=o>.</span><span class=n>code</span> <span class=o>=</span> <span class=n>code</span>
+        <span class=n>ret</span><span class=o>.</span><span class=n>mode</span> <span class=o>=</span> <span class=n>mode</span>
+        <span class=k>return</span> <span class=n>ret</span>
+
+<div class=viewcode-block id=FormattedStr.add_format>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.formatted_string.FormattedStr.add_format>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>add_format</span><span class=p>(</span><span class=n>s</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>bold</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span> <span class=n>italic</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+                   <span class=n>code</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Add the given format to the specified string.</span>
+
+<span class=sd>        :param s: the string</span>
+<span class=sd>        :param bold: should the format be bold face?</span>
+<span class=sd>        :param italic: should the format be italic face?</span>
+<span class=sd>        :param code: should the format be code face?</span>
+
+<span class=sd>        >>> from typing import cast</span>
+<span class=sd>        >>> st = "abc"</span>
+<span class=sd>        >>> type(st)</span>
+<span class=sd>        &LTclass 'str'></span>
+<span class=sd>        >>> fs = cast("FormattedStr", FormattedStr.add_format(st, bold=True))</span>
+<span class=sd>        >>> type(fs)</span>
+<span class=sd>        &LTclass 'moptipy.utils.formatted_string.FormattedStr'></span>
+<span class=sd>        >>> fs.bold</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> fs.italic</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> fs = cast("FormattedStr", FormattedStr.add_format(fs, italic=True))</span>
+<span class=sd>        >>> fs.bold</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> fs.italic</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> fs.mode</span>
+<span class=sd>        0</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=n>FormattedStr</span><span class=p>):</span>
+            <span class=n>bold</span> <span class=o>=</span> <span class=n>bold</span> <span class=ow>or</span> <span class=n>s</span><span class=o>.</span><span class=n>bold</span>
+            <span class=n>italic</span> <span class=o>=</span> <span class=n>italic</span> <span class=ow>or</span> <span class=n>s</span><span class=o>.</span><span class=n>italic</span>
+            <span class=n>code</span> <span class=o>=</span> <span class=n>code</span> <span class=ow>or</span> <span class=n>s</span><span class=o>.</span><span class=n>code</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>bold</span> <span class=o>!=</span> <span class=n>s</span><span class=o>.</span><span class=n>bold</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>italic</span> <span class=o>!=</span> <span class=n>s</span><span class=o>.</span><span class=n>italic</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>code</span> <span class=o>!=</span> <span class=n>s</span><span class=o>.</span><span class=n>code</span><span class=p>):</span>
+                <span class=k>return</span> <span class=n>FormattedStr</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=n>bold</span><span class=p>,</span> <span class=n>italic</span><span class=p>,</span> <span class=n>code</span><span class=p>,</span> <span class=n>s</span><span class=o>.</span><span class=n>mode</span><span class=p>)</span>
+            <span class=k>return</span> <span class=n>s</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=s2>"s"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>bold</span> <span class=ow>or</span> <span class=n>italic</span> <span class=ow>or</span> <span class=n>code</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>FormattedStr</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=n>bold</span><span class=p>,</span> <span class=n>italic</span><span class=p>,</span> <span class=n>code</span><span class=p>,</span> <span class=n>TEXT</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>s</span></div>
+
+
+<div class=viewcode-block id=FormattedStr.number>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.formatted_string.FormattedStr.number>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>number</span><span class=p>(</span><span class=n>number</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"FormattedStr"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a formatted string representing a number.</span>
+
+<span class=sd>        :param number: the original number or numeric string</span>
+<span class=sd>        :return: the formatted string representing it</span>
+
+<span class=sd>        >>> FormattedStr.number(inf)</span>
+<span class=sd>        'inf'</span>
+<span class=sd>        >>> FormattedStr.number(inf) is _PINF</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> FormattedStr.number(inf).mode</span>
+<span class=sd>        3</span>
+<span class=sd>        >>> FormattedStr.number(-inf)</span>
+<span class=sd>        '-inf'</span>
+<span class=sd>        >>> FormattedStr.number(-inf) is _NINF</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> FormattedStr.number(-inf).mode</span>
+<span class=sd>        4</span>
+<span class=sd>        >>> FormattedStr.number(nan)</span>
+<span class=sd>        'nan'</span>
+<span class=sd>        >>> FormattedStr.number(nan) is _NAN</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> FormattedStr.number(nan).mode</span>
+<span class=sd>        2</span>
+<span class=sd>        >>> FormattedStr.number(123)</span>
+<span class=sd>        '123'</span>
+<span class=sd>        >>> FormattedStr.number(123e3)</span>
+<span class=sd>        '123000.0'</span>
+<span class=sd>        >>> FormattedStr.number(123e3).mode</span>
+<span class=sd>        1</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>number</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>number</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+                <span class=k>if</span> <span class=n>isnan</span><span class=p>(</span><span class=n>number</span><span class=p>):</span>
+                    <span class=k>return</span> <span class=n>_NAN</span>
+                <span class=k>if</span> <span class=n>number</span> <span class=o>>=</span> <span class=n>inf</span><span class=p>:</span>
+                    <span class=k>return</span> <span class=n>_PINF</span>
+                <span class=k>if</span> <span class=n>number</span> <span class=o><=</span> <span class=o>-</span><span class=n>inf</span><span class=p>:</span>
+                    <span class=k>return</span> <span class=n>_NINF</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>number</span><span class=p>,</span> <span class=s2>"number"</span><span class=p>,</span> <span class=p>(</span><span class=nb>float</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>str</span><span class=p>))</span>
+        <span class=k>return</span> <span class=n>FormattedStr</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>number</span><span class=p>),</span> <span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=n>NUMBER</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=FormattedStr.special>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.formatted_string.FormattedStr.special>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>special</span><span class=p>(</span><span class=n>text</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"FormattedStr"</span><span class=p>:</span>
+<span class=w>        </span><span class=sa>r</span><span class=sd>"""</span>
+<span class=sd>        Create a special string.</span>
+
+<span class=sd>        A special string has mode `SPECIAL` set and notifies the text format</span>
+<span class=sd>        that special formatting conversion, e.g., a translation from the</span>
+<span class=sd>        character "alpha" (\u03b1) to `\alpha` is required.</span>
+
+<span class=sd>        :param text: the text</span>
+
+<span class=sd>        >>> FormattedStr.special("bla")</span>
+<span class=sd>        'bla'</span>
+<span class=sd>        >>> FormattedStr.special("bla").mode</span>
+<span class=sd>        5</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>FormattedStr</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=n>SPECIAL</span><span class=p>)</span></div>
+</div>
+
+
+
+<span class=c1>#: the constant for not-a-number</span>
+<span class=n>_NAN</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>FormattedStr</span><span class=p>]</span> <span class=o>=</span> <span class=n>FormattedStr</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>nan</span><span class=p>),</span> <span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=n>NAN</span><span class=p>)</span>
+<span class=c1>#: the constant for positive infinity</span>
+<span class=n>_PINF</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>FormattedStr</span><span class=p>]</span> <span class=o>=</span> <span class=n>FormattedStr</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>inf</span><span class=p>),</span> <span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span>
+                                          <span class=n>POSITIVE_INFINITY</span><span class=p>)</span>
+<span class=c1>#: the constant for negative infinity</span>
+<span class=n>_NINF</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>FormattedStr</span><span class=p>]</span> <span class=o>=</span> <span class=n>FormattedStr</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=o>-</span><span class=n>inf</span><span class=p>),</span> <span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span>
+                                          <span class=n>NEGATIVE_INFINITY</span><span class=p>)</span>
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.formatted_string</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

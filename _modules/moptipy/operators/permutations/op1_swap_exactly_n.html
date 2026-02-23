@@ -1,0 +1,630 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.operators.permutations.op1_swap_exactly_n — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/operators/permutations/op1_swap_exactly_n.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.permutations.op1_swap_exactly_n</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.operators.permutations.op1_swap_exactly_n</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>An operator trying to change exactly `n` elements in a permutation.</span>
+
+<span class=sd>This is an operator with a step size</span>
+<span class=sd>(:class:`moptipy.api.operators.Op1WithStepSize`) and the step size determines</span>
+<span class=sd>how many elements of a permutation should be changed.</span>
+<span class=sd>If you are working on permutations without repetitions, the operator in</span>
+<span class=sd>:mod:`~moptipy.operators.permutations.op1_swap_try_n` is the better and faster</span>
+<span class=sd>choice. On normal permutations, it will be equivalent to</span>
+<span class=sd>:mod:`~moptipy.operators.permutations.op1_swap_exactly_n`, but faster. On</span>
+<span class=sd>Permutations with repetitions, it will still be faster but less precisely</span>
+<span class=sd>enforces the number of swaps.</span>
+
+<span class=sd>Let's say we have a "normal" permutation where each element occurs once.</span>
+<span class=sd>The permutation has length `n`, let's say that its</span>
+<span class=sd>:attr:`~moptipy.spaces.permutations.Permutations.blueprint` is</span>
+<span class=sd>`[0, 1, 2, 3, 4, ..., n-1]`. Then, with one application of the operator, we</span>
+<span class=sd>can change no less than two elements (`step_size=0.0`) and no more than `n`</span>
+<span class=sd>(`step_size=1.0`). Clearly we cannot change only one element, because what</span>
+<span class=sd>different value could we put there? We would violate the "permutation nature."</span>
+<span class=sd>We can also not change more than `n` elements, obviously.</span>
+
+<span class=sd>What our operator does is then it computes `m` by using</span>
+<span class=sd>:func:`~moptipy.operators.tools.exponential_step_size`.</span>
+<span class=sd>This ensures that `m=2` for `step_size=0.0` and `m` is maximal for</span>
+<span class=sd>`step_size=1.0`. In between the two, it extrapolates exponentially. This means</span>
+<span class=sd>that small values of `step_size` will lead to few swap moves, regardless of</span>
+<span class=sd>the length of the permutation and many swaps are performed only for</span>
+<span class=sd>`step_size` values close to `1`.</span>
+<span class=sd>Then it will pick `m` random indices and permute the elements at them such</span>
+<span class=sd>that none remains at its current position.</span>
+<span class=sd>That is rather easy to do.</span>
+<span class=sd>Unfortunately, :class:`~moptipy.spaces.permutations.Permutations` allows also</span>
+<span class=sd>permutations with repetitions. Here, things get dodgy.</span>
+
+<span class=sd>Let's say we have the blueprint `[0, 1, 1, 1, 1]`. Then we can only change</span>
+<span class=sd>exactly two elements.</span>
+
+<span class=sd>>>> print(get_max_changes([0, 1, 1, 1, 1]))</span>
+<span class=sd>2</span>
+
+<span class=sd>If we have the blueprint `[0, 0, 1, 1, 1]`, then we can change two elements.</span>
+<span class=sd>We can also change four elements. But there is no way to change three elements!</span>
+
+<span class=sd>>>> print(get_max_changes([0, 0, 1, 1, 1]))</span>
+<span class=sd>4</span>
+
+<span class=sd>So in the general case, we determine the maximum number `mx` of positions that</span>
+<span class=sd>can be changed with one move via the function :func:`get_max_changes`.</span>
+<span class=sd>We can still translate a `step_size` to a number `m` by doing</span>
+<span class=sd>`m = 2 + int(round(step_size * (mx - 2)))`.</span>
+<span class=sd>However, it is not clear whether all moves from `m=2` to `m=mx` are actually</span>
+<span class=sd>possible.</span>
+
+<span class=sd>And even if they are possible, they might be very hard to sample randomly.</span>
+<span class=sd>Some moves touching a large number `m` of positions may be restricted to</span>
+<span class=sd>swap the elements at very specific indicies in a very specific order. Finding</span>
+<span class=sd>such a move by chance may be rather unlikely.</span>
+
+<span class=sd>Indeed, a search operator should do random moves. I did not find a way to</span>
+<span class=sd>construct moves according to a policy which is both random and can yield any</span>
+<span class=sd>move.</span>
+<span class=sd>So I divide the operator into two steps:</span>
+
+<span class=sd>First, the function :func:`find_move` tries to find a move for a given `m`</span>
+<span class=sd>in a random fashion. This function tries to find the sequence of indices for a</span>
+<span class=sd>cyclic swap where each element is different from both its successor and</span>
+<span class=sd>predecessor. It builds such index sequences iteratively. This may fail:</span>
+<span class=sd>as in the example above, for some values of `m` it might just not be</span>
+<span class=sd>possible to construct a suitable sequence, either because there is none or</span>
+<span class=sd>because building it randomly has too low of a chance of success. Hence, the</span>
+<span class=sd>function tries to build at most `max_trials` sequences. Whenever building a</span>
+<span class=sd>sequence, it also remembers the longest-so-far cyclic move. If that one is</span>
+<span class=sd>shorter than `m` but all `max_trials` trials are exhausted, it returns this</span>
+<span class=sd>sequence instead. So in summary, this function tries to find the longest</span>
+<span class=sd>cyclic swap which is not longer than `m` and returns it. It may be shorter</span>
+<span class=sd>than `m`. If we deal with permutations where each value occurs only once, this</span>
+<span class=sd>function is guaranteed to find a sequence of length `m` in the first trial,</span>
+<span class=sd>i.e., it does not waste runtime.</span>
+
+<span class=sd>Once a move was found, the function :func:`apply_move` applies it. Now, as</span>
+<span class=sd>said, :func:`find_move` discovers cyclic changes that are reasonably random.</span>
+<span class=sd>However, cyclic changes are not the only possible moves of length `m`. For</span>
+<span class=sd>example, if we have the permutation blueprint `[0, 1, 2, 3, 4]`, a move of</span>
+<span class=sd>length 4 could be to exchange `0` with `1` and to swap `2` with `3`.</span>
+<span class=sd>:func:`find_move` cannot find this move, but it could find a cyclic swap of</span>
+<span class=sd>`0` to `1`, `1` to `2`, `2` to `3`, and `3` to `1`. So it could find the</span>
+<span class=sd>right indices for such a move, just restricted to the cyclic swapping. So</span>
+<span class=sd>what :func:`apply_move` tries to do is to permute the indices discovered by</span>
+<span class=sd>:func:`find_move` randomly and check whether this would still yield a feasible</span>
+<span class=sd>move changing exactly `m` locations. Any shuffling of the elements at the</span>
+<span class=sd>selected position which avoids putting the original values into the original</span>
+<span class=sd>positions would do. Sometimes, most such shuffles work out, e.g., if we work</span>
+<span class=sd>on the space of permutations where each element occurs once. Sometimes, the</span>
+<span class=sd>only sequence that works is indeed the cyclic move and shuffling it cannot</span>
+<span class=sd>work. So :func:`apply_move` again has a limit for the maximum number of</span>
+<span class=sd>attempts to find a shuffle that works out. If it finds one, then it applies</span>
+<span class=sd>it as move. If it does not find one and the trials are exhausted, it randomly</span>
+<span class=sd>choses whether to apply the cyclic move as a cycle to the left or as a cycle</span>
+<span class=sd>to the right. Either way, it will change exactly `m` positions of the</span>
+<span class=sd>permutation, as prescribed by the move. Cycling one step in either direction</span>
+<span class=sd>will always work, since each element is different from both its predecessor</span>
+<span class=sd>and successor. (Cycling more than one step (but less than `m`) could</span>
+<span class=sd>potentially fail in permutations with repetitions, because there is no</span>
+<span class=sd>guarantee that any element is different from its successor's successor.)</span>
+
+<span class=sd>Now the overall operator just plugs these two functions together. It also adds</span>
+<span class=sd>one slight improvement: If we demand to change a number `q` of locations for</span>
+<span class=sd>the first time and :func:`find_move` fails to find a move of length `q` but</span>
+<span class=sd>instead offers one of length `p&LTq`, then the operator remembers this. The next</span>
+<span class=sd>time we ask to change `q` positions, it will directly try to change only `p`.</span>
+<span class=sd>This memory is reset in :meth:`~Op1SwapExactlyN.initialize`.</span>
+
+<span class=sd>A similar but much more light-weight and faster operator is given in</span>
+<span class=sd>:mod:`~moptipy.operators.permutations.op1_swap_try_n`. That operator also</span>
+<span class=sd>tries to perform a given number of swaps, but puts in much less effort to</span>
+<span class=sd>achieve this goal, i.e., it will only perform a single attempt.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Counter</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op1WithStepSize</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.operators.tools</span><span class=w> </span><span class=kn>import</span> <span class=n>exponential_step_size</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.permutations</span><span class=w> </span><span class=kn>import</span> <span class=n>Permutations</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>CSV_SEPARATOR</span><span class=p>,</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>DEFAULT_INT</span><span class=p>,</span> <span class=n>fill_in_canonical_permutation</span>
+
+
+<div class=viewcode-block id=get_max_changes>
+<a class=viewcode-back href=../../../../moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swap_exactly_n.get_max_changes>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>get_max_changes</span><span class=p>(</span><span class=n>blueprint</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span><span class=p>])</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the maximum number of changes possible for a given permutation.</span>
+
+<span class=sd>    :param blueprint: the blueprint permutation</span>
+<span class=sd>    :returns: the maximum number of changes possible</span>
+
+<span class=sd>    >>> get_max_changes("1")</span>
+<span class=sd>    0</span>
+<span class=sd>    >>> get_max_changes("11")</span>
+<span class=sd>    0</span>
+<span class=sd>    >>> get_max_changes("12")</span>
+<span class=sd>    2</span>
+<span class=sd>    >>> get_max_changes("123")</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> get_max_changes("1233")</span>
+<span class=sd>    4</span>
+<span class=sd>    >>> get_max_changes("12333")</span>
+<span class=sd>    4</span>
+<span class=sd>    >>> get_max_changes("1234")</span>
+<span class=sd>    4</span>
+<span class=sd>    >>> get_max_changes("12344")</span>
+<span class=sd>    5</span>
+<span class=sd>    >>> get_max_changes("123444")</span>
+<span class=sd>    6</span>
+<span class=sd>    >>> get_max_changes("1234444")</span>
+<span class=sd>    6</span>
+<span class=sd>    >>> get_max_changes("12334444")</span>
+<span class=sd>    8</span>
+<span class=sd>    >>> get_max_changes("123344445")</span>
+<span class=sd>    9</span>
+<span class=sd>    >>> get_max_changes("1233444455")</span>
+<span class=sd>    10</span>
+<span class=sd>    >>> get_max_changes("12334444555")</span>
+<span class=sd>    11</span>
+<span class=sd>    >>> get_max_changes("123344445555")</span>
+<span class=sd>    12</span>
+<span class=sd>    >>> get_max_changes("1233444455555")</span>
+<span class=sd>    13</span>
+<span class=sd>    >>> get_max_changes("12334444555555")</span>
+<span class=sd>    14</span>
+<span class=sd>    >>> get_max_changes("123344445555555")</span>
+<span class=sd>    15</span>
+<span class=sd>    >>> get_max_changes("1233444455555555")</span>
+<span class=sd>    16</span>
+<span class=sd>    >>> get_max_changes("12334444555555555")</span>
+<span class=sd>    16</span>
+<span class=sd>    >>> get_max_changes("112233")</span>
+<span class=sd>    6</span>
+<span class=sd>    >>> get_max_changes("11223344")</span>
+<span class=sd>    8</span>
+<span class=sd>    >>> get_max_changes("112233445")</span>
+<span class=sd>    9</span>
+<span class=sd>    >>> get_max_changes("1122334455")</span>
+<span class=sd>    10</span>
+<span class=sd>    >>> get_max_changes("11223344555")</span>
+<span class=sd>    11</span>
+<span class=sd>    >>> get_max_changes("112233445555555")</span>
+<span class=sd>    15</span>
+<span class=sd>    >>> get_max_changes("1122334455555555")</span>
+<span class=sd>    16</span>
+<span class=sd>    >>> get_max_changes("11223344555555555")</span>
+<span class=sd>    16</span>
+<span class=sd>    """</span>
+    <span class=c1># Create tuples of (count, negative priority, value).</span>
+    <span class=n>counts</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>[</span>
+        <span class=p>[</span><span class=n>a</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span> <span class=mi>0</span><span class=p>,</span> <span class=n>a</span><span class=p>[</span><span class=mi>0</span><span class=p>]]</span> <span class=k>for</span> <span class=n>a</span> <span class=ow>in</span> <span class=n>Counter</span><span class=p>[</span><span class=nb>int</span><span class=p>](</span><span class=n>blueprint</span><span class=p>)</span><span class=o>.</span><span class=n>most_common</span><span class=p>()]</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>counts</span><span class=p>)</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>
+        <span class=k>return</span> <span class=mi>0</span>
+
+<span class=c1># We simulate a chain swap. We begin with the element that appears the least</span>
+<span class=c1># often. We take this element and reduce its count. Next, we take the element</span>
+<span class=c1># that appears the most often. We reduce its count. And so on. Ties are broken</span>
+<span class=c1># by prioritizing the element that was not used the longest. If the element</span>
+<span class=c1># that we want to pick is the same as the previously picked one, we skip over</span>
+<span class=c1># it. If no element can be picked, we quit.</span>
+    <span class=n>changes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>last</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>found</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+    <span class=n>smallest</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+    <span class=k>while</span> <span class=n>found</span><span class=p>:</span>
+        <span class=n>found</span> <span class=o>=</span> <span class=kc>False</span>
+<span class=c1># We sort alternatingly sometimes we pick the smallest, sometimes the largest.</span>
+        <span class=k>if</span> <span class=n>smallest</span><span class=p>:</span>
+            <span class=n>counts</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>counts</span><span class=o>.</span><span class=n>sort</span><span class=p>(</span><span class=n>key</span><span class=o>=</span><span class=k>lambda</span> <span class=n>a</span><span class=p>:</span> <span class=p>[</span><span class=o>-</span><span class=n>a</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>a</span><span class=p>[</span><span class=mi>1</span><span class=p>]])</span>
+        <span class=n>smallest</span> <span class=o>=</span> <span class=ow>not</span> <span class=n>smallest</span>  <span class=c1># realize the alternating sorting</span>
+<span class=c1># Now we iterate over the sorted list and pick the first suitable element.</span>
+<span class=c1># I know: There will be at most two iterations of this loop ... but whatever.</span>
+        <span class=k>for</span> <span class=n>idx</span><span class=p>,</span> <span class=n>chosen</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>counts</span><span class=p>):</span>
+            <span class=n>current</span> <span class=o>=</span> <span class=n>chosen</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span>
+            <span class=k>if</span> <span class=n>current</span> <span class=o>==</span> <span class=n>last</span><span class=p>:</span>  <span class=c1># We cannot pick the same element twice</span>
+                <span class=k>continue</span>         <span class=c1># in a row. So we skip over it.</span>
+            <span class=n>cnt</span> <span class=o>=</span> <span class=n>chosen</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+            <span class=k>if</span> <span class=n>cnt</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>  <span class=c1># How often does this element exist in the list?</span>
+                <span class=k>del</span> <span class=n>counts</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span>  <span class=c1># noqa</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>chosen</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>=</span> <span class=n>cnt</span> <span class=o>-</span> <span class=mi>1</span>  <span class=c1># noqa</span>
+            <span class=n>changes</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># Yeah, we can increase the changes.</span>
+            <span class=n>chosen</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>=</span> <span class=n>changes</span>  <span class=c1># Increase negative priority.</span>
+            <span class=n>found</span> <span class=o>=</span> <span class=kc>True</span>  <span class=c1># We found an element.</span>
+            <span class=n>last</span> <span class=o>=</span> <span class=n>current</span>  <span class=c1># Remember the element.</span>
+            <span class=k>break</span>  <span class=c1># Quit (after at most two loop iterations).</span>
+    <span class=k>if</span> <span class=n>changes</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>  <span class=c1># This cannot be.</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"Error in counting possible changes for </span><span class=si>{</span><span class=n>blueprint</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>changes</span></div>
+
+
+
+<div class=viewcode-block id=find_move>
+<a class=viewcode-back href=../../../../moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swap_exactly_n.find_move>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>find_move</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>indices</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>step_size</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+              <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>max_trials</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+              <span class=n>temp</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Find a move of at most step_size changes and store it in indices.</span>
+
+<span class=sd>    For any pure permutation `x`, we can basically find any move between</span>
+<span class=sd>    `step_size=2` and `len(x)`. If we have permutations with repetitions, the</span>
+<span class=sd>    upper limit becomes smaller, because it may not be possible to change all</span>
+<span class=sd>    elements at once. For example, in `[0, 0, 1, 1, 1, 1, 1]`, we can change</span>
+<span class=sd>    at most four elements. For this purpose, :func:`get_max_changes` exists.</span>
+<span class=sd>    It tells us the upper limit of changes, which would be four here:</span>
+
+<span class=sd>    >>> print(get_max_changes([0, 0, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    Yet, this does not necessarily mean that we can make all moves including</span>
+<span class=sd>    2, 3, and 4 changes. If you look at the above example, you may find that</span>
+<span class=sd>    it is impossible to change exactly 3 locations. We can only actually do</span>
+<span class=sd>    step sizes of 2 and 4, but neither 3 nor 5, 6, nor 7.</span>
+<span class=sd>    In reality, even if it was possible to make a big move, it might be very</span>
+<span class=sd>    unlikely to be able to this in a *random* fashion. If you look at the</span>
+<span class=sd>    code of :func:`get_max_changes`, it tries to find the longest possible</span>
+<span class=sd>    cyclic move by working through the elements of the permutation in a very</span>
+<span class=sd>    specific order. Using a different (or random) order would yield shorter</span>
+<span class=sd>    moves.</span>
+
+<span class=sd>    Our method :func:`find_move` here therefore tries to find the longest</span>
+<span class=sd>    possible cyclic swap involving at most `step_size` indices. It may find</span>
+<span class=sd>    such a move that uses exactly `step_size` indices. But it may also find</span>
+<span class=sd>    a shorter move because either the perfect complete feasible move touching</span>
+<span class=sd>    `step_size` indices does not exist or because finding it in a random</span>
+<span class=sd>    fashion may take too long. (For this purpose, `max_trials` exists to</span>
+<span class=sd>    limit the search for the right move.)</span>
+
+<span class=sd>    For normal permutations, it will find the move of exactly the right</span>
+<span class=sd>    length. For permutations with repetitions, it has a decent chance to find</span>
+<span class=sd>    a move of the length `step_size` if a) such a move exists and</span>
+<span class=sd>    b) `step_size` is not too big. Otherwise, it should find a shorter but</span>
+<span class=sd>    still reasonably large move.</span>
+
+<span class=sd>    :param x: the permutation to be modified in the end</span>
+<span class=sd>    :param indices: the set of indices, which must be the canonical</span>
+<span class=sd>        permutation of `0...len(x)-1`</span>
+<span class=sd>    :param step_size: the step size, i.e., the number of elements to change</span>
+<span class=sd>    :param random: the random number generator</span>
+<span class=sd>    :param max_trials: the maximum number of trials</span>
+<span class=sd>    :param temp: a temporary array</span>
+<span class=sd>    :returns: the discovered move</span>
+
+<span class=sd>    >>> import numpy as npx</span>
+<span class=sd>    >>> from numpy.random import default_rng</span>
+<span class=sd>    >>> gen = default_rng(12)</span>
+<span class=sd>    >>> perm = npx.array([0, 1, 2, 3, 3, 3, 3, 3, 3], int)</span>
+<span class=sd>    >>> use_indices = npx.array(range(len(perm)), int)</span>
+<span class=sd>    >>> want_size = len(perm)</span>
+<span class=sd>    >>> print(want_size)</span>
+<span class=sd>    9</span>
+<span class=sd>    >>> print(get_max_changes(perm))</span>
+<span class=sd>    6</span>
+<span class=sd>    >>> use_temp = npx.empty(len(perm), int)</span>
+<span class=sd>    >>> res = find_move(perm, use_indices, want_size, gen, 1000, use_temp)</span>
+<span class=sd>    >>> print(res)</span>
+<span class=sd>    [5 2 8 1 4 0]</span>
+<span class=sd>    >>> perm2 = perm.copy()</span>
+<span class=sd>    >>> perm2[res] = perm2[npx.roll(res, 1)]</span>
+<span class=sd>    >>> print(f"{perm} vs. {perm2}")</span>
+<span class=sd>    [0 1 2 3 3 3 3 3 3] vs. [3 3 3 3 1 0 3 3 2]</span>
+<span class=sd>    >>> print(sum(perm != perm2))</span>
+<span class=sd>    6</span>
+<span class=sd>    >>> perm = npx.array([1, 3, 5, 9, 4, 2, 11, 7], int)</span>
+<span class=sd>    >>> want_size = len(perm)</span>
+<span class=sd>    >>> print(want_size)</span>
+<span class=sd>    8</span>
+<span class=sd>    >>> use_indices = npx.array(range(len(perm)), int)</span>
+<span class=sd>    >>> use_temp = npx.empty(len(perm), int)</span>
+<span class=sd>    >>> res = find_move(perm, use_indices, want_size, gen, 1, use_temp)</span>
+<span class=sd>    >>> print(res)</span>
+<span class=sd>    [4 0 5 3 1 7 2 6]</span>
+<span class=sd>    >>> print(len(res))</span>
+<span class=sd>    8</span>
+<span class=sd>    >>> perm2 = perm.copy()</span>
+<span class=sd>    >>> perm2[res] = perm2[npx.roll(res, 1)]</span>
+<span class=sd>    >>> print(f"{perm} vs. {perm2}")</span>
+<span class=sd>    [ 1  3  5  9  4  2 11  7] vs. [ 4  9  7  2 11  1  5  3]</span>
+<span class=sd>    >>> print(sum(perm != perm2))</span>
+<span class=sd>    8</span>
+<span class=sd>    """</span>
+    <span class=n>length</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+    <span class=n>lm1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>length</span> <span class=o>-</span> <span class=mi>1</span>
+    <span class=n>sm1</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>step_size</span> <span class=o>-</span> <span class=mi>1</span>
+    <span class=n>best_size</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+
+<span class=c1># We spent at most `max_trials` trials to find a perfect move. The reason is</span>
+<span class=c1># that some values of `step_size` might be impossible to achieve, other may</span>
+<span class=c1># be achievable only with a very low probability. So we need a trial limit to</span>
+<span class=c1># avoid entering a very long or even endless loop.</span>
+    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>max_trials</span><span class=p>):</span>
+        <span class=n>current_best_size</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>  <span class=c1># longest feasible move this round</span>
+<span class=c1># We aim to store a suitable selection of indices at indices[0:step_size].</span>
+<span class=c1># Like in :mod:`moptipy.operators.permutations.op1_swapn`, we try to create a</span>
+<span class=c1># feasible move as a series of cyclic swaps. Basically, the element at index</span>
+<span class=c1># i1 would be moved to index i2, the element at i2 to i3, ..., the element at</span>
+<span class=c1># the last index ix to i1. We make sure that all indices are used at most</span>
+<span class=c1># once.</span>
+<span class=c1># We proceed similar to a partial Fisher-Yates shuffle.</span>
+<span class=c1># The variable "found" is the number of indices that we have fixed so far.</span>
+<span class=c1># For each new position, we test the remaining indices in random order.</span>
+<span class=c1># An index can only be used if it points to an element different to what the</span>
+<span class=c1># last index points to, or else the cyclic swap would be meaningless.</span>
+<span class=c1># For the last index to be chosen, that element must also be different from</span>
+<span class=c1># the first element picked.</span>
+<span class=c1># So a potential index may not work. We test each index at most once by moving</span>
+<span class=c1># the tested indices into the range indices[found:tested] and keep increasing</span>
+<span class=c1># tested and reset it once we found a new acceptable index.</span>
+<span class=c1># This procedure, however, may end up in a dead end. We therefore need to wrap</span>
+<span class=c1># it into a loop that tries until success...  ...but we cannot do that because</span>
+<span class=c1># success may not be possible. Some moves may be impossible to do.</span>
+        <span class=n>i_idx</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>length</span><span class=p>)</span>  <span class=c1># Get the first random index.</span>
+        <span class=n>i_src</span> <span class=o>=</span> <span class=n>indices</span><span class=p>[</span><span class=n>i_idx</span><span class=p>]</span>  <span class=c1># Pick the actual index at that index.</span>
+        <span class=n>indices</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>indices</span><span class=p>[</span><span class=n>i_idx</span><span class=p>]</span> <span class=o>=</span> <span class=n>i_src</span><span class=p>,</span> <span class=n>indices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>  <span class=c1># Swap it to 0.</span>
+        <span class=n>found</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span>  <span class=c1># the number of found indices</span>
+        <span class=n>tested</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span>  <span class=c1># the number of tested indices</span>
+        <span class=n>last</span> <span class=o>=</span> <span class=n>first</span> <span class=o>=</span> <span class=n>x</span><span class=p>[</span><span class=n>i_src</span><span class=p>]</span>  <span class=c1># Get the value at the first index.</span>
+        <span class=n>continue_after</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=n>found</span> <span class=o><</span> <span class=n>sm1</span>  <span class=c1># continue until step_size-1</span>
+        <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+            <span class=n>i_idx</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>tested</span><span class=p>,</span> <span class=n>length</span><span class=p>)</span>  <span class=c1># Get random index.</span>
+            <span class=n>i_dst</span> <span class=o>=</span> <span class=n>indices</span><span class=p>[</span><span class=n>i_idx</span><span class=p>]</span>  <span class=c1># Pick the actual index.</span>
+            <span class=n>current</span> <span class=o>=</span> <span class=n>x</span><span class=p>[</span><span class=n>i_dst</span><span class=p>]</span>  <span class=c1># Get value at the new index.</span>
+            <span class=n>can_end</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=n>current</span> <span class=o>!=</span> <span class=n>first</span>
+            <span class=n>accept</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=p>(</span><span class=n>current</span> <span class=o>!=</span> <span class=n>last</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>continue_after</span> <span class=ow>or</span> <span class=n>can_end</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>accept</span><span class=p>:</span>
+                <span class=c1># Now we move the new index into the "found" section.</span>
+                <span class=n>indices</span><span class=p>[</span><span class=n>found</span><span class=p>],</span> <span class=n>indices</span><span class=p>[</span><span class=n>i_idx</span><span class=p>]</span> <span class=o>=</span> <span class=n>i_dst</span><span class=p>,</span> <span class=n>indices</span><span class=p>[</span><span class=n>found</span><span class=p>]</span>
+                <span class=n>tested</span> <span class=o>=</span> <span class=n>found</span> <span class=o>=</span> <span class=n>found</span> <span class=o>+</span> <span class=mi>1</span>  <span class=c1># found++, reset tested.</span>
+                <span class=n>last</span> <span class=o>=</span> <span class=n>current</span>  <span class=c1># Store value from i_dst in last.</span>
+                <span class=k>if</span> <span class=n>can_end</span><span class=p>:</span>
+                    <span class=n>current_best_size</span> <span class=o>=</span> <span class=n>found</span>
+                    <span class=k>if</span> <span class=ow>not</span> <span class=n>continue_after</span><span class=p>:</span>
+                        <span class=k>return</span> <span class=n>indices</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=n>found</span><span class=p>]</span>  <span class=c1># We won!</span>
+                <span class=n>continue_after</span> <span class=o>=</span> <span class=n>found</span> <span class=o><</span> <span class=n>sm1</span>  <span class=c1># continue until step_size-1</span>
+                <span class=k>continue</span>
+            <span class=k>if</span> <span class=n>tested</span> <span class=o>>=</span> <span class=n>lm1</span><span class=p>:</span>  <span class=c1># Are we in a dead end?</span>
+                <span class=k>break</span>  <span class=c1># and try again freshly.</span>
+            <span class=n>indices</span><span class=p>[</span><span class=n>tested</span><span class=p>],</span> <span class=n>indices</span><span class=p>[</span><span class=n>i_idx</span><span class=p>]</span> <span class=o>=</span> <span class=n>i_dst</span><span class=p>,</span> <span class=n>indices</span><span class=p>[</span><span class=n>tested</span><span class=p>]</span>
+            <span class=n>tested</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># We have tested another value.</span>
+
+<span class=c1># If we get here, we did not succeed in creating a complete move this round.</span>
+<span class=c1># However, current_best_size should indicate one possible shorter move.</span>
+<span class=c1># It must be at least >= 2, because we will definitely be able to find two</span>
+<span class=c1># different elements in x. We will remember the longest feasible move</span>
+<span class=c1># discovered in all max_trials iterations.</span>
+        <span class=k>if</span> <span class=n>current_best_size</span> <span class=o>></span> <span class=n>best_size</span><span class=p>:</span>
+            <span class=n>best_size</span> <span class=o>=</span> <span class=n>current_best_size</span>
+            <span class=n>temp</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=n>best_size</span><span class=p>]</span> <span class=o>=</span> <span class=n>indices</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=n>best_size</span><span class=p>]</span>
+
+<span class=c1># If get here, we have completed the main loop. We could not find a complete</span>
+<span class=c1># feasible move that changes exactly step_size locations. However, we should</span>
+<span class=c1># have a shorter move by now stored in temp. So we copy its indices.</span>
+    <span class=k>return</span> <span class=n>temp</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=n>best_size</span><span class=p>]</span></div>
+
+
+
+<div class=viewcode-block id=apply_move>
+<a class=viewcode-back href=../../../../moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swap_exactly_n.apply_move>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>apply_move</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>dest</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>move</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+               <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>max_trials</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Apply a given move copying from source `x` to `dest`.</span>
+
+<span class=sd>    `move` must be the return value of :func:`find_move`.</span>
+
+<span class=sd>    :param x: the source permutation</span>
+<span class=sd>    :param dest: the destination permutation</span>
+<span class=sd>    :param move: the move of length `step_size`</span>
+<span class=sd>    :param random: the random number generator</span>
+<span class=sd>    :param max_trials: a maximum number of trials</span>
+
+<span class=sd>    >>> import numpy as npx</span>
+<span class=sd>    >>> from numpy.random import default_rng</span>
+<span class=sd>    >>> rand = default_rng(12)</span>
+<span class=sd>    >>> xx = npx.array([0, 1, 2, 3, 3, 3, 3, 3, 3], int)</span>
+<span class=sd>    >>> dd = npx.empty(len(xx), int)</span>
+<span class=sd>    >>> mv = npx.array([5, 2, 8, 1, 4, 0], int)</span>
+<span class=sd>    >>> print(len(mv))</span>
+<span class=sd>    6</span>
+<span class=sd>    >>> apply_move(xx, dd, mv, rand, 0)</span>
+<span class=sd>    >>> print(dd)</span>
+<span class=sd>    [3 3 3 3 0 2 3 3 1]</span>
+<span class=sd>    >>> print(sum(dd != xx))</span>
+<span class=sd>    6</span>
+<span class=sd>    >>> apply_move(xx, dd, mv, rand, 1000)</span>
+<span class=sd>    >>> print(dd)</span>
+<span class=sd>    [3 3 3 3 2 1 3 3 0]</span>
+<span class=sd>    >>> print(sum(dd != xx))</span>
+<span class=sd>    6</span>
+<span class=sd>    >>> xx = npx.array([1, 3, 5, 9, 4, 2, 11, 7], int)</span>
+<span class=sd>    >>> dd = npx.empty(len(xx), int)</span>
+<span class=sd>    >>> mv = npx.array([4, 0, 5, 3, 1, 7, 2, 6], int)</span>
+<span class=sd>    >>> print(len(mv))</span>
+<span class=sd>    8</span>
+<span class=sd>    >>> apply_move(xx, dd, mv, rand, 0)</span>
+<span class=sd>    >>> print(dd)</span>
+<span class=sd>    [ 4  9  7  2 11  1  5  3]</span>
+<span class=sd>    >>> print(sum(dd != xx))</span>
+<span class=sd>    8</span>
+<span class=sd>    >>> xx = npx.array([1, 3, 5, 9, 4, 2, 11, 7], int)</span>
+<span class=sd>    >>> apply_move(xx, dd, mv, rand, 10)</span>
+<span class=sd>    >>> print(dd)</span>
+<span class=sd>    [ 5  4  2 11  7  3  9  1]</span>
+<span class=sd>    >>> print(sum(dd != xx))</span>
+<span class=sd>    8</span>
+<span class=sd>    """</span>
+    <span class=n>dest</span><span class=p>[:]</span> <span class=o>=</span> <span class=n>x</span><span class=p>[:]</span>  <span class=c1># First, we copy `x` to `dest`.</span>
+    <span class=n>step_size</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>move</span><span class=p>)</span>  <span class=c1># Get the move size.</span>
+<span class=c1># We now try to replace the sub-string x[move] with a random permutation of</span>
+<span class=c1># itself. Since `move` is the return value of `find_move`, we know that it</span>
+<span class=c1># could be realized as a cyclic swap. However, we are not yet sure whether it</span>
+<span class=c1># can also be some other form of move, maybe swapping a few pairs of elements.</span>
+<span class=c1># We try to find this out in this loop by testing `max_trials` random</span>
+<span class=c1># permutations of the original subsequence.</span>
+    <span class=n>orig</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>=</span> <span class=n>dest</span><span class=p>[</span><span class=n>move</span><span class=p>]</span>   <span class=c1># Get the original subsequence.</span>
+    <span class=n>perm</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>=</span> <span class=n>orig</span><span class=o>.</span><span class=n>copy</span><span class=p>()</span>
+    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>max_trials</span><span class=p>):</span>  <span class=c1># Try to permute it.</span>
+        <span class=n>random</span><span class=o>.</span><span class=n>shuffle</span><span class=p>(</span><span class=n>perm</span><span class=p>)</span>  <span class=c1># Shuffle the permutation</span>
+        <span class=k>if</span> <span class=nb>sum</span><span class=p>(</span><span class=n>perm</span> <span class=o>!=</span> <span class=n>orig</span><span class=p>)</span> <span class=o>==</span> <span class=n>step_size</span><span class=p>:</span>  <span class=c1># If all elements are now...</span>
+            <span class=n>dest</span><span class=p>[</span><span class=n>move</span><span class=p>]</span> <span class=o>=</span> <span class=n>perm</span>  <span class=c1># ...at different places, accept the move and</span>
+            <span class=k>return</span>  <span class=c1># quit</span>
+<span class=c1># If we get here, trying random permutations of the sequence did not work.</span>
+<span class=c1># We now simply perform a cyclic swap. A cyclic swap has the property that</span>
+<span class=c1># each element is different from both its predecessor and its successor.</span>
+<span class=c1># Hence, we could cycle left or cycle right. Now one could argue that this</span>
+<span class=c1># should not matter, since we have constructed the move in a random way via</span>
+<span class=c1># find_move. However, I am not sure. If we have a permutation with repetition,</span>
+<span class=c1># then finding certain move patterns could be more likely than others. For</span>
+<span class=c1># example, if one element occurs much more often than another one, one of its</span>
+<span class=c1># instance could be more likely chosen as first element of the move. A more</span>
+<span class=c1># rarely occurring element could then appear later in the move when there are</span>
+<span class=c1># not many other choices left. Hence, it might be that the moves found by</span>
+<span class=c1># find_move are not uniformly distributed over the realm of possible moves of</span>
+<span class=c1># a given step length. In this case, it may be useful to randomly choose</span>
+<span class=c1># whether to cycle left or right. We cannot cycle more than one step, though,</span>
+<span class=c1># because there is guarantee that an element is different from its successor's</span>
+<span class=c1># successor.</span>
+    <span class=n>dest</span><span class=p>[</span><span class=n>move</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>roll</span><span class=p>(</span><span class=n>orig</span><span class=p>,</span> <span class=mi>1</span> <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>2</span><span class=p>)</span> <span class=o>==</span> <span class=mi>0</span> <span class=k>else</span> <span class=o>-</span><span class=mi>1</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=Op1SwapExactlyN>
+<a class=viewcode-back href=../../../../moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swap_exactly_n.Op1SwapExactlyN>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Op1SwapExactlyN</span><span class=p>(</span><span class=n>Op1WithStepSize</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A unary search operator that swaps `n` (different) elements."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>perm</span><span class=p>:</span> <span class=n>Permutations</span><span class=p>,</span>
+                 <span class=n>max_move_trials</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1000</span><span class=p>,</span>
+                 <span class=n>max_apply_trials</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1000</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the operator.</span>
+
+<span class=sd>        :param perm: the base permutation</span>
+<span class=sd>        :param max_move_trials: the maximum number of attempts to generate a</span>
+<span class=sd>            fitting move</span>
+<span class=sd>        :param max_apply_trials: the maximum number of attempts to apply a</span>
+<span class=sd>            move via a random permutation</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>perm</span><span class=p>,</span> <span class=n>Permutations</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>perm</span><span class=p>,</span> <span class=s2>"perm"</span><span class=p>,</span> <span class=n>Permutations</span><span class=p>)</span>
+
+<span class=c1># If each value appears exactly once in the permutation, then we can</span>
+<span class=c1># easily do perm.dimension changes. If the permutation is with</span>
+<span class=c1># repetitions, then it might be fewer, so we need to check.</span>
+        <span class=n>is_pure_perm</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>perm</span><span class=o>.</span><span class=n>n</span><span class=p>()</span> <span class=o>==</span> <span class=n>perm</span><span class=o>.</span><span class=n>dimension</span>
+        <span class=c1>#: the maximum number of possible changes</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>max_changes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>perm</span><span class=o>.</span><span class=n>dimension</span> <span class=k>if</span> <span class=n>is_pure_perm</span>
+            <span class=k>else</span> <span class=n>get_max_changes</span><span class=p>(</span><span class=n>perm</span><span class=o>.</span><span class=n>blueprint</span><span class=p>),</span>
+            <span class=s2>"max_changes"</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>100_000_000</span><span class=p>)</span>
+        <span class=c1>#: the maximum number of attempts to find a move with the exact step</span>
+        <span class=c1>#: size</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>max_move_trials</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span>\
+            <span class=n>check_int_range</span><span class=p>(</span><span class=n>max_move_trials</span><span class=p>,</span> <span class=s2>"max_move_trials"</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+        <span class=c1>#: the maximum number of attempts to apply a random permutation of the</span>
+        <span class=c1>#: move before giving up and applying it as cyclic swap</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>max_apply_trials</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span>\
+            <span class=n>check_int_range</span><span class=p>(</span><span class=n>max_apply_trials</span><span class=p>,</span> <span class=s2>"max_apply_trials"</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+        <span class=c1>#: the set of chosen indices</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__indices</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span>
+            <span class=n>perm</span><span class=o>.</span><span class=n>dimension</span><span class=p>,</span> <span class=n>DEFAULT_INT</span><span class=p>)</span>
+        <span class=c1>#: a temporary array</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__temp</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span>
+            <span class=n>perm</span><span class=o>.</span><span class=n>dimension</span><span class=p>,</span> <span class=n>DEFAULT_INT</span><span class=p>)</span>
+        <span class=c1>#: the initial move map that maps step sizes to feasible sizes</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__initial_move_map</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{</span><span class=n>i</span><span class=p>:</span> <span class=n>i</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span>
+            <span class=mi>2</span><span class=p>,</span> <span class=n>perm</span><span class=o>.</span><span class=n>dimension</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)}</span> <span class=k>if</span> <span class=n>is_pure_perm</span> <span class=k>else</span> <span class=p>{</span><span class=mi>2</span><span class=p>:</span> <span class=mi>2</span><span class=p>}</span>
+        <span class=c1>#: the move map that maps step sizes to feasible sizes</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__move_map</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{}</span>
+
+<div class=viewcode-block id=Op1SwapExactlyN.initialize>
+<a class=viewcode-back href=../../../../moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swap_exactly_n.Op1SwapExactlyN.initialize>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>initialize</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize this operator."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+        <span class=n>fill_in_canonical_permutation</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__indices</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__move_map</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__move_map</span><span class=o>.</span><span class=n>update</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__initial_move_map</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=Op1SwapExactlyN.op1>
+<a class=viewcode-back href=../../../../moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swap_exactly_n.Op1SwapExactlyN.op1>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>op1</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>dest</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+            <span class=n>step_size</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.0</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Copy `x` into `dest` and then swap several different values.</span>
+
+<span class=sd>        :param random: the random number generator</span>
+<span class=sd>        :param dest: the array to receive the modified copy of `x`</span>
+<span class=sd>        :param x: the existing point in the search space</span>
+<span class=sd>        :param step_size: the number of elements to swap</span>
+<span class=sd>        """</span>
+<span class=c1># compute the real step size based on the maximum changes</span>
+        <span class=n>use_step_size</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>exponential_step_size</span><span class=p>(</span>
+            <span class=n>step_size</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_changes</span><span class=p>)</span>
+<span class=c1># look up in move map: Do we already know whether this step size works or can</span>
+<span class=c1># it be replaced with a similar smaller one?</span>
+        <span class=n>move_map</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__move_map</span>
+        <span class=n>mapped_step_size</span> <span class=o>=</span> <span class=n>move_map</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>use_step_size</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>mapped_step_size</span> <span class=o>>=</span> <span class=mi>2</span><span class=p>:</span>
+            <span class=n>use_step_size</span> <span class=o>=</span> <span class=n>mapped_step_size</span>
+
+        <span class=n>move</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>find_move</span><span class=p>(</span>
+            <span class=n>x</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__indices</span><span class=p>,</span> <span class=n>use_step_size</span><span class=p>,</span> <span class=n>random</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_move_trials</span><span class=p>,</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__temp</span><span class=p>)</span>
+
+<span class=c1># If we did not yet know the move size, then update it.</span>
+        <span class=k>if</span> <span class=n>mapped_step_size</span> <span class=o>==</span> <span class=o>-</span><span class=mi>1</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__move_map</span><span class=p>[</span><span class=n>use_step_size</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>move</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__move_map</span><span class=p>[</span><span class=n>use_step_size</span><span class=p>]</span> <span class=o>=</span> <span class=n>use_step_size</span>
+<span class=c1># Finally, apply the move.</span>
+        <span class=n>apply_move</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>dest</span><span class=p>,</span> <span class=n>move</span><span class=p>,</span> <span class=n>random</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_move_trials</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this unary operator.</span>
+
+<span class=sd>        :returns: "swapxn", the name of this operator</span>
+<span class=sd>        :retval "swapxn": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"swapxn"</span>
+
+<div class=viewcode-block id=Op1SwapExactlyN.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swap_exactly_n.Op1SwapExactlyN.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of this operator to the given logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"maxChanges"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_changes</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"maxMoveTrials"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_move_trials</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"maxApplyTrials"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_apply_trials</span><span class=p>)</span>
+
+<span class=c1># Translate the move map to some strings like "2;5-8;12", meaning that all the</span>
+<span class=c1># moves 2, 5, 6, 7, 8, and 12 were performed and valid.</span>
+        <span class=n>kvs</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=n>k</span> <span class=k>for</span> <span class=n>k</span><span class=p>,</span> <span class=n>v</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>__move_map</span><span class=o>.</span><span class=n>items</span><span class=p>()</span> <span class=k>if</span> <span class=n>k</span> <span class=o>==</span> <span class=n>v</span><span class=p>]</span>
+        <span class=n>kvs</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+        <span class=n>lk</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>kvs</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span>
+        <span class=n>kvs</span> <span class=o>=</span> <span class=p>[(</span><span class=n>e</span> <span class=k>if</span> <span class=p>((</span><span class=n>i</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>i</span> <span class=o>>=</span> <span class=n>lk</span><span class=p>)</span> <span class=ow>or</span> <span class=n>kvs</span><span class=p>[</span><span class=n>i</span> <span class=o>-</span> <span class=mi>1</span><span class=p>]</span> <span class=o>!=</span> <span class=p>(</span><span class=n>e</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span>
+                <span class=ow>or</span> <span class=p>(</span><span class=n>kvs</span><span class=p>[</span><span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>]</span> <span class=o>!=</span> <span class=p>(</span><span class=n>e</span> <span class=o>+</span> <span class=mi>1</span><span class=p>))</span> <span class=k>else</span> <span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+               <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>e</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>kvs</span><span class=p>)]</span>
+        <span class=n>kvs</span> <span class=o>=</span> <span class=p>[</span><span class=n>e</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>e</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>kvs</span><span class=p>)</span> <span class=k>if</span>
+               <span class=p>(</span><span class=n>i</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>i</span> <span class=o>>=</span> <span class=n>lk</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>e</span> <span class=o>!=</span> <span class=o>-</span><span class=mi>1</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>kvs</span><span class=p>[</span><span class=n>i</span> <span class=o>-</span> <span class=mi>1</span><span class=p>]</span> <span class=o>!=</span> <span class=o>-</span><span class=mi>1</span><span class=p>)]</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"moves"</span><span class=p>,</span> <span class=n>CSV_SEPARATOR</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
+            <span class=s2>"-"</span> <span class=k>if</span> <span class=n>k</span> <span class=o><</span> <span class=mi>0</span> <span class=k>else</span> <span class=nb>str</span><span class=p>(</span><span class=n>k</span><span class=p>)</span> <span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=n>kvs</span><span class=p>)</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>CSV_SEPARATOR</span><span class=si>}</span><span class=s2>-</span><span class=si>{</span><span class=n>CSV_SEPARATOR</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=s2>"-"</span><span class=p>))</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.permutations.op1_swap_exactly_n</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

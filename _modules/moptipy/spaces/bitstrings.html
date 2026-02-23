@@ -1,0 +1,281 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.spaces.bitstrings — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/spaces/bitstrings.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.spaces.bitstrings</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.spaces.bitstrings</h1><div class=highlight><pre>
+<span></span><span class=sd>"""An implementation of a bit string based search space."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.csv</span><span class=w> </span><span class=kn>import</span> <span class=n>CSV_SEPARATOR</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.strings.string_conv</span><span class=w> </span><span class=kn>import</span> <span class=n>bool_to_str</span><span class=p>,</span> <span class=n>str_to_bool</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.nparrayspace</span><span class=w> </span><span class=kn>import</span> <span class=n>NPArraySpace</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>DEFAULT_BOOL</span>
+
+
+<div class=viewcode-block id=BitStrings>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>BitStrings</span><span class=p>(</span><span class=n>NPArraySpace</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A space where each element is a bit string (:class:`numpy.ndarray`).</span>
+
+<span class=sd>    With such a space, discrete optimization can be realized.</span>
+
+<span class=sd>    >>> s = BitStrings(5)</span>
+<span class=sd>    >>> print(s.dimension)</span>
+<span class=sd>    5</span>
+<span class=sd>    >>> print(s.dtype)</span>
+<span class=sd>    bool</span>
+<span class=sd>    >>> print(s.create())</span>
+<span class=sd>    [False False False False False]</span>
+<span class=sd>    >>> print(s.to_str(s.create()))</span>
+<span class=sd>    FFFFF</span>
+<span class=sd>    >>> print(s.from_str(s.to_str(s.create())))</span>
+<span class=sd>    [False False False False False]</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>dimension</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the vector-based search space.</span>
+
+<span class=sd>        :param dimension: The dimension of the search space,</span>
+<span class=sd>            i.e., the number of decision variables.</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>dimension</span><span class=p>,</span> <span class=n>DEFAULT_BOOL</span><span class=p>)</span>
+
+<div class=viewcode-block id=BitStrings.create>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings.create>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a bit string filled with `False`.</span>
+
+<span class=sd>        :return: the string</span>
+
+<span class=sd>        >>> from moptipy.spaces.bitstrings import BitStrings</span>
+<span class=sd>        >>> s = BitStrings(8)</span>
+<span class=sd>        >>> v = s.create()</span>
+<span class=sd>        >>> print(s.to_str(v))</span>
+<span class=sd>        FFFFFFFF</span>
+<span class=sd>        >>> print(v.dtype)</span>
+<span class=sd>        bool</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>shape</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>DEFAULT_BOOL</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=BitStrings.from_str>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings.from_str>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>from_str</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>text</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Convert a string to a bit string.</span>
+
+<span class=sd>        :param text: the text</span>
+<span class=sd>        :return: the vector</span>
+<span class=sd>        :raises TypeError: if `text` is not a `str`</span>
+<span class=sd>        :raises ValueError: if `text` cannot be converted to a valid vector</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=nb>isinstance</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=nb>str</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=s2>"text"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=n>x</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>
+        <span class=n>x</span><span class=p>[:]</span> <span class=o>=</span> <span class=p>[</span><span class=n>str_to_bool</span><span class=p>(</span><span class=n>t</span><span class=p>)</span> <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>text</span><span class=p>]</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>x</span></div>
+
+
+<div class=viewcode-block id=BitStrings.n_points>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings.n_points>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>n_points</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the scale of the bit string space.</span>
+
+<span class=sd>        :return: 2 ** dimension</span>
+
+<span class=sd>        >>> print(BitStrings(4).n_points())</span>
+<span class=sd>        16</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=mi>1</span> <span class=o><<</span> <span class=bp>self</span><span class=o>.</span><span class=n>dimension</span>  <span class=c1># = 2 ** self.dimension</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this space.</span>
+
+<span class=sd>        :return: "bits" + dimension</span>
+
+<span class=sd>        >>> print(BitStrings(5))</span>
+<span class=sd>        bits5</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"bits</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=si>}</span><span class=s2>"</span>
+
+<div class=viewcode-block id=BitStrings.to_hex_string>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings.to_hex_string>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>to_hex_string</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Convert a bit string to a hexadecimal number.</span>
+
+<span class=sd>        The reverse operator is given as :meth:`from_hex_string`.</span>
+
+<span class=sd>        :param x: the bit string</span>
+<span class=sd>        :returns: the hexadecimal number</span>
+
+<span class=sd>        >>> b = BitStrings(134)</span>
+<span class=sd>        >>> xt = b.create()</span>
+<span class=sd>        >>> xt[:] = [((i % 3) == 0) != ((i % 7) == 0)</span>
+<span class=sd>        ...         for i in range(b.dimension)]</span>
+<span class=sd>        >>> "".join(reversed(b.to_str(xt)))</span>
+<span class=sd>        'TTFFTFFFFFTFFTTFTFFTFTTFFTFFFFFTFFTTFTFFTFTTFFTFFFFFTFFTTFTFFTFT\</span>
+<span class=sd>TFFTFFFFFTFFTTFTFFTFTTFFTFFFFFTFFTTFTFFTFTTFFTFFFFFTFFTTFTFFTFTTFFTFFF'</span>
+<span class=sd>        >>> hex(int("11001000001001101001011001000001001101001011001000"</span>
+<span class=sd>        ...         "0010011010010110010000010011010010110010000010011010"</span>
+<span class=sd>        ...         "01011001000001001101001011001000", 2))</span>
+<span class=sd>        '0x3209a5904d2c826964134b209a5904d2c8'</span>
+<span class=sd>        >>> b.to_hex_string(xt)</span>
+<span class=sd>        '3209a5904d2c826964134b209a5904d2c8'</span>
+<span class=sd>        """</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+        <span class=n>number</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=n>adder</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>x</span><span class=p>[</span><span class=n>i</span><span class=p>]:</span>
+                <span class=n>number</span> <span class=o>+=</span> <span class=n>adder</span>
+            <span class=n>adder</span> <span class=o>*=</span> <span class=mi>2</span>
+        <span class=k>return</span> <span class=nb>format</span><span class=p>(</span><span class=n>number</span><span class=p>,</span> <span class=s2>"x"</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=BitStrings.from_hex_string>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings.from_hex_string>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>from_hex_string</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>s</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Convert a hexadecimal number to a numpy bit string.</span>
+
+<span class=sd>        The reverse operator is given as :meth:`to_hex_string`.</span>
+
+<span class=sd>        :param x: the bit string destination</span>
+<span class=sd>        :param s: the string to convert</span>
+
+<span class=sd>        >>> b = BitStrings(134)</span>
+<span class=sd>        >>> x1 = b.create()</span>
+<span class=sd>        >>> x1[:] = [((i % 3) == 0) != ((i % 7) == 0)</span>
+<span class=sd>        ...         for i in range(b.dimension)]</span>
+<span class=sd>        >>> x2 = b.create()</span>
+<span class=sd>        >>> b.from_hex_string(x2, b.to_hex_string(x1))</span>
+<span class=sd>        >>> b.is_equal(x1, x2)</span>
+<span class=sd>        True</span>
+<span class=sd>        """</span>
+        <span class=n>number</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>s</span><span class=p>),</span> <span class=mi>16</span><span class=p>)</span>  <span class=c1># enforce type error</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=p>):</span>
+            <span class=n>x</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=n>number</span> <span class=o>&</span> <span class=mi>1</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>0</span>
+            <span class=n>number</span> <span class=o>>>=</span> <span class=mi>1</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=BitStrings.to_rle_str>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings.to_rle_str>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>to_rle_str</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Convert a numpy bit string to a run-length encoded string.</span>
+
+<span class=sd>        The first bit value is stored, followed by a colon (:), followed by the</span>
+<span class=sd>        run lengths separated with semicolons.</span>
+<span class=sd>        The reverse operator is given as :meth:`from_rle_str`.</span>
+
+<span class=sd>        :param x: the bit string</span>
+<span class=sd>        :returns: the run-length encoded string</span>
+
+<span class=sd>        >>> b = BitStrings(134)</span>
+<span class=sd>        >>> xt = b.create()</span>
+<span class=sd>        >>> xt[:] = [((i % 3) == 0) != ((i % 7) == 0)</span>
+<span class=sd>        ...         for i in range(b.dimension)]</span>
+<span class=sd>        >>> b.to_rle_str(xt)</span>
+<span class=sd>        'F:3;1;2;2;1;1;2;1;1;2;2;1;5;1;2;2;1;1;2;1;1;2;2;1;5;1;2;2;1;1;2;1;1;\</span>
+<span class=sd>2;2;1;5;1;2;2;1;1;2;1;1;2;2;1;5;1;2;2;1;1;2;1;1;2;2;1;5;1;2;2;1;1;2;1;1;2;2;\</span>
+<span class=sd>1;5;1;2;2'</span>
+
+<span class=sd>        >>> b = BitStrings(5)</span>
+<span class=sd>        >>> xt = b.create()</span>
+<span class=sd>        >>> xt.fill(0)</span>
+<span class=sd>        >>> b.to_rle_str(xt)</span>
+<span class=sd>        'F:5'</span>
+<span class=sd>        >>> xt[1] = 1</span>
+<span class=sd>        >>> b.to_rle_str(xt)</span>
+<span class=sd>        'F:1;1;3'</span>
+
+<span class=sd>        >>> b = BitStrings(5)</span>
+<span class=sd>        >>> xt = b.create()</span>
+<span class=sd>        >>> xt.fill(1)</span>
+<span class=sd>        >>> b.to_rle_str(xt)</span>
+<span class=sd>        'T:5'</span>
+<span class=sd>        >>> xt[-1] = 0</span>
+<span class=sd>        >>> b.to_rle_str(xt)</span>
+<span class=sd>        'T:4;1'</span>
+<span class=sd>        >>> xt[-1] = 1</span>
+<span class=sd>        >>> xt[-2] = 0</span>
+<span class=sd>        >>> b.to_rle_str(xt)</span>
+<span class=sd>        'T:3;1;1'</span>
+<span class=sd>        """</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+        <span class=n>cur</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>bool</span> <span class=o>=</span> <span class=n>x</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+        <span class=n>sep</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>":"</span>
+        <span class=n>rle</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=n>bool_to_str</span><span class=p>(</span><span class=nb>bool</span><span class=p>(</span><span class=n>cur</span><span class=p>))]</span>
+        <span class=n>start</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>bit</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>x</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>bit</span> <span class=o>!=</span> <span class=n>cur</span><span class=p>:</span>
+                <span class=n>rle</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>sep</span><span class=si>}{</span><span class=n>i</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=n>start</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+                <span class=n>sep</span> <span class=o>=</span> <span class=n>CSV_SEPARATOR</span>
+                <span class=n>cur</span> <span class=o>=</span> <span class=n>bit</span>
+                <span class=n>start</span> <span class=o>=</span> <span class=n>i</span>
+        <span class=n>rle</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>sep</span><span class=si>}{</span><span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=n>start</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=k>return</span> <span class=s2>""</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>rle</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=BitStrings.from_rle_str>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.bitstrings.BitStrings.from_rle_str>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>from_rle_str</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>s</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Convert a run-length encoded string to a numpy bit string.</span>
+
+<span class=sd>        The reverse operator is given as :meth:`to_rle_str`.</span>
+
+<span class=sd>        :param s: string to convert</span>
+<span class=sd>        :param x: the bit string destination</span>
+
+<span class=sd>        >>> b = BitStrings(134)</span>
+<span class=sd>        >>> x1 = b.create()</span>
+<span class=sd>        >>> x1[:] = [((i % 3) == 0) != ((i % 7) == 0)</span>
+<span class=sd>        ...         for i in range(b.dimension)]</span>
+<span class=sd>        >>> x2 = b.create()</span>
+<span class=sd>        >>> b.from_hex_string(x2, b.to_hex_string(x1))</span>
+<span class=sd>        >>> all(x1 == x2)</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> x1[5] = not x1[5]</span>
+<span class=sd>        >>> b.from_hex_string(x2, b.to_hex_string(x1))</span>
+<span class=sd>        >>> all(x1 == x2)</span>
+<span class=sd>        True</span>
+
+<span class=sd>        >>> b = BitStrings(5)</span>
+<span class=sd>        >>> x1 = b.create()</span>
+<span class=sd>        >>> x2 = b.create()</span>
+<span class=sd>        >>> x1.fill(0)</span>
+<span class=sd>        >>> b.from_hex_string(x2, b.to_hex_string(x1))</span>
+<span class=sd>        >>> all(x1 == x2)</span>
+<span class=sd>        True</span>
+
+<span class=sd>        >>> x1[1] = 1</span>
+<span class=sd>        >>> b.from_hex_string(x2, b.to_hex_string(x1))</span>
+<span class=sd>        >>> all(x1 == x2)</span>
+<span class=sd>        True</span>
+
+<span class=sd>        >>> x1.fill(1)</span>
+<span class=sd>        >>> b.from_hex_string(x2, b.to_hex_string(x1))</span>
+<span class=sd>        >>> all(x1 == x2)</span>
+<span class=sd>        True</span>
+<span class=sd>        """</span>
+        <span class=n>s</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>s</span><span class=p>)</span>
+        <span class=n>value</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=n>str_to_bool</span><span class=p>(</span><span class=n>s</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span>
+        <span class=n>i</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>for</span> <span class=n>rl</span> <span class=ow>in</span> <span class=n>s</span><span class=p>[</span><span class=n>s</span><span class=o>.</span><span class=n>index</span><span class=p>(</span><span class=s2>":"</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>:]</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>CSV_SEPARATOR</span><span class=p>):</span>
+            <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>rl</span><span class=p>)):</span>
+                <span class=n>x</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>value</span>
+                <span class=n>i</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=n>value</span> <span class=o>=</span> <span class=ow>not</span> <span class=n>value</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.spaces.bitstrings</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

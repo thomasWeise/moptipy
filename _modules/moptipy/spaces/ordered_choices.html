@@ -1,0 +1,288 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.spaces.ordered_choices — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/spaces/ordered_choices.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.spaces.ordered_choices</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.spaces.ordered_choices</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Permutations of a selection (or ordered choices) as strings.</span>
+
+<span class=sd>Imagine the following situation: We have a rectangle (two-dimensional) and</span>
+<span class=sd>want to place `n` other, smaller rectangles into it. Let each rectangle have</span>
+<span class=sd>a unique ID from `1` to `n`. We can use a permutation of `1..n` to represent</span>
+<span class=sd>the order in which we insert the small rectangles. However, maybe we want to</span>
+<span class=sd>also be able to rotate a rectangle by 90° and then place it. So additionally</span>
+<span class=sd>to the insertion order, we may want to remember whether the rectangle is</span>
+<span class=sd>placed as-is or rotated. We could do this with a "permutation of choices",</span>
+<span class=sd>where we can place either `i` or `-i` for `i` from `1..n`. A negative value</span>
+<span class=sd>could mean "insert rotated by 90°" whereas a positive value means "insert as</span>
+<span class=sd>is". So we have `n` (disjoint) choices, each of which with two options. From</span>
+<span class=sd>each choice, we can pick one value. Then the order in which the values appear</span>
+<span class=sd>marks the insertion order. So this is basically a "super space" of</span>
+<span class=sd>permutations, as it deals both with the order of the elements and their values</span>
+<span class=sd>(resulting from the selected choice).</span>
+
+<span class=sd>A string consists of `n` elements. There also are `n` so-called "selections,"</span>
+<span class=sd>each of which being a set offering a choice from  different values. Any two</span>
+<span class=sd>selections must either be entirely disjoint or equal. The final string must</span>
+<span class=sd>contain one value from each selection.</span>
+
+<span class=sd>Let's say that we have three selections, e.g., `[1, 2, 3]`, `[4, 5]`, and</span>
+<span class=sd>`[6]`. Then the "selection permutations" space contains, e.g., the string</span>
+<span class=sd>`[4, 3, 6]` or `[2, 5, 6]` -- one value from each selection. It does not</span>
+<span class=sd>contain `[1, 3, 5]`, though, because that string has two values from the first</span>
+<span class=sd>selection.</span>
+
+<span class=sd>This space is a super space of the :mod:`~moptipy.spaces.permutations`, i.e.,</span>
+<span class=sd>the space of permutations with repetitions. Sometimes (check</span>
+<span class=sd>:meth:`OrderedChoices.is_compatible_with_permutations`), the search</span>
+<span class=sd>operators defined in package :mod:`~moptipy.operators.permutations` can also</span>
+<span class=sd>be applied to the elements of our space here, although they may not be able</span>
+<span class=sd>to explore the space in-depth (as they will not alter the choices and only</span>
+<span class=sd>permute the chosen elements).</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>collections</span><span class=w> </span><span class=kn>import</span> <span class=n>Counter</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>factorial</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.intspace</span><span class=w> </span><span class=kn>import</span> <span class=n>IntSpace</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>CSV_SEPARATOR</span><span class=p>,</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>array_to_str</span>
+
+<span class=c1>#: the different choices</span>
+<span class=n>KEY_CHOICES</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"choices"</span>
+
+
+<div class=viewcode-block id=OrderedChoices>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.ordered_choices.OrderedChoices>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>OrderedChoices</span><span class=p>(</span><span class=n>IntSpace</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""Permutations of selections, stored as :class:`numpy.ndarray`."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>selections</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span><span class=p>]])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the space of permutations of selections.</span>
+
+<span class=sd>        :param selections: an iterable of selections</span>
+<span class=sd>        :raises TypeError: if one of the parameters has the wrong type</span>
+<span class=sd>        :raises ValueError: if the parameters have the wrong value</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>selections</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>selections</span><span class=p>,</span> <span class=s2>"selections"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+
+        <span class=n>sets</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>{}</span>
+
+        <span class=n>min_v</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=n>max_v</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=n>total</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=n>counts</span><span class=p>:</span> <span class=n>Counter</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=n>Counter</span><span class=p>()</span>
+        <span class=n>blueprint</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>sel</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>selections</span><span class=p>):</span>
+            <span class=n>total</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>sel</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>sel</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"selections[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>]"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+            <span class=n>sel_lst</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=nb>sorted</span><span class=p>(</span><span class=n>sel</span><span class=p>))</span>
+            <span class=n>len_sel</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>sel_lst</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>len_sel</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"empty selection at index </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>sel</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>sel_set</span> <span class=o>=</span> <span class=nb>set</span><span class=p>(</span><span class=n>sel_lst</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>sel_set</span><span class=p>)</span> <span class=o>!=</span> <span class=n>len_sel</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid selection </span><span class=si>{</span><span class=n>sel</span><span class=si>}</span><span class=s2> at index </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2> "</span>
+                                 <span class=sa>f</span><span class=s2>"contains duplicate element"</span><span class=p>)</span>
+            <span class=n>blueprint</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>sel_lst</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span>
+            <span class=c1># build the selection map</span>
+            <span class=k>for</span> <span class=n>e</span> <span class=ow>in</span> <span class=n>sel_lst</span><span class=p>:</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>e</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>e</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"selections[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>]=</span><span class=si>{</span><span class=n>sel</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>e</span> <span class=ow>in</span> <span class=n>sets</span><span class=p>:</span>
+                    <span class=n>lst_found</span> <span class=o>=</span> <span class=n>sets</span><span class=p>[</span><span class=n>e</span><span class=p>]</span>
+                    <span class=k>if</span> <span class=n>lst_found</span> <span class=o>!=</span> <span class=n>sel_lst</span><span class=p>:</span>
+                        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                            <span class=sa>f</span><span class=s2>"value </span><span class=si>{</span><span class=n>e</span><span class=si>}</span><span class=s2> appears both in selection </span><span class=si>{</span><span class=n>sel_lst</span><span class=si>}</span><span class=s2> "</span>
+                            <span class=sa>f</span><span class=s2>"(at permutation index </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>) and in selection "</span>
+                            <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>lst_found</span><span class=si>}</span><span class=s2>!"</span><span class=p>)</span>
+                    <span class=n>sel_lst</span> <span class=o>=</span> <span class=n>lst_found</span>
+                    <span class=k>continue</span>  <span class=c1># if any sets[e] != sel_lst, we get error anyway</span>
+                <span class=n>sets</span><span class=p>[</span><span class=n>e</span><span class=p>]</span> <span class=o>=</span> <span class=n>sel_lst</span>  <span class=c1># remember value</span>
+            <span class=n>counts</span><span class=p>[</span><span class=n>sel_lst</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>
+
+            <span class=c1># update the value range</span>
+            <span class=k>if</span> <span class=n>total</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=n>min_v</span> <span class=o>=</span> <span class=n>sel_lst</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+                <span class=n>max_v</span> <span class=o>=</span> <span class=n>sel_lst</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>min_v</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>min_v</span><span class=p>,</span> <span class=n>sel_lst</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span>
+                <span class=n>max_v</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>max_v</span><span class=p>,</span> <span class=n>sel_lst</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>])</span>
+
+        <span class=k>if</span> <span class=n>total</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=s2>"there must be at least one selection, "</span>
+                <span class=sa>f</span><span class=s2>"but got </span><span class=si>{</span><span class=n>selections</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=c1># creating super class</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>total</span><span class=p>,</span> <span class=n>min_v</span><span class=p>,</span> <span class=n>max_v</span><span class=p>)</span>
+
+        <span class=c1>#: the selector map</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>choices</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]]]</span> <span class=o>=</span> <span class=n>sets</span>
+        <span class=c1>#: how often does each element choice appear?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__counts</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{</span>
+            <span class=n>k</span><span class=p>:</span> <span class=n>counts</span><span class=p>[</span><span class=n>k</span><span class=p>]</span> <span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>counts</span><span class=o>.</span><span class=n>keys</span><span class=p>())}</span>
+        <span class=n>blueprint</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+
+        <span class=c1>#: The blueprint array, i.e., an ordered array holding the smallest</span>
+        <span class=c1>#: value possible for each choice.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>blueprint</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span>
+            <span class=n>blueprint</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span>
+
+<div class=viewcode-block id=OrderedChoices.log_parameters_to>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.ordered_choices.OrderedChoices.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of this space to the given logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+
+        <span class=n>strings</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=k>for</span> <span class=n>sel</span><span class=p>,</span> <span class=n>count</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>__counts</span><span class=o>.</span><span class=n>items</span><span class=p>():</span>
+            <span class=n>s</span> <span class=o>=</span> <span class=n>CSV_SEPARATOR</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=nb>map</span><span class=p>(</span><span class=nb>str</span><span class=p>,</span> <span class=n>sel</span><span class=p>))</span>
+            <span class=n>strings</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>s</span> <span class=k>if</span> <span class=n>count</span> <span class=o><=</span> <span class=mi>1</span> <span class=k>else</span> <span class=p>(</span><span class=n>s</span> <span class=o>+</span> <span class=s2>"*"</span> <span class=o>+</span> <span class=nb>str</span><span class=p>(</span><span class=n>count</span><span class=p>)))</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_CHOICES</span><span class=p>,</span> <span class=s2>"/"</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>strings</span><span class=p>))</span></div>
+
+
+<div class=viewcode-block id=OrderedChoices.create>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.ordered_choices.OrderedChoices.create>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>        </span><span class=sa>r</span><span class=sd>"""</span>
+<span class=sd>        Create an ordered choice, equal to :attr:`~OrderedChoices.blueprint`.</span>
+
+<span class=sd>        :return: the ordered choices, an instance of :class:`numpy.ndarray`.</span>
+
+<span class=sd>        >>> perm = OrderedChoices([[1, 3], [2, 4], [1, 3], [7, 5]])</span>
+<span class=sd>        >>> x = perm.create()</span>
+<span class=sd>        >>> print(perm.to_str(x))</span>
+<span class=sd>        1;1;2;5</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>blueprint</span><span class=o>.</span><span class=n>copy</span><span class=p>()</span>  <span class=c1># Create copy of the blueprint.</span></div>
+
+
+<div class=viewcode-block id=OrderedChoices.validate>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.ordered_choices.OrderedChoices.validate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>validate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Validate a permutation of selections.</span>
+
+<span class=sd>        :param x: the integer string</span>
+<span class=sd>        :raises TypeError: if the string is not an :class:`numpy.ndarray`.</span>
+<span class=sd>        :raises ValueError: if the element is not a valid permutation of the</span>
+<span class=sd>            given choices</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+
+        <span class=n>usage</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Counter</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]]]</span> <span class=o>=</span> <span class=n>Counter</span><span class=p>()</span>
+        <span class=n>dct</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>choices</span>
+        <span class=k>for</span> <span class=n>j</span><span class=p>,</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>x</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>i</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>dct</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"invalid element </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2> encountered at index"</span>
+                    <span class=sa>f</span><span class=s2>" </span><span class=si>{</span><span class=n>j</span><span class=si>}</span><span class=s2> of string </span><span class=si>{</span><span class=n>array_to_str</span><span class=p>(</span><span class=n>x</span><span class=p>)</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>usage</span><span class=p>[</span><span class=n>dct</span><span class=p>[</span><span class=n>i</span><span class=p>]]</span> <span class=o>+=</span> <span class=mi>1</span>
+        <span class=n>counts</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__counts</span>
+        <span class=k>for</span> <span class=n>tup</span><span class=p>,</span> <span class=n>cnt</span> <span class=ow>in</span> <span class=n>usage</span><span class=o>.</span><span class=n>items</span><span class=p>():</span>
+            <span class=n>expected</span> <span class=o>=</span> <span class=n>counts</span><span class=p>[</span><span class=n>tup</span><span class=p>]</span>
+            <span class=k>if</span> <span class=n>expected</span> <span class=o>!=</span> <span class=n>cnt</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"encountered value from </span><span class=si>{</span><span class=n>tup</span><span class=si>}</span><span class=s2> exactly </span><span class=si>{</span><span class=n>cnt</span><span class=si>}</span><span class=s2> times "</span>
+                    <span class=sa>f</span><span class=s2>"instead of the expected </span><span class=si>{</span><span class=n>expected</span><span class=si>}</span><span class=s2> times in </span><span class=si>{</span><span class=n>x</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=OrderedChoices.n_points>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.ordered_choices.OrderedChoices.n_points>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>n_points</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the number of possible different permutations of the choices.</span>
+
+<span class=sd>        :return: [factorial(dimension) / Product(factorial(count(e))</span>
+<span class=sd>            for all e)] * Product(len(e)*count(e) for all e)</span>
+<span class=sd>        """</span>
+        <span class=c1># get the basic permutation numbers now multiply them with the choices</span>
+        <span class=n>size</span> <span class=o>=</span> <span class=n>factorial</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>lst</span><span class=p>,</span> <span class=n>cnt</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>__counts</span><span class=o>.</span><span class=n>items</span><span class=p>():</span>
+            <span class=n>size</span> <span class=o>//=</span> <span class=n>factorial</span><span class=p>(</span><span class=n>cnt</span><span class=p>)</span>
+            <span class=n>size</span> <span class=o>*=</span> <span class=nb>len</span><span class=p>(</span><span class=n>lst</span><span class=p>)</span> <span class=o>**</span> <span class=n>cnt</span>
+        <span class=k>return</span> <span class=n>size</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this space.</span>
+
+<span class=sd>        :return: "selperm{n}", where {n} is the length</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"selperm</span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>blueprint</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span>
+
+<div class=viewcode-block id=OrderedChoices.is_compatible_with_permutations>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.ordered_choices.OrderedChoices.is_compatible_with_permutations>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>is_compatible_with_permutations</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Check whether for compatibility with permutations with repetitions.</span>
+
+<span class=sd>        Or, in other words, check whether the operators in package</span>
+<span class=sd>        :mod:`~moptipy.operators.permutations` can safely be applied for</span>
+<span class=sd>        elements of this space here.</span>
+
+<span class=sd>        Permutations with repetitions are permutations where each element</span>
+<span class=sd>        occurs exactly a given number of times. Our implementation of this</span>
+<span class=sd>        space (:mod:`~moptipy.spaces.permutations`) ensures that there are</span>
+<span class=sd>        at least two different elements. The unary and binary search</span>
+<span class=sd>        operators defined in package :mod:`~moptipy.operators.permutations`</span>
+<span class=sd>        rely on this fact. While these operators cannot explore the depth</span>
+<span class=sd>        of the permutations-of-selections space here, they can be "compatible"</span>
+<span class=sd>        to this space: Any element of the permutation-of-selections space is,</span>
+<span class=sd>        by definition, a permutation with repetitions, as it contains one</span>
+<span class=sd>        concrete manifestation per choice. Applying, for instance, a</span>
+<span class=sd>        :mod:`~moptipy.operators.permutations.op1_swap2` operation to it,</span>
+<span class=sd>        which swaps two different elements, still yields a valid and different</span>
+<span class=sd>        permutation-of-selections. However, since the operators in</span>
+<span class=sd>        :mod:`~moptipy.operators.permutations` always enforce that the</span>
+<span class=sd>        resulting point is different from their input and *only* permute the</span>
+<span class=sd>        elements, this can only work if we have at least two disjoint choices</span>
+<span class=sd>        in our space definition. The function here checks this.</span>
+
+<span class=sd>        :returns: `True` if and only if the operators in package</span>
+<span class=sd>            :mod:`~moptipy.operators.permutations` can safely be applied to</span>
+<span class=sd>            elements of this space</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__counts</span><span class=p>)</span> <span class=o>></span> <span class=mi>1</span></div>
+
+
+<div class=viewcode-block id=OrderedChoices.signed_permutations>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.ordered_choices.OrderedChoices.signed_permutations>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>signed_permutations</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"OrderedChoices"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a space for signed permutations with values `1..n`.</span>
+
+<span class=sd>        You would be much better off using</span>
+<span class=sd>        :mod:`~moptipy.spaces.signed_permutations` instead of this space for</span>
+<span class=sd>        signed permutations, though.</span>
+
+<span class=sd>        :param n: the range of the values</span>
+<span class=sd>        :returns: the permutations space</span>
+
+<span class=sd>        >>> perm = OrderedChoices.signed_permutations(3)</span>
+<span class=sd>        >>> perm.validate(perm.blueprint)</span>
+<span class=sd>        >>> print(perm.blueprint)</span>
+<span class=sd>        [-3 -2 -1]</span>
+<span class=sd>        >>> print(perm.n_points())  # 3! * (2 ** 3) = 6 * 8 = 48</span>
+<span class=sd>        48</span>
+<span class=sd>        >>> perm = OrderedChoices.signed_permutations(4)</span>
+<span class=sd>        >>> perm.validate(perm.blueprint)</span>
+<span class=sd>        >>> print(perm.blueprint)</span>
+<span class=sd>        [-4 -3 -2 -1]</span>
+<span class=sd>        >>> print(perm.n_points())  # 4! * (2 ** 4) = 24 * 16 = 384</span>
+<span class=sd>        384</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>OrderedChoices</span><span class=p>([</span><span class=o>-</span><span class=n>i</span><span class=p>,</span> <span class=n>i</span><span class=p>]</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>n</span> <span class=o>+</span> <span class=mi>1</span><span class=p>))</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.spaces.ordered_choices</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

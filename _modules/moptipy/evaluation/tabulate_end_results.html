@@ -1,0 +1,764 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.tabulate_end_results — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/tabulate_end_results.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.tabulate_end_results</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.tabulate_end_results</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Provides function :func:`tabulate_end_results` to tabulate end results."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isfinite</span><span class=p>,</span> <span class=n>isnan</span><span class=p>,</span> <span class=n>nan</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.csv</span><span class=w> </span><span class=kn>import</span> <span class=n>SCOPE_SEPARATOR</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.math.sample_statistics</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>KEY_MAXIMUM</span><span class=p>,</span>
+    <span class=n>KEY_MEAN_ARITH</span><span class=p>,</span>
+    <span class=n>KEY_MEAN_GEOM</span><span class=p>,</span>
+    <span class=n>KEY_MEDIAN</span><span class=p>,</span>
+    <span class=n>KEY_MINIMUM</span><span class=p>,</span>
+    <span class=n>KEY_STDDEV</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>KEY_ALGORITHM</span><span class=p>,</span>
+    <span class=n>KEY_BEST_F</span><span class=p>,</span>
+    <span class=n>KEY_GOAL_F</span><span class=p>,</span>
+    <span class=n>KEY_INSTANCE</span><span class=p>,</span>
+    <span class=n>KEY_LAST_IMPROVEMENT_FE</span><span class=p>,</span>
+    <span class=n>KEY_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=p>,</span>
+    <span class=n>KEY_TOTAL_FES</span><span class=p>,</span>
+    <span class=n>KEY_TOTAL_TIME_MILLIS</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.base</span><span class=w> </span><span class=kn>import</span> <span class=n>F_NAME_RAW</span><span class=p>,</span> <span class=n>F_NAME_SCALED</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_results</span><span class=w> </span><span class=kn>import</span> <span class=n>EndResult</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_statistics</span><span class=w> </span><span class=kn>import</span> <span class=n>KEY_BEST_F_SCALED</span><span class=p>,</span> <span class=n>EndStatistics</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_statistics</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>from_end_results</span> <span class=k>as</span> <span class=n>es_from_end_results</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_statistics</span><span class=w> </span><span class=kn>import</span> <span class=n>getter</span> <span class=k>as</span> <span class=n>es_getter</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.formatted_string</span><span class=w> </span><span class=kn>import</span> <span class=n>FormattedStr</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.lang</span><span class=w> </span><span class=kn>import</span> <span class=n>Lang</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.markdown</span><span class=w> </span><span class=kn>import</span> <span class=n>Markdown</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.number_renderer</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>DEFAULT_NUMBER_RENDERER</span><span class=p>,</span>
+    <span class=n>NumberRenderer</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.table</span><span class=w> </span><span class=kn>import</span> <span class=n>Table</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.text_format</span><span class=w> </span><span class=kn>import</span> <span class=n>TextFormatDriver</span>
+
+<span class=c1>#: the lower bound key</span>
+<span class=n>__KEY_LOWER_BOUND</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"lower_bound"</span>
+<span class=c1>#: the lower bound short key</span>
+<span class=n>__KEY_LOWER_BOUND_SHORT</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"lower_bound_short"</span>
+
+
+<div class=viewcode-block id=default_column_namer>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.tabulate_end_results.default_column_namer>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>default_column_namer</span><span class=p>(</span><span class=n>col</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the default name for columns.</span>
+
+<span class=sd>    :param col: the column identifier</span>
+<span class=sd>    :returns: the column name</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>col</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>col</span><span class=p>,</span> <span class=s2>"column name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>col</span> <span class=o>==</span> <span class=n>KEY_INSTANCE</span><span class=p>:</span>
+        <span class=k>return</span> <span class=s2>"I"</span>
+    <span class=k>if</span> <span class=n>col</span> <span class=o>==</span> <span class=n>KEY_ALGORITHM</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>Lang</span><span class=o>.</span><span class=n>translate</span><span class=p>(</span><span class=s2>"setup"</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>col</span> <span class=ow>in</span> <span class=p>{</span><span class=n>__KEY_LOWER_BOUND</span><span class=p>,</span> <span class=n>__KEY_LOWER_BOUND_SHORT</span><span class=p>,</span> <span class=n>KEY_GOAL_F</span><span class=p>}:</span>
+        <span class=k>return</span> <span class=s2>"lb(f)"</span>
+    <span class=k>if</span> <span class=n>col</span> <span class=ow>in</span> <span class=s2>"summary"</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>Lang</span><span class=o>.</span><span class=n>translate</span><span class=p>(</span><span class=n>col</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>SCOPE_SEPARATOR</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>col</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"statistic </span><span class=si>{</span><span class=n>col</span><span class=si>!r}</span><span class=s2> should contain </span><span class=si>{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>key</span><span class=p>,</span> <span class=n>stat</span> <span class=o>=</span> <span class=n>col</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>SCOPE_SEPARATOR</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>key</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>stat</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid statistic </span><span class=si>{</span><span class=n>col</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>key</span> <span class=o>==</span> <span class=n>KEY_BEST_F_SCALED</span><span class=p>:</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=n>F_NAME_SCALED</span>
+    <span class=k>elif</span> <span class=n>key</span> <span class=o>==</span> <span class=n>KEY_BEST_F</span><span class=p>:</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=n>F_NAME_RAW</span>
+
+    <span class=c1># now fix statistics part</span>
+    <span class=k>if</span> <span class=n>stat</span> <span class=o>==</span> <span class=n>KEY_MEAN_ARITH</span><span class=p>:</span>
+        <span class=n>stat</span> <span class=o>=</span> <span class=s2>"mean"</span>
+    <span class=k>elif</span> <span class=n>stat</span> <span class=o>==</span> <span class=n>KEY_STDDEV</span><span class=p>:</span>
+        <span class=n>stat</span> <span class=o>=</span> <span class=s2>"sd"</span>
+    <span class=k>elif</span> <span class=n>stat</span> <span class=o>==</span> <span class=n>KEY_MEAN_GEOM</span><span class=p>:</span>
+        <span class=n>stat</span> <span class=o>=</span> <span class=s2>"gmean"</span>
+    <span class=k>elif</span> <span class=n>stat</span> <span class=o>==</span> <span class=n>KEY_MEDIAN</span><span class=p>:</span>
+        <span class=n>stat</span> <span class=o>=</span> <span class=s2>"med"</span>
+    <span class=k>elif</span> <span class=n>stat</span> <span class=o>==</span> <span class=n>KEY_MINIMUM</span><span class=p>:</span>
+        <span class=n>stat</span> <span class=o>=</span> <span class=n>Lang</span><span class=o>.</span><span class=n>translate</span><span class=p>(</span><span class=s2>"best"</span><span class=p>)</span> \
+            <span class=k>if</span> <span class=n>key</span> <span class=ow>in</span> <span class=p>{</span><span class=n>F_NAME_RAW</span><span class=p>,</span> <span class=n>F_NAME_SCALED</span><span class=p>}</span> <span class=k>else</span> <span class=s2>"min"</span>
+    <span class=k>elif</span> <span class=n>stat</span> <span class=o>==</span> <span class=n>KEY_MAXIMUM</span><span class=p>:</span>
+        <span class=n>stat</span> <span class=o>=</span> <span class=n>Lang</span><span class=o>.</span><span class=n>translate</span><span class=p>(</span><span class=s2>"worst"</span><span class=p>)</span> \
+            <span class=k>if</span> <span class=n>key</span> <span class=ow>in</span> <span class=p>{</span><span class=n>F_NAME_RAW</span><span class=p>,</span> <span class=n>F_NAME_SCALED</span><span class=p>}</span> <span class=k>else</span> <span class=s2>"max"</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"unknown statistic </span><span class=si>{</span><span class=n>stat</span><span class=si>!r}</span><span class=s2> for </span><span class=si>{</span><span class=n>col</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>key</span> <span class=o>==</span> <span class=n>F_NAME_RAW</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>stat</span>
+    <span class=k>if</span> <span class=n>key</span> <span class=o>==</span> <span class=n>F_NAME_SCALED</span><span class=p>:</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>stat</span><span class=si>}</span><span class=s2>1"</span>
+    <span class=k>if</span> <span class=n>key</span> <span class=o>==</span> <span class=n>KEY_LAST_IMPROVEMENT_FE</span><span class=p>:</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=s2>"fes"</span>
+    <span class=k>elif</span> <span class=n>key</span> <span class=o>==</span> <span class=n>KEY_TOTAL_FES</span><span class=p>:</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=s2>"FEs"</span>
+    <span class=k>elif</span> <span class=n>key</span> <span class=o>==</span> <span class=n>KEY_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=p>:</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=s2>"t"</span>
+    <span class=k>elif</span> <span class=n>key</span> <span class=o>==</span> <span class=n>KEY_TOTAL_TIME_MILLIS</span><span class=p>:</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=s2>"T"</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"unknown key </span><span class=si>{</span><span class=n>key</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>stat</span><span class=si>}</span><span class=s2>(</span><span class=si>{</span><span class=n>key</span><span class=si>}</span><span class=s2>)"</span></div>
+
+
+
+<div class=viewcode-block id=command_column_namer>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.tabulate_end_results.command_column_namer>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>command_column_namer</span><span class=p>(</span>
+        <span class=n>col</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>put_dollars</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+        <span class=n>summary_name</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>bool</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>_</span><span class=p>:</span> <span class=sa>r</span><span class=s2>"\summary"</span><span class=p>,</span>
+        <span class=n>setup_name</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>bool</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>_</span><span class=p>:</span> <span class=sa>r</span><span class=s2>"\setup"</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the command-based names for columns, but in command format.</span>
+
+<span class=sd>    This function returns LaTeX-style commands for the column headers.</span>
+
+<span class=sd>    :param col: the column identifier</span>
+<span class=sd>    :param put_dollars: surround the command with `$`</span>
+<span class=sd>    :param summary_name: the name function for the key "summary"</span>
+<span class=sd>    :param setup_name: the name function for the key `KEY_ALGORITHM`</span>
+<span class=sd>    :returns: the column name</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>col</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>col</span><span class=p>,</span> <span class=s2>"column name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>put_dollars</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>put_dollars</span><span class=p>,</span> <span class=s2>"put_dollars"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>summary_name</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>summary_name</span><span class=p>,</span> <span class=s2>"summary_name"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>setup_name</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>setup_name</span><span class=p>,</span> <span class=s2>"setup_name"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>col</span> <span class=o>==</span> <span class=n>KEY_INSTANCE</span><span class=p>:</span>
+        <span class=k>return</span> <span class=sa>r</span><span class=s2>"$\instance$"</span>
+    <span class=k>if</span> <span class=n>col</span> <span class=o>==</span> <span class=n>KEY_ALGORITHM</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>setup_name</span><span class=p>(</span><span class=n>put_dollars</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>col</span> <span class=ow>in</span> <span class=p>{</span><span class=n>__KEY_LOWER_BOUND</span><span class=p>,</span> <span class=n>__KEY_LOWER_BOUND_SHORT</span><span class=p>,</span> <span class=n>KEY_GOAL_F</span><span class=p>}:</span>
+        <span class=k>return</span> <span class=sa>r</span><span class=s2>"$\lowerBound(\objf)$"</span> <span class=k>if</span> \
+            <span class=n>put_dollars</span> <span class=k>else</span> <span class=sa>r</span><span class=s2>"\lowerBound(\objf)"</span>
+    <span class=k>if</span> <span class=n>col</span> <span class=o>==</span> <span class=s2>"summary"</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>summary_name</span><span class=p>(</span><span class=n>put_dollars</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>SCOPE_SEPARATOR</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>col</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"statistic </span><span class=si>{</span><span class=n>col</span><span class=si>!r}</span><span class=s2> should contain </span><span class=si>{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>key</span><span class=p>,</span> <span class=n>stat</span> <span class=o>=</span> <span class=n>col</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>SCOPE_SEPARATOR</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>key</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>stat</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid statistic </span><span class=si>{</span><span class=n>col</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>key</span> <span class=o>==</span> <span class=n>KEY_BEST_F_SCALED</span><span class=p>:</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=n>F_NAME_SCALED</span>
+    <span class=k>elif</span> <span class=n>key</span> <span class=o>==</span> <span class=n>KEY_BEST_F</span><span class=p>:</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=n>F_NAME_RAW</span>
+
+    <span class=c1># now fix statistics part</span>
+    <span class=k>if</span> <span class=n>stat</span> <span class=o>==</span> <span class=n>KEY_MEAN_ARITH</span><span class=p>:</span>
+        <span class=n>stat</span> <span class=o>=</span> <span class=s2>"mean"</span>
+    <span class=k>elif</span> <span class=n>stat</span> <span class=o>==</span> <span class=n>KEY_STDDEV</span><span class=p>:</span>
+        <span class=n>stat</span> <span class=o>=</span> <span class=s2>"stddev"</span>
+    <span class=k>elif</span> <span class=n>stat</span> <span class=o>==</span> <span class=n>KEY_MEAN_GEOM</span><span class=p>:</span>
+        <span class=n>stat</span> <span class=o>=</span> <span class=s2>"geomean"</span>
+    <span class=k>elif</span> <span class=n>stat</span> <span class=o>==</span> <span class=n>KEY_MEDIAN</span><span class=p>:</span>
+        <span class=n>stat</span> <span class=o>=</span> <span class=s2>"median"</span>
+    <span class=k>elif</span> <span class=n>stat</span> <span class=o>==</span> <span class=n>KEY_MINIMUM</span><span class=p>:</span>
+        <span class=n>stat</span> <span class=o>=</span> <span class=s2>"min"</span>
+    <span class=k>elif</span> <span class=n>stat</span> <span class=o>==</span> <span class=n>KEY_MAXIMUM</span><span class=p>:</span>
+        <span class=n>stat</span> <span class=o>=</span> <span class=s2>"max"</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"unknown statistic </span><span class=si>{</span><span class=n>stat</span><span class=si>!r}</span><span class=s2> for </span><span class=si>{</span><span class=n>col</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>key</span> <span class=o>==</span> <span class=n>F_NAME_RAW</span><span class=p>:</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=s2>"BestF"</span>
+    <span class=k>elif</span> <span class=n>key</span> <span class=o>==</span> <span class=n>F_NAME_SCALED</span><span class=p>:</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=s2>"BestFscaled"</span>
+    <span class=k>elif</span> <span class=n>key</span> <span class=o>==</span> <span class=n>KEY_LAST_IMPROVEMENT_FE</span><span class=p>:</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=s2>"LIFE"</span>
+    <span class=k>elif</span> <span class=n>key</span> <span class=o>==</span> <span class=n>KEY_TOTAL_FES</span><span class=p>:</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=s2>"TotalFEs"</span>
+    <span class=k>elif</span> <span class=n>key</span> <span class=o>==</span> <span class=n>KEY_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=p>:</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=s2>"LIMS"</span>
+    <span class=k>elif</span> <span class=n>key</span> <span class=o>==</span> <span class=n>KEY_TOTAL_TIME_MILLIS</span><span class=p>:</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=s2>"TotalMS"</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"unknown key </span><span class=si>{</span><span class=n>key</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=sa>f</span><span class=s2>"$</span><span class=se>\\</span><span class=si>{</span><span class=n>stat</span><span class=si>}{</span><span class=n>key</span><span class=si>}</span><span class=s2>$"</span> <span class=k>if</span> <span class=n>put_dollars</span> <span class=k>else</span> <span class=sa>f</span><span class=s2>"</span><span class=se>\\</span><span class=si>{</span><span class=n>stat</span><span class=si>}{</span><span class=n>key</span><span class=si>}</span><span class=s2>"</span></div>
+
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__finite_max</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>])</span> \
+        <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the finite maximum of a data column.</span>
+
+<span class=sd>    :param data: the data to iterate over</span>
+<span class=sd>    :returns: the finite maximum, or `nan` if none can be found or if there</span>
+<span class=sd>        is only a single value</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=s2>"data"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=n>maxi</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span>
+    <span class=n>count</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=k>for</span> <span class=n>d</span> <span class=ow>in</span> <span class=n>data</span><span class=p>:</span>
+        <span class=n>count</span> <span class=o>+=</span> <span class=mi>1</span>
+        <span class=k>if</span> <span class=n>d</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>continue</span>
+        <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>d</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>d</span> <span class=o>></span> <span class=n>maxi</span><span class=p>):</span>
+            <span class=n>maxi</span> <span class=o>=</span> <span class=n>d</span>
+    <span class=k>return</span> <span class=n>maxi</span> <span class=k>if</span> <span class=p>(</span><span class=n>count</span> <span class=o>></span> <span class=mi>1</span><span class=p>)</span> <span class=ow>and</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>maxi</span><span class=p>)</span> <span class=k>else</span> <span class=n>nan</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__finite_min</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>])</span> \
+        <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the finite minimum of a data column.</span>
+
+<span class=sd>    :param data: the data to iterate over</span>
+<span class=sd>    :returns: the finite minimum, or `nan` if none can be found</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=s2>"data"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=n>mini</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span>
+    <span class=n>count</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=k>for</span> <span class=n>d</span> <span class=ow>in</span> <span class=n>data</span><span class=p>:</span>
+        <span class=n>count</span> <span class=o>+=</span> <span class=mi>1</span>
+        <span class=k>if</span> <span class=n>d</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>continue</span>
+        <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>d</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>d</span> <span class=o><</span> <span class=n>mini</span><span class=p>):</span>
+            <span class=n>mini</span> <span class=o>=</span> <span class=n>d</span>
+    <span class=k>return</span> <span class=n>mini</span> <span class=k>if</span> <span class=p>(</span><span class=n>count</span> <span class=o>></span> <span class=mi>1</span><span class=p>)</span> <span class=ow>and</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>mini</span><span class=p>)</span> <span class=k>else</span> <span class=n>nan</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__nan</span><span class=p>(</span><span class=n>data</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>])</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get `nan`.</span>
+
+<span class=sd>    :param data: ignored</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=s2>"data"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>nan</span>
+
+
+<div class=viewcode-block id=default_column_best>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.tabulate_end_results.default_column_best>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>default_column_best</span><span class=p>(</span><span class=n>col</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span>\
+        <span class=n>Callable</span><span class=p>[[</span><span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get a function to compute the best value in a column.</span>
+
+<span class=sd>    The returned function can compute the best value in a column. If no value</span>
+<span class=sd>    is best, it should return `nan`.</span>
+
+<span class=sd>    :param col: the column name string</span>
+<span class=sd>    :returns: a function that can compute the best value per column</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>col</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>col</span><span class=p>,</span> <span class=s2>"column name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>col</span> <span class=ow>in</span> <span class=p>{</span><span class=n>KEY_INSTANCE</span><span class=p>,</span> <span class=n>KEY_ALGORITHM</span><span class=p>,</span> <span class=n>__KEY_LOWER_BOUND</span><span class=p>,</span>
+               <span class=n>__KEY_LOWER_BOUND_SHORT</span><span class=p>,</span> <span class=n>KEY_GOAL_F</span><span class=p>}:</span>
+        <span class=k>return</span> <span class=n>__nan</span>
+
+    <span class=k>if</span> <span class=n>SCOPE_SEPARATOR</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>col</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"statistic </span><span class=si>{</span><span class=n>col</span><span class=si>!r}</span><span class=s2> should contain </span><span class=si>{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>key</span><span class=p>,</span> <span class=n>stat</span> <span class=o>=</span> <span class=n>col</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>SCOPE_SEPARATOR</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>key</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>stat</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid statistic </span><span class=si>{</span><span class=n>col</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>stat</span> <span class=o>==</span> <span class=s2>"sd"</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>__finite_min</span>
+
+    <span class=k>if</span> <span class=n>key</span> <span class=ow>in</span> <span class=p>{</span><span class=n>KEY_BEST_F_SCALED</span><span class=p>,</span> <span class=n>F_NAME_SCALED</span><span class=p>,</span> <span class=n>KEY_BEST_F</span><span class=p>,</span> <span class=n>F_NAME_RAW</span><span class=p>}:</span>
+        <span class=k>return</span> <span class=n>__finite_min</span>
+    <span class=k>if</span> <span class=n>key</span> <span class=ow>in</span> <span class=p>{</span><span class=n>KEY_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=p>,</span> <span class=n>KEY_LAST_IMPROVEMENT_FE</span><span class=p>,</span>
+               <span class=n>KEY_TOTAL_FES</span><span class=p>,</span> <span class=n>KEY_TOTAL_TIME_MILLIS</span><span class=p>}:</span>
+        <span class=k>return</span> <span class=n>__finite_max</span>
+
+    <span class=k>return</span> <span class=n>__nan</span></div>
+
+
+
+<span class=c1>#: the number renderer for times</span>
+<span class=n>__TIME_NUMBER_RENDERER</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>NumberRenderer</span><span class=p>]</span> <span class=o>=</span> \
+    <span class=n>DEFAULT_NUMBER_RENDERER</span><span class=o>.</span><span class=n>derive</span><span class=p>(</span>
+        <span class=n>int_to_float_threshold</span><span class=o>=</span><span class=mi>999_999</span><span class=p>,</span>
+        <span class=n>get_float_format</span><span class=o>=</span><span class=k>lambda</span> <span class=n>_</span><span class=p>,</span> <span class=n>ma</span><span class=p>,</span> <span class=n>__</span><span class=p>,</span> <span class=n>___</span><span class=p>,</span> <span class=n>itft</span><span class=p>:</span>
+        <span class=s2>"</span><span class=si>{:.0f}</span><span class=s2>"</span> <span class=k>if</span> <span class=n>ma</span> <span class=o><=</span> <span class=n>itft</span> <span class=k>else</span> <span class=s2>"</span><span class=si>{:.1e}</span><span class=s2>"</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=default_number_renderer>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.tabulate_end_results.default_number_renderer>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>default_number_renderer</span><span class=p>(</span><span class=n>col</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=n>NumberRenderer</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the number renderer for the specified column.</span>
+
+<span class=sd>    Time columns are rendered with less precision.</span>
+
+<span class=sd>    :param col: the column name</span>
+<span class=sd>    :returns: the number renderer</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>col</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>col</span><span class=p>,</span> <span class=s2>"column name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>col</span> <span class=ow>not</span> <span class=ow>in</span> <span class=p>{</span><span class=n>KEY_INSTANCE</span><span class=p>,</span> <span class=n>KEY_ALGORITHM</span><span class=p>,</span> <span class=n>__KEY_LOWER_BOUND</span><span class=p>,</span>
+                   <span class=n>__KEY_LOWER_BOUND_SHORT</span><span class=p>,</span> <span class=n>KEY_GOAL_F</span><span class=p>}:</span>
+        <span class=k>if</span> <span class=n>SCOPE_SEPARATOR</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>col</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"statistic </span><span class=si>{</span><span class=n>col</span><span class=si>!r}</span><span class=s2> should contain </span><span class=si>{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>key</span><span class=p>,</span> <span class=n>stat</span> <span class=o>=</span> <span class=n>col</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>SCOPE_SEPARATOR</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>key</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>stat</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid statistic </span><span class=si>{</span><span class=n>col</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>key</span> <span class=ow>in</span> <span class=p>{</span><span class=n>KEY_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=p>,</span> <span class=n>KEY_LAST_IMPROVEMENT_FE</span><span class=p>,</span>
+                   <span class=n>KEY_TOTAL_FES</span><span class=p>,</span> <span class=n>KEY_TOTAL_TIME_MILLIS</span><span class=p>}:</span>
+            <span class=k>return</span> <span class=n>__TIME_NUMBER_RENDERER</span>
+    <span class=k>return</span> <span class=n>DEFAULT_NUMBER_RENDERER</span></div>
+
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__getter</span><span class=p>(</span><span class=n>s</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=n>Callable</span><span class=p>[[</span><span class=n>EndStatistics</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Obtain a getter for the end statistics.</span>
+
+<span class=sd>    :param s: the name</span>
+<span class=sd>    :returns: the getter</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=s2>"getter name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=n>getter</span> <span class=o>=</span> <span class=n>es_getter</span><span class=p>(</span><span class=n>s</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>__fixed</span><span class=p>(</span><span class=n>e</span><span class=p>:</span> <span class=n>EndStatistics</span><span class=p>,</span> <span class=n>g</span><span class=o>=</span><span class=n>getter</span><span class=p>,</span> <span class=n>n</span><span class=o>=</span><span class=n>s</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>res</span> <span class=o>=</span> <span class=n>g</span><span class=p>(</span><span class=n>e</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>res</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>return</span> <span class=kc>None</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>res</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>res</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"result of getter </span><span class=si>{</span><span class=n>n</span><span class=si>!r}</span><span class=s2> for statistic </span><span class=si>{</span><span class=n>e</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+                             <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=k>return</span> <span class=n>res</span>
+    <span class=k>return</span> <span class=n>__fixed</span>
+
+
+<span class=c1>#: the default algorithm-instance statistics</span>
+<span class=n>DEFAULT_ALGORITHM_INSTANCE_STATISTICS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span>
+    <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span>
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_BEST_F</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_MINIMUM</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_BEST_F</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_MEAN_ARITH</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_BEST_F</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_STDDEV</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_BEST_F_SCALED</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_MEAN_ARITH</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_LAST_IMPROVEMENT_FE</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_MEAN_ARITH</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+    <span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}</span><span class=s2>"</span>
+     <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_MEAN_ARITH</span><span class=si>}</span><span class=s2>"</span><span class=p>))</span>
+
+<span class=c1>#: the default algorithm summary statistics</span>
+<span class=n>DEFAULT_ALGORITHM_SUMMARY_STATISTICS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span>
+    <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span>
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_BEST_F_SCALED</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_MINIMUM</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_BEST_F_SCALED</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_MEAN_GEOM</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_BEST_F_SCALED</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_MAXIMUM</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_BEST_F_SCALED</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_STDDEV</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_LAST_IMPROVEMENT_FE</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_MEAN_ARITH</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+    <span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}</span><span class=s2>"</span>
+     <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_MEAN_ARITH</span><span class=si>}</span><span class=s2>"</span><span class=p>))</span>
+
+
+<div class=viewcode-block id=tabulate_end_results>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.tabulate_end_results.tabulate_end_results>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>tabulate_end_results</span><span class=p>(</span>
+        <span class=n>end_results</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>EndResult</span><span class=p>],</span>
+        <span class=n>file_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"table"</span><span class=p>,</span>
+        <span class=n>dir_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"."</span><span class=p>,</span>
+        <span class=n>algorithm_instance_statistics</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span>
+        <span class=n>DEFAULT_ALGORITHM_INSTANCE_STATISTICS</span><span class=p>,</span>
+        <span class=n>algorithm_summary_statistics</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span>
+        <span class=n>DEFAULT_ALGORITHM_SUMMARY_STATISTICS</span><span class=p>,</span>
+        <span class=n>text_format_driver</span><span class=p>:</span> <span class=n>TextFormatDriver</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[],</span> <span class=n>TextFormatDriver</span><span class=p>]</span>
+        <span class=o>=</span> <span class=n>Markdown</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span>
+        <span class=n>algorithm_sort_key</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>a</span><span class=p>:</span> <span class=n>a</span><span class=p>,</span>
+        <span class=n>instance_sort_key</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>i</span><span class=p>:</span> <span class=n>i</span><span class=p>,</span>
+        <span class=n>col_namer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>default_column_namer</span><span class=p>,</span>
+        <span class=n>col_best</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]],</span>
+            <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=n>default_column_best</span><span class=p>,</span>
+        <span class=n>col_renderer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=n>NumberRenderer</span><span class=p>]</span> <span class=o>=</span>
+        <span class=n>default_number_renderer</span><span class=p>,</span>
+        <span class=n>put_lower_bound</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+        <span class=n>lower_bound_getter</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>EndStatistics</span><span class=p>],</span>
+                                     <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span>
+        <span class=n>__getter</span><span class=p>(</span><span class=n>KEY_GOAL_F</span><span class=p>),</span>
+        <span class=n>lower_bound_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>__KEY_LOWER_BOUND</span><span class=p>,</span>
+        <span class=n>use_lang</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+        <span class=n>instance_namer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>,</span>
+        <span class=n>algorithm_namer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>)</span> <span class=o>-></span> <span class=n>Path</span><span class=p>:</span>
+<span class=w>    </span><span class=sa>r</span><span class=sd>"""</span>
+<span class=sd>    Tabulate the statistics about the end results of an experiment.</span>
+
+<span class=sd>    A two-part table is produced. In the first part, it presents summary</span>
+<span class=sd>    statistics about each instance-algorithm combination, sorted by instance.</span>
+<span class=sd>    In the second part, it presents summary statistics of the algorithms over</span>
+<span class=sd>    all instances. The following default columns are provided:</span>
+
+<span class=sd>    1. Part 1: Algorithm-Instance statistics</span>
+<span class=sd>        - `I`: the instance name</span>
+<span class=sd>        - `lb(f)`: the lower bound of the objective value of</span>
+<span class=sd>          the instance</span>
+<span class=sd>        - `setup`: the name of the algorithm or algorithm setup</span>
+<span class=sd>        - `best`: the best objective value reached by any run on that instance</span>
+<span class=sd>        - `mean`: the arithmetic mean of the best objective values reached</span>
+<span class=sd>          over all runs</span>
+<span class=sd>        - `sd`: the standard deviation of the best objective values reached</span>
+<span class=sd>          over all runs</span>
+<span class=sd>        - `mean1`: the arithmetic mean of the best objective values reached</span>
+<span class=sd>          over all runs, divided by the lower bound (or goal objective value)</span>
+<span class=sd>        - `mean(FE/ms)`: the arithmetic mean of objective function evaluations</span>
+<span class=sd>           performed per millisecond, over all runs</span>
+<span class=sd>        - `mean(t)`: the arithmetic mean of the time in milliseconds when the</span>
+<span class=sd>          last improving move of a run was applied, over all runs</span>
+
+<span class=sd>    2. Part 2: Algorithm Summary Statistics</span>
+<span class=sd>        - `setup`: the name of the algorithm or algorithm setup</span>
+<span class=sd>        - `best1`: the minimum of the best objective values reached divided by</span>
+<span class=sd>          the lower bound (or goal objective value) over all runs</span>
+<span class=sd>        - `gmean1`: the geometric mean of the best objective values reached</span>
+<span class=sd>           divided by the lower bound (or goal objective value) over all runs</span>
+<span class=sd>        - `worst1`: the maximum of the best objective values reached divided</span>
+<span class=sd>          by the lower bound (or goal objective value) over all runs</span>
+<span class=sd>        - `sd1`: the standard deviation of the best objective values reached</span>
+<span class=sd>           divided by the lower bound (or goal objective value) over all runs</span>
+<span class=sd>        - `gmean(FE/ms)`: the geometric mean of objective function evaluations</span>
+<span class=sd>          performed per millisecond, over all runs</span>
+<span class=sd>        - `gmean(t)`: the geometric mean of the time in milliseconds when the</span>
+<span class=sd>          last improving move of a run was applied, over all runs</span>
+
+<span class=sd>    You can freely configure which columns you want for each part and whether</span>
+<span class=sd>    you want to have the second part included. Also, for each group of values,</span>
+<span class=sd>    the best one is marked in bold face.</span>
+
+<span class=sd>    Depending on the parameter `text_format_driver`, the tables can be</span>
+<span class=sd>    rendered in different formats, such as</span>
+<span class=sd>    :py:class:`~moptipy.utils.markdown.Markdown`,</span>
+<span class=sd>    :py:class:`~moptipy.utils.latex.LaTeX`, and</span>
+<span class=sd>    :py:class:`~moptipy.utils.html.HTML`.</span>
+
+<span class=sd>    :param end_results: the end results data</span>
+<span class=sd>    :param file_name: the base file name</span>
+<span class=sd>    :param dir_name: the base directory</span>
+<span class=sd>    :param algorithm_instance_statistics: the statistics to print</span>
+<span class=sd>    :param algorithm_summary_statistics: the summary statistics to print per</span>
+<span class=sd>        algorithm</span>
+<span class=sd>    :param text_format_driver: the text format driver</span>
+<span class=sd>    :param algorithm_sort_key: a function returning sort keys for algorithms</span>
+<span class=sd>    :param instance_sort_key: a function returning sort keys for instances</span>
+<span class=sd>    :param col_namer: the column namer function</span>
+<span class=sd>    :param col_best: the column-best getter function</span>
+<span class=sd>    :param col_renderer: the number renderer for the column</span>
+<span class=sd>    :param put_lower_bound: should we put the lower bound or goal objective</span>
+<span class=sd>        value?</span>
+<span class=sd>    :param lower_bound_getter: the getter for the lower bound</span>
+<span class=sd>    :param lower_bound_name: the name key for the lower bound to be passed</span>
+<span class=sd>        to `col_namer`</span>
+<span class=sd>    :param use_lang: should we use the language to define the filename?</span>
+<span class=sd>    :param instance_namer: the name function for instances receives an</span>
+<span class=sd>        instance ID and returns an instance name; default=identity function</span>
+<span class=sd>    :param algorithm_namer: the name function for algorithms receives an</span>
+<span class=sd>        algorithm ID and returns an instance name; default=identity function</span>
+<span class=sd>    :returns: the path to the file with the tabulated end results</span>
+<span class=sd>    """</span>
+    <span class=c1># Before doing anything, let's do some type checking on the parameters.</span>
+    <span class=c1># I want to ensure that this function is called correctly before we begin</span>
+    <span class=c1># to actually process the data. It is better to fail early than to deliver</span>
+    <span class=c1># some incorrect results.</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>end_results</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>end_results</span><span class=p>,</span> <span class=s2>"end_results"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>file_name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>file_name</span><span class=p>,</span> <span class=s2>"file_name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dir_name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>dir_name</span><span class=p>,</span> <span class=s2>"dir_name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm_instance_statistics</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm_instance_statistics</span><span class=p>,</span>
+                         <span class=s2>"algorithm_instance_statistics"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>algorithm_summary_statistics</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span>\
+            <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm_instance_statistics</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm_summary_statistics</span><span class=p>,</span>
+                         <span class=s2>"algorithm_summary_statistics"</span><span class=p>,</span> <span class=p>(</span><span class=n>Iterable</span><span class=p>,</span> <span class=kc>None</span><span class=p>))</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>put_lower_bound</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>put_lower_bound</span><span class=p>,</span> <span class=s2>"put_lower_bound"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>put_lower_bound</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>lower_bound_getter</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>lower_bound_getter</span><span class=p>,</span> <span class=s2>"lower_bound_getter"</span><span class=p>,</span>
+                             <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lower_bound_name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>lower_bound_name</span><span class=p>,</span> <span class=s2>"lower_bound_name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>text_format_driver</span><span class=p>):</span>
+        <span class=n>text_format_driver</span> <span class=o>=</span> <span class=n>text_format_driver</span><span class=p>()</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>text_format_driver</span><span class=p>,</span> <span class=n>TextFormatDriver</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>text_format_driver</span><span class=p>,</span> <span class=s2>"text_format_driver"</span><span class=p>,</span>
+                         <span class=n>TextFormatDriver</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>col_namer</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>col_namer</span><span class=p>,</span> <span class=s2>"col_namer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>col_best</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>col_best</span><span class=p>,</span> <span class=s2>"col_best"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>col_renderer</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>col_renderer</span><span class=p>,</span> <span class=s2>"col_renderer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>use_lang</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>use_lang</span><span class=p>,</span> <span class=s2>"use_lang"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>algorithm_namer</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm_namer</span><span class=p>,</span> <span class=s2>"algorithm_namer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>instance_namer</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instance_namer</span><span class=p>,</span> <span class=s2>"instance_namer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=c1># quick protection of renderer</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>__col_renderer</span><span class=p>(</span><span class=n>col</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>__fwd</span><span class=o>=</span><span class=n>col_renderer</span><span class=p>)</span> <span class=o>-></span> <span class=n>NumberRenderer</span><span class=p>:</span>
+        <span class=n>res</span> <span class=o>=</span> <span class=n>__fwd</span><span class=p>(</span><span class=n>col</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>res</span><span class=p>,</span> <span class=n>NumberRenderer</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>res</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"col_renderer(</span><span class=si>{</span><span class=n>col</span><span class=si>!r}</span><span class=s2>)"</span><span class=p>,</span> <span class=n>NumberRenderer</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>res</span>
+
+    <span class=c1># get the getters</span>
+    <span class=n>algo_inst_getters</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>EndStatistics</span><span class=p>],</span>
+                                           <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]]]</span> <span class=o>=</span> \
+        <span class=p>[</span><span class=n>__getter</span><span class=p>(</span><span class=n>d</span><span class=p>)</span> <span class=k>for</span> <span class=n>d</span> <span class=ow>in</span> <span class=n>algorithm_instance_statistics</span><span class=p>]</span>
+    <span class=n>n_algo_inst_getters</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>algo_inst_getters</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>n_algo_inst_getters</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"algorithm-instance dimensions must not be empty."</span><span class=p>)</span>
+    <span class=n>algo_getters</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>EndStatistics</span><span class=p>],</span>
+                                      <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> \
+        <span class=p>(</span><span class=kc>None</span> <span class=k>if</span> <span class=p>(</span><span class=n>algorithm_summary_statistics</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span>
+         <span class=k>else</span> <span class=p>[</span><span class=kc>None</span> <span class=k>if</span> <span class=p>(</span><span class=n>d</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=k>else</span> <span class=n>__getter</span><span class=p>(</span><span class=n>d</span><span class=p>)</span>
+               <span class=k>for</span> <span class=n>d</span> <span class=ow>in</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Iterable"</span><span class=p>,</span> <span class=n>algorithm_summary_statistics</span><span class=p>)])</span>
+    <span class=k>if</span> <span class=n>algo_getters</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>algo_getters</span><span class=p>)</span> <span class=o>!=</span> <span class=n>n_algo_inst_getters</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"there are </span><span class=si>{</span><span class=n>n_algo_inst_getters</span><span class=si>}</span><span class=s2> algorithm-instance columns,"</span>
+                <span class=sa>f</span><span class=s2>" but </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>algo_getters</span><span class=p>)</span><span class=si>}</span><span class=s2> algorithms summary columns."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>all</span><span class=p>(</span><span class=n>g</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>for</span> <span class=n>g</span> <span class=ow>in</span> <span class=n>algo_getters</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=s2>"if all elements of algorithm_summary_statistics are None, "</span>
+                <span class=s2>"then specify algorithm_summary_statistics=None"</span><span class=p>)</span>
+
+    <span class=c1># gather the statistics for each algorithm-instance combination</span>
+    <span class=n>algo_inst_list</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>EndStatistics</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>es_from_end_results</span><span class=p>(</span>
+        <span class=n>end_results</span><span class=p>))</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>algo_inst_list</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"no algorithm-instance combinations?"</span><span class=p>)</span>
+    <span class=c1># get the sorted lists of algorithms and instances</span>
+    <span class=n>insts</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>({</span><span class=n>s</span><span class=o>.</span><span class=n>instance</span> <span class=k>for</span> <span class=n>s</span> <span class=ow>in</span> <span class=n>algo_inst_list</span><span class=p>},</span>
+                                     <span class=n>key</span><span class=o>=</span><span class=n>instance_sort_key</span><span class=p>)</span>
+    <span class=n>n_insts</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>insts</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>n_insts</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"no instance found?"</span><span class=p>)</span>
+    <span class=n>inst_names</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[</span><span class=n>instance_namer</span><span class=p>(</span><span class=n>inst</span><span class=p>)</span> <span class=k>for</span> <span class=n>inst</span> <span class=ow>in</span> <span class=n>insts</span><span class=p>]</span>
+    <span class=n>algos</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>({</span><span class=n>s</span><span class=o>.</span><span class=n>algorithm</span> <span class=k>for</span> <span class=n>s</span> <span class=ow>in</span> <span class=n>algo_inst_list</span><span class=p>},</span>
+                                     <span class=n>key</span><span class=o>=</span><span class=n>algorithm_sort_key</span><span class=p>)</span>
+    <span class=n>n_algos</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>algos</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>n_algos</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"no algos found?"</span><span class=p>)</span>
+    <span class=n>algo_names</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[</span><span class=n>algorithm_namer</span><span class=p>(</span><span class=n>algo</span><span class=p>)</span> <span class=k>for</span> <span class=n>algo</span> <span class=ow>in</span> <span class=n>algos</span><span class=p>]</span>
+
+    <span class=c1># finalize the data dictionaries: d[inst][algo] = stats</span>
+    <span class=n>algo_inst_dict</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>EndStatistics</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>{}</span>
+    <span class=k>for</span> <span class=n>e</span> <span class=ow>in</span> <span class=n>algo_inst_list</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>e</span><span class=o>.</span><span class=n>instance</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>algo_inst_dict</span><span class=p>:</span>
+            <span class=n>algo_inst_dict</span><span class=p>[</span><span class=n>e</span><span class=o>.</span><span class=n>instance</span><span class=p>]</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=n>algo_inst_dict</span><span class=p>[</span><span class=n>e</span><span class=o>.</span><span class=n>instance</span><span class=p>][</span><span class=n>e</span><span class=o>.</span><span class=n>algorithm</span><span class=p>]</span> <span class=o>=</span> <span class=n>e</span>
+    <span class=k>for</span> <span class=n>ina</span> <span class=ow>in</span> <span class=n>insts</span><span class=p>:</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>algo_inst_dict</span><span class=p>[</span><span class=n>ina</span><span class=p>])</span> <span class=o>!=</span> <span class=n>n_algos</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"expected </span><span class=si>{</span><span class=n>n_algos</span><span class=si>}</span><span class=s2> entries for instance </span><span class=si>{</span><span class=n>ina</span><span class=si>!r}</span><span class=s2>, but "</span>
+                <span class=sa>f</span><span class=s2>"got only </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>algo_inst_dict</span><span class=p>[</span><span class=n>ina</span><span class=p>])</span><span class=si>}</span><span class=s2>, namely "</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>algo_inst_dict</span><span class=p>[</span><span class=n>ina</span><span class=p>]</span><span class=o>.</span><span class=n>keys</span><span class=p>()</span><span class=si>}</span><span class=s2> instead of </span><span class=si>{</span><span class=n>algos</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=c1># compute the per-instance lower bounds if we need them</span>
+    <span class=n>lower_bounds</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span>
+    <span class=k>if</span> <span class=n>put_lower_bound</span><span class=p>:</span>
+        <span class=n>lb</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=k>for</span> <span class=n>inst</span> <span class=ow>in</span> <span class=n>insts</span><span class=p>:</span>
+            <span class=n>bounds</span> <span class=o>=</span> <span class=nb>list</span><span class=p>({</span><span class=n>lower_bound_getter</span><span class=p>(</span><span class=n>d</span><span class=p>)</span>
+                           <span class=k>for</span> <span class=n>d</span> <span class=ow>in</span> <span class=n>algo_inst_dict</span><span class=p>[</span><span class=n>inst</span><span class=p>]</span><span class=o>.</span><span class=n>values</span><span class=p>()})</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>bounds</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"inconsistent lower bounds </span><span class=si>{</span><span class=n>bounds</span><span class=si>}</span><span class=s2> for "</span>
+                                 <span class=sa>f</span><span class=s2>"instance </span><span class=si>{</span><span class=n>inst</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>lb</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>bounds</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span>
+        <span class=n>lower_bounds</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"list[str]"</span><span class=p>,</span> <span class=n>__col_renderer</span><span class=p>(</span>
+            <span class=n>__KEY_LOWER_BOUND</span><span class=p>)</span><span class=o>.</span><span class=n>render</span><span class=p>(</span><span class=n>lb</span><span class=p>))</span>
+        <span class=k>del</span> <span class=n>lb</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=n>lower_bounds</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=k>del</span> <span class=n>algo_inst_list</span>
+
+    <span class=c1># gather the algorithm summary statistics</span>
+    <span class=n>algo_dict</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>EndStatistics</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=p>{}</span> \
+        <span class=k>if</span> <span class=p>(</span><span class=n>n_insts</span> <span class=o>></span> <span class=mi>1</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>algo_getters</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=k>else</span> <span class=kc>None</span>
+    <span class=k>if</span> <span class=n>algo_dict</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>for</span> <span class=n>es</span> <span class=ow>in</span> <span class=n>es_from_end_results</span><span class=p>(</span><span class=n>end_results</span><span class=p>,</span> <span class=n>join_all_instances</span><span class=o>=</span><span class=kc>True</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>es</span><span class=o>.</span><span class=n>algorithm</span> <span class=ow>in</span> <span class=n>algo_dict</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"already encountered </span><span class=si>{</span><span class=n>es</span><span class=o>.</span><span class=n>algorithm</span><span class=si>}</span><span class=s2>?"</span><span class=p>)</span>
+            <span class=n>algo_dict</span><span class=p>[</span><span class=n>es</span><span class=o>.</span><span class=n>algorithm</span><span class=p>]</span> <span class=o>=</span> <span class=n>es</span>
+    <span class=k>del</span> <span class=n>end_results</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>algo_dict</span><span class=p>)</span> <span class=o>!=</span> <span class=n>n_algos</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"there are </span><span class=si>{</span><span class=n>n_algos</span><span class=si>}</span><span class=s2> algorithms, but in the "</span>
+                         <span class=sa>f</span><span class=s2>"summary, only </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>algo_dict</span><span class=p>)</span><span class=si>}</span><span class=s2> appear?"</span><span class=p>)</span>
+
+    <span class=c1># set up column titles</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>__fix_name</span><span class=p>(</span><span class=n>s</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>nn</span><span class=o>=</span><span class=n>col_namer</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=s2>"column name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>s</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"string must not be empty!"</span><span class=p>)</span>
+        <span class=n>na</span> <span class=o>=</span> <span class=n>nn</span><span class=p>(</span><span class=n>s</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>na</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>na</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"name computed for </span><span class=si>{</span><span class=n>s</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>na</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"name computed for </span><span class=si>{</span><span class=n>s</span><span class=si>}</span><span class=s2> cannot be empty."</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>na</span>
+
+    <span class=n>algo_inst_cols</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> \
+        <span class=p>[</span><span class=n>__fix_name</span><span class=p>(</span><span class=n>s</span><span class=p>)</span> <span class=k>for</span> <span class=n>s</span> <span class=ow>in</span> <span class=n>algorithm_instance_statistics</span><span class=p>]</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>algo_inst_cols</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"no algorithm_instance columns?"</span><span class=p>)</span>
+    <span class=n>algo_cols</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> \
+        <span class=kc>None</span> <span class=k>if</span> <span class=n>algo_dict</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> \
+        <span class=p>[(</span><span class=kc>None</span> <span class=k>if</span> <span class=n>s</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>__fix_name</span><span class=p>(</span><span class=n>s</span><span class=p>))</span>
+         <span class=k>for</span> <span class=n>s</span> <span class=ow>in</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Iterable"</span><span class=p>,</span> <span class=n>algorithm_summary_statistics</span><span class=p>)]</span>
+    <span class=k>if</span> <span class=n>algo_cols</span> <span class=o>==</span> <span class=n>algo_inst_cols</span><span class=p>:</span>
+        <span class=n>algo_cols</span> <span class=o>=</span> <span class=kc>None</span>  <span class=c1># no need to repeat header if it is the same</span>
+
+    <span class=c1># set up the column definitions</span>
+    <span class=n>algo_inst_cols</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>__fix_name</span><span class=p>(</span><span class=n>KEY_ALGORITHM</span><span class=p>))</span>
+    <span class=k>if</span> <span class=n>put_lower_bound</span><span class=p>:</span>
+        <span class=n>algo_inst_cols</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>__fix_name</span><span class=p>(</span><span class=n>lower_bound_name</span><span class=p>))</span>
+    <span class=n>algo_inst_cols</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>__fix_name</span><span class=p>(</span><span class=n>KEY_INSTANCE</span><span class=p>))</span>
+
+    <span class=k>if</span> <span class=n>algo_cols</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>algo_cols</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>__fix_name</span><span class=p>(</span><span class=n>KEY_ALGORITHM</span><span class=p>))</span>
+        <span class=k>if</span> <span class=n>put_lower_bound</span><span class=p>:</span>
+            <span class=n>algo_cols</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=kc>None</span><span class=p>)</span>
+        <span class=n>algo_cols</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=kc>None</span><span class=p>)</span>
+
+    <span class=n>col_def</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=s2>"lrl"</span> <span class=k>if</span> <span class=n>put_lower_bound</span> <span class=k>else</span> <span class=s2>"ll"</span><span class=p>)</span> \
+        <span class=o>+</span> <span class=p>(</span><span class=s2>"r"</span> <span class=o>*</span> <span class=n>n_algo_inst_getters</span><span class=p>)</span>
+
+    <span class=c1># get the data columns of all columns and convert to strings</span>
+    <span class=c1># format: column -> columns data</span>
+    <span class=c1># we first need to get all the data at once to allow for a uniform</span>
+    <span class=c1># formatting via numbers_to_strings</span>
+    <span class=n>algo_inst_data_raw</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]]]</span> <span class=o>=</span>\
+        <span class=p>[[</span><span class=kc>None</span> <span class=k>if</span> <span class=n>getter</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>getter</span><span class=p>(</span><span class=n>algo_inst_dict</span><span class=p>[</span><span class=n>inst</span><span class=p>][</span><span class=n>algo</span><span class=p>])</span>
+          <span class=k>for</span> <span class=n>inst</span> <span class=ow>in</span> <span class=n>insts</span> <span class=k>for</span> <span class=n>algo</span> <span class=ow>in</span> <span class=n>algos</span><span class=p>]</span>
+         <span class=k>for</span> <span class=n>getter</span> <span class=ow>in</span> <span class=n>algo_inst_getters</span><span class=p>]</span>
+    <span class=n>algo_inst_strs_raw</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>[</span>
+        <span class=n>cast</span><span class=p>(</span><span class=s2>"list[str | None]"</span><span class=p>,</span>
+             <span class=n>__col_renderer</span><span class=p>(</span><span class=n>ais</span><span class=p>)</span><span class=o>.</span><span class=n>render</span><span class=p>(</span><span class=n>algo_inst_data_raw</span><span class=p>[</span><span class=n>i</span><span class=p>]))</span>
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>ais</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>algorithm_instance_statistics</span><span class=p>)]</span>
+
+    <span class=c1># now break the data into sections</span>
+    <span class=c1># format: column -> per-instance section -> section data</span>
+    <span class=c1># after we break the data in sections, we can mark the per-section bests</span>
+    <span class=c1># and we can flush the data to the table section-wise</span>
+    <span class=n>algo_inst_data</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]]]]</span> <span class=o>=</span> \
+        <span class=p>[[</span><span class=n>col</span><span class=p>[</span><span class=n>c</span> <span class=o>*</span> <span class=n>n_algos</span><span class=p>:(</span><span class=n>c</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>n_algos</span><span class=p>]</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_insts</span><span class=p>)]</span>
+         <span class=k>for</span> <span class=n>col</span> <span class=ow>in</span> <span class=n>algo_inst_data_raw</span><span class=p>]</span>
+    <span class=k>del</span> <span class=n>algo_inst_data_raw</span>
+    <span class=n>algo_inst_strs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]]]]</span> <span class=o>=</span> \
+        <span class=p>[[</span><span class=n>col</span><span class=p>[</span><span class=n>c</span> <span class=o>*</span> <span class=n>n_algos</span><span class=p>:(</span><span class=n>c</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>n_algos</span><span class=p>]</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_insts</span><span class=p>)]</span>
+         <span class=k>for</span> <span class=n>col</span> <span class=ow>in</span> <span class=n>algo_inst_strs_raw</span><span class=p>]</span>
+    <span class=k>del</span> <span class=n>algo_inst_strs_raw</span>
+
+    <span class=c1># now format the data, i.e., compute the per-section best value</span>
+    <span class=c1># of each column and mark it with bold face</span>
+    <span class=k>for</span> <span class=n>col_idx</span><span class=p>,</span> <span class=n>stat</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>algorithm_instance_statistics</span><span class=p>):</span>
+        <span class=n>col_n</span> <span class=o>=</span> <span class=n>algo_inst_data</span><span class=p>[</span><span class=n>col_idx</span><span class=p>]</span>
+        <span class=n>col_s</span> <span class=o>=</span> <span class=n>algo_inst_strs</span><span class=p>[</span><span class=n>col_idx</span><span class=p>]</span>
+        <span class=n>best_getter</span> <span class=o>=</span> <span class=n>col_best</span><span class=p>(</span><span class=n>stat</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>best_getter</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>best_getter</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"result of col_best for </span><span class=si>{</span><span class=n>stat</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+                             <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>chunk_idx</span><span class=p>,</span> <span class=n>chunk_n</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>col_n</span><span class=p>):</span>
+            <span class=n>chunk_s</span> <span class=o>=</span> <span class=n>col_s</span><span class=p>[</span><span class=n>chunk_idx</span><span class=p>]</span>
+            <span class=n>best</span> <span class=o>=</span> <span class=n>best_getter</span><span class=p>(</span><span class=n>chunk_n</span><span class=p>)</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>best</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isnan</span><span class=p>(</span><span class=n>best</span><span class=p>)):</span>
+                <span class=k>for</span> <span class=n>idx</span><span class=p>,</span> <span class=n>val</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>chunk_n</span><span class=p>):</span>
+                    <span class=k>if</span> <span class=n>val</span> <span class=o>==</span> <span class=n>best</span><span class=p>:</span>
+                        <span class=n>chunk_s</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span> <span class=o>=</span> <span class=n>FormattedStr</span><span class=o>.</span><span class=n>add_format</span><span class=p>(</span>
+                            <span class=n>chunk_s</span><span class=p>[</span><span class=n>idx</span><span class=p>],</span> <span class=n>bold</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>del</span> <span class=n>algo_inst_data</span>
+    <span class=k>del</span> <span class=n>algorithm_instance_statistics</span>
+
+    <span class=c1># now we pre-pend the instance and algorithm information</span>
+    <span class=n>algo_names_formatted</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span>
+        <span class=n>FormattedStr</span><span class=o>.</span><span class=n>add_format</span><span class=p>(</span><span class=n>algo</span><span class=p>,</span> <span class=n>code</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span> <span class=k>for</span> <span class=n>algo</span> <span class=ow>in</span> <span class=n>algo_names</span><span class=p>]</span>
+    <span class=n>algo_inst_strs</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=p>[</span><span class=n>algo_names_formatted</span><span class=p>]</span> <span class=o>*</span> <span class=n>n_insts</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>put_lower_bound</span><span class=p>:</span>
+        <span class=n>algo_inst_strs</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=p>[[</span><span class=n>b</span><span class=p>]</span> <span class=k>for</span> <span class=n>b</span> <span class=ow>in</span> <span class=n>lower_bounds</span><span class=p>])</span>
+    <span class=n>algo_inst_strs</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=p>[[</span>
+        <span class=n>FormattedStr</span><span class=o>.</span><span class=n>add_format</span><span class=p>(</span><span class=n>inst</span><span class=p>,</span> <span class=n>code</span><span class=o>=</span><span class=kc>True</span><span class=p>)]</span> <span class=k>for</span> <span class=n>inst</span> <span class=ow>in</span> <span class=n>inst_names</span><span class=p>])</span>
+    <span class=k>del</span> <span class=n>lower_bounds</span>
+    <span class=k>del</span> <span class=n>insts</span>
+
+    <span class=n>algo_strs</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>algo_dict</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>algorithm_summary_statistics</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>):</span>
+        <span class=c1># get the data columns of the algorithm summaries</span>
+        <span class=c1># format: column -> columns data</span>
+        <span class=n>algo_data</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]]]</span> <span class=o>=</span> \
+            <span class=p>[[</span><span class=kc>None</span> <span class=k>if</span> <span class=n>getter</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>getter</span><span class=p>(</span><span class=n>algo_dict</span><span class=p>[</span><span class=n>algo</span><span class=p>])</span>
+              <span class=k>for</span> <span class=n>algo</span> <span class=ow>in</span> <span class=n>algos</span><span class=p>]</span>
+             <span class=k>for</span> <span class=n>getter</span> <span class=ow>in</span> <span class=n>algo_getters</span><span class=p>]</span>
+        <span class=n>algo_strs</span> <span class=o>=</span> <span class=p>[</span><span class=n>cast</span><span class=p>(</span><span class=s2>"list[str]"</span><span class=p>,</span> <span class=n>__col_renderer</span><span class=p>(</span><span class=n>ass</span><span class=p>)</span><span class=o>.</span><span class=n>render</span><span class=p>(</span>
+            <span class=n>algo_data</span><span class=p>[</span><span class=n>i</span><span class=p>]))</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>ass</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span>
+            <span class=n>algorithm_summary_statistics</span><span class=p>)]</span>
+
+        <span class=c1># now format the data, i.e., compute the per-section best value</span>
+        <span class=c1># of each column and mark it with bold face</span>
+        <span class=k>for</span> <span class=n>col_idx</span><span class=p>,</span> <span class=n>stat</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>algorithm_summary_statistics</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>stat</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=k>continue</span>
+            <span class=n>acol_n</span> <span class=o>=</span> <span class=n>algo_data</span><span class=p>[</span><span class=n>col_idx</span><span class=p>]</span>
+            <span class=n>acol_s</span> <span class=o>=</span> <span class=n>algo_strs</span><span class=p>[</span><span class=n>col_idx</span><span class=p>]</span>
+            <span class=n>best_getter</span> <span class=o>=</span> <span class=n>col_best</span><span class=p>(</span><span class=n>stat</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>best_getter</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span>
+                    <span class=n>best_getter</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"result of col_best for </span><span class=si>{</span><span class=n>stat</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+            <span class=n>best</span> <span class=o>=</span> <span class=n>best_getter</span><span class=p>(</span><span class=n>acol_n</span><span class=p>)</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>best</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isnan</span><span class=p>(</span><span class=n>best</span><span class=p>)):</span>
+                <span class=k>for</span> <span class=n>idx</span><span class=p>,</span> <span class=n>val</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>acol_n</span><span class=p>):</span>
+                    <span class=k>if</span> <span class=n>val</span> <span class=o>==</span> <span class=n>best</span><span class=p>:</span>
+                        <span class=n>acol_s</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span> <span class=o>=</span> <span class=n>FormattedStr</span><span class=o>.</span><span class=n>add_format</span><span class=p>(</span>
+                            <span class=n>acol_s</span><span class=p>[</span><span class=n>idx</span><span class=p>],</span> <span class=n>bold</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=k>del</span> <span class=n>algo_data</span>
+        <span class=n>algo_strs</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>algo_names_formatted</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>put_lower_bound</span><span class=p>:</span>
+            <span class=n>algo_strs</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=p>[])</span>
+        <span class=n>algo_strs</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=p>[</span><span class=n>__fix_name</span><span class=p>(</span><span class=s2>"summary"</span><span class=p>)]</span> <span class=o>*</span> <span class=n>n_algos</span><span class=p>)</span>
+
+    <span class=c1># write the table</span>
+    <span class=n>dest</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>text_format_driver</span><span class=o>.</span><span class=n>filename</span><span class=p>(</span>
+        <span class=n>file_name</span><span class=p>,</span> <span class=n>dir_name</span><span class=p>,</span> <span class=n>use_lang</span><span class=p>)</span>
+    <span class=k>with</span> <span class=n>dest</span><span class=o>.</span><span class=n>open_for_write</span><span class=p>()</span> <span class=k>as</span> <span class=n>wd</span><span class=p>,</span> \
+            <span class=n>Table</span><span class=p>(</span><span class=n>wd</span><span class=p>,</span> <span class=n>col_def</span><span class=p>,</span> <span class=n>text_format_driver</span><span class=p>)</span> <span class=k>as</span> <span class=n>table</span><span class=p>:</span>
+        <span class=k>with</span> <span class=n>table</span><span class=o>.</span><span class=n>header</span><span class=p>()</span> <span class=k>as</span> <span class=n>head</span><span class=p>:</span>
+            <span class=n>head</span><span class=o>.</span><span class=n>full_row</span><span class=p>(</span><span class=n>algo_inst_cols</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_insts</span><span class=p>):</span>
+            <span class=k>with</span> <span class=n>table</span><span class=o>.</span><span class=n>section</span><span class=p>()</span> <span class=k>as</span> <span class=n>sec</span><span class=p>:</span>
+                <span class=n>sec</span><span class=o>.</span><span class=n>cols</span><span class=p>([</span><span class=n>col</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=k>for</span> <span class=n>col</span> <span class=ow>in</span> <span class=n>algo_inst_strs</span><span class=p>])</span>
+        <span class=k>if</span> <span class=n>algo_strs</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>with</span> <span class=n>table</span><span class=o>.</span><span class=n>section</span><span class=p>()</span> <span class=k>as</span> <span class=n>sec</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>algo_cols</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                    <span class=k>with</span> <span class=n>sec</span><span class=o>.</span><span class=n>header</span><span class=p>()</span> <span class=k>as</span> <span class=n>head</span><span class=p>:</span>
+                        <span class=n>head</span><span class=o>.</span><span class=n>full_row</span><span class=p>(</span><span class=n>algo_cols</span><span class=p>)</span>
+                <span class=n>sec</span><span class=o>.</span><span class=n>cols</span><span class=p>(</span><span class=n>algo_strs</span><span class=p>)</span>
+
+    <span class=k>return</span> <span class=n>dest</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.tabulate_end_results</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

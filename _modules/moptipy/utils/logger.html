@@ -1,0 +1,727 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.utils.logger — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/utils/logger.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.logger</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.utils.logger</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Classes for writing structured log files.</span>
+
+<span class=sd>A :class:`~Logger` offers functionality to write structured, text-based log</span>
+<span class=sd>files that can hold a variety of information. It is implemented in two</span>
+<span class=sd>flavors, :class:`~FileLogger`, which writes data to a file, and</span>
+<span class=sd>:class:`~InMemoryLogger`, which writes data to a buffer in memory (which is</span>
+<span class=sd>mainly useful for testing).</span>
+
+<span class=sd>A :class:`~Logger` can produce output in three formats:</span>
+
+<span class=sd>- :meth:`~Logger.csv` creates a section of semicolon-separated-values data</span>
+<span class=sd>  (:class:`~CsvLogSection`), which we call `csv` because it structured</span>
+<span class=sd>  basically exactly as the well-known comma-separated-values data, just</span>
+<span class=sd>  using semicolons.</span>
+<span class=sd>- :meth:`~Logger.key_values` creates a key-values section</span>
+<span class=sd>  (:class:`~KeyValueLogSection`) in YAML format. The specialty of this</span>
+<span class=sd>  section is that it permits hierarchically structuring of data by spawning</span>
+<span class=sd>  out sub-sections that are signified by a key prefix via</span>
+<span class=sd>  :meth:`~KeyValueLogSection.scope`.</span>
+<span class=sd>- :meth:`~Logger.text` creates a raw text section (:class:`~TextLogSection`),</span>
+<span class=sd>  into which raw text can be written.</span>
+
+<span class=sd>The beginning and ending of section named `XXX` are `BEGIN_XXX` and `END_XXX`.</span>
+
+<span class=sd>This class is used by the :class:`~moptipy.api.execution.Execution` and</span>
+<span class=sd>experiment-running facility (:func:`~moptipy.api.experiment.run_experiment`)</span>
+<span class=sd>to produce log files complying with</span>
+<span class=sd>https://thomasweise.github.io/moptipy/#log-files.</span>
+<span class=sd>Such log files can be parsed via :mod:`~moptipy.evaluation.log_parser`.</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>contextlib</span><span class=w> </span><span class=kn>import</span> <span class=n>AbstractContextManager</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>io</span><span class=w> </span><span class=kn>import</span> <span class=n>StringIO</span><span class=p>,</span> <span class=n>TextIOBase</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>re</span><span class=w> </span><span class=kn>import</span> <span class=n>sub</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.ds.cache</span><span class=w> </span><span class=kn>import</span> <span class=n>is_new</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.csv</span><span class=w> </span><span class=kn>import</span> <span class=n>COMMENT_START</span><span class=p>,</span> <span class=n>CSV_SEPARATOR</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span><span class=p>,</span> <span class=n>line_writer</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.strings.string_conv</span><span class=w> </span><span class=kn>import</span> <span class=n>bool_to_str</span><span class=p>,</span> <span class=n>float_to_str</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>PART_SEPARATOR</span><span class=p>,</span>
+    <span class=n>sanitize_name</span><span class=p>,</span>
+<span class=p>)</span>
+
+<span class=c1>#: the indicator of the start of a log section</span>
+<span class=n>SECTION_START</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"BEGIN_"</span>
+<span class=c1>#: the indicator of the end of a log section</span>
+<span class=n>SECTION_END</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"END_"</span>
+<span class=c1>#: the replacement for special characters</span>
+<span class=n>SPECIAL_CHAR_REPLACEMENT</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>PART_SEPARATOR</span>
+<span class=c1>#: the YAML-conform separator between a key and a value</span>
+<span class=n>KEY_VALUE_SEPARATOR</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>": "</span>
+<span class=c1>#: the hexadecimal version of a value</span>
+<span class=n>KEY_HEX_VALUE</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"(hex)"</span>
+
+
+<div class=viewcode-block id=Logger>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.logger.Logger>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Logger</span><span class=p>(</span><span class=n>AbstractContextManager</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    An abstract base class for logging data in a structured way.</span>
+
+<span class=sd>    There are two implementations of this, :class:`InMemoryLogger`, which logs</span>
+<span class=sd>    data in memory and is mainly there for testing and debugging, an</span>
+<span class=sd>    :class:`FileLogger` which logs to a text file and is to be used in</span>
+<span class=sd>    experiments with `moptipy`.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>writer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=n>Any</span><span class=p>],</span>
+                 <span class=n>closer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span><span class=p>:</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a new logger.</span>
+
+<span class=sd>        :param writer: the string writing function</span>
+<span class=sd>        :param closer: the function to be invoked when the stream is closed</span>
+<span class=sd>        :param name: the name of the logger</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=s2>"name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>writer</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>writer</span><span class=p>,</span> <span class=s2>"writer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>closer</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>closer</span><span class=p>,</span> <span class=s2>"closer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+        <span class=c1>#: The internal stream</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_writer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>writer</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_closer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>closer</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__section</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__log_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>name</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__sections</span><span class=p>:</span> <span class=n>Callable</span> <span class=o>=</span> <span class=n>is_new</span><span class=p>()</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__closer</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__enter__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Enter the logger in a `with` statement.</span>
+
+<span class=sd>        :return: `self`</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_error</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>message</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Raise a :class:`ValueError` with context information.</span>
+
+<span class=sd>        :param message: the message elements to merge</span>
+<span class=sd>        :raises ValueError: an error with the message and some context</span>
+<span class=sd>            information</span>
+<span class=sd>        """</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>message</span><span class=si>}</span><span class=s2> in logger </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__log_name</span><span class=si>!r}</span><span class=s2>."</span>
+                         <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span>
+                         <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>message</span><span class=si>}</span><span class=s2> in section </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__section</span><span class=si>!r}</span><span class=s2> "</span>
+                         <span class=sa>f</span><span class=s2>"of logger </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__log_name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__exit__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>exception_type</span><span class=p>,</span> <span class=n>exception_value</span><span class=p>,</span> <span class=n>traceback</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Close the logger after leaving the `with` statement.</span>
+
+<span class=sd>        :param exception_type: ignored</span>
+<span class=sd>        :param exception_value: ignored</span>
+<span class=sd>        :param traceback: ignored</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_error</span><span class=p>(</span><span class=s2>"Cannot close logger, because section still open"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>_closer</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_closer</span><span class=p>()</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_closer</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_writer</span> <span class=o>=</span> <span class=kc>None</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_open_section</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>title</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Open a new section.</span>
+
+<span class=sd>        :param title: the section title</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>_writer</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_error</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Cannot open section </span><span class=si>{</span><span class=n>title</span><span class=si>!r}</span><span class=s2> "</span>
+                        <span class=s2>"because logger already closed"</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_error</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Cannot open section </span><span class=si>{</span><span class=n>title</span><span class=si>!r}</span><span class=s2> because "</span>
+                        <span class=s2>"another one is open"</span><span class=p>)</span>
+
+        <span class=n>new_title</span> <span class=o>=</span> <span class=n>title</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span><span class=o>.</span><span class=n>upper</span><span class=p>()</span>
+        <span class=k>if</span> <span class=n>new_title</span> <span class=o>!=</span> <span class=n>title</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_error</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Cannot open section </span><span class=si>{</span><span class=n>title</span><span class=si>!r}</span><span class=s2> because "</span>
+                        <span class=s2>"title is invalid"</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=bp>self</span><span class=o>.</span><span class=n>__sections</span><span class=p>(</span><span class=n>title</span><span class=p>):</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_error</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Section </span><span class=si>{</span><span class=n>title</span><span class=si>!r}</span><span class=s2> already done"</span><span class=p>)</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>_writer</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SECTION_START</span><span class=si>}{</span><span class=n>title</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__closer</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SECTION_END</span><span class=si>}{</span><span class=n>title</span><span class=si>}</span><span class=s2>"</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__section</span> <span class=o>=</span> <span class=n>title</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_close_section</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>title</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Close a section.</span>
+
+<span class=sd>        :param title: the section title</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__section</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__section</span> <span class=o>!=</span> <span class=n>title</span><span class=p>):</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_error</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Cannot open section </span><span class=si>{</span><span class=n>title</span><span class=si>!r}</span><span class=s2> since it is not open"</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_writer</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__closer</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__closer</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__section</span> <span class=o>=</span> <span class=kc>None</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_comment</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>comment</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Write a comment line.</span>
+
+<span class=sd>        :param comment: the comment</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_error</span><span class=p>(</span><span class=s2>"Cannot write if not inside section"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>comment</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>return</span>
+        <span class=n>comment</span> <span class=o>=</span> <span class=n>sub</span><span class=p>(</span><span class=sa>r</span><span class=s2>"\s+"</span><span class=p>,</span> <span class=s2>" "</span><span class=p>,</span> <span class=n>comment</span><span class=o>.</span><span class=n>strip</span><span class=p>())</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_writer</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>COMMENT_START</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>comment</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_write</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>text</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Write a string.</span>
+
+<span class=sd>        :param text: the text to write</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_error</span><span class=p>(</span><span class=s2>"Cannot write if not inside section"</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>text</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>return</span>
+
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__closer</span> <span class=ow>in</span> <span class=n>text</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_error</span><span class=p>(</span><span class=sa>f</span><span class=s2>"String </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__closer</span><span class=si>!r}</span><span class=s2> "</span>
+                        <span class=s2>"must not be contained in output"</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>COMMENT_START</span> <span class=ow>in</span> <span class=n>text</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>COMMENT_START</span><span class=si>!r}</span><span class=s2> not permitted in text </span><span class=si>{</span><span class=n>text</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_writer</span><span class=p>(</span><span class=n>text</span><span class=p>)</span>
+
+<div class=viewcode-block id=Logger.key_values>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.logger.Logger.key_values>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>key_values</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>title</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"KeyValueLogSection"</span><span class=p>:</span>
+<span class=w>        </span><span class=sa>r</span><span class=sd>"""</span>
+<span class=sd>        Create a log section for key-value pairs.</span>
+
+<span class=sd>        The contents of such a section will be valid YAML mappings, i.w.,</span>
+<span class=sd>        conform to</span>
+<span class=sd>        https://yaml.org/spec/1.2/spec.html#mapping.</span>
+<span class=sd>        This means they can be parsed with a YAML parser (after removing the</span>
+<span class=sd>        section start and end marker, of course).</span>
+
+<span class=sd>        :param title: the title of the new section</span>
+<span class=sd>        :return: the new logger</span>
+
+<span class=sd>        >>> from pycommons.io.temp import temp_file</span>
+<span class=sd>        >>> with temp_file() as t:</span>
+<span class=sd>        ...     with FileLogger(str(t)) as l:</span>
+<span class=sd>        ...         with l.key_values("B") as kv:</span>
+<span class=sd>        ...             kv.key_value("a", "b")</span>
+<span class=sd>        ...             with kv.scope("c") as kvc:</span>
+<span class=sd>        ...                 kvc.key_value("d", 12)</span>
+<span class=sd>        ...                 kvc.key_value("e", True)</span>
+<span class=sd>        ...             kv.key_value("f", 3)</span>
+<span class=sd>        ...     text = open(str(t), "r").read().splitlines()</span>
+<span class=sd>        >>> print(text)</span>
+<span class=sd>        ['BEGIN_B', 'a: b', 'c.d: 12', 'c.e: T', 'f: 3', 'END_B']</span>
+<span class=sd>        >>> import yaml</span>
+<span class=sd>        >>> dic = yaml.safe_load("\n".join(text[1:5]))</span>
+<span class=sd>        >>> print(list(dic.keys()))</span>
+<span class=sd>        ['a', 'c.d', 'c.e', 'f']</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>KeyValueLogSection</span><span class=p>(</span><span class=n>title</span><span class=o>=</span><span class=n>title</span><span class=p>,</span> <span class=n>logger</span><span class=o>=</span><span class=bp>self</span><span class=p>,</span> <span class=n>prefix</span><span class=o>=</span><span class=s2>""</span><span class=p>,</span>
+                                  <span class=n>done</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=Logger.csv>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.logger.Logger.csv>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>csv</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>title</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>header</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=s2>"CsvLogSection"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a log section for CSV data with `;` as column separator.</span>
+
+<span class=sd>        The first line will be the headline with the column names.</span>
+
+<span class=sd>        :param title: the title of the new section</span>
+<span class=sd>        :param header: the list of column titles</span>
+<span class=sd>        :return: the new logger</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import FileLogger</span>
+<span class=sd>        >>> from pycommons.io.temp import temp_file</span>
+<span class=sd>        >>> with temp_file() as t:</span>
+<span class=sd>        ...     with FileLogger(str(t)) as l:</span>
+<span class=sd>        ...         with l.csv("A", ["x", "y"]) as csv:</span>
+<span class=sd>        ...             csv.row([1,2])</span>
+<span class=sd>        ...             csv.row([3,4])</span>
+<span class=sd>        ...             csv.row([4, 12])</span>
+<span class=sd>        ...     text = open(str(t), "r").read().splitlines()</span>
+<span class=sd>        ...     print(text)</span>
+<span class=sd>        ['BEGIN_A', 'x;y', '1;2', '3;4', '4;12', 'END_A']</span>
+<span class=sd>        >>> import csv</span>
+<span class=sd>        >>> for r in csv.reader(text[1:5], delimiter=";"):</span>
+<span class=sd>        ...     print(r)</span>
+<span class=sd>        ['x', 'y']</span>
+<span class=sd>        ['1', '2']</span>
+<span class=sd>        ['3', '4']</span>
+<span class=sd>        ['4', '12']</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>CsvLogSection</span><span class=p>(</span><span class=n>title</span><span class=o>=</span><span class=n>title</span><span class=p>,</span> <span class=n>logger</span><span class=o>=</span><span class=bp>self</span><span class=p>,</span> <span class=n>header</span><span class=o>=</span><span class=n>header</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=Logger.text>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.logger.Logger.text>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>text</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>title</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"TextLogSection"</span><span class=p>:</span>
+<span class=w>        </span><span class=sa>r</span><span class=sd>"""</span>
+<span class=sd>        Create a log section for unstructured text.</span>
+
+<span class=sd>        :param title: the title of the new section</span>
+<span class=sd>        :return: the new logger</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.text("C") as tx:</span>
+<span class=sd>        ...         tx.write("aaaaaa")</span>
+<span class=sd>        ...         tx.write("bbbbb")</span>
+<span class=sd>        ...         tx.write("\n")</span>
+<span class=sd>        ...         tx.write("ccccc")</span>
+<span class=sd>        ...     print(l.get_log())</span>
+<span class=sd>        ['BEGIN_C', 'aaaaaa', 'bbbbb', '', 'ccccc', 'END_C']</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>TextLogSection</span><span class=p>(</span><span class=n>title</span><span class=o>=</span><span class=n>title</span><span class=p>,</span> <span class=n>logger</span><span class=o>=</span><span class=bp>self</span><span class=p>)</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=FileLogger>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.logger.FileLogger>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>FileLogger</span><span class=p>(</span><span class=n>Logger</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A logger logging to a file."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the logger.</span>
+
+<span class=sd>        :param path: the path to the file to open</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>path</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>path</span><span class=p>,</span> <span class=s2>"path"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=n>name</span> <span class=o>=</span> <span class=n>path</span>
+        <span class=n>tio</span><span class=p>:</span> <span class=n>TextIOBase</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>path</span><span class=p>)</span><span class=o>.</span><span class=n>open_for_write</span><span class=p>()</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=n>line_writer</span><span class=p>(</span><span class=n>tio</span><span class=p>),</span> <span class=n>tio</span><span class=o>.</span><span class=n>close</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=PrintLogger>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.logger.PrintLogger>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>PrintLogger</span><span class=p>(</span><span class=n>Logger</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A logger logging to stdout."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize the logger."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=s2>"printer"</span><span class=p>,</span> <span class=nb>print</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=InMemoryLogger>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.logger.InMemoryLogger>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>InMemoryLogger</span><span class=p>(</span><span class=n>Logger</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A logger logging to a string in memory."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize the logger."""</span>
+        <span class=c1>#: the internal stream</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>StringIO</span><span class=p>]</span> <span class=o>=</span> <span class=n>StringIO</span><span class=p>()</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=s2>"in-memory-logger"</span><span class=p>,</span> <span class=n>line_writer</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>))</span>
+
+<div class=viewcode-block id=InMemoryLogger.get_log>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.logger.InMemoryLogger.get_log>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_log</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Obtain all the lines logged to this logger.</span>
+
+<span class=sd>        :return: a list of strings with the logged lines</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"StringIO"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>)</span><span class=o>.</span><span class=n>getvalue</span><span class=p>()</span><span class=o>.</span><span class=n>splitlines</span><span class=p>()</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=LogSection>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.logger.LogSection>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>LogSection</span><span class=p>(</span><span class=n>AbstractContextManager</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""An internal base class for logger sections."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>title</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>Logger</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Perform internal construction. Do not call directly.</span>
+
+<span class=sd>        :param title: the section title</span>
+<span class=sd>        :param logger: the logger</span>
+<span class=sd>        """</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_logger</span><span class=p>:</span> <span class=n>Logger</span> <span class=o>=</span> <span class=n>logger</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_title</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>title</span>
+        <span class=k>if</span> <span class=n>title</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=c1># noinspection PyProtectedMember</span>
+            <span class=n>logger</span><span class=o>.</span><span class=n>_open_section</span><span class=p>(</span><span class=n>title</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__enter__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Enter the context: needed for the `with` statement.</span>
+
+<span class=sd>        :return: `self`</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__exit__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>exception_type</span><span class=p>,</span> <span class=n>exception_value</span><span class=p>,</span> <span class=n>traceback</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Exit the `with` statement.</span>
+
+<span class=sd>        :param exception_type: ignored</span>
+<span class=sd>        :param exception_value: ignored</span>
+<span class=sd>        :param traceback: ignored</span>
+<span class=sd>        :return: ignored</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>_title</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=c1># noinspection PyProtectedMember</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_logger</span><span class=o>.</span><span class=n>_close_section</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_title</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_title</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_logger</span> <span class=o>=</span> <span class=kc>None</span>
+
+<div class=viewcode-block id=LogSection.comment>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.logger.LogSection.comment>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>comment</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>comment</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Write a comment line.</span>
+
+<span class=sd>        A comment starts with `#` and is followed by text.</span>
+
+<span class=sd>        :param comment: the comment to write</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.text("A") as tx:</span>
+<span class=sd>        ...         tx.write("aaaaaa")</span>
+<span class=sd>        ...         tx.comment("hello")</span>
+<span class=sd>        ...     print(l.get_log())</span>
+<span class=sd>        ['BEGIN_A', 'aaaaaa', '# hello', 'END_A']</span>
+<span class=sd>        """</span>
+        <span class=c1># noinspection PyProtectedMember</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_logger</span><span class=o>.</span><span class=n>_comment</span><span class=p>(</span><span class=n>comment</span><span class=p>)</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=CsvLogSection>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.logger.CsvLogSection>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>CsvLogSection</span><span class=p>(</span><span class=n>LogSection</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A logger that is designed to output CSV data.</span>
+
+<span class=sd>    The coma-separated-values log is actually a semicolon-separated-values</span>
+<span class=sd>    log. This form of logging is used to store progress information or</span>
+<span class=sd>    time series data, as captured by the optimization</span>
+<span class=sd>    :class:`~moptipy.api.process.Process` and activated by, e.g., the methods</span>
+<span class=sd>    :meth:`~moptipy.api.execution.Execution.set_log_improvements` and</span>
+<span class=sd>    :meth:`~moptipy.api.execution.Execution.set_log_all_fes`. It will look</span>
+<span class=sd>    like this:</span>
+
+<span class=sd>    >>> with InMemoryLogger() as logger:</span>
+<span class=sd>    ...     with logger.csv("CSV", ["A", "B", "C"]) as csv:</span>
+<span class=sd>    ...         csv.row((1, 2, 3))</span>
+<span class=sd>    ...         csv.row([1.5, 2.0, 3.5])</span>
+<span class=sd>    ...     print(logger.get_log())</span>
+<span class=sd>    ['BEGIN_CSV', 'A;B;C', '1;2;3', '1.5;2;3.5', 'END_CSV']</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>title</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>Logger</span><span class=p>,</span> <span class=n>header</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Perform internal construction. Do not call directly.</span>
+
+<span class=sd>        :param title: the title</span>
+<span class=sd>        :param logger: the owning logger</span>
+<span class=sd>        :param header: the header</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>title</span><span class=p>,</span> <span class=n>logger</span><span class=p>)</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>__header_len</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>header</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__header_len</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=c1># noinspection PyProtectedMember</span>
+            <span class=n>logger</span><span class=o>.</span><span class=n>_error</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Empty header </span><span class=si>{</span><span class=n>header</span><span class=si>}</span><span class=s2> invalid for a CSV section"</span><span class=p>)</span>
+
+        <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>header</span><span class=p>:</span>
+            <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=p>(</span><span class=nb>isinstance</span><span class=p>(</span><span class=n>c</span><span class=p>,</span> <span class=nb>str</span><span class=p>)))</span> <span class=ow>or</span> <span class=n>CSV_SEPARATOR</span> <span class=ow>in</span> <span class=n>c</span><span class=p>:</span>
+                <span class=c1># noinspection PyProtectedMember</span>
+                <span class=n>logger</span><span class=o>.</span><span class=n>_error</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid column </span><span class=si>{</span><span class=n>c</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+        <span class=c1># noinspection PyProtectedMember</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>_writer</span><span class=p>(</span><span class=n>CSV_SEPARATOR</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>c</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>header</span><span class=p>))</span>
+
+<div class=viewcode-block id=CsvLogSection.row>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.logger.CsvLogSection.row>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>row</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>row</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>bool</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span>
+            <span class=o>|</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>bool</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Write a row of csv data.</span>
+
+<span class=sd>        :param row: the row of data</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__header_len</span> <span class=o>!=</span> <span class=nb>len</span><span class=p>(</span><span class=n>row</span><span class=p>):</span>
+            <span class=c1># noinspection PyProtectedMember</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_logger</span><span class=o>.</span><span class=n>_error</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"Header of CSV section demands </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__header_len</span><span class=si>}</span><span class=s2> columns, "</span>
+                <span class=sa>f</span><span class=s2>"but row </span><span class=si>{</span><span class=n>row</span><span class=si>}</span><span class=s2> has </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>row</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+        <span class=c1># noinspection PyProtectedMember</span>
+        <span class=n>txt</span> <span class=o>=</span> <span class=p>(</span><span class=n>bool_to_str</span><span class=p>(</span><span class=n>c</span><span class=p>)</span> <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>c</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>  <span class=c1># type: ignore</span>
+               <span class=k>else</span> <span class=nb>str</span><span class=p>(</span><span class=n>c</span><span class=p>)</span> <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>c</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+               <span class=k>else</span> <span class=p>(</span><span class=n>float_to_str</span><span class=p>(</span><span class=n>c</span><span class=p>)</span> <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>c</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span> <span class=k>else</span>
+               <span class=n>cast</span><span class=p>(</span><span class=s2>"None"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>_logger</span><span class=o>.</span><span class=n>_error</span><span class=p>(</span>
+                   <span class=sa>f</span><span class=s2>"Invalid log value </span><span class=si>{</span><span class=n>c</span><span class=si>}</span><span class=s2> in row </span><span class=si>{</span><span class=n>row</span><span class=si>}</span><span class=s2>"</span><span class=p>)))</span>
+               <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>row</span><span class=p>)</span>
+
+        <span class=c1># noinspection PyProtectedMember</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_logger</span><span class=o>.</span><span class=n>_write</span><span class=p>(</span><span class=n>CSV_SEPARATOR</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>txt</span><span class=p>))</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=KeyValueLogSection>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.logger.KeyValueLogSection>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>KeyValueLogSection</span><span class=p>(</span><span class=n>LogSection</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A logger for key-value pairs.</span>
+
+<span class=sd>    The key-values section `XXX` starts with the line `BEGIN_XXX` and ends</span>
+<span class=sd>    with the line `END_XXX`. On every line in between, there is a key-value</span>
+<span class=sd>    pair of the form `key: value`. Key-values sections support so-called</span>
+<span class=sd>    scopes. Key-values pairs belong to a scope `Y` if the key starts with `Y.`</span>
+<span class=sd>    followed by the actual key, e.g., `a.g: 5` denotes that the key `g` of</span>
+<span class=sd>    scope `a` has value `5`. Such scopes can be arbitrarily nested: The</span>
+<span class=sd>    key-value pair `x.y.z: 2` denotes a key `z` in the scope `y` nested within</span>
+<span class=sd>    scope `x` having the value `2`. This system of nested scopes allows you</span>
+<span class=sd>    to recursively invoke the method</span>
+<span class=sd>    :meth:`~moptipy.api.component.Component.log_parameters_to` without</span>
+<span class=sd>    worrying of key clashes. Just wrap the call to the `log_parameters_to`</span>
+<span class=sd>    method of a sub-component into a unique scope. At the same time, this</span>
+<span class=sd>    avoids the need of any more complex hierarchical data structures in our</span>
+<span class=sd>    log files.</span>
+
+<span class=sd>    >>> with InMemoryLogger() as logger:</span>
+<span class=sd>    ...     with logger.key_values("A") as kv:</span>
+<span class=sd>    ...         kv.key_value("x", 1)</span>
+<span class=sd>    ...         with kv.scope("b") as sc1:</span>
+<span class=sd>    ...             sc1.key_value("i", "j")</span>
+<span class=sd>    ...             with sc1.scope("c") as sc2:</span>
+<span class=sd>    ...                 sc2.key_value("l", 5)</span>
+<span class=sd>    ...         kv.key_value("y", True)</span>
+<span class=sd>    ...     print(logger.get_log())</span>
+<span class=sd>    ['BEGIN_A', 'x: 1', 'b.i: j', 'b.c.l: 5', 'y: T', 'END_A']</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>title</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>logger</span><span class=p>:</span> <span class=n>Logger</span><span class=p>,</span> <span class=n>prefix</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>done</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Perform internal construction, do not call directly.</span>
+
+<span class=sd>        :param title: the section title, or `None` for nested scopes.</span>
+<span class=sd>        :param logger: the owning logger</span>
+<span class=sd>        :param prefix: the prefix</span>
+<span class=sd>        :param done: the set of already done keys and prefixes</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>prefix</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>prefix</span><span class=p>,</span> <span class=s2>"prefix"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>title</span><span class=o>=</span><span class=n>title</span><span class=p>,</span> <span class=n>logger</span><span class=o>=</span><span class=n>logger</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_prefix</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>prefix</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__done</span><span class=p>:</span> <span class=n>Callable</span>
+        <span class=k>if</span> <span class=n>done</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__done</span> <span class=o>=</span> <span class=n>is_new</span><span class=p>()</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__done</span><span class=p>(</span><span class=n>prefix</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__done</span> <span class=o>=</span> <span class=n>done</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>done</span><span class=p>(</span><span class=n>prefix</span><span class=p>):</span>
+                <span class=c1># noinspection PyProtectedMember</span>
+                <span class=n>logger</span><span class=o>.</span><span class=n>_error</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Prefix </span><span class=si>{</span><span class=n>prefix</span><span class=si>!r}</span><span class=s2> already done"</span><span class=p>)</span>
+
+<div class=viewcode-block id=KeyValueLogSection.key_value>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.logger.KeyValueLogSection.key_value>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>key_value</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>key</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>value</span><span class=p>,</span>
+                  <span class=n>also_hex</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Write a key-value pair.</span>
+
+<span class=sd>        Given key `A` and value `B`, the line `A: B` will be added to the log.</span>
+<span class=sd>        If `value` (`B`) happens to be a floating point number, the value will</span>
+<span class=sd>        also be stored in hexadecimal notation (:meth:`float.hex`).</span>
+
+<span class=sd>        :param key: the key</span>
+<span class=sd>        :param value: the value</span>
+<span class=sd>        :param also_hex: also store the value as hexadecimal version</span>
+<span class=sd>        """</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_prefix</span> <span class=o>+</span> <span class=n>sanitize_name</span><span class=p>(</span><span class=n>key</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=bp>self</span><span class=o>.</span><span class=n>__done</span><span class=p>(</span><span class=n>key</span><span class=p>):</span>
+            <span class=c1># noinspection PyProtectedMember</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_logger</span><span class=o>.</span><span class=n>_error</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Key </span><span class=si>{</span><span class=n>key</span><span class=si>!r}</span><span class=s2> already used"</span><span class=p>)</span>
+
+        <span class=n>the_hex</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>value</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=n>txt</span> <span class=o>=</span> <span class=n>float_to_str</span><span class=p>(</span><span class=n>value</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>value</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>also_hex</span>
+                                    <span class=ow>or</span> <span class=p>((</span><span class=s2>"e"</span> <span class=ow>in</span> <span class=n>txt</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=s2>"."</span> <span class=ow>in</span> <span class=n>txt</span><span class=p>))):</span>
+                <span class=n>the_hex</span> <span class=o>=</span> <span class=nb>float</span><span class=o>.</span><span class=n>hex</span><span class=p>(</span><span class=n>value</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>value</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=n>txt</span> <span class=o>=</span> <span class=n>bool_to_str</span><span class=p>(</span><span class=n>value</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>txt</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>value</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>also_hex</span> <span class=ow>and</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>value</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+                <span class=n>the_hex</span> <span class=o>=</span> <span class=nb>hex</span><span class=p>(</span><span class=n>value</span><span class=p>)</span>
+
+        <span class=n>txt</span> <span class=o>=</span> <span class=n>KEY_VALUE_SEPARATOR</span><span class=o>.</span><span class=n>join</span><span class=p>([</span><span class=n>key</span><span class=p>,</span> <span class=n>txt</span><span class=p>])</span>
+        <span class=n>txt</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>txt</span><span class=si>}</span><span class=s2>"</span>
+
+        <span class=k>if</span> <span class=n>the_hex</span><span class=p>:</span>
+            <span class=n>tmp</span> <span class=o>=</span> <span class=n>KEY_VALUE_SEPARATOR</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
+                <span class=p>[</span><span class=n>key</span> <span class=o>+</span> <span class=n>KEY_HEX_VALUE</span><span class=p>,</span> <span class=n>the_hex</span><span class=p>])</span>
+            <span class=n>txt</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>txt</span><span class=si>}</span><span class=se>\n</span><span class=si>{</span><span class=n>tmp</span><span class=si>}</span><span class=s2>"</span>
+
+        <span class=c1># noinspection PyProtectedMember</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_logger</span><span class=o>.</span><span class=n>_writer</span><span class=p>(</span><span class=n>txt</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=KeyValueLogSection.scope>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.logger.KeyValueLogSection.scope>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>scope</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>prefix</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"KeyValueLogSection"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a new scope for key prefixes.</span>
+
+<span class=sd>        :class:`KeyValueLogSection` only allows you to store flat key-value</span>
+<span class=sd>        pairs where each key must be unique. However, what do we do if we</span>
+<span class=sd>        have two components of an algorithm that have parameters with the</span>
+<span class=sd>        same name (key)?</span>
+<span class=sd>        We can hierarchically nest :class:`KeyValueLogSection` sections via</span>
+<span class=sd>        prefix scopes. The idea is as follows: If one component has</span>
+<span class=sd>        sub-components, instead of invoking their</span>
+<span class=sd>        :meth:`~moptipy.api.component.Component.log_parameters_to` methods</span>
+<span class=sd>        directly, which could lead to key-clashes, it will create a</span>
+<span class=sd>        :meth:`scope` for each one and then pass these scopes to their</span>
+<span class=sd>        :meth:`~moptipy.api.component.Component.log_parameters_to`.</span>
+<span class=sd>        Each scope basically appends a prefix and a "." to the keys.</span>
+<span class=sd>        If the prefixes are unique, this ensures that all prefix+"."+keys are</span>
+<span class=sd>        unique, too.</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.key_values("A") as kv:</span>
+<span class=sd>        ...         kv.key_value("x", "y")</span>
+<span class=sd>        ...         with kv.scope("b") as sc1:</span>
+<span class=sd>        ...             sc1.key_value("x", "y")</span>
+<span class=sd>        ...             with sc1.scope("c") as sc2:</span>
+<span class=sd>        ...                 sc2.key_value("x", "y")</span>
+<span class=sd>        ...         with kv.scope("d") as sc3:</span>
+<span class=sd>        ...             sc3.key_value("x", "y")</span>
+<span class=sd>        ...             with sc3.scope("c") as sc4:</span>
+<span class=sd>        ...                sc4.key_value("x", "y")</span>
+<span class=sd>        ...     print(l.get_log())</span>
+<span class=sd>        ['BEGIN_A', 'x: y', 'b.x: y', 'b.c.x: y', 'd.x: y', 'd.c.x: y', \</span>
+<span class=sd>'END_A']</span>
+
+<span class=sd>        :param prefix: the key prefix</span>
+<span class=sd>        :return: the new logger</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>KeyValueLogSection</span><span class=p>(</span>
+            <span class=n>title</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span> <span class=n>logger</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>_logger</span><span class=p>,</span>
+            <span class=n>prefix</span><span class=o>=</span><span class=p>(</span><span class=n>prefix</span> <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_prefix</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=k>else</span>
+                    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>_prefix</span><span class=si>}{</span><span class=n>sanitize_name</span><span class=p>(</span><span class=n>prefix</span><span class=p>)</span><span class=si>}</span><span class=s2>."</span><span class=p>),</span>
+            <span class=n>done</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>__done</span><span class=p>)</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=TextLogSection>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.logger.TextLogSection>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>TextLogSection</span><span class=p>(</span><span class=n>LogSection</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A logger for raw, unprocessed text.</span>
+
+<span class=sd>    Such a log section is used to capture the raw contents of the solutions</span>
+<span class=sd>    discovered by the optimization :class:`~moptipy.api.process.Process`. For</span>
+<span class=sd>    this purpose, our system will use the method</span>
+<span class=sd>    :meth:`~moptipy.api.space.Space.to_str` of the search and/or solution</span>
+<span class=sd>    :class:`~moptipy.api.space.Space`.</span>
+
+<span class=sd>    >>> with InMemoryLogger() as logger:</span>
+<span class=sd>    ...     with logger.text("T") as txt:</span>
+<span class=sd>    ...         txt.write("Hello World!")</span>
+<span class=sd>    ...     print(logger.get_log())</span>
+<span class=sd>    ['BEGIN_T', 'Hello World!', 'END_T']</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>title</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>Logger</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Perform internal construction. Do not call it directly.</span>
+
+<span class=sd>        :param title: the title</span>
+<span class=sd>        :param logger: the logger</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>title</span><span class=p>,</span> <span class=n>logger</span><span class=p>)</span>
+        <span class=c1># noinspection PyProtectedMember</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>write</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_logger</span><span class=o>.</span><span class=n>_writer</span>  <span class=c1># type: ignore</span></div>
+
+
+
+<div class=viewcode-block id=parse_key_values>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.logger.parse_key_values>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>parse_key_values</span><span class=p>(</span><span class=n>lines</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Parse a :meth:`~moptipy.utils.logger.Logger.key_values` section's text.</span>
+
+<span class=sd>    :param lines: the lines with the key-values pairs</span>
+<span class=sd>    :return: the dictionary with the</span>
+
+<span class=sd>    >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>    >>> with InMemoryLogger() as l:</span>
+<span class=sd>    ...     with l.key_values("B") as kv:</span>
+<span class=sd>    ...         kv.key_value("a", "b")</span>
+<span class=sd>    ...         with kv.scope("c") as kvc:</span>
+<span class=sd>    ...             kvc.key_value("d", 12)</span>
+<span class=sd>    ...             kvc.key_value("e", True)</span>
+<span class=sd>    ...         kv.key_value("f", 3)</span>
+<span class=sd>    ...     txt = l.get_log()</span>
+<span class=sd>    >>> print(txt)</span>
+<span class=sd>    ['BEGIN_B', 'a: b', 'c.d: 12', 'c.e: T', 'f: 3', 'END_B']</span>
+<span class=sd>    >>> dic = parse_key_values(txt[1:5])</span>
+<span class=sd>    >>> keys = list(dic.keys())</span>
+<span class=sd>    >>> keys.sort()</span>
+<span class=sd>    >>> print(keys)</span>
+<span class=sd>    ['a', 'c.d', 'c.e', 'f']</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lines</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>lines</span><span class=p>,</span> <span class=s2>"lines"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=n>dct</span> <span class=o>=</span> <span class=p>{}</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>line</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>lines</span><span class=p>):</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>line</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>line</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"lines[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>]"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=n>splt</span> <span class=o>=</span> <span class=n>line</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>KEY_VALUE_SEPARATOR</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>splt</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>2</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"Two strings separated by </span><span class=si>{</span><span class=n>KEY_VALUE_SEPARATOR</span><span class=si>!r}</span><span class=s2> "</span>
+                <span class=sa>f</span><span class=s2>"expected, but encountered </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>splt</span><span class=p>)</span><span class=si>}</span><span class=s2> in </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>th "</span>
+                <span class=sa>f</span><span class=s2>"line </span><span class=si>{</span><span class=n>line</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=n>splt</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>key</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"Empty key encountered in </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>th line </span><span class=si>{</span><span class=n>line</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>value</span> <span class=o>=</span> <span class=n>splt</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>value</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"Empty value encountered in </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>th line </span><span class=si>{</span><span class=n>line</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>dct</span><span class=p>[</span><span class=n>key</span><span class=p>]</span> <span class=o>=</span> <span class=n>value</span>
+
+    <span class=k>return</span> <span class=n>dct</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.logger</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

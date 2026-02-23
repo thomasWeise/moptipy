@@ -1,0 +1,448 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.utils.lang — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/utils/lang.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.lang</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.utils.lang</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The :class:`Lang` class provides facilities for easy internationalization.</span>
+
+<span class=sd>The idea here is to have simply tools that provide locale-specific keywords,</span>
+<span class=sd>texts, and number formats.</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib</span><span class=w> </span><span class=kn>import</span> <span class=n>rc</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib.font_manager</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>  <span class=c1># type: ignore</span>
+    <span class=n>FontProperties</span><span class=p>,</span>
+    <span class=n>findSystemFonts</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=n>sanitize_name</span>
+
+
+<div class=viewcode-block id=Lang>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.lang.Lang>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Lang</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""A language-based dictionary for locale-specific keywords."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>font</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>decimal_stepwidth</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>3</span><span class=p>,</span>
+                 <span class=n>data</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>is_default</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Instantiate the language formatter.</span>
+
+<span class=sd>        :param name: the short name</span>
+<span class=sd>        :param font: the font name</span>
+<span class=sd>        :param decimal_stepwidth: the decimal step width</span>
+<span class=sd>        :param data: the data</span>
+<span class=sd>        :param is_default: is this the default language?</span>
+<span class=sd>        """</span>
+        <span class=c1>#: the name of the locale</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__name</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>sanitize_name</span><span class=p>(</span><span class=n>name</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>font</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>font</span><span class=p>,</span> <span class=s2>"font"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>is_default</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>is_default</span><span class=p>,</span> <span class=s2>"is_default"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+
+        <span class=n>font</span> <span class=o>=</span> <span class=n>font</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>font</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"The font cannot be </span><span class=si>{</span><span class=n>font</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=c1>#: the font name</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__font</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>font</span>
+        <span class=c1>#: the decimal step width</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__decimal_stepwidth</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>decimal_stepwidth</span><span class=p>,</span> <span class=s2>"decimal_stepwidth"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>10</span><span class=p>)</span>
+
+        <span class=c1>#: the dictionary with the translation data</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__dict</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=k>if</span> <span class=n>data</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>data</span><span class=p>)</span>
+
+        <span class=c1>#: is this the default language?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__is_default</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>is_default</span>
+
+        <span class=c1># register the language</span>
+        <span class=n>dc</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Lang</span><span class=p>]]</span> <span class=o>=</span> <span class=n>Lang</span><span class=o>.</span><span class=n>__get_langs</span><span class=p>()</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__name</span> <span class=ow>in</span> <span class=n>dc</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Language </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__name</span><span class=si>!r}</span><span class=s2> already registered."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>is_default</span><span class=p>:</span>
+            <span class=k>for</span> <span class=n>lang</span> <span class=ow>in</span> <span class=n>dc</span><span class=o>.</span><span class=n>values</span><span class=p>():</span>
+                <span class=k>if</span> <span class=n>lang</span><span class=o>.</span><span class=n>__is_default</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"Language </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__name</span><span class=si>!r}</span><span class=s2> cannot be default "</span>
+                        <span class=sa>f</span><span class=s2>"language, </span><span class=si>{</span><span class=n>lang</span><span class=o>.</span><span class=n>__name</span><span class=si>!r}</span><span class=s2> already is!"</span><span class=p>)</span>
+        <span class=n>dc</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>__name</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span>
+
+        <span class=k>if</span> <span class=n>is_default</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>set_current</span><span class=p>()</span>
+
+<div class=viewcode-block id=Lang.extend>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.lang.Lang.extend>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>extend</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>data</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Add a set of entries to this dictionary.</span>
+
+<span class=sd>        :param data: the language-specific data</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=nb>dict</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=s2>"data"</span><span class=p>,</span> <span class=nb>dict</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>ko</span><span class=p>,</span> <span class=n>v</span> <span class=ow>in</span> <span class=n>data</span><span class=o>.</span><span class=n>items</span><span class=p>():</span>
+            <span class=n>k</span> <span class=o>=</span> <span class=n>sanitize_name</span><span class=p>(</span><span class=n>ko</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>k</span> <span class=o>!=</span> <span class=n>ko</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"key </span><span class=si>{</span><span class=n>ko</span><span class=si>!r}</span><span class=s2> is different from "</span>
+                                 <span class=sa>f</span><span class=s2>"its sanitized version </span><span class=si>{</span><span class=n>k</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>k</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>__dict</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__dict</span><span class=p>[</span><span class=n>k</span><span class=p>]</span> <span class=o>!=</span> <span class=n>v</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Key </span><span class=si>{</span><span class=n>k</span><span class=si>!r}</span><span class=s2> appears twice, already assigned to "</span>
+                    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__dict</span><span class=p>[</span><span class=n>k</span><span class=p>]</span><span class=si>!r}</span><span class=s2>, cannot assign to </span><span class=si>{</span><span class=n>v</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>v</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>v</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"value for key </span><span class=si>{</span><span class=n>k</span><span class=si>!r}</span><span class=s2>"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>v</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Value for key </span><span class=si>{</span><span class=n>k</span><span class=si>!r}</span><span class=s2> cannot be </span><span class=si>{</span><span class=n>v</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__dict</span><span class=p>[</span><span class=n>k</span><span class=p>]</span> <span class=o>=</span> <span class=n>v</span></div>
+
+
+<div class=viewcode-block id=Lang.filename>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.lang.Lang.filename>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>filename</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>base</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Make a suitable filename by appending the language id.</span>
+
+<span class=sd>        :param str base: the basename</span>
+<span class=sd>        :return: the filename</span>
+<span class=sd>        :rtype: str</span>
+
+<span class=sd>        >>> print(Lang.get("en").filename("test"))</span>
+<span class=sd>        test</span>
+<span class=sd>        >>> print(Lang.get("zh").filename("test"))</span>
+<span class=sd>        test_zh</span>
+<span class=sd>        """</span>
+        <span class=n>base</span> <span class=o>=</span> <span class=n>sanitize_name</span><span class=p>(</span><span class=n>base</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>base</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__is_default</span> <span class=k>else</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>base</span><span class=si>}</span><span class=s2>_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__name</span><span class=si>}</span><span class=s2>"</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__repr__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the language's name.</span>
+
+<span class=sd>        :return: the language's name</span>
+<span class=sd>        :rtype: str</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__name</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__getitem__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>item</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the language formatting code.</span>
+
+<span class=sd>        :param item: the item to get</span>
+<span class=sd>        :return: the language-specific code</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>item</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>item</span><span class=p>,</span> <span class=s2>"item"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__dict</span><span class=p>[</span><span class=n>item</span><span class=p>]</span>
+
+<div class=viewcode-block id=Lang.format_str>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.lang.Lang.format_str>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>format_str</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>item</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=o>**</span><span class=n>kwargs</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Return a string based on the specified format.</span>
+
+<span class=sd>        :param item: the key</span>
+<span class=sd>        :param kwargs: the keyword-based arguments</span>
+
+<span class=sd>        >>> l = Lang.get("en")</span>
+<span class=sd>        >>> l.extend({"z": "{a}: bla{b}"})</span>
+<span class=sd>        >>> print(l.format_str("z", a=5, b=6))</span>
+<span class=sd>        5: bla6</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>item</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>item</span><span class=p>,</span> <span class=s2>"item"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=n>fstr</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__dict</span><span class=p>[</span><span class=n>item</span><span class=p>]</span>
+        <span class=c1># pylint: disable=W0123 # noqa: S307</span>
+        <span class=k>return</span> <span class=nb>eval</span><span class=p>(</span>  <span class=c1># nosec # nosemgrep # noqa</span>
+            <span class=sa>f</span><span class=s2>"f</span><span class=si>{</span><span class=n>fstr</span><span class=si>!r}</span><span class=s2>"</span><span class=p>,</span>  <span class=c1># nosec # nosemgrep # noqa: B028,S307</span>
+            <span class=p>{</span><span class=s2>"__builtins__"</span><span class=p>:</span> <span class=kc>None</span><span class=p>},</span>  <span class=c1># nosec # nosemgrep # noqa:S307</span>
+            <span class=n>kwargs</span><span class=p>)</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>  <span class=c1># nosec # nosemgrep # noqa: S307</span></div>
+
+
+<div class=viewcode-block id=Lang.font>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.lang.Lang.font>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>font</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the default font for this language.</span>
+
+<span class=sd>        :return: the default font for this language</span>
+
+<span class=sd>        >>> print(Lang.get("en").font())</span>
+<span class=sd>        DejaVu Sans</span>
+<span class=sd>        >>> print(Lang.get("zh").font())</span>
+<span class=sd>        Noto Sans SC</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__font</span></div>
+
+
+<div class=viewcode-block id=Lang.format_int>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.lang.Lang.format_int>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>format_int</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>value</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Convert an integer to a string.</span>
+
+<span class=sd>        :param value: the value</span>
+<span class=sd>        :returns: a string representation of the value</span>
+
+<span class=sd>        >>> print(Lang.get("en").format_int(100000))</span>
+<span class=sd>        100'000</span>
+<span class=sd>        >>> print(Lang.get("zh").format_int(100000))</span>
+<span class=sd>        10'0000</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>value</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>value</span><span class=p>,</span> <span class=s2>"value"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>value</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>prefix</span> <span class=o>=</span> <span class=s2>"-"</span>
+            <span class=n>value</span> <span class=o>=</span> <span class=o>-</span><span class=n>value</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>prefix</span> <span class=o>=</span> <span class=s2>""</span>
+
+        <span class=n>sss</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>value</span><span class=p>)</span>
+        <span class=n>i</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>sss</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>i</span> <span class=o><=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__decimal_stepwidth</span><span class=p>:</span>  <span class=c1># no formatting needed</span>
+            <span class=k>return</span> <span class=n>prefix</span> <span class=o>+</span> <span class=n>sss</span>
+
+        <span class=c1># We divide the string into equally-sized chunks and insert "'"</span>
+        <span class=c1># between them.</span>
+        <span class=n>chunks</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>i</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=o>-</span><span class=bp>self</span><span class=o>.</span><span class=n>__decimal_stepwidth</span><span class=p>):</span>  <span class=c1># noqa</span>
+            <span class=n>k</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>sss</span><span class=p>[</span><span class=n>i</span><span class=p>:(</span><span class=n>i</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>__decimal_stepwidth</span><span class=p>)]</span>
+            <span class=k>if</span> <span class=n>k</span><span class=p>:</span>
+                <span class=n>chunks</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>k</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>i</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>chunks</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>sss</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=n>i</span><span class=p>])</span>
+        <span class=k>return</span> <span class=n>prefix</span> <span class=o>+</span> <span class=s2>"'"</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>chunks</span><span class=p>)</span></div>
+
+
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>__get_langs</span><span class=p>()</span> <span class=o>-></span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=s2>"Lang"</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the languages decode.</span>
+
+<span class=sd>        :return: the languages decode</span>
+<span class=sd>        """</span>
+        <span class=n>att</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"__map"</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>Lang</span><span class=o>.</span><span class=n>__get_langs</span><span class=p>,</span> <span class=n>att</span><span class=p>):</span>
+            <span class=nb>setattr</span><span class=p>(</span><span class=n>Lang</span><span class=o>.</span><span class=n>__get_langs</span><span class=p>,</span> <span class=n>att</span><span class=p>,</span> <span class=p>{})</span>
+        <span class=k>return</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>Lang</span><span class=o>.</span><span class=n>__get_langs</span><span class=p>,</span> <span class=n>att</span><span class=p>)</span>
+
+<div class=viewcode-block id=Lang.get>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.lang.Lang.get>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>get</span><span class=p>(</span><span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"Lang"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the language of the given key.</span>
+
+<span class=sd>        :param name: the language name</span>
+<span class=sd>        :return: the language</span>
+<span class=sd>        """</span>
+        <span class=n>name</span> <span class=o>=</span> <span class=n>sanitize_name</span><span class=p>(</span><span class=n>name</span><span class=p>)</span>
+        <span class=n>lang</span><span class=p>:</span> <span class=n>Lang</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>Lang</span><span class=o>.</span><span class=n>__get_langs</span><span class=p>()</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=kc>None</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>lang</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>lang</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Unknown language </span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=Lang.current>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.lang.Lang.current>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>current</span><span class=p>()</span> <span class=o>-></span> <span class=s2>"Lang"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the current language.</span>
+
+<span class=sd>        :return: the current language</span>
+
+<span class=sd>        >>> Lang.get("en").set_current()</span>
+<span class=sd>        >>> print(Lang.current().filename("b"))</span>
+<span class=sd>        b</span>
+<span class=sd>        >>> Lang.get("zh").set_current()</span>
+<span class=sd>        >>> print(Lang.current().filename("b"))</span>
+<span class=sd>        b_zh</span>
+<span class=sd>        """</span>
+        <span class=n>lang</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Lang</span><span class=p>]</span> <span class=o>=</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>Lang</span><span class=o>.</span><span class=n>__get_langs</span><span class=p>,</span> <span class=s2>"__current"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>lang</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Huh?"</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>lang</span></div>
+
+
+<div class=viewcode-block id=Lang.set_current>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.lang.Lang.set_current>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_current</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Mark this language as the current one."""</span>
+        <span class=nb>setattr</span><span class=p>(</span><span class=n>Lang</span><span class=o>.</span><span class=n>__get_langs</span><span class=p>,</span> <span class=s2>"__current"</span><span class=p>,</span> <span class=bp>self</span><span class=p>)</span>
+        <span class=n>rc</span><span class=p>(</span><span class=s2>"font"</span><span class=p>,</span> <span class=n>family</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>font</span><span class=p>())</span></div>
+
+
+<div class=viewcode-block id=Lang.all_langs>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.lang.Lang.all_langs>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>all_langs</span><span class=p>()</span> <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=s2>"Lang"</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get all presently loaded languages.</span>
+
+<span class=sd>        :return: an Iterable of the languages</span>
+<span class=sd>        """</span>
+        <span class=n>val</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>Lang</span><span class=o>.</span><span class=n>__get_langs</span><span class=p>()</span><span class=o>.</span><span class=n>values</span><span class=p>())</span>
+        <span class=n>val</span><span class=o>.</span><span class=n>sort</span><span class=p>(</span><span class=n>key</span><span class=o>=</span><span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=o>.</span><span class=n>__name</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>val</span></div>
+
+
+<div class=viewcode-block id=Lang.translate>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.lang.Lang.translate>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>translate</span><span class=p>(</span><span class=n>key</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Translate the given key to a string in the current language.</span>
+
+<span class=sd>        :param key: the key</span>
+<span class=sd>        :returns: the value of the key in the current language</span>
+
+<span class=sd>        >>> EN.extend({'a': 'b'})</span>
+<span class=sd>        >>> EN.set_current()</span>
+<span class=sd>        >>> print(Lang.translate("a"))</span>
+<span class=sd>        b</span>
+<span class=sd>        >>> DE.extend({'a': 'c'})</span>
+<span class=sd>        >>> Lang.get("de").set_current()</span>
+<span class=sd>        >>> print(Lang.translate("a"))</span>
+<span class=sd>        c</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>Lang</span><span class=o>.</span><span class=n>current</span><span class=p>()[</span><span class=n>key</span><span class=p>]</span></div>
+
+
+<div class=viewcode-block id=Lang.translate_call>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.lang.Lang.translate_call>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>translate_call</span><span class=p>(</span><span class=n>key</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=n>Callable</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get a callable that always returns the current translation of a key.</span>
+
+<span class=sd>        The callable will ignore all of its parameters and just return the</span>
+<span class=sd>        translation. This means that you can pass parameters to it and they</span>
+<span class=sd>        will be ignored.</span>
+
+<span class=sd>        :param key: the key to translate</span>
+<span class=sd>        :returns: the callable doing the translation</span>
+
+<span class=sd>        >>> cal = Lang.translate_call("a")</span>
+<span class=sd>        >>> EN.extend({'a': 'b'})</span>
+<span class=sd>        >>> EN.set_current()</span>
+<span class=sd>        >>> print(cal())</span>
+<span class=sd>        b</span>
+<span class=sd>        >>> print(cal(1, 2, 3))</span>
+<span class=sd>        b</span>
+<span class=sd>        >>> DE.extend({'a': 'c'})</span>
+<span class=sd>        >>> Lang.get("de").set_current()</span>
+<span class=sd>        >>> print(cal("x"))</span>
+<span class=sd>        c</span>
+<span class=sd>        """</span>
+        <span class=k>def</span><span class=w> </span><span class=nf>__trc</span><span class=p>(</span><span class=o>*</span><span class=n>_</span><span class=p>,</span> <span class=n>___key</span><span class=o>=</span><span class=n>key</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>Lang</span><span class=o>.</span><span class=n>current</span><span class=p>()[</span><span class=n>___key</span><span class=p>]</span>
+        <span class=k>return</span> <span class=n>__trc</span></div>
+
+
+<div class=viewcode-block id=Lang.translate_func>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.lang.Lang.translate_func>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>translate_func</span><span class=p>(</span><span class=n>func</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>str</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a lambda taking a dimensions and presenting a function thereof.</span>
+
+<span class=sd>        :param func: the function name</span>
+<span class=sd>        :returns: the function</span>
+
+<span class=sd>        >>> Lang.get("en").set_current()</span>
+<span class=sd>        >>> Lang.get("en").extend({"ERT": "ERT"})</span>
+<span class=sd>        >>> Lang.get("en").extend({"FEs": "time in FEs"})</span>
+<span class=sd>        >>> f = Lang.translate_func("ERT")</span>
+<span class=sd>        >>> print(f("FEs"))</span>
+<span class=sd>        ERT\u2009[time in FEs]</span>
+<span class=sd>        >>> Lang.get("de").set_current()</span>
+<span class=sd>        >>> Lang.get("de").extend({"ERT": "ERT"})</span>
+<span class=sd>        >>> Lang.get("de").extend({"FEs": "Zeit in FEs"})</span>
+<span class=sd>        >>> print(f("FEs"))</span>
+<span class=sd>        ERT\u2009[Zeit in FEs]</span>
+<span class=sd>        """</span>
+        <span class=k>def</span><span class=w> </span><span class=nf>__tf</span><span class=p>(</span><span class=n>dim</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>f</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>func</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+            <span class=k>return</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>Lang</span><span class=o>.</span><span class=n>translate</span><span class=p>(</span><span class=n>f</span><span class=p>)</span><span class=si>}</span><span class=se>\u2009</span><span class=s2>[</span><span class=si>{</span><span class=n>Lang</span><span class=o>.</span><span class=n>translate</span><span class=p>(</span><span class=n>dim</span><span class=p>)</span><span class=si>}</span><span class=s2>]"</span>
+        <span class=k>return</span> <span class=n>__tf</span></div>
+</div>
+
+
+
+<span class=c1># noinspection PyBroadException</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__get_font</span><span class=p>(</span><span class=n>choices</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Try to find an installed version of the specified font.</span>
+
+<span class=sd>    :param choices: the choices of the fonts</span>
+<span class=sd>    :returns: the installed name of the font, or the value of `choices[0]`</span>
+<span class=sd>        if no font was found</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>choices</span><span class=p>,</span> <span class=nb>list</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>choices</span><span class=p>,</span> <span class=s2>"choices"</span><span class=p>,</span> <span class=nb>list</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>choices</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"no font choices are provided!"</span><span class=p>)</span>
+    <span class=n>attr</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"fonts_list"</span>
+    <span class=n>func</span><span class=p>:</span> <span class=n>Final</span> <span class=o>=</span> <span class=nb>globals</span><span class=p>()[</span><span class=s2>"__get_font"</span><span class=p>]</span>
+
+    <span class=c1># get the list of installed fonts</span>
+    <span class=n>font_list</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>attr</span><span class=p>):</span>
+        <span class=n>font_list</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=k>for</span> <span class=n>fname</span> <span class=ow>in</span> <span class=n>findSystemFonts</span><span class=p>():</span>
+            <span class=k>try</span><span class=p>:</span>
+                <span class=n>font_name</span> <span class=o>=</span> <span class=n>FontProperties</span><span class=p>(</span>
+                    <span class=n>fname</span><span class=o>=</span><span class=n>fname</span><span class=p>)</span><span class=o>.</span><span class=n>get_name</span><span class=p>()</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+                <span class=k>if</span> <span class=n>font_name</span><span class=o>.</span><span class=n>encode</span><span class=p>(</span><span class=s2>"ascii"</span><span class=p>,</span> <span class=s2>"ignore"</span><span class=p>)</span><span class=o>.</span><span class=n>decode</span><span class=p>()</span> <span class=o>==</span> <span class=n>font_name</span><span class=p>:</span>
+                    <span class=n>font_list</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>font_name</span><span class=p>)</span>
+            <span class=k>except</span> <span class=ne>Exception</span><span class=p>:</span>  <span class=c1># noqa</span>
+                <span class=c1># We can ignore the exceptions here.</span>
+                <span class=k>continue</span>  <span class=c1># nosec</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>font_list</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Did not find any font."</span><span class=p>)</span>
+        <span class=nb>setattr</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>attr</span><span class=p>,</span> <span class=n>font_list</span><span class=p>)</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=n>font_list</span> <span class=o>=</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>attr</span><span class=p>)</span>
+
+    <span class=c1># find the installed font</span>
+    <span class=k>for</span> <span class=n>choice</span> <span class=ow>in</span> <span class=n>choices</span><span class=p>:</span>
+        <span class=n>clc</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>choice</span><span class=o>.</span><span class=n>lower</span><span class=p>()</span>
+        <span class=n>found_inside</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>found_start</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=k>for</span> <span class=n>got</span> <span class=ow>in</span> <span class=n>font_list</span><span class=p>:</span>
+            <span class=n>gotlc</span> <span class=o>=</span> <span class=n>got</span><span class=o>.</span><span class=n>lower</span><span class=p>()</span>
+            <span class=k>if</span> <span class=n>clc</span> <span class=o>==</span> <span class=n>gotlc</span><span class=p>:</span>
+                <span class=k>return</span> <span class=n>got</span>
+            <span class=k>if</span> <span class=n>gotlc</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=n>clc</span><span class=p>):</span>
+                <span class=n>found_start</span> <span class=o>=</span> <span class=n>got</span>
+            <span class=k>if</span> <span class=n>clc</span> <span class=ow>in</span> <span class=n>gotlc</span><span class=p>:</span>
+                <span class=n>found_inside</span> <span class=o>=</span> <span class=n>got</span>
+        <span class=k>if</span> <span class=n>found_start</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>found_start</span>
+        <span class=k>if</span> <span class=n>found_inside</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>found_inside</span>
+
+    <span class=k>return</span> <span class=n>choices</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>  <span class=c1># nothing found ... return default</span>
+
+
+<span class=c1>#: the English language</span>
+<span class=n>EN</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Lang</span><span class=p>]</span> <span class=o>=</span> <span class=n>Lang</span><span class=p>(</span><span class=s2>"en"</span><span class=p>,</span>
+                       <span class=n>__get_font</span><span class=p>([</span><span class=s2>"DejaVu Sans"</span><span class=p>,</span> <span class=s2>"Calibri"</span><span class=p>,</span>
+                                   <span class=s2>"Arial"</span><span class=p>,</span> <span class=s2>"Helvetica"</span><span class=p>]),</span>
+                       <span class=mi>3</span><span class=p>,</span> <span class=n>is_default</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+<span class=c1>#: the German language</span>
+<span class=n>DE</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Lang</span><span class=p>]</span> <span class=o>=</span> <span class=n>Lang</span><span class=p>(</span><span class=s2>"de"</span><span class=p>,</span> <span class=n>EN</span><span class=o>.</span><span class=n>font</span><span class=p>(),</span> <span class=mi>3</span><span class=p>)</span>
+
+<span class=c1>#: the Chinese language</span>
+<span class=n>ZH</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Lang</span><span class=p>]</span> <span class=o>=</span> <span class=n>Lang</span><span class=p>(</span><span class=s2>"zh"</span><span class=p>,</span>
+                       <span class=n>__get_font</span><span class=p>([</span><span class=s2>"Noto Sans SC"</span><span class=p>,</span> <span class=s2>"FangSong"</span><span class=p>,</span> <span class=s2>"SimSun"</span><span class=p>,</span>
+                                   <span class=s2>"Arial Unicode"</span><span class=p>,</span> <span class=s2>"SimHei"</span><span class=p>]),</span>
+                       <span class=mi>4</span><span class=p>)</span>
+
+<span class=k>del</span> <span class=n>__get_font</span>  <span class=c1># get rid of no-longer needed data such as fonts list</span>
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.lang</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

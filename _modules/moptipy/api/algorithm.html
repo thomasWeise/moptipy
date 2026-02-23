@@ -1,0 +1,272 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.api.algorithm — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/api/algorithm.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.algorithm</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.api.algorithm</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The base classes for implementing optimization algorithms.</span>
+
+<span class=sd>All optimization algorithms implemented based on the `moptipy` API inherit</span>
+<span class=sd>from :class:`~moptipy.api.algorithm.Algorithm`. If you implement a new</span>
+<span class=sd>algorithm, you will want to override the following methods:</span>
+
+<span class=sd>1. :meth:`~moptipy.api.algorithm.Algorithm.solve` implements the algorithm</span>
+<span class=sd>   itself. It receives an instance of :class:`~moptipy.api.process.Process` as</span>
+<span class=sd>   parameter that allows for the creation and evaluation of candidate</span>
+<span class=sd>   solutions and that provides a random number generator. The optimization</span>
+<span class=sd>   algorithm then will sample solutions and pass them to</span>
+<span class=sd>   :meth:`~moptipy.api.process.Process.evaluate` to obtain their objective</span>
+<span class=sd>   value, striving sampling better and better solutions.</span>
+<span class=sd>2. The dunder method `__str__` should be overridden to return a short mnemonic</span>
+<span class=sd>   name of the algorithm.</span>
+<span class=sd>3. :meth:`~moptipy.api.component.Component.log_parameters_to` needs to be</span>
+<span class=sd>   overridden if the algorithm has any parameters. This methods then should</span>
+<span class=sd>   store the values of all the parameters to the logging context. It should</span>
+<span class=sd>   also invoke the :meth:`~moptipy.api.component.Component.log_parameters_to`</span>
+<span class=sd>   routines of all sub-components of the algorithm.</span>
+<span class=sd>4. :meth:`~moptipy.api.component.Component.initialize` needs to be overridden</span>
+<span class=sd>   to reset/initialize all internal data structures and to invoke all the</span>
+<span class=sd>   :meth:`~moptipy.api.component.Component.initialize` of all components (such</span>
+<span class=sd>   as search operators) of the algorithm.</span>
+
+<span class=sd>Notice that we already provide specialized algorithm sub-classes for several</span>
+<span class=sd>common scenarios, such as:</span>
+
+<span class=sd>1. :class:`~moptipy.api.algorithm.Algorithm0` for algorithms that have a</span>
+<span class=sd>   nullary search operator (:class:`~moptipy.api.operators.Op0`).</span>
+<span class=sd>2. :class:`~moptipy.api.algorithm.Algorithm1` for algorithms that have  a</span>
+<span class=sd>   nullary (:class:`~moptipy.api.operators.Op0`) and an unary</span>
+<span class=sd>   (:class:`~moptipy.api.operators.Op1`) search operator.</span>
+<span class=sd>3. :class:`~moptipy.api.algorithm.Algorithm2` for algorithms that have  a</span>
+<span class=sd>   nullary (:class:`~moptipy.api.operators.Op0`), an unary</span>
+<span class=sd>   (:class:`~moptipy.api.operators.Op1`), and a binary</span>
+<span class=sd>   (:class:`~moptipy.api.operators.Op2`) search operator.</span>
+<span class=sd>4. :class:`~moptipy.api.mo_algorithm.MOAlgorithm` for multi-objective</span>
+<span class=sd>   optimization problems.</span>
+
+<span class=sd>These classes automatically invoke the</span>
+<span class=sd>:meth:`~moptipy.api.component.Component.log_parameters_to` and</span>
+<span class=sd>:meth:`~moptipy.api.component.Component.initialize` routines of their</span>
+<span class=sd>operators.</span>
+
+<span class=sd>If you implement a new algorithm, you can and should test with the pre-defined</span>
+<span class=sd>unit test routine :func:`~moptipy.tests.algorithm.validate_algorithm`, or its</span>
+<span class=sd>specialized versions</span>
+
+<span class=sd>1. for bit-string based search spaces based on</span>
+<span class=sd>   :func:`~moptipy.tests.on_bitstrings.validate_algorithm_on_bitstrings`):</span>
+<span class=sd>   a. :func:`~moptipy.tests.on_bitstrings.validate_algorithm_on_onemax`,</span>
+<span class=sd>   b. :func:`~moptipy.tests.on_bitstrings.validate_algorithm_on_leadingones`</span>
+<span class=sd>2. for the JSSP based on</span>
+<span class=sd>   :func:`~moptipy.tests.on_jssp.validate_algorithm_on_1_jssp`:</span>
+<span class=sd>   a. :func:`~moptipy.tests.on_jssp.validate_algorithm_on_jssp`</span>
+<span class=sd>3. on real-valued vector search spaces based on</span>
+<span class=sd>   :func:`~moptipy.tests.on_vectors.validate_algorithm_on_vectors`):</span>
+<span class=sd>   a. :func:`~moptipy.tests.on_vectors.validate_algorithm_on_ackley`</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.component</span><span class=w> </span><span class=kn>import</span> <span class=n>Component</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=n>SCOPE_OP0</span><span class=p>,</span> <span class=n>SCOPE_OP1</span><span class=p>,</span> <span class=n>SCOPE_OP2</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>Op0</span><span class=p>,</span>
+    <span class=n>Op1</span><span class=p>,</span>
+    <span class=n>Op2</span><span class=p>,</span>
+    <span class=n>check_op0</span><span class=p>,</span>
+    <span class=n>check_op1</span><span class=p>,</span>
+    <span class=n>check_op2</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=n>PART_SEPARATOR</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=Algorithm>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.algorithm.Algorithm>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Algorithm</span><span class=p>(</span><span class=n>Component</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A base class for implementing optimization algorithms."""</span>
+
+<div class=viewcode-block id=Algorithm.solve>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.algorithm.Algorithm.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply this optimization algorithm to the given process.</span>
+
+<span class=sd>        :param process: the process which provides methods to access the</span>
+<span class=sd>            search space, the termination criterion, and a source of</span>
+<span class=sd>            randomness. It also wraps the objective function, remembers the</span>
+<span class=sd>            best-so-far solution, and takes care of creating log files (if</span>
+<span class=sd>            this is wanted).</span>
+<span class=sd>        """</span></div>
+</div>
+
+<span class=c1># end book</span>
+
+
+<div class=viewcode-block id=Algorithm0>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.algorithm.Algorithm0>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Algorithm0</span><span class=p>(</span><span class=n>Algorithm</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""An algorithm with a nullary search operator."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the algorithm with nullary search operator.</span>
+
+<span class=sd>        :param name: the name of the algorithm</span>
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        """</span>
+        <span class=c1>#: The nullary search operator.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>op0</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Op0</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_op0</span><span class=p>(</span><span class=n>op0</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=s2>"name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>name</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Algorithm name cannot be </span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=c1>#: the name of this optimization algorithm, which is also the return</span>
+        <span class=c1>#: value of `__str__()`</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>name</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>name</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the algorithm.</span>
+
+<span class=sd>        :return: the name of the algorithm</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>name</span>
+
+<div class=viewcode-block id=Algorithm0.initialize>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.algorithm.Algorithm0.initialize>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>initialize</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize the algorithm."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>op0</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span></div>
+
+
+<div class=viewcode-block id=Algorithm0.log_parameters_to>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.algorithm.Algorithm0.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of the algorithm to a logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=k>with</span> <span class=n>logger</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=n>SCOPE_OP0</span><span class=p>)</span> <span class=k>as</span> <span class=n>sc</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>op0</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>sc</span><span class=p>)</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=Algorithm1>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.algorithm.Algorithm1>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Algorithm1</span><span class=p>(</span><span class=n>Algorithm0</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""An algorithm with a unary search operator."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>:</span> <span class=n>Op1</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the algorithm with nullary and unary search operator.</span>
+
+<span class=sd>        :param name: the name of the algorithm</span>
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param op1: the unary search operator</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>name</span> <span class=k>if</span> <span class=n>op1</span><span class=o>.</span><span class=vm>__class__</span> <span class=o>==</span> <span class=n>Op1</span> <span class=k>else</span>
+                         <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>name</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}{</span><span class=n>op1</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=n>op0</span><span class=p>)</span>
+        <span class=c1>#: The unary search operator.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>op1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Op1</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_op1</span><span class=p>(</span><span class=n>op1</span><span class=p>)</span>
+
+<div class=viewcode-block id=Algorithm1.initialize>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.algorithm.Algorithm1.initialize>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>initialize</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize the algorithm."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>op1</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span></div>
+
+
+<div class=viewcode-block id=Algorithm1.log_parameters_to>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.algorithm.Algorithm1.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of the algorithm to a logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=k>with</span> <span class=n>logger</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=n>SCOPE_OP1</span><span class=p>)</span> <span class=k>as</span> <span class=n>sc</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>op1</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>sc</span><span class=p>)</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=Algorithm2>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.algorithm.Algorithm2>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Algorithm2</span><span class=p>(</span><span class=n>Algorithm1</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""An algorithm with a binary and unary operator."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>:</span> <span class=n>Op1</span><span class=p>,</span> <span class=n>op2</span><span class=p>:</span> <span class=n>Op2</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the algorithm with nullary, unary, and binary search operator.</span>
+
+<span class=sd>        :param name: the name of the algorithm</span>
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param op1: the unary search operator</span>
+<span class=sd>        :param op2: the binary search operator</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span>
+            <span class=n>name</span> <span class=k>if</span> <span class=n>op2</span><span class=o>.</span><span class=vm>__class__</span> <span class=ow>is</span> <span class=n>Op2</span> <span class=k>else</span>
+            <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>name</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}{</span><span class=n>op2</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=n>op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>)</span>
+        <span class=c1>#: The binary search operator.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>op2</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Op2</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_op2</span><span class=p>(</span><span class=n>op2</span><span class=p>)</span>
+
+<div class=viewcode-block id=Algorithm2.initialize>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.algorithm.Algorithm2.initialize>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>initialize</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize the algorithm."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>op2</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span></div>
+
+
+<div class=viewcode-block id=Algorithm2.log_parameters_to>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.algorithm.Algorithm2.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of the algorithm to a logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=k>with</span> <span class=n>logger</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=n>SCOPE_OP2</span><span class=p>)</span> <span class=k>as</span> <span class=n>sc</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>op2</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>sc</span><span class=p>)</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=check_algorithm>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.algorithm.check_algorithm>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>check_algorithm</span><span class=p>(</span><span class=n>algorithm</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=n>Algorithm</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether an object is a valid instance of :class:`Algorithm`.</span>
+
+<span class=sd>    :param algorithm: the algorithm object</span>
+<span class=sd>    :return: the object</span>
+<span class=sd>    :raises TypeError: if `algorithm` is not an instance of :class:`Algorithm`</span>
+
+<span class=sd>    >>> check_algorithm(Algorithm())</span>
+<span class=sd>    Algorithm</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_algorithm('A')</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    algorithm should be an instance of moptipy.api.algorithm.\</span>
+<span class=sd>Algorithm but is str, namely 'A'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_algorithm(None)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    algorithm should be an instance of moptipy.api.algorithm.\</span>
+<span class=sd>Algorithm but is None.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>algorithm</span>
+    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=s2>"algorithm"</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.algorithm</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

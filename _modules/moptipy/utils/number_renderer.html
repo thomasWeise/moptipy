@@ -1,0 +1,460 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.utils.number_renderer — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/utils/number_renderer.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.number_renderer</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.utils.number_renderer</h1><div class=highlight><pre>
+<span></span><span class=sd>"""The numeric format definitions."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.formatted_string</span><span class=w> </span><span class=kn>import</span> <span class=n>FormattedStr</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.lang</span><span class=w> </span><span class=kn>import</span> <span class=n>Lang</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.math</span><span class=w> </span><span class=kn>import</span> <span class=n>try_int</span>
+
+
+<div class=viewcode-block id=default_get_int_renderer>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.number_renderer.default_get_int_renderer>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>default_get_int_renderer</span><span class=p>()</span> <span class=o>-></span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>],</span> <span class=nb>str</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the default integer renderer.</span>
+
+<span class=sd>    :returns: the default integer renderer, which uses the integer rendering</span>
+<span class=sd>        of the currently active language setting.</span>
+
+<span class=sd>    >>> from moptipy.utils.lang import EN, ZH</span>
+<span class=sd>    >>> EN.set_current()</span>
+<span class=sd>    >>> f = default_get_int_renderer()</span>
+<span class=sd>    >>> f(1_000_000)</span>
+<span class=sd>    "1'000'000"</span>
+<span class=sd>    >>> ZH.set_current()</span>
+<span class=sd>    >>> f = default_get_int_renderer()</span>
+<span class=sd>    >>> f(1_000_000)</span>
+<span class=sd>    "100'0000"</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[int], str]"</span><span class=p>,</span> <span class=n>Lang</span><span class=o>.</span><span class=n>current</span><span class=p>()</span><span class=o>.</span><span class=n>format_int</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=default_get_float_format>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.number_renderer.default_get_float_format>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>default_get_float_format</span><span class=p>(</span>
+        <span class=n>min_finite</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span>
+        <span class=n>max_finite</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span>
+        <span class=n>max_frac_len</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>2</span><span class=p>,</span>
+        <span class=n>min_non_zero_abs</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span><span class=p>,</span>
+        <span class=n>int_to_float_threshold</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=mi>10_000_000_000</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the default float format for numbers in the given range.</span>
+
+<span class=sd>    :param min_finite: the minimum finite value that may need to be formatted</span>
+<span class=sd>    :param max_finite: the maximum finite value that may need to be formatted</span>
+<span class=sd>    :param max_frac_len: the length of the longest fractional part of any</span>
+<span class=sd>        number encountered that can be converted to a string *not* in the "E"</span>
+<span class=sd>        notation</span>
+<span class=sd>    :param min_non_zero_abs: the minimum non-zero absolute value; will be</span>
+<span class=sd>        `inf` if all absolute values are zero</span>
+<span class=sd>    :param int_to_float_threshold: the threshold above which all integers are</span>
+<span class=sd>        converted to floating point numbers with the 'E' notation</span>
+
+<span class=sd>    >>> default_get_float_format(0, 0, 0)</span>
+<span class=sd>    '{:.0f}'</span>
+<span class=sd>    >>> default_get_float_format(0, 1e5, 10)</span>
+<span class=sd>    '{:.0f}'</span>
+<span class=sd>    >>> default_get_float_format(-1e7, 1e2, 10)</span>
+<span class=sd>    '{:.0f}'</span>
+<span class=sd>    >>> default_get_float_format(0, 0, 1)</span>
+<span class=sd>    '{:.1f}'</span>
+<span class=sd>    >>> default_get_float_format(0, 1e3, 11)</span>
+<span class=sd>    '{:.1f}'</span>
+<span class=sd>    >>> default_get_float_format(-1e3, 1e2, 11)</span>
+<span class=sd>    '{:.1f}'</span>
+<span class=sd>    >>> default_get_float_format(0, 0, 2)</span>
+<span class=sd>    '{:.2f}'</span>
+<span class=sd>    >>> default_get_float_format(0, 0, 3)</span>
+<span class=sd>    '{:.3f}'</span>
+<span class=sd>    >>> default_get_float_format(0, 0, 4)</span>
+<span class=sd>    '{:.3f}'</span>
+<span class=sd>    >>> default_get_float_format(0, 1e11, 4)</span>
+<span class=sd>    '{:.2e}'</span>
+<span class=sd>    >>> default_get_float_format(-1, 1, 4, 1e-3)</span>
+<span class=sd>    '{:.3f}'</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>min_finite</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>min_finite</span><span class=p>,</span> <span class=s2>"min_finite"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>max_finite</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>max_finite</span><span class=p>,</span> <span class=s2>"max_finite"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>isfinite</span><span class=p>(</span><span class=n>min_finite</span><span class=p>)</span> <span class=ow>and</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>max_finite</span><span class=p>)</span>
+            <span class=ow>and</span> <span class=p>(</span><span class=n>min_finite</span> <span class=o><=</span> <span class=n>max_finite</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"invalid min_finite, max_finite pair "</span>
+                         <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>min_finite</span><span class=si>}</span><span class=s2>, </span><span class=si>{</span><span class=n>max_finite</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>max_frac_len</span><span class=p>,</span> <span class=s2>"max_frac_len"</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>100</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>int_to_float_threshold</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span>
+            <span class=n>int_to_float_threshold</span><span class=p>,</span> <span class=s2>"int_to_float_threshold"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>int_to_float_threshold</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=ow>not</span> <span class=p>(</span>
+            <span class=n>isfinite</span><span class=p>(</span><span class=n>int_to_float_threshold</span><span class=p>)</span>
+            <span class=ow>or</span> <span class=p>(</span><span class=n>int_to_float_threshold</span> <span class=o>>=</span> <span class=n>inf</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"invalid int_to_float_threshold=</span><span class=si>{</span><span class=n>int_to_float_threshold</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>min_non_zero_abs</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>min_non_zero_abs</span><span class=p>,</span> <span class=s2>"min_non_zero_abs"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+    <span class=k>if</span> <span class=n>min_non_zero_abs</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid min_non_zero_abs=</span><span class=si>{</span><span class=n>min_non_zero_abs</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+    <span class=c1># are the values in the [-1, 1] range, i.e., possibly just small fractions?</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>min_finite</span> <span class=o>>=</span> <span class=o>-</span><span class=mi>1</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>max_finite</span> <span class=o><=</span> <span class=mi>1</span><span class=p>)</span> <span class=ow>and</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>min_non_zero_abs</span><span class=p>):</span>
+        <span class=k>if</span> <span class=n>min_non_zero_abs</span> <span class=o>>=</span> <span class=mf>1e-1</span><span class=p>:</span>
+            <span class=k>return</span> <span class=s2>"</span><span class=si>{:.1f}</span><span class=s2>"</span>
+        <span class=k>if</span> <span class=n>min_non_zero_abs</span> <span class=o>>=</span> <span class=mf>1e-2</span><span class=p>:</span>
+            <span class=k>return</span> <span class=s2>"</span><span class=si>{:.2f}</span><span class=s2>"</span>
+        <span class=k>if</span> <span class=n>min_non_zero_abs</span> <span class=o>>=</span> <span class=mf>1e-3</span><span class=p>:</span>
+            <span class=k>return</span> <span class=s2>"</span><span class=si>{:.3f}</span><span class=s2>"</span>
+        <span class=k>if</span> <span class=n>min_non_zero_abs</span> <span class=o>>=</span> <span class=mf>1e-4</span><span class=p>:</span>
+            <span class=k>return</span> <span class=s2>"</span><span class=si>{:.4f}</span><span class=s2>"</span>
+        <span class=k>return</span> <span class=s2>"</span><span class=si>{:.3e}</span><span class=s2>"</span>
+
+    <span class=c1># handle numbers that are outside [-1, 1]</span>
+    <span class=k>if</span> <span class=p>((</span><span class=o>-</span><span class=n>int_to_float_threshold</span><span class=p>)</span> <span class=o><=</span> <span class=n>min_finite</span><span class=p>)</span> \
+            <span class=ow>and</span> <span class=p>(</span><span class=n>max_finite</span> <span class=o><=</span> <span class=n>int_to_float_threshold</span><span class=p>):</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>max_frac_len</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>min_finite</span> <span class=o><=</span> <span class=o>-</span><span class=mf>1E4</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>max_finite</span> <span class=o>>=</span> <span class=mf>1E4</span><span class=p>):</span>
+            <span class=k>return</span> <span class=s2>"</span><span class=si>{:.0f}</span><span class=s2>"</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>max_frac_len</span> <span class=o><=</span> <span class=mi>1</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>min_finite</span> <span class=o><=</span> <span class=o>-</span><span class=mf>1E3</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>max_finite</span> <span class=o>>=</span> <span class=mf>1E3</span><span class=p>):</span>
+            <span class=k>return</span> <span class=s2>"</span><span class=si>{:.1f}</span><span class=s2>"</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>max_frac_len</span> <span class=o><=</span> <span class=mi>2</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>min_finite</span> <span class=o><=</span> <span class=o>-</span><span class=mf>1E2</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>max_finite</span> <span class=o>>=</span> <span class=mf>1E2</span><span class=p>):</span>
+            <span class=k>return</span> <span class=s2>"</span><span class=si>{:.2f}</span><span class=s2>"</span>
+        <span class=k>return</span> <span class=s2>"</span><span class=si>{:.3f}</span><span class=s2>"</span>
+    <span class=k>return</span> <span class=s2>"</span><span class=si>{:.2e}</span><span class=s2>"</span></div>
+
+
+
+<div class=viewcode-block id=NumberRenderer>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.number_renderer.NumberRenderer>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>NumberRenderer</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A format description for a group of numbers.</span>
+
+<span class=sd>    With instances of this class, you can convert a sequence of numbers</span>
+<span class=sd>    to a sequence of strings with uniform, pleasant formatting. The idea</span>
+<span class=sd>    is that such numbers can be written, e.g., into a column of a table</span>
+<span class=sd>    and that this column will then have a nice and uniform appearance.</span>
+<span class=sd>    In other words, we will avoid situations like the following:</span>
+<span class=sd>    "1234938845, 1e-20, 0.002, 34757773, 1e30, 0.9998837467"</span>
+<span class=sd>    which looks rather odd. While the numbers may be displayed correctly,</span>
+<span class=sd>    the formatting of all numbers is different. If we want to present</span>
+<span class=sd>    numbers that describe related quantities, we rather want them to all</span>
+<span class=sd>    have the same format. This class here can achieve this in a customizable</span>
+<span class=sd>    way.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                 <span class=n>int_to_float_threshold</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=mi>10_000_000_000</span><span class=p>,</span>
+                 <span class=n>get_int_renderer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[],</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>],</span> <span class=nb>str</span><span class=p>]]</span>
+                 <span class=o>=</span> <span class=n>default_get_int_renderer</span><span class=p>,</span>
+                 <span class=n>get_float_format</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[</span>
+                     <span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span>
+                      <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span>
+                 <span class=n>default_get_float_format</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the number group format.</span>
+
+<span class=sd>        :param int_to_float_threshold: the threshold above which integers are</span>
+<span class=sd>            converted to floating point numbers in the 'E' notation.</span>
+<span class=sd>        :param get_int_renderer: the function to be used to get the renderer</span>
+<span class=sd>            for all integers and integer parts of floats.</span>
+<span class=sd>        :param get_float_format: the getter for the float format, i.e., a</span>
+<span class=sd>            callable accepting the range [min, max] of all finite values to be</span>
+<span class=sd>            rendered, the maximum length of any fractional part, and the</span>
+<span class=sd>            `int_to_float_threshold` value and that then returns a string with</span>
+<span class=sd>            the float format definition</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>int_to_float_threshold</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>int_to_float_threshold</span><span class=p>,</span>
+                                 <span class=s2>"int_to_float_threshold"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>int_to_float_threshold</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=ow>not</span> <span class=p>(</span>
+                    <span class=n>isfinite</span><span class=p>(</span><span class=n>int_to_float_threshold</span><span class=p>)</span>
+                    <span class=ow>or</span> <span class=p>(</span><span class=n>int_to_float_threshold</span> <span class=o>>=</span> <span class=n>inf</span><span class=p>)):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"invalid int_to_float_threshold="</span>
+                                 <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>int_to_float_threshold</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>int_to_float_threshold</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+                <span class=n>a</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>int_to_float_threshold</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>a</span> <span class=o>==</span> <span class=n>int_to_float_threshold</span><span class=p>:</span>
+                    <span class=n>int_to_float_threshold</span> <span class=o>=</span> <span class=n>a</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=k>break</span>
+        <span class=c1>#: the absolute threshold above which all integer numbers must be</span>
+        <span class=c1>#: converted to floats to render them in the 'E' notation</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>int_to_float_threshold</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> \
+            <span class=o>=</span> <span class=n>int_to_float_threshold</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>get_int_renderer</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>get_int_renderer</span><span class=p>,</span> <span class=s2>"int_renderer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=c1>#: the function to be used to get the renderer for all integers and</span>
+        <span class=c1>#: integer parts of floats</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_int_renderer</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>],</span> <span class=nb>str</span><span class=p>]]]</span> \
+            <span class=o>=</span> <span class=n>get_int_renderer</span>
+        <span class=c1>#: the getter for the float format to be used to represent a range of</span>
+        <span class=c1>#: values</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_float_format</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span>
+             <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span> <span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=n>get_float_format</span>
+
+<div class=viewcode-block id=NumberRenderer.derive>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.number_renderer.NumberRenderer.derive>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>derive</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+               <span class=n>int_to_float_threshold</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+               <span class=n>get_int_renderer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[],</span> <span class=n>Callable</span><span class=p>[</span>
+                   <span class=p>[</span><span class=nb>int</span><span class=p>],</span> <span class=nb>str</span><span class=p>]]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+               <span class=n>get_float_format</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span>
+                                           <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+                                          <span class=nb>str</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=s2>"NumberRenderer"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Derive a new number group format from this one.</span>
+
+<span class=sd>        :param int_to_float_threshold: the int-to-float threshold</span>
+<span class=sd>        :param get_int_renderer: the integer renderer getter</span>
+<span class=sd>        :param get_float_format: the float format getter</span>
+<span class=sd>        :returns: a new number group format that differs from the current</span>
+<span class=sd>            format only in terms of the non-`None` parameters specified</span>
+
+<span class=sd>        >>> d = DEFAULT_NUMBER_RENDERER</span>
+<span class=sd>        >>> d.derive() is d</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> d.int_to_float_threshold</span>
+<span class=sd>        10000000000</span>
+<span class=sd>        >>> from moptipy.utils.lang import EN</span>
+<span class=sd>        >>> EN.set_current()</span>
+<span class=sd>        >>> d.get_int_renderer()(123456789)</span>
+<span class=sd>        "123'456'789"</span>
+<span class=sd>        >>> d.get_float_format(-10, 10, 2)</span>
+<span class=sd>        '{:.2f}'</span>
+<span class=sd>        >>> d = d.derive(int_to_float_threshold=22)</span>
+<span class=sd>        >>> d is DEFAULT_NUMBER_RENDERER</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> d.int_to_float_threshold</span>
+<span class=sd>        22</span>
+<span class=sd>        >>> d = d.derive(get_int_renderer=lambda: lambda x: "bla")</span>
+<span class=sd>        >>> d.get_int_renderer()(112)</span>
+<span class=sd>        'bla'</span>
+<span class=sd>        """</span>
+        <span class=c1># pylint: disable=R0916</span>
+        <span class=k>if</span> <span class=p>(((</span><span class=n>int_to_float_threshold</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span>
+             <span class=ow>or</span> <span class=p>(</span><span class=n>int_to_float_threshold</span> <span class=o>==</span> <span class=bp>self</span><span class=o>.</span><span class=n>int_to_float_threshold</span><span class=p>))</span>
+                <span class=ow>and</span> <span class=p>((</span><span class=n>get_int_renderer</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span>
+                     <span class=ow>or</span> <span class=p>(</span><span class=n>get_int_renderer</span> <span class=ow>is</span> <span class=bp>self</span><span class=o>.</span><span class=n>get_int_renderer</span><span class=p>))</span>
+                <span class=ow>and</span> <span class=p>((</span><span class=n>get_float_format</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span>
+                     <span class=ow>or</span> <span class=p>(</span><span class=n>get_float_format</span> <span class=ow>is</span> <span class=bp>self</span><span class=o>.</span><span class=n>get_float_format</span><span class=p>))):</span>
+            <span class=k>return</span> <span class=bp>self</span>
+        <span class=k>return</span> <span class=n>NumberRenderer</span><span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>int_to_float_threshold</span> <span class=k>if</span>
+            <span class=n>int_to_float_threshold</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>int_to_float_threshold</span><span class=p>,</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>get_int_renderer</span> <span class=k>if</span> <span class=n>get_int_renderer</span> <span class=ow>is</span> <span class=kc>None</span>
+            <span class=k>else</span> <span class=n>get_int_renderer</span><span class=p>,</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>get_float_format</span> <span class=k>if</span> <span class=n>get_float_format</span> <span class=ow>is</span> <span class=kc>None</span>
+            <span class=k>else</span> <span class=n>get_float_format</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=NumberRenderer.render>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.number_renderer.NumberRenderer.render>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>render</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>source</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+               <span class=n>none_str</span><span class=p>:</span> <span class=n>FormattedStr</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=n>FormattedStr</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]:</span>
+<span class=w>        </span><span class=sa>r</span><span class=sd>"""</span>
+<span class=sd>        Convert a sequence of numbers to text with uniform shape.</span>
+
+<span class=sd>        Often, we need to convert a set of numbers to strings as output for a</span>
+<span class=sd>        table or another representative thext. In such a case, you want to</span>
+<span class=sd>        present all numbers in the set in the same format.</span>
+
+<span class=sd>        Imagine you have the number vector `[1E-4, 1/7, 123456789012345678]`.</span>
+<span class=sd>        If you simply convert this list to a string directly, what you get is</span>
+<span class=sd>        `[0.0001, 0.14285714285714285, 123456789012345678]`. Now this looks</span>
+<span class=sd>        very ugly. First, we have one very big number `123456789012345678`.</span>
+<span class=sd>        If the numbers stem from an experiment, then we are hardly able to</span>
+<span class=sd>        obtain any number at a very extreme precision. The 18 digits in</span>
+<span class=sd>        `123456789012345678` sort of suggest a precision to 18 decimals, since</span>
+<span class=sd>        the number ends in specific digits (as opposed to `123450000000000000`</span>
+<span class=sd>        which a reader would naturally preceive as a rounded quantity).</span>
+<span class=sd>        Additionally, we have the number `0.14285714285714285`, which has a</span>
+<span class=sd>        very long fractional part, which, too, suggests a very high precision.</span>
+<span class=sd>        Writing both mentioned numbers next to each other, this suggests as if</span>
+<span class=sd>        we could present a number as high as 10**18 at a precision of 10**-17.</span>
+<span class=sd>        And it also looks ugly, because both numbers are not uniformly</span>
+<span class=sd>        formatted. Instead, our function here renders the number list as</span>
+<span class=sd>        `['1.00*10^-4^', '1.43*10^-1^', '1.23*10^17^']`. It recognizes that we</span>
+<span class=sd>        should present numbers as powers of ten and then limits the precision</span>
+<span class=sd>        to three digits.</span>
+
+<span class=sd>        This function is thus intended to produce some sort of uniform format</span>
+<span class=sd>        with reasonable precision uniformly for a numerical vector, under the</span>
+<span class=sd>        assumption that all numbers should be presented in the same numerical</span>
+<span class=sd>        range and quantity.</span>
+
+<span class=sd>        :param source: the column data</span>
+<span class=sd>        :param none_str: the string replacement for `None`</span>
+<span class=sd>        :returns: a list with the text representation</span>
+
+<span class=sd>        >>> from moptipy.utils.lang import EN</span>
+<span class=sd>        >>> EN.set_current()</span>
+<span class=sd>        >>> ff = DEFAULT_NUMBER_RENDERER</span>
+<span class=sd>        >>> ff.render([1.75651, 212, 3234234])</span>
+<span class=sd>        ['2', '212', "3'234'234"]</span>
+<span class=sd>        >>> ff.render([1.75651, 22, 34])</span>
+<span class=sd>        ['1.757', '22.000', '34.000']</span>
+<span class=sd>        >>> ff.render([1.75651, 122, 34])</span>
+<span class=sd>        ['1.76', '122.00', '34.00']</span>
+<span class=sd>        >>> ff.render([1.75651, 122, 3334])</span>
+<span class=sd>        ['1.8', '122.0', "3'334.0"]</span>
+<span class=sd>        >>> ff.render([1.5, 212, 3234234])</span>
+<span class=sd>        ['2', '212', "3'234'234"]</span>
+<span class=sd>        >>> ff.render([1.5, 2e12, 3234234])</span>
+<span class=sd>        ['1.50e0', '2.00e12', '3.23e6']</span>
+<span class=sd>        >>> ff.render([233, 22139283482834, 3234234])</span>
+<span class=sd>        ['2.33e2', '2.21e13', '3.23e6']</span>
+<span class=sd>        >>> ff.render([233, 22139283, 3234234])</span>
+<span class=sd>        ['233', "22'139'283", "3'234'234"]</span>
+<span class=sd>        >>> from math import nan, inf</span>
+<span class=sd>        >>> ff.render([22139283, inf, -inf, nan, None])</span>
+<span class=sd>        ["22'139'283", 'inf', '-inf', 'nan', None]</span>
+<span class=sd>        >>> ff.render([1E-4, 1/7, 123456789012345678])</span>
+<span class=sd>        ['1.00e-4', '1.43e-1', '1.23e17']</span>
+<span class=sd>        >>> ff.render([0, 0.02, 0.1, 1e-3])</span>
+<span class=sd>        ['0.000', '0.020', '0.100', '0.001']</span>
+<span class=sd>        >>> ff.render([-0.2, 1e-6, 0.9])</span>
+<span class=sd>        ['-2.000e-1', '1.000e-6', '9.000e-1']</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>source</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=n>source</span> <span class=o>=</span> <span class=p>[</span><span class=n>source</span><span class=p>]</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=s2>"source"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>none_str</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span>
+                <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>none_str</span><span class=p>,</span> <span class=n>FormattedStr</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>none_str</span><span class=p>,</span> <span class=s2>"none_str"</span><span class=p>,</span> <span class=p>(</span><span class=n>FormattedStr</span><span class=p>,</span> <span class=kc>None</span><span class=p>))</span>
+
+        <span class=c1># get the format parameters</span>
+        <span class=n>int_renderer</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>],</span> <span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=bp>self</span><span class=o>.</span><span class=n>get_int_renderer</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>int_renderer</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>int_renderer</span><span class=p>,</span> <span class=s2>"int_renderer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=n>int_to_float_threshold</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> \
+            <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>int_to_float_threshold</span>
+
+        <span class=c1># step one: get the raw numerical data</span>
+        <span class=n>data</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=n>cast</span><span class=p>(</span><span class=s2>"list"</span><span class=p>,</span> <span class=n>source</span><span class=p>)</span> <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=nb>list</span><span class=p>)</span> <span class=k>else</span> <span class=nb>list</span><span class=p>(</span><span class=n>source</span><span class=p>)</span>
+        <span class=n>dlen</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>data</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>dlen</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Data cannot be empty."</span><span class=p>)</span>
+
+        <span class=c1># step two: investigate the data ranges and structure</span>
+        <span class=n>all_is_none</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=n>all_is_int</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=n>max_finite</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span>
+        <span class=n>min_finite</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span>
+        <span class=n>min_non_zero_abs</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span>
+        <span class=n>longest_fraction</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=n>da</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span>
+
+        <span class=k>for</span> <span class=n>idx</span><span class=p>,</span> <span class=n>d</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>data</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>d</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=k>continue</span>
+            <span class=n>all_is_none</span> <span class=o>=</span> <span class=kc>False</span>
+            <span class=n>d2</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>d</span><span class=p>)</span> <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>d</span><span class=p>)</span> <span class=k>else</span> <span class=n>d</span>
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>d2</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+                <span class=n>min_finite</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>min_finite</span><span class=p>,</span> <span class=n>d2</span><span class=p>)</span>
+                <span class=n>max_finite</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>max_finite</span><span class=p>,</span> <span class=n>d2</span><span class=p>)</span>
+                <span class=n>da</span> <span class=o>=</span> <span class=nb>abs</span><span class=p>(</span><span class=n>d2</span><span class=p>)</span>
+                <span class=k>if</span> <span class=mi>0</span> <span class=o><</span> <span class=n>da</span> <span class=o><</span> <span class=n>min_non_zero_abs</span><span class=p>:</span>
+                    <span class=n>min_non_zero_abs</span> <span class=o>=</span> <span class=n>da</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=p>((</span><span class=o>-</span><span class=n>int_to_float_threshold</span><span class=p>)</span> <span class=o><=</span> <span class=n>d2</span>
+                        <span class=o><=</span> <span class=n>int_to_float_threshold</span><span class=p>):</span>
+                    <span class=n>d2</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>d2</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>d2</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>d</span><span class=p>:</span>
+                <span class=n>data</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span> <span class=o>=</span> <span class=n>d2</span>
+
+            <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>d2</span><span class=p>):</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>d2</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+                    <span class=n>all_is_int</span> <span class=o>=</span> <span class=kc>False</span>
+                    <span class=n>s</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>d2</span><span class=p>)</span>
+                    <span class=k>if</span> <span class=ow>not</span> <span class=p>((</span><span class=s2>"E"</span> <span class=ow>in</span> <span class=n>s</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=s2>"e"</span> <span class=ow>in</span> <span class=n>s</span><span class=p>)):</span>
+                        <span class=n>i</span> <span class=o>=</span> <span class=n>s</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>"."</span><span class=p>)</span>
+                        <span class=k>if</span> <span class=n>i</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>:</span>
+                            <span class=n>i</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>s</span><span class=p>)</span> <span class=o>-</span> <span class=n>i</span> <span class=o>-</span> <span class=mi>1</span>
+                            <span class=n>longest_fraction</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>longest_fraction</span><span class=p>,</span> <span class=n>i</span><span class=p>)</span>
+                <span class=n>min_finite</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>min_finite</span><span class=p>,</span> <span class=n>d2</span><span class=p>)</span>
+                <span class=n>max_finite</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>max_finite</span><span class=p>,</span> <span class=n>d2</span><span class=p>)</span>
+                <span class=n>da</span> <span class=o>=</span> <span class=nb>abs</span><span class=p>(</span><span class=n>d2</span><span class=p>)</span>
+                <span class=k>if</span> <span class=mi>0</span> <span class=o><</span> <span class=n>da</span> <span class=o><</span> <span class=n>min_non_zero_abs</span><span class=p>:</span>
+                    <span class=n>min_non_zero_abs</span> <span class=o>=</span> <span class=n>da</span>
+
+        <span class=c1># step three: if all data is None, we can return here</span>
+        <span class=k>if</span> <span class=n>all_is_none</span><span class=p>:</span>
+            <span class=k>return</span> <span class=p>[</span><span class=n>none_str</span><span class=p>]</span> <span class=o>*</span> <span class=n>dlen</span>
+
+        <span class=c1># create the protected integer renderer</span>
+        <span class=k>def</span><span class=w> </span><span class=nf>__toint</span><span class=p>(</span><span class=n>value</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>form</span><span class=o>=</span><span class=n>int_renderer</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+            <span class=n>sv</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>form</span><span class=p>(</span><span class=n>value</span><span class=p>)</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>sv</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>sv</span><span class=p>,</span> <span class=nb>str</span><span class=p>)):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"conversion of </span><span class=si>{</span><span class=n>value</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=p>(</span><span class=nb>str</span><span class=p>,</span> <span class=kc>None</span><span class=p>))</span>
+            <span class=k>return</span> <span class=n>sv</span>
+
+        <span class=c1># step four: if all data are integer, we can convert them directly</span>
+        <span class=k>if</span> <span class=n>all_is_int</span><span class=p>:</span>
+            <span class=c1># an int render also processing None and special floats</span>
+            <span class=k>def</span><span class=w> </span><span class=nf>__toint2</span><span class=p>(</span><span class=n>value</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span> <span class=n>_ns</span><span class=o>=</span><span class=n>none_str</span><span class=p>,</span>
+                         <span class=n>form</span><span class=o>=</span><span class=n>__toint</span><span class=p>)</span> <span class=o>-></span> <span class=n>FormattedStr</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>value</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                    <span class=k>return</span> <span class=n>none_str</span>
+                <span class=k>return</span> <span class=n>FormattedStr</span><span class=o>.</span><span class=n>number</span><span class=p>(</span><span class=n>form</span><span class=p>(</span><span class=n>cast</span><span class=p>(</span><span class=s2>"int"</span><span class=p>,</span> <span class=n>value</span><span class=p>))</span>
+                                           <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>value</span><span class=p>)</span> <span class=k>else</span> <span class=n>value</span><span class=p>)</span>
+            <span class=k>return</span> <span class=p>[</span><span class=n>__toint2</span><span class=p>(</span><span class=n>i</span><span class=p>)</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>data</span><span class=p>]</span>
+
+        <span class=c1># ok, we have at least some finite floats that cannot be converted to</span>
+        <span class=c1># integers. therefore, we need to convert them to strings based on a</span>
+        <span class=c1># floating point number format.</span>
+        <span class=n>float_format</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>get_float_format</span><span class=p>(</span>
+            <span class=n>min_finite</span><span class=p>,</span> <span class=n>max_finite</span><span class=p>,</span> <span class=n>longest_fraction</span><span class=p>,</span> <span class=n>min_non_zero_abs</span><span class=p>,</span>
+            <span class=n>int_to_float_threshold</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>float_format</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>float_format</span><span class=p>,</span>
+                             <span class=s2>"float format from float_format_getter"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>float_format</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=s2>"{"</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>float_format</span><span class=p>)</span> \
+                <span class=ow>or</span> <span class=p>(</span><span class=s2>"}"</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>float_format</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=s2>":"</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>float_format</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid float format </span><span class=si>{</span><span class=n>float_format</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=k>def</span><span class=w> </span><span class=nf>__render_float</span><span class=p>(</span><span class=n>value</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=n>ir</span><span class=o>=</span><span class=n>__toint</span><span class=p>,</span>
+                           <span class=n>ff</span><span class=o>=</span><span class=n>float_format</span><span class=p>)</span> <span class=o>-></span> <span class=n>FormattedStr</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>value</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=k>return</span> <span class=n>none_str</span>
+            <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>value</span><span class=p>):</span>
+                <span class=n>res</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>ff</span><span class=o>.</span><span class=n>format</span><span class=p>(</span><span class=n>value</span><span class=p>)</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+                <span class=n>int_part</span><span class=p>:</span> <span class=nb>str</span>
+                <span class=n>frac_part</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>""</span>
+                <span class=n>exp_part</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>""</span>
+                <span class=n>eidx</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>res</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>"e"</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>eidx</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>eidx</span> <span class=o>=</span> <span class=n>res</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>"E"</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>eidx</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>exp_part</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"e</span><span class=si>{</span><span class=n>ir</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>res</span><span class=p>[</span><span class=n>eidx</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=mi>1</span><span class=p>:]))</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span><span class=si>}</span><span class=s2>"</span>
+                    <span class=n>res</span> <span class=o>=</span> <span class=n>res</span><span class=p>[:</span><span class=n>eidx</span><span class=p>]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+                <span class=n>dotidx</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>res</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>"."</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>dotidx</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>int_part</span> <span class=o>=</span> <span class=n>ir</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>res</span><span class=p>))</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>int_part</span> <span class=o>=</span> <span class=n>ir</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>res</span><span class=p>[:</span><span class=n>dotidx</span><span class=p>]))</span>
+                    <span class=n>frac_part</span> <span class=o>=</span> <span class=n>res</span><span class=p>[</span><span class=n>dotidx</span><span class=p>:]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+                <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>int_part</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>int_part</span> <span class=o>=</span> <span class=s2>"0"</span>
+                <span class=k>return</span> <span class=n>FormattedStr</span><span class=o>.</span><span class=n>number</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>int_part</span><span class=si>}{</span><span class=n>frac_part</span><span class=si>}{</span><span class=n>exp_part</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>return</span> <span class=n>FormattedStr</span><span class=o>.</span><span class=n>number</span><span class=p>(</span><span class=n>value</span><span class=p>)</span>
+
+        <span class=c1># step five: first, create the raw float strings and mark special</span>
+        <span class=c1># values</span>
+        <span class=k>return</span> <span class=p>[</span><span class=n>__render_float</span><span class=p>(</span><span class=n>value</span><span class=p>)</span> <span class=k>for</span> <span class=n>value</span> <span class=ow>in</span> <span class=n>data</span><span class=p>]</span></div>
+</div>
+
+
+
+<span class=c1>#: the default shared singleton instance of the number group format</span>
+<span class=n>DEFAULT_NUMBER_RENDERER</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>NumberRenderer</span><span class=p>]</span> <span class=o>=</span> <span class=n>NumberRenderer</span><span class=p>()</span>
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.number_renderer</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

@@ -1,0 +1,159 @@
+<!doctype html><html data-content_root=../../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.ffa.safea_n — moptipy 0.9.172 documentation</title><link href="../../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/ffa/safea_n.html rel=canonical><link href=../../../../../genindex.html rel=index title=Index><link href=../../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.ffa.safea_n</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.ffa.safea_n</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>A Hybrid SA-FEA Algorithm: the `SAFEA-N`.</span>
+
+<span class=sd>This hybrid algorithm has the following features:</span>
+
+<span class=sd>- The new solution of the FEA strand is always copied to the SA strand.</span>
+<span class=sd>- The new solution of the SA strand is copied over to the FEA strand if it is</span>
+<span class=sd>  better than the current solution of the FEA strand.</span>
+<span class=sd>- The H-table is updated by both strands.</span>
+<span class=sd>- The FEA strand always toggles back to the SA strand.</span>
+<span class=sd>- The SA strand toggles to the FEA strand if it did not improve for a certain,</span>
+<span class=sd>  increasing `time limit`.</span>
+<span class=sd>- Every time the SA strand toggles over to the FEA strand, `time_limit` is</span>
+<span class=sd>  incremented by 1.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>collections</span><span class=w> </span><span class=kn>import</span> <span class=n>Counter</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>exp</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.modules.temperature_schedule</span><span class=w> </span><span class=kn>import</span> <span class=n>TemperatureSchedule</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.ffa.ffa_h</span><span class=w> </span><span class=kn>import</span> <span class=n>create_h</span><span class=p>,</span> <span class=n>log_h</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm1</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>Op1</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+
+
+<div class=viewcode-block id=SAFEAN>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.ffa.html#moptipy.algorithms.so.ffa.safea_n.SAFEAN>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>SAFEAN</span><span class=p>(</span><span class=n>Algorithm1</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""An implementation of the SAFEA-N."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>:</span> <span class=n>Op1</span><span class=p>,</span> <span class=n>schedule</span><span class=p>:</span> <span class=n>TemperatureSchedule</span><span class=p>,</span>
+                 <span class=n>log_h_tbl</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the SAFEA-N.</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param op1: the unary search operator</span>
+<span class=sd>        :param schedule: the temperature schedule to use</span>
+<span class=sd>        :param log_h_tbl: should we log the H table?</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>schedule</span><span class=p>,</span> <span class=n>TemperatureSchedule</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>schedule</span><span class=p>,</span> <span class=s2>"schedule"</span><span class=p>,</span> <span class=n>TemperatureSchedule</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>log_h_tbl</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>log_h_tbl</span><span class=p>,</span> <span class=s2>"log_h_tbl"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=sa>f</span><span class=s2>"safeaN_</span><span class=si>{</span><span class=n>schedule</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=n>op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>)</span>
+        <span class=c1>#: True if we should log the H table, False otherwise</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__log_h_tbl</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>log_h_tbl</span>
+        <span class=c1>#: the temperature schedule</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>schedule</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>TemperatureSchedule</span><span class=p>]</span> <span class=o>=</span> <span class=n>schedule</span>
+
+<div class=viewcode-block id=SAFEAN.solve>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.ffa.html#moptipy.algorithms.so.ffa.safea_n.SAFEAN.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the SAFEA-N to an optimization problem.</span>
+
+<span class=sd>        :param process: the black-box process object</span>
+<span class=sd>        """</span>
+        <span class=c1># Create records for old and new point in the search space.</span>
+        <span class=n>x_ea</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>  <span class=c1># record for current solution of the SA</span>
+        <span class=n>x_fea</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>  <span class=c1># record for current solution of the FEA</span>
+        <span class=n>x_new</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>  <span class=c1># record for new solution</span>
+
+        <span class=c1># Obtain the random number generator.</span>
+        <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>()</span>
+
+        <span class=c1># Put function references in variables to save time.</span>
+        <span class=n>evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>evaluate</span>  <span class=c1># the objective</span>
+        <span class=n>should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>
+        <span class=n>temperature</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>],</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>schedule</span><span class=o>.</span><span class=n>temperature</span>
+        <span class=n>r01</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>random</span>  <span class=c1># random from [0, 1)</span>
+        <span class=n>xcopy</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>copy</span>  <span class=c1># copy(dest, source)</span>
+        <span class=n>op0</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op0</span><span class=o>.</span><span class=n>op0</span>  <span class=c1># the nullary operator</span>
+        <span class=n>op1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op1</span><span class=o>.</span><span class=n>op1</span>  <span class=c1># the unary operator</span>
+
+        <span class=n>h</span><span class=p>,</span> <span class=n>ofs</span> <span class=o>=</span> <span class=n>create_h</span><span class=p>(</span><span class=n>process</span><span class=p>)</span>  <span class=c1># Allocate the h-table</span>
+
+        <span class=c1># Start at a random point in the search space and evaluate it.</span>
+        <span class=n>op0</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>x_ea</span><span class=p>)</span>  <span class=c1># Create 1 solution randomly and</span>
+        <span class=n>y_ea</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>x_ea</span><span class=p>)</span> <span class=o>+</span> <span class=n>ofs</span>  <span class=c1># evaluate it.</span>
+        <span class=n>xcopy</span><span class=p>(</span><span class=n>x_fea</span><span class=p>,</span> <span class=n>x_ea</span><span class=p>)</span>  <span class=c1># FEA and SA start with the same initial solution.</span>
+        <span class=n>y_fea</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>y_ea</span>
+
+        <span class=n>sa_max_no_lt_moves</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span>  <span class=c1># maximum no-improvement moves for SA</span>
+        <span class=n>sa_no_lt_moves</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># current no-improvement moves</span>
+        <span class=n>use_ffa</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>  <span class=c1># We start with the SA branch.</span>
+        <span class=n>tau</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># The iteration index, needs to be 0 at first cmp.</span>
+
+        <span class=k>while</span> <span class=ow>not</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># Until we need to quit...</span>
+            <span class=c1># Sample and evaluate new solution.</span>
+            <span class=n>op1</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>x_new</span><span class=p>,</span> <span class=n>x_fea</span> <span class=k>if</span> <span class=n>use_ffa</span> <span class=k>else</span> <span class=n>x_ea</span><span class=p>)</span>
+            <span class=n>y_new</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>x_new</span><span class=p>)</span> <span class=o>+</span> <span class=n>ofs</span>
+            <span class=n>h</span><span class=p>[</span><span class=n>y_new</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># type: ignore  # Always update H.</span>
+
+            <span class=k>if</span> <span class=n>use_ffa</span><span class=p>:</span>  <span class=c1># The FEA branch uses FFA.</span>
+                <span class=n>use_ffa</span> <span class=o>=</span> <span class=kc>False</span>  <span class=c1># Always toggle use from FFA to SA.</span>
+                <span class=n>sa_no_lt_moves</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># Reset the SA no-improv move counter.</span>
+
+                <span class=n>h</span><span class=p>[</span><span class=n>y_fea</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># type: ignore  # Update H for FEA solution.</span>
+                <span class=k>if</span> <span class=n>h</span><span class=p>[</span><span class=n>y_new</span><span class=p>]</span> <span class=o><=</span> <span class=n>h</span><span class=p>[</span><span class=n>y_fea</span><span class=p>]:</span>  <span class=c1># type: ignore  # FEA acceptance.</span>
+                    <span class=n>xcopy</span><span class=p>(</span><span class=n>x_ea</span><span class=p>,</span> <span class=n>x_new</span><span class=p>)</span>  <span class=c1># Copy solution also to SA.</span>
+                    <span class=n>x_fea</span><span class=p>,</span> <span class=n>x_new</span> <span class=o>=</span> <span class=n>x_new</span><span class=p>,</span> <span class=n>x_fea</span>
+                    <span class=n>y_fea</span> <span class=o>=</span> <span class=n>y_new</span>
+                <span class=k>else</span><span class=p>:</span>  <span class=c1># FEA does not accept, but we always copy to the SA,</span>
+                    <span class=n>x_ea</span><span class=p>,</span> <span class=n>x_new</span> <span class=o>=</span> <span class=n>x_new</span><span class=p>,</span> <span class=n>x_ea</span>  <span class=c1># so we quickly swap here.</span>
+                <span class=n>y_ea</span> <span class=o>=</span> <span class=n>y_new</span>  <span class=c1># we always copy the solution over to the SA</span>
+
+            <span class=k>else</span><span class=p>:</span>  <span class=c1># SA branch performs simulated annealing.</span>
+                <span class=n>h</span><span class=p>[</span><span class=n>y_ea</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># type: ignore  # Update H in *both* branches.</span>
+
+                <span class=k>if</span> <span class=n>y_new</span> <span class=o><</span> <span class=n>y_fea</span><span class=p>:</span>  <span class=c1># Is new solution better than the FEA one?</span>
+                    <span class=n>xcopy</span><span class=p>(</span><span class=n>x_fea</span><span class=p>,</span> <span class=n>x_new</span><span class=p>)</span>  <span class=c1># Copy solution over to FEA.</span>
+                    <span class=n>y_fea</span> <span class=o>=</span> <span class=n>y_new</span>  <span class=c1># And store the objective value.</span>
+
+                <span class=k>if</span> <span class=p>(</span><span class=n>y_new</span> <span class=o><=</span> <span class=n>y_ea</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span>  <span class=c1># Accept if <= or if SA criterion</span>
+                        <span class=n>r01</span><span class=p>()</span> <span class=o><</span> <span class=n>exp</span><span class=p>((</span><span class=n>y_ea</span> <span class=o>-</span> <span class=n>y_new</span><span class=p>)</span> <span class=o>/</span> <span class=n>temperature</span><span class=p>(</span><span class=n>tau</span><span class=p>))):</span>
+                    <span class=n>x_ea</span><span class=p>,</span> <span class=n>x_new</span> <span class=o>=</span> <span class=n>x_new</span><span class=p>,</span> <span class=n>x_ea</span>  <span class=c1># Accept new solution.</span>
+                    <span class=n>y_new</span><span class=p>,</span> <span class=n>y_ea</span> <span class=o>=</span> <span class=n>y_ea</span><span class=p>,</span> <span class=n>y_new</span>  <span class=c1># Swap values (for line below).</span>
+                    <span class=k>if</span> <span class=n>y_new</span> <span class=o>></span> <span class=n>y_ea</span><span class=p>:</span>  <span class=c1># Check if we did an actual improvement.</span>
+                        <span class=n>sa_no_lt_moves</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># non-improving moves counter = 0.</span>
+                        <span class=k>continue</span>  <span class=c1># We can jump to the next iteration.</span>
+
+                <span class=n>sa_no_lt_moves</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># Increase non-improved counter.</span>
+                <span class=k>if</span> <span class=n>sa_no_lt_moves</span> <span class=o>>=</span> <span class=n>sa_max_no_lt_moves</span><span class=p>:</span>  <span class=c1># Toggle: SA to FEA.</span>
+                    <span class=n>sa_max_no_lt_moves</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># Increment limit by one.</span>
+                    <span class=n>use_ffa</span> <span class=o>=</span> <span class=kc>True</span>  <span class=c1># Toggle to FFA.</span>
+            <span class=n>tau</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># Step the iteration index.</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=bp>self</span><span class=o>.</span><span class=n>__log_h_tbl</span><span class=p>:</span>
+            <span class=k>return</span>  <span class=c1># we are done here</span>
+
+        <span class=c1># After we are done, we want to print the H-table.</span>
+        <span class=k>if</span> <span class=n>h</span><span class=p>[</span><span class=n>y_ea</span><span class=p>]</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>  <span class=c1># type: ignore  # Fix the H-table for the case</span>
+            <span class=n>h</span> <span class=o>=</span> <span class=n>Counter</span><span class=p>()</span>   <span class=c1># that only one FE was performed: In this case,</span>
+            <span class=n>h</span><span class=p>[</span><span class=n>y_ea</span><span class=p>]</span> <span class=o>=</span> <span class=mi>1</span>  <span class=c1># make Counter with only a single 1 value inside.</span>
+
+        <span class=n>log_h</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=n>h</span><span class=p>,</span> <span class=n>ofs</span><span class=p>)</span>  <span class=c1># log the H-table</span></div>
+
+
+<div class=viewcode-block id=SAFEAN.log_parameters_to>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.ffa.html#moptipy.algorithms.so.ffa.safea_n.SAFEAN.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log all parameters of the SAFEA-N algorithm.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=k>with</span> <span class=n>logger</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=s2>"ts"</span><span class=p>)</span> <span class=k>as</span> <span class=n>ts</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>schedule</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>ts</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.ffa.safea_n</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

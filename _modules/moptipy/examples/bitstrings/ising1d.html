@@ -1,0 +1,757 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.bitstrings.ising1d — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/bitstrings/ising1d.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a accesskey=U href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.ising1d</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.bitstrings.ising1d</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The one-dimensional Ising problem.</span>
+
+<span class=sd>The one-dimensional Ising problem describes a ring. For each bit that differs</span>
+<span class=sd>from its (right-side) neighboring bit, a penalty of 1 is incurred. The optimum</span>
+<span class=sd>is a bit string of either all ones or all zeros. The optimal objective value</span>
+<span class=sd>is 0, the worst-possible one is `n`.</span>
+
+<span class=sd>1. Simon Fischer and Ingo Wegener. The one-dimensional Ising model: Mutation</span>
+<span class=sd>   versus recombination. *Theoretical Computer Science.* 344(2-3):208-225.</span>
+<span class=sd>   November 2005. doi: https://doi.org/10.1016/j.tcs.2005.04.002</span>
+<span class=sd>2. Carola Doerr and Furong Ye and Naama Horesh and Hao Wang and Ofer M. Shir</span>
+<span class=sd>   and Thomas Bäck. Benchmarking Discrete Optimization Heuristics with</span>
+<span class=sd>   IOHprofiler. Applied Soft Computing 88:106027, March 2020,</span>
+<span class=sd>   doi: https://doi.org/10.1016/j.asoc.2019.106027.</span>
+<span class=sd>3. Clarissa Van Hoyweghen, David Edward Goldberg, and Bart Naudts. From Twomax</span>
+<span class=sd>   To The Ising Model: Easy And Hard Symmetrical Problems. *In Proceedings of</span>
+<span class=sd>   the Genetic and Evolutionary Computation Conference (GECCO'02),* July 9-13,</span>
+<span class=sd>   2002, New York, NY, USA, pages 626-633. Morgan Kaufmann.</span>
+<span class=sd>   http://gpbib.cs.ucl.ac.uk/gecco2002/GA013.pdf</span>
+<span class=sd>4. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency</span>
+<span class=sd>   Fitness Assignment: Optimization without Bias for Good Solutions can be</span>
+<span class=sd>   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.</span>
+<span class=sd>   27(4):980-992. August 2023.</span>
+<span class=sd>   doi: https://doi.org/10.1109/TEVC.2022.3191698</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Iterator</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.bitstring_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>BitStringProblem</span>
+
+
+<div class=viewcode-block id=ising1d>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.ising1d.ising1d>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>ising1d</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the objective value of the 1-dimensional Ising problem.</span>
+
+<span class=sd>    :param x: the np array</span>
+<span class=sd>    :return: the ising1d function value</span>
+
+<span class=sd>    >>> ising1d(np.array([True, True, True, True, True]))</span>
+<span class=sd>    0</span>
+<span class=sd>    >>> ising1d(np.array([False, False, False, False, False]))</span>
+<span class=sd>    0</span>
+<span class=sd>    >>> ising1d(np.array([False, False, False, True, False]))</span>
+<span class=sd>    2</span>
+<span class=sd>    >>> ising1d(np.array([True, False, False, False, False]))</span>
+<span class=sd>    2</span>
+<span class=sd>    >>> ising1d(np.array([False, False, False, False, True]))</span>
+<span class=sd>    2</span>
+<span class=sd>    >>> ising1d(np.array([True, False, False, False, True]))</span>
+<span class=sd>    2</span>
+<span class=sd>    >>> ising1d(np.array([True, False, True, False, False]))</span>
+<span class=sd>    4</span>
+<span class=sd>    >>> ising1d(np.array([True, False, True, False, True, False]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 1 and 0 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 1 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 2 and 0 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 2 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 2 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 2 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 2 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 3 and 0 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 3 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 3 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 3 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 3 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 3 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 3 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 3 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 4 and 0 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 4 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 5 and 0 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 0]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 5 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 5 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 5 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 5 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 0, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 5 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 0, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 5 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 1, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 5 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 0, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 5 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 5 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 5 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 5 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 0, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 5 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 0, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 5 and 5 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 6 and 0 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 6 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 0, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 0, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 0, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 1, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0, 1, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 6 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0, 0, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 6 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1, 1, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 6 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 6 and 5 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 5 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 5 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 6 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 7 and 0 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 7 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 1, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 1, 0, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 7 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0, 0, 0, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 7 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 7 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 7 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 7 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 0, 1, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 7 and 5 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1, 1, 1, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 7 and 5 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 1, 1, 0, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 7 and 5 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 7 and 6 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 6 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 1, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 6 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 7 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 8 and 0 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 8 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 1, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 1, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 0, 1, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 8 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 1, 1, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 1, 0, 0, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 8 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 1, 1, 1, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 8 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 0, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 8 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 0, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 8 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 8 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 8 and 5 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1, 0, 0, 1, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 8 and 5 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 0, 1, 0, 0, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 8 and 5 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 8 and 6 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 1, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 8 and 6 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 6 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 1, 1, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 7 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 0, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 7 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 1, 1, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 7 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 1, 1, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 8 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 9 and 0 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 9 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 9 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 0, 1, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 9 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 9 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 0, 1, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 0, 0, 1, 0, 0, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 0, 1, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 1, 0, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 9 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 1, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 1, 0, 0, 0, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1, 1, 1, 0, 0, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 0, 1, 0, 0, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 0, 0, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 9 and 5 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 1, 1, 0, 0, 1, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 5 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 0, 1, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 9 and 5 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1, 1, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 9 and 6 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1, 1, 1, 1, 1, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 6 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 1, 1, 1, 1, 1, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 9 and 6 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 7 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 0, 1, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 7 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 0, 1, 1, 1, 1, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 7 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1, 0, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 8 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 9 and 8 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 1, 1, 0, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 9 and 8 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 9 and 9 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 10 and 0 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 10 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 1 true bit</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 0, 0, 0, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 2 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 1, 0, 0, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 10 and 3 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 0, 0, 0, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 10 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0, 1, 1, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 10 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 0, 1, 1, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 10 and 4 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 0, 0, 0, 0, 0, 1, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 5 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0, 0, 1, 1, 1, 0, 1, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 10 and 5 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 0, 0, 1, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 10 and 5 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 0, 1, 0, 0, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 10 and 6 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 0, 0, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 6 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 0, 1, 0, 0, 1, 1, 1, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 10 and 6 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0, 0, 1, 1, 1, 0, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 7 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0, 0, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 7 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 0, 1, 1, 1, 1, 1, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 7 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 1, 1, 0, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 10 and 8 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1, 1, 0, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 8 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 1, 1, 1, 0, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 8 true bits</span>
+<span class=sd>    >>> ising1d(np.array([0, 1, 1, 1, 1, 1, 1, 0, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 9 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 9 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 1, 0, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 9 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 0, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 10 true bits</span>
+<span class=sd>    >>> ising1d(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+<span class=sd>    """</span>
+    <span class=n>n</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>prev</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=n>x</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>
+    <span class=k>for</span> <span class=n>cur</span> <span class=ow>in</span> <span class=n>x</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>cur</span> <span class=o>!=</span> <span class=n>prev</span><span class=p>:</span>
+            <span class=n>n</span> <span class=o>+=</span> <span class=mi>1</span>
+        <span class=n>prev</span> <span class=o>=</span> <span class=n>cur</span>
+    <span class=k>return</span> <span class=n>n</span></div>
+
+
+
+<div class=viewcode-block id=Ising1d>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.ising1d.Ising1d>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Ising1d</span><span class=p>(</span><span class=n>BitStringProblem</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The one-dimensional Ising problem."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the one-dimensional Ising problem.</span>
+
+<span class=sd>        :param n: the dimension of the problem</span>
+
+<span class=sd>        >>> Ising1d(7).n</span>
+<span class=sd>        7</span>
+<span class=sd>        >>> Ising1d(3).evaluate(np.array([True, False, True]))</span>
+<span class=sd>        2</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>n</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>evaluate</span> <span class=o>=</span> <span class=n>ising1d</span>  <span class=c1># type: ignore</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the one-dimensional Ising problem.</span>
+
+<span class=sd>        :return: `ising1d_` + length of string</span>
+
+<span class=sd>        >>> Ising1d(5)</span>
+<span class=sd>        ising1d_5</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"ising1d_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=si>}</span><span class=s2>"</span>
+
+<div class=viewcode-block id=Ising1d.default_instances>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.ising1d.Ising1d.default_instances>[docs]</a>
+    <span class=nd>@classmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>default_instances</span><span class=p>(</span>
+            <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>,</span> <span class=n>scale_min</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>2</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>100</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=n>Iterator</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=s2>"Ising1d"</span><span class=p>]]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the 56 default instances of the :class:`Ising1d` problem.</span>
+
+<span class=sd>        :param scale_min: the minimum permitted scale, by default `2`</span>
+<span class=sd>        :param scale_max: the maximum permitted scale, by default `100`</span>
+<span class=sd>        :returns: a sequence of default :class:`Ising1d` instances</span>
+
+<span class=sd>        >>> len(list(Ising1d.default_instances()))</span>
+<span class=sd>        56</span>
+
+<span class=sd>        >>> [x() for x in Ising1d.default_instances()]</span>
+<span class=sd>        [ising1d_2, ising1d_3, ising1d_4, ising1d_5, ising1d_6, ising1d_7, \</span>
+<span class=sd>ising1d_8, ising1d_9, ising1d_10, ising1d_11, ising1d_12, ising1d_13, \</span>
+<span class=sd>ising1d_14, ising1d_15, ising1d_16, ising1d_17, ising1d_18, ising1d_19, \</span>
+<span class=sd>ising1d_20, ising1d_21, ising1d_22, ising1d_23, ising1d_24, ising1d_25, \</span>
+<span class=sd>ising1d_26, ising1d_27, ising1d_28, ising1d_29, ising1d_30, ising1d_31, \</span>
+<span class=sd>ising1d_32, ising1d_33, ising1d_36, ising1d_40, ising1d_41, ising1d_42, \</span>
+<span class=sd>ising1d_44, ising1d_48, ising1d_49, ising1d_50, ising1d_55, ising1d_59, \</span>
+<span class=sd>ising1d_60, ising1d_64, ising1d_66, ising1d_70, ising1d_77, ising1d_79, \</span>
+<span class=sd>ising1d_80, ising1d_81, ising1d_85, ising1d_88, ising1d_90, ising1d_96, \</span>
+<span class=sd>ising1d_99, ising1d_100]</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Iterator[Callable[[], Ising1d]]"</span><span class=p>,</span>
+                    <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span>  <span class=c1># type: ignore</span>
+                        <span class=n>scale_min</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>))</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.ising1d</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

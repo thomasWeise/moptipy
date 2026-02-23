@@ -1,0 +1,326 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.jssp.plot_gantt_chart — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/jssp/plot_gantt_chart.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.plot_gantt_chart</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.jssp.plot_gantt_chart</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Plot a Gantt chart into one figure."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib.artist</span><span class=w> </span><span class=kn>import</span> <span class=n>Artist</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib.axes</span><span class=w> </span><span class=kn>import</span> <span class=n>Axes</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib.figure</span><span class=w> </span><span class=kn>import</span> <span class=n>Figure</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib.lines</span><span class=w> </span><span class=kn>import</span> <span class=n>Line2D</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib.patches</span><span class=w> </span><span class=kn>import</span> <span class=n>Rectangle</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib.text</span><span class=w> </span><span class=kn>import</span> <span class=n>Text</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib.ticker</span><span class=w> </span><span class=kn>import</span> <span class=n>MaxNLocator</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>moptipy.utils.plot_defaults</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>pd</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>moptipy.utils.plot_utils</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>pu</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.axis_ranger</span><span class=w> </span><span class=kn>import</span> <span class=n>AxisRanger</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.gantt</span><span class=w> </span><span class=kn>import</span> <span class=n>Gantt</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.makespan</span><span class=w> </span><span class=kn>import</span> <span class=n>makespan</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.lang</span><span class=w> </span><span class=kn>import</span> <span class=n>Lang</span>
+
+
+<div class=viewcode-block id=marker_lb>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.plot_gantt_chart.marker_lb>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>marker_lb</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>Gantt</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the marker for the lower bound.</span>
+
+<span class=sd>    :param x: the Gantt chart</span>
+<span class=sd>    :return: the lower bound marker</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>Lang</span><span class=o>.</span><span class=n>current</span><span class=p>()[</span><span class=s2>"lower_bound_short"</span><span class=p>],</span> \
+        <span class=n>x</span><span class=o>.</span><span class=n>instance</span><span class=o>.</span><span class=n>makespan_lower_bound</span></div>
+
+
+
+<div class=viewcode-block id=marker_makespan>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.plot_gantt_chart.marker_makespan>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>marker_makespan</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>Gantt</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the marker for the makespan.</span>
+
+<span class=sd>    :param x: the Gantt chart</span>
+<span class=sd>    :return: the makespan marker</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>Lang</span><span class=o>.</span><span class=n>current</span><span class=p>()[</span><span class=s2>"makespan"</span><span class=p>],</span> <span class=n>makespan</span><span class=p>(</span><span class=n>x</span><span class=p>)</span></div>
+
+
+
+<span class=c1>#: the color for markers at the left end</span>
+<span class=n>__LEFT_END_MARK</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span><span class=mf>0.95</span><span class=p>,</span> <span class=mf>0.02</span><span class=p>,</span> <span class=mf>0.02</span><span class=p>)</span>
+<span class=c1>#: the color for markers at the right end</span>
+<span class=n>__RIGHT_END_MARK</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span><span class=mf>0.02</span><span class=p>,</span> <span class=mf>0.02</span><span class=p>,</span> <span class=mf>0.95</span><span class=p>)</span>
+<span class=c1>#: the color for markers in the middle</span>
+<span class=n>__MIDDLE_MARK</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=n>pd</span><span class=o>.</span><span class=n>COLOR_BLACK</span>
+
+
+<div class=viewcode-block id=plot_gantt_chart>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.plot_gantt_chart.plot_gantt_chart>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>plot_gantt_chart</span><span class=p>(</span>
+        <span class=n>gantt</span><span class=p>:</span> <span class=n>Gantt</span> <span class=o>|</span> <span class=nb>str</span><span class=p>,</span>
+        <span class=n>figure</span><span class=p>:</span> <span class=n>Axes</span> <span class=o>|</span> <span class=n>Figure</span><span class=p>,</span>
+        <span class=n>markers</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=n>Gantt</span><span class=p>],</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=p>(</span><span class=n>marker_lb</span><span class=p>,),</span>
+        <span class=n>x_axis</span><span class=p>:</span> <span class=n>AxisRanger</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Gantt</span><span class=p>],</span> <span class=n>AxisRanger</span><span class=p>]</span> <span class=o>=</span>
+        <span class=k>lambda</span> <span class=n>_</span><span class=p>:</span> <span class=n>AxisRanger</span><span class=p>(</span><span class=n>chosen_min</span><span class=o>=</span><span class=mi>0</span><span class=p>),</span>
+        <span class=n>importance_to_line_width_func</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>],</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span>
+        <span class=n>pd</span><span class=o>.</span><span class=n>importance_to_line_width</span><span class=p>,</span>
+        <span class=n>importance_to_font_size_func</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>],</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span>
+        <span class=n>pd</span><span class=o>.</span><span class=n>importance_to_font_size</span><span class=p>,</span>
+        <span class=n>info</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Gantt</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span>
+        <span class=k>lambda</span> <span class=n>gantt</span><span class=p>:</span> <span class=n>Lang</span><span class=o>.</span><span class=n>current</span><span class=p>()</span><span class=o>.</span><span class=n>format_str</span><span class=p>(</span><span class=s2>"gantt_info"</span><span class=p>,</span> <span class=n>gantt</span><span class=o>=</span><span class=n>gantt</span><span class=p>),</span>
+        <span class=n>x_grid</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+        <span class=n>y_grid</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+        <span class=n>x_label</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Gantt</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span>
+        <span class=n>Lang</span><span class=o>.</span><span class=n>translate_call</span><span class=p>(</span><span class=s2>"time"</span><span class=p>),</span>
+        <span class=n>x_label_inside</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+        <span class=n>x_label_location</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>1.0</span><span class=p>,</span>
+        <span class=n>y_label</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Gantt</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span>
+        <span class=n>Lang</span><span class=o>.</span><span class=n>translate_call</span><span class=p>(</span><span class=s2>"machine"</span><span class=p>),</span>
+        <span class=n>y_label_inside</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+        <span class=n>y_label_location</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.5</span><span class=p>)</span> <span class=o>-></span> <span class=n>Axes</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Plot a Gantt chart.</span>
+
+<span class=sd>    :param gantt: the gantt chart or a path to a file to load it from</span>
+<span class=sd>    :param figure: the figure</span>
+<span class=sd>    :param markers: a set of markers</span>
+<span class=sd>    :param x_axis: the ranger for the x-axis</span>
+<span class=sd>    :param info: the optional info header</span>
+<span class=sd>    :param importance_to_font_size_func: the function converting</span>
+<span class=sd>        importance values to font sizes</span>
+<span class=sd>    :param importance_to_line_width_func: the function converting</span>
+<span class=sd>        importance values to line widths</span>
+<span class=sd>    :param x_grid: should we have a grid along the x-axis?</span>
+<span class=sd>    :param y_grid: should we have a grid along the y-axis?</span>
+<span class=sd>    :param x_label: a callable returning the label for</span>
+<span class=sd>        the x-axis, a label string, or `None` if no label should be put</span>
+<span class=sd>    :param x_label_inside: put the x-axis label inside the plot (so that</span>
+<span class=sd>        it does not consume additional vertical space)</span>
+<span class=sd>    :param x_label_location: the location of the x-label</span>
+<span class=sd>    :param y_label: a callable returning the label for</span>
+<span class=sd>        the y-axis, a label string, or `None` if no label should be put</span>
+<span class=sd>    :param y_label_inside: put the y-axis label inside the plot (so that</span>
+<span class=sd>        it does not consume additional horizontal space)</span>
+<span class=sd>    :param y_label_location: the location of the y-label</span>
+<span class=sd>    :returns: the axes object to allow you to add further plot elements</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>gantt</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=n>gantt</span> <span class=o>=</span> <span class=n>Gantt</span><span class=o>.</span><span class=n>from_log</span><span class=p>(</span><span class=n>gantt</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>gantt</span><span class=p>,</span> <span class=n>Gantt</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>gantt</span><span class=p>,</span> <span class=s2>"gantt"</span><span class=p>,</span> <span class=p>(</span><span class=n>Gantt</span><span class=p>,</span> <span class=nb>str</span><span class=p>))</span>
+    <span class=n>axes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Axes</span><span class=p>]</span> <span class=o>=</span> <span class=n>pu</span><span class=o>.</span><span class=n>get_axes</span><span class=p>(</span><span class=n>figure</span><span class=p>)</span>
+
+    <span class=c1># grab the data</span>
+    <span class=n>jobs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>gantt</span><span class=o>.</span><span class=n>instance</span><span class=o>.</span><span class=n>jobs</span>
+    <span class=n>machines</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>gantt</span><span class=o>.</span><span class=n>instance</span><span class=o>.</span><span class=n>machines</span>
+
+    <span class=c1># Set up the x-axis range.</span>
+    <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>x_axis</span><span class=p>):</span>
+        <span class=n>x_axis</span> <span class=o>=</span> <span class=n>x_axis</span><span class=p>(</span><span class=n>gantt</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>x_axis</span><span class=p>,</span> <span class=n>AxisRanger</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>x_axis</span><span class=p>,</span> <span class=s2>"x_axis"</span><span class=p>,</span> <span class=n>AxisRanger</span><span class=p>)</span>
+
+    <span class=c1># Compute all the marks</span>
+    <span class=n>marks</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>{}</span>
+    <span class=k>if</span> <span class=n>markers</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>markers</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>markers</span><span class=p>,</span> <span class=s2>"markers"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>usemarker</span> <span class=ow>in</span> <span class=n>markers</span><span class=p>:</span>
+            <span class=n>marker</span> <span class=o>=</span> <span class=n>usemarker</span><span class=p>(</span><span class=n>gantt</span><span class=p>)</span> <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>usemarker</span><span class=p>)</span> <span class=k>else</span> <span class=n>usemarker</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>marker</span><span class=p>:</span>
+                <span class=k>continue</span>
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>marker</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>):</span>
+                <span class=n>name</span><span class=p>,</span> <span class=n>val</span> <span class=o>=</span> <span class=n>marker</span>
+                <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>name</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=ow>not</span> <span class=n>val</span><span class=p>):</span>
+                    <span class=k>continue</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>marker</span><span class=p>,</span> <span class=s2>"marker"</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=s2>"marker name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>val</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>val</span><span class=p>,</span> <span class=s2>"marker"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+            <span class=k>if</span> <span class=n>val</span> <span class=ow>in</span> <span class=n>marks</span><span class=p>:</span>
+                <span class=n>marks</span><span class=p>[</span><span class=n>val</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>marks</span><span class=p>[</span><span class=n>val</span><span class=p>]</span><span class=si>}</span><span class=s2>/</span><span class=si>{</span><span class=n>name</span><span class=si>}</span><span class=s2>"</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>marks</span><span class=p>[</span><span class=n>val</span><span class=p>]</span> <span class=o>=</span> <span class=n>name</span>
+                <span class=n>x_axis</span><span class=o>.</span><span class=n>register_value</span><span class=p>(</span><span class=n>val</span><span class=p>)</span>
+
+    <span class=c1># Add x-axis data</span>
+    <span class=n>x_axis</span><span class=o>.</span><span class=n>register_array</span><span class=p>(</span><span class=n>gantt</span><span class=p>[:,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>flatten</span><span class=p>())</span>  <span class=c1># register start times</span>
+    <span class=n>x_axis</span><span class=o>.</span><span class=n>register_array</span><span class=p>(</span><span class=n>gantt</span><span class=p>[:,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>]</span><span class=o>.</span><span class=n>flatten</span><span class=p>())</span>  <span class=c1># register end times</span>
+    <span class=n>x_axis</span><span class=o>.</span><span class=n>apply</span><span class=p>(</span><span class=n>axes</span><span class=p>,</span> <span class=s2>"x"</span><span class=p>)</span>
+    <span class=n>xmin</span><span class=p>,</span> <span class=n>xmax</span> <span class=o>=</span> <span class=n>axes</span><span class=o>.</span><span class=n>get_xlim</span><span class=p>()</span>
+
+    <span class=c1># Set up the y-axis range.</span>
+    <span class=n>height</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=mf>0.7</span>
+    <span class=n>bar_ofs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>height</span> <span class=o>/</span> <span class=mi>2</span>
+    <span class=n>y_min</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=o>-</span><span class=p>((</span><span class=mi>7</span> <span class=o>*</span> <span class=n>bar_ofs</span><span class=p>)</span> <span class=o>/</span> <span class=mi>6</span><span class=p>)</span>
+    <span class=n>y_max</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=n>machines</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>+</span> <span class=p>((</span><span class=mi>7</span> <span class=o>*</span> <span class=n>bar_ofs</span><span class=p>)</span> <span class=o>/</span> <span class=mi>6</span><span class=p>)</span>
+
+    <span class=n>axes</span><span class=o>.</span><span class=n>set_ylim</span><span class=p>(</span><span class=n>y_min</span><span class=p>,</span> <span class=n>y_max</span><span class=p>)</span>
+    <span class=n>axes</span><span class=o>.</span><span class=n>set_ybound</span><span class=p>(</span><span class=n>y_min</span><span class=p>,</span> <span class=n>y_max</span><span class=p>)</span>
+    <span class=n>axes</span><span class=o>.</span><span class=n>yaxis</span><span class=o>.</span><span class=n>set_major_locator</span><span class=p>(</span><span class=n>MaxNLocator</span><span class=p>(</span><span class=n>nbins</span><span class=o>=</span><span class=s2>"auto"</span><span class=p>,</span>
+                                             <span class=n>integer</span><span class=o>=</span><span class=kc>True</span><span class=p>))</span>
+
+    <span class=c1># get the color and font styles</span>
+    <span class=n>colors</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>]</span> <span class=o>=</span> <span class=n>pd</span><span class=o>.</span><span class=n>distinct_colors</span><span class=p>(</span><span class=n>jobs</span><span class=p>)</span>
+    <span class=n>font_size</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>importance_to_font_size_func</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+
+    <span class=c1># get the transforms needed to obtain text dimensions</span>
+    <span class=n>rend</span><span class=p>:</span> <span class=n>Final</span> <span class=o>=</span> <span class=n>pu</span><span class=o>.</span><span class=n>get_renderer</span><span class=p>(</span><span class=n>axes</span><span class=p>)</span>
+    <span class=n>inv</span><span class=p>:</span> <span class=n>Final</span> <span class=o>=</span> <span class=n>axes</span><span class=o>.</span><span class=n>transData</span><span class=o>.</span><span class=n>inverted</span><span class=p>()</span>
+
+    <span class=c1># draw the grid</span>
+    <span class=k>if</span> <span class=n>x_grid</span> <span class=ow>or</span> <span class=n>y_grid</span><span class=p>:</span>
+        <span class=n>grid_lwd</span> <span class=o>=</span> <span class=n>importance_to_line_width_func</span><span class=p>(</span><span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>x_grid</span><span class=p>:</span>
+            <span class=n>axes</span><span class=o>.</span><span class=n>grid</span><span class=p>(</span><span class=n>axis</span><span class=o>=</span><span class=s2>"x"</span><span class=p>,</span> <span class=n>color</span><span class=o>=</span><span class=n>pd</span><span class=o>.</span><span class=n>GRID_COLOR</span><span class=p>,</span> <span class=n>linewidth</span><span class=o>=</span><span class=n>grid_lwd</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>y_grid</span><span class=p>:</span>
+            <span class=n>axes</span><span class=o>.</span><span class=n>grid</span><span class=p>(</span><span class=n>axis</span><span class=o>=</span><span class=s2>"y"</span><span class=p>,</span> <span class=n>color</span><span class=o>=</span><span class=n>pd</span><span class=o>.</span><span class=n>GRID_COLOR</span><span class=p>,</span> <span class=n>linewidth</span><span class=o>=</span><span class=n>grid_lwd</span><span class=p>)</span>
+
+    <span class=n>z_order</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+
+    <span class=c1># print the marker lines</span>
+    <span class=k>for</span> <span class=n>val</span> <span class=ow>in</span> <span class=n>marks</span><span class=p>:</span>
+        <span class=n>axes</span><span class=o>.</span><span class=n>add_artist</span><span class=p>(</span><span class=n>Line2D</span><span class=p>(</span><span class=n>xdata</span><span class=o>=</span><span class=p>(</span><span class=n>val</span><span class=p>,</span> <span class=n>val</span><span class=p>),</span>
+                               <span class=n>ydata</span><span class=o>=</span><span class=p>(</span><span class=n>y_min</span><span class=p>,</span> <span class=n>y_max</span><span class=p>),</span>
+                               <span class=n>color</span><span class=o>=</span><span class=n>__LEFT_END_MARK</span> <span class=k>if</span> <span class=n>val</span> <span class=o><=</span> <span class=n>xmin</span>
+                               <span class=k>else</span> <span class=n>__RIGHT_END_MARK</span> <span class=k>if</span> <span class=n>val</span> <span class=o>>=</span> <span class=n>xmax</span>
+                               <span class=k>else</span> <span class=n>__MIDDLE_MARK</span><span class=p>,</span>
+                               <span class=n>linewidth</span><span class=o>=</span><span class=mf>2.0</span><span class=p>,</span>
+                               <span class=n>zorder</span><span class=o>=</span><span class=n>z_order</span><span class=p>))</span>
+        <span class=n>z_order</span> <span class=o>+=</span> <span class=mi>1</span>
+
+    <span class=c1># plot the jobs</span>
+    <span class=k>for</span> <span class=n>machine</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>machines</span><span class=p>):</span>
+        <span class=k>for</span> <span class=n>jobi</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>jobs</span><span class=p>):</span>
+            <span class=n>job</span><span class=p>,</span> <span class=n>x_start</span><span class=p>,</span> <span class=n>x_end</span> <span class=o>=</span> <span class=n>gantt</span><span class=p>[</span><span class=n>machine</span><span class=p>,</span> <span class=n>jobi</span><span class=p>,</span> <span class=p>:]</span>
+
+            <span class=k>if</span> <span class=n>x_end</span> <span class=o><=</span> <span class=n>x_start</span><span class=p>:</span>  <span class=c1># skip operations that take 0 time</span>
+                <span class=k>continue</span>
+
+            <span class=n>background</span> <span class=o>=</span> <span class=n>colors</span><span class=p>[</span><span class=n>job</span><span class=p>]</span>
+            <span class=n>foreground</span> <span class=o>=</span> <span class=n>pd</span><span class=o>.</span><span class=n>text_color_for_background</span><span class=p>(</span><span class=n>colors</span><span class=p>[</span><span class=n>job</span><span class=p>])</span>
+            <span class=n>jobstr</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>job</span><span class=p>)</span>
+
+            <span class=c1># first plot the colored rectangle</span>
+            <span class=n>y_start</span> <span class=o>=</span> <span class=n>machine</span> <span class=o>-</span> <span class=n>bar_ofs</span>
+
+            <span class=n>axes</span><span class=o>.</span><span class=n>add_artist</span><span class=p>(</span><span class=n>Rectangle</span><span class=p>(</span>
+                <span class=n>xy</span><span class=o>=</span><span class=p>(</span><span class=n>x_start</span><span class=p>,</span> <span class=n>y_start</span><span class=p>),</span>
+                <span class=n>width</span><span class=o>=</span><span class=p>(</span><span class=n>x_end</span> <span class=o>-</span> <span class=n>x_start</span><span class=p>),</span>
+                <span class=n>height</span><span class=o>=</span><span class=n>height</span><span class=p>,</span>
+                <span class=n>color</span><span class=o>=</span><span class=n>background</span><span class=p>,</span>
+                <span class=n>linewidth</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span>
+                <span class=n>zorder</span><span class=o>=</span><span class=n>z_order</span><span class=p>))</span>
+            <span class=n>z_order</span> <span class=o>+=</span> <span class=mi>1</span>
+
+            <span class=c1># Now we insert the job IDs, which is a bit tricky:</span>
+            <span class=c1># First, the rectangle may be too small to hold the text.</span>
+            <span class=c1># So we need to get the text bounding box size to compare it with</span>
+            <span class=c1># the rectangle's size.</span>
+            <span class=c1># If that fits, we can print the text.</span>
+            <span class=c1># Second, the printed text tends to be slightly off vertically,</span>
+            <span class=c1># even if we try to center it vertically. This is because fonts</span>
+            <span class=c1># can extend below their baseline which seems to be considered</span>
+            <span class=c1># during vertical alignment although job IDs are numbers and that</span>
+            <span class=c1># does not apply here. Therefore, we try to re-adjust the boxes</span>
+            <span class=c1># in a very, very crude way.</span>
+            <span class=n>xp</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=n>x_start</span> <span class=o>+</span> <span class=n>x_end</span><span class=p>)</span>
+            <span class=n>yp</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>machine</span>
+
+            <span class=c1># Get the size of the text using a temporary text</span>
+            <span class=c1># that gets immediately deleted again.</span>
+            <span class=n>tmp</span><span class=p>:</span> <span class=n>Text</span> <span class=o>=</span> <span class=n>axes</span><span class=o>.</span><span class=n>text</span><span class=p>(</span><span class=n>x</span><span class=o>=</span><span class=n>xp</span><span class=p>,</span> <span class=n>y</span><span class=o>=</span><span class=n>yp</span><span class=p>,</span> <span class=n>s</span><span class=o>=</span><span class=n>jobstr</span><span class=p>,</span>
+                                  <span class=n>fontsize</span><span class=o>=</span><span class=n>font_size</span><span class=p>,</span>
+                                  <span class=n>color</span><span class=o>=</span><span class=n>foreground</span><span class=p>,</span>
+                                  <span class=n>horizontalalignment</span><span class=o>=</span><span class=s2>"center"</span><span class=p>,</span>
+                                  <span class=n>verticalalignment</span><span class=o>=</span><span class=s2>"baseline"</span><span class=p>)</span>
+            <span class=n>bb_bl</span> <span class=o>=</span> <span class=n>inv</span><span class=o>.</span><span class=n>transform_bbox</span><span class=p>(</span><span class=n>tmp</span><span class=o>.</span><span class=n>get_window_extent</span><span class=p>(</span>
+                <span class=n>renderer</span><span class=o>=</span><span class=n>rend</span><span class=p>))</span>
+            <span class=n>Artist</span><span class=o>.</span><span class=n>set_visible</span><span class=p>(</span><span class=n>tmp</span><span class=p>,</span> <span class=kc>False</span><span class=p>)</span>
+            <span class=n>Artist</span><span class=o>.</span><span class=n>remove</span><span class=p>(</span><span class=n>tmp</span><span class=p>)</span>
+            <span class=k>del</span> <span class=n>tmp</span>
+
+            <span class=k>if</span> <span class=p>(</span><span class=n>bb_bl</span><span class=o>.</span><span class=n>width</span> <span class=o><</span> <span class=mf>0.97</span> <span class=o>*</span> <span class=p>(</span><span class=n>x_end</span> <span class=o>-</span> <span class=n>x_start</span><span class=p>))</span> <span class=ow>and</span> \
+                    <span class=p>(</span><span class=n>bb_bl</span><span class=o>.</span><span class=n>height</span> <span class=o><</span> <span class=p>(</span><span class=mf>0.97</span> <span class=o>*</span> <span class=n>height</span><span class=p>)):</span>
+                <span class=c1># OK, there is enough space. Let's re-compute the y</span>
+                <span class=c1># offset to do proper alignment using another temporary</span>
+                <span class=c1># text.</span>
+                <span class=n>tmp</span> <span class=o>=</span> <span class=n>axes</span><span class=o>.</span><span class=n>text</span><span class=p>(</span><span class=n>x</span><span class=o>=</span><span class=n>xp</span><span class=p>,</span> <span class=n>y</span><span class=o>=</span><span class=n>yp</span><span class=p>,</span> <span class=n>s</span><span class=o>=</span><span class=n>jobstr</span><span class=p>,</span>
+                                <span class=n>fontsize</span><span class=o>=</span><span class=n>font_size</span><span class=p>,</span>
+                                <span class=n>color</span><span class=o>=</span><span class=n>foreground</span><span class=p>,</span>
+                                <span class=n>horizontalalignment</span><span class=o>=</span><span class=s2>"center"</span><span class=p>,</span>
+                                <span class=n>verticalalignment</span><span class=o>=</span><span class=s2>"bottom"</span><span class=p>)</span>
+                <span class=n>bb_bt</span> <span class=o>=</span> <span class=n>inv</span><span class=o>.</span><span class=n>transform_bbox</span><span class=p>(</span><span class=n>tmp</span><span class=o>.</span><span class=n>get_window_extent</span><span class=p>(</span>
+                    <span class=n>renderer</span><span class=o>=</span><span class=n>rend</span><span class=p>))</span>
+                <span class=n>Artist</span><span class=o>.</span><span class=n>set_visible</span><span class=p>(</span><span class=n>tmp</span><span class=p>,</span> <span class=kc>False</span><span class=p>)</span>
+                <span class=n>Artist</span><span class=o>.</span><span class=n>remove</span><span class=p>(</span><span class=n>tmp</span><span class=p>)</span>
+                <span class=k>del</span> <span class=n>tmp</span>
+
+                <span class=c1># Now we can really print the actual text with a more or less</span>
+                <span class=c1># nice vertical alignment.</span>
+                <span class=n>adj</span> <span class=o>=</span> <span class=n>bb_bl</span><span class=o>.</span><span class=n>y0</span> <span class=o>-</span> <span class=n>bb_bt</span><span class=o>.</span><span class=n>y0</span>
+                <span class=k>if</span> <span class=n>adj</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>yp</span> <span class=o>+=</span> <span class=n>adj</span> <span class=o>/</span> <span class=mi>3</span>
+
+                <span class=n>axes</span><span class=o>.</span><span class=n>text</span><span class=p>(</span><span class=n>x</span><span class=o>=</span><span class=n>xp</span><span class=p>,</span> <span class=n>y</span><span class=o>=</span><span class=n>yp</span><span class=p>,</span> <span class=n>s</span><span class=o>=</span><span class=n>jobstr</span><span class=p>,</span>
+                          <span class=n>fontsize</span><span class=o>=</span><span class=n>font_size</span><span class=p>,</span>
+                          <span class=n>color</span><span class=o>=</span><span class=n>foreground</span><span class=p>,</span>
+                          <span class=n>horizontalalignment</span><span class=o>=</span><span class=s2>"center"</span><span class=p>,</span>
+                          <span class=n>verticalalignment</span><span class=o>=</span><span class=s2>"center"</span><span class=p>,</span>
+                          <span class=n>zorder</span><span class=o>=</span><span class=n>z_order</span><span class=p>)</span>
+                <span class=n>z_order</span> <span class=o>+=</span> <span class=mi>1</span>
+
+    <span class=c1># print the marker labels</span>
+    <span class=n>bbox</span> <span class=o>=</span> <span class=p>{</span><span class=s2>"boxstyle"</span><span class=p>:</span> <span class=s2>"round"</span><span class=p>,</span>
+            <span class=s2>"color"</span><span class=p>:</span> <span class=s2>"white"</span><span class=p>,</span>
+            <span class=s2>"fill"</span><span class=p>:</span> <span class=kc>True</span><span class=p>,</span>
+            <span class=s2>"linewidth"</span><span class=p>:</span> <span class=mi>0</span><span class=p>,</span>
+            <span class=s2>"alpha"</span><span class=p>:</span> <span class=mf>0.9</span><span class=p>}</span>
+    <span class=n>y_mark</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=o>-</span><span class=mf>0.1</span>  <span class=c1># machines - 1 + (0.9 * bar_ofs) for top</span>
+    <span class=k>for</span> <span class=n>val</span><span class=p>,</span> <span class=n>name</span> <span class=ow>in</span> <span class=n>marks</span><span class=o>.</span><span class=n>items</span><span class=p>():</span>
+        <span class=n>axes</span><span class=o>.</span><span class=n>annotate</span><span class=p>(</span><span class=n>text</span><span class=o>=</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>name</span><span class=si>}</span><span class=s2>=</span><span class=si>{</span><span class=n>val</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+                      <span class=n>xy</span><span class=o>=</span><span class=p>(</span><span class=n>val</span><span class=p>,</span> <span class=n>y_mark</span><span class=p>),</span>
+                      <span class=n>xytext</span><span class=o>=</span><span class=p>(</span><span class=o>-</span><span class=mi>4</span><span class=p>,</span> <span class=o>-</span><span class=mi>4</span><span class=p>),</span>
+                      <span class=n>verticalalignment</span><span class=o>=</span><span class=s2>"bottom"</span><span class=p>,</span>
+                      <span class=n>horizontalalignment</span><span class=o>=</span><span class=s2>"right"</span><span class=p>,</span>
+                      <span class=n>xycoords</span><span class=o>=</span><span class=s2>"data"</span><span class=p>,</span>
+                      <span class=n>textcoords</span><span class=o>=</span><span class=s2>"offset points"</span><span class=p>,</span>
+                      <span class=n>fontsize</span><span class=o>=</span><span class=n>font_size</span><span class=p>,</span>
+                      <span class=n>color</span><span class=o>=</span><span class=n>__LEFT_END_MARK</span> <span class=k>if</span> <span class=n>val</span> <span class=o><=</span> <span class=n>xmin</span>
+                      <span class=k>else</span> <span class=n>__RIGHT_END_MARK</span> <span class=k>if</span> <span class=n>val</span> <span class=o>>=</span> <span class=n>xmax</span>
+                      <span class=k>else</span> <span class=n>__MIDDLE_MARK</span><span class=p>,</span>
+                      <span class=n>rotation</span><span class=o>=</span><span class=mi>90</span><span class=p>,</span>
+                      <span class=n>bbox</span><span class=o>=</span><span class=n>bbox</span><span class=p>,</span>
+                      <span class=n>zorder</span><span class=o>=</span><span class=n>z_order</span><span class=p>)</span>
+        <span class=n>z_order</span> <span class=o>+=</span> <span class=mi>1</span>
+
+    <span class=n>info_font_size</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>importance_to_font_size_func</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+    <span class=n>pu</span><span class=o>.</span><span class=n>label_axes</span><span class=p>(</span><span class=n>axes</span><span class=o>=</span><span class=n>axes</span><span class=p>,</span>
+                  <span class=n>x_label</span><span class=o>=</span><span class=n>x_label</span><span class=p>(</span><span class=n>gantt</span><span class=p>)</span> <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>x_label</span><span class=p>)</span> <span class=k>else</span> <span class=n>x_label</span><span class=p>,</span>
+                  <span class=n>x_label_inside</span><span class=o>=</span><span class=n>x_label_inside</span><span class=p>,</span>
+                  <span class=n>x_label_location</span><span class=o>=</span><span class=n>x_label_location</span><span class=p>,</span>
+                  <span class=n>y_label</span><span class=o>=</span><span class=n>y_label</span><span class=p>(</span><span class=n>gantt</span><span class=p>)</span> <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>y_label</span><span class=p>)</span> <span class=k>else</span> <span class=n>y_label</span><span class=p>,</span>
+                  <span class=n>y_label_inside</span><span class=o>=</span><span class=n>y_label_inside</span><span class=p>,</span>
+                  <span class=n>y_label_location</span><span class=o>=</span><span class=n>y_label_location</span><span class=p>,</span>
+                  <span class=n>font_size</span><span class=o>=</span><span class=n>info_font_size</span><span class=p>,</span>
+                  <span class=n>z_order</span><span class=o>=</span><span class=n>z_order</span><span class=p>)</span>
+    <span class=n>z_order</span> <span class=o>+=</span> <span class=mi>1</span>
+
+    <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>info</span><span class=p>):</span>
+        <span class=n>info</span> <span class=o>=</span> <span class=n>info</span><span class=p>(</span><span class=n>gantt</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>info</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>info</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>info</span><span class=p>,</span> <span class=s2>"info"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=n>pu</span><span class=o>.</span><span class=n>label_box</span><span class=p>(</span><span class=n>axes</span><span class=o>=</span><span class=n>axes</span><span class=p>,</span>
+                     <span class=n>text</span><span class=o>=</span><span class=n>info</span><span class=p>,</span>
+                     <span class=n>x</span><span class=o>=</span><span class=mf>0.5</span><span class=p>,</span>
+                     <span class=n>y</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span>
+                     <span class=n>font_size</span><span class=o>=</span><span class=n>importance_to_font_size_func</span><span class=p>(</span><span class=mi>1</span><span class=p>),</span>
+                     <span class=n>may_rotate_text</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span>
+                     <span class=n>z_order</span><span class=o>=</span><span class=n>z_order</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>axes</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.plot_gantt_chart</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

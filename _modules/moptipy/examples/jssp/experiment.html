@@ -1,0 +1,185 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.jssp.experiment — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/jssp/experiment.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.experiment</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.jssp.experiment</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Run the moptipy example experiment."""</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>argparse</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>os.path</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>pp</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>moptipy.api.experiment</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>ex</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.random_sampling</span><span class=w> </span><span class=kn>import</span> <span class=n>RandomSampling</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.random_walk</span><span class=w> </span><span class=kn>import</span> <span class=n>RandomWalk</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.single_random_sample</span><span class=w> </span><span class=kn>import</span> <span class=n>SingleRandomSample</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.hill_climber</span><span class=w> </span><span class=kn>import</span> <span class=n>HillClimber</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.rls</span><span class=w> </span><span class=kn>import</span> <span class=n>RLS</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.execution</span><span class=w> </span><span class=kn>import</span> <span class=n>Execution</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.gantt_space</span><span class=w> </span><span class=kn>import</span> <span class=n>GanttSpace</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.instance</span><span class=w> </span><span class=kn>import</span> <span class=n>Instance</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.makespan</span><span class=w> </span><span class=kn>import</span> <span class=n>Makespan</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.ob_encoding</span><span class=w> </span><span class=kn>import</span> <span class=n>OperationBasedEncoding</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.operators.permutations.op0_shuffle</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0Shuffle</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.operators.permutations.op1_insert1</span><span class=w> </span><span class=kn>import</span> <span class=n>Op1Insert1</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.operators.permutations.op1_swap2</span><span class=w> </span><span class=kn>import</span> <span class=n>Op1Swap2</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.operators.permutations.op1_swapn</span><span class=w> </span><span class=kn>import</span> <span class=n>Op1SwapN</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.permutations</span><span class=w> </span><span class=kn>import</span> <span class=n>Permutations</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.help</span><span class=w> </span><span class=kn>import</span> <span class=n>moptipy_argparser</span>
+
+<span class=c1>#: The default instances to be used in our experiment. These have been</span>
+<span class=c1>#: computed via instance_selector.propose_instances.</span>
+<span class=c1>#: The instances in this tuple are sorted by the scale of the search space,</span>
+<span class=c1>#: if that search space is the order-based encoding, i.e., permutations with</span>
+<span class=c1>#: repetitions. This is almost the same as an ordering by the number  of</span>
+<span class=c1>#: possible (feasible or infeasible) Gantt charts than can be constructed, with</span>
+<span class=c1>#: one exception: For `dmu67`, the search space size is `2.768*(10**1241)` and</span>
+<span class=c1>#: for `dmu72`, it is `3.862*(10**1226)`, i.e., `dmu67` has a larger search</span>
+<span class=c1>#: order-based encoding search space than `dmu72`. However, for `dmu72`, we can</span>
+<span class=c1>#: construct `1.762*(10**967)` different (feasible or infeasible) Gantt charts,</span>
+<span class=c1>#: whereas for `dmu67`, we can only construct `1.710*(10**958)`, i.e., fewer.</span>
+<span class=c1>#: Therefore, `dmu67` in this ordering here comes after `dmu72`, but it would</span>
+<span class=c1>#: come before if we were sorting instances by the solution space size.</span>
+<span class=n>INSTANCES</span><span class=p>:</span> \
+    <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> \
+    <span class=p>(</span><span class=s2>"orb06"</span><span class=p>,</span> <span class=s2>"la38"</span><span class=p>,</span> <span class=s2>"abz8"</span><span class=p>,</span> <span class=s2>"yn4"</span><span class=p>,</span> <span class=s2>"swv14"</span><span class=p>,</span> <span class=s2>"dmu72"</span><span class=p>,</span> <span class=s2>"dmu67"</span><span class=p>,</span> <span class=s2>"ta70"</span><span class=p>)</span>
+
+<span class=c1>#: The number of runs per instance in our JSSP experiment.</span>
+<span class=c1>#: For each combination of algorithm setup and JSSP instance, we will</span>
+<span class=c1>#: perform exactly this many runs.</span>
+<span class=n>EXPERIMENT_RUNS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>23</span>
+
+<span class=c1>#: We will perform five minutes per run.</span>
+<span class=n>EXPERIMENT_RUNTIME_MS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>5</span> <span class=o>*</span> <span class=mi>60</span> <span class=o>*</span> <span class=mi>1000</span>
+
+<span class=c1>#: The default set of algorithms for our experiments.</span>
+<span class=c1>#: Each of them is a Callable that receives two parameters, the instance</span>
+<span class=c1>#: `inst` and the permutation with repetitions-space `pwr`.</span>
+<span class=n>ALGORITHMS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span>
+    <span class=n>Callable</span><span class=p>[[</span><span class=n>Instance</span><span class=p>,</span> <span class=n>Permutations</span><span class=p>],</span> <span class=n>Algorithm</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>[</span>
+    <span class=k>lambda</span> <span class=n>_</span><span class=p>,</span> <span class=n>pwr</span><span class=p>:</span> <span class=n>SingleRandomSample</span><span class=p>(</span><span class=n>Op0Shuffle</span><span class=p>(</span><span class=n>pwr</span><span class=p>)),</span>  <span class=c1># single sample</span>
+    <span class=k>lambda</span> <span class=n>_</span><span class=p>,</span> <span class=n>pwr</span><span class=p>:</span> <span class=n>RandomSampling</span><span class=p>(</span><span class=n>Op0Shuffle</span><span class=p>(</span><span class=n>pwr</span><span class=p>)),</span>  <span class=c1># random sampling</span>
+    <span class=k>lambda</span> <span class=n>_</span><span class=p>,</span> <span class=n>pwr</span><span class=p>:</span> <span class=n>HillClimber</span><span class=p>(</span><span class=n>Op0Shuffle</span><span class=p>(</span><span class=n>pwr</span><span class=p>),</span> <span class=n>Op1Swap2</span><span class=p>()),</span>  <span class=c1># hill climb.</span>
+    <span class=k>lambda</span> <span class=n>_</span><span class=p>,</span> <span class=n>pwr</span><span class=p>:</span> <span class=n>RLS</span><span class=p>(</span><span class=n>Op0Shuffle</span><span class=p>(</span><span class=n>pwr</span><span class=p>),</span> <span class=n>Op1Swap2</span><span class=p>()),</span>  <span class=c1># RLS with swap-2</span>
+    <span class=k>lambda</span> <span class=n>_</span><span class=p>,</span> <span class=n>pwr</span><span class=p>:</span> <span class=n>RandomWalk</span><span class=p>(</span><span class=n>Op0Shuffle</span><span class=p>(</span><span class=n>pwr</span><span class=p>),</span> <span class=n>Op1Swap2</span><span class=p>()),</span>  <span class=c1># random walk</span>
+    <span class=k>lambda</span> <span class=n>_</span><span class=p>,</span> <span class=n>pwr</span><span class=p>:</span> <span class=n>HillClimber</span><span class=p>(</span><span class=n>Op0Shuffle</span><span class=p>(</span><span class=n>pwr</span><span class=p>),</span> <span class=n>Op1SwapN</span><span class=p>()),</span>  <span class=c1># hill climb.</span>
+    <span class=k>lambda</span> <span class=n>_</span><span class=p>,</span> <span class=n>pwr</span><span class=p>:</span> <span class=n>RLS</span><span class=p>(</span><span class=n>Op0Shuffle</span><span class=p>(</span><span class=n>pwr</span><span class=p>),</span> <span class=n>Op1SwapN</span><span class=p>()),</span>  <span class=c1># RLS</span>
+    <span class=k>lambda</span> <span class=n>_</span><span class=p>,</span> <span class=n>pwr</span><span class=p>:</span> <span class=n>RandomWalk</span><span class=p>(</span><span class=n>Op0Shuffle</span><span class=p>(</span><span class=n>pwr</span><span class=p>),</span> <span class=n>Op1SwapN</span><span class=p>()),</span>  <span class=c1># random walk</span>
+    <span class=k>lambda</span> <span class=n>_</span><span class=p>,</span> <span class=n>pwr</span><span class=p>:</span> <span class=n>HillClimber</span><span class=p>(</span><span class=n>Op0Shuffle</span><span class=p>(</span><span class=n>pwr</span><span class=p>),</span> <span class=n>Op1Insert1</span><span class=p>()),</span>  <span class=c1># HC</span>
+    <span class=k>lambda</span> <span class=n>_</span><span class=p>,</span> <span class=n>pwr</span><span class=p>:</span> <span class=n>RLS</span><span class=p>(</span><span class=n>Op0Shuffle</span><span class=p>(</span><span class=n>pwr</span><span class=p>),</span> <span class=n>Op1Insert1</span><span class=p>()),</span>  <span class=c1># RLS</span>
+    <span class=k>lambda</span> <span class=n>_</span><span class=p>,</span> <span class=n>pwr</span><span class=p>:</span> <span class=n>RandomWalk</span><span class=p>(</span><span class=n>Op0Shuffle</span><span class=p>(</span><span class=n>pwr</span><span class=p>),</span> <span class=n>Op1Insert1</span><span class=p>()),</span>  <span class=c1># random walk</span>
+<span class=p>]</span>
+
+
+<div class=viewcode-block id=run_experiment>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.experiment.run_experiment>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>run_experiment</span><span class=p>(</span><span class=n>base_dir</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>pp</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=s2>"."</span><span class=p>,</span> <span class=s2>"results"</span><span class=p>),</span>
+                   <span class=n>algorithms</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span>
+                       <span class=n>Callable</span><span class=p>[[</span><span class=n>Instance</span><span class=p>,</span> <span class=n>Permutations</span><span class=p>],</span>
+                                <span class=n>Algorithm</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>ALGORITHMS</span><span class=p>),</span>
+                   <span class=n>instances</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>INSTANCES</span><span class=p>,</span>
+                   <span class=n>n_runs</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>EXPERIMENT_RUNS</span><span class=p>,</span>
+                   <span class=n>max_time</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>EXPERIMENT_RUNTIME_MS</span><span class=p>,</span>
+                   <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Run the experiment.</span>
+
+<span class=sd>    :param algorithms: the algorithm factories.</span>
+<span class=sd>        Each factory receives as input one JSSP `Instance` and one instance</span>
+<span class=sd>        of `PermutationWithRepetition`. It returns either an instance of</span>
+<span class=sd>        `Algorithm` or of `Execution`.</span>
+<span class=sd>    :param instances: the JSSP instance names</span>
+<span class=sd>    :param base_dir: the base directory</span>
+<span class=sd>    :param n_runs: the number of runs</span>
+<span class=sd>    :param max_time: the maximum runtime in milliseconds</span>
+<span class=sd>    :param max_fes: the maximum runtime in FEs</span>
+<span class=sd>    """</span>
+    <span class=c1># The initial parameter validity checks.</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>base_dir</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>base_dir</span><span class=p>,</span> <span class=s2>"base_dir"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithms</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithms</span><span class=p>,</span> <span class=s2>"algorithms"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>instances</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instances</span><span class=p>,</span> <span class=s2>"instances"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>n_runs</span><span class=p>,</span> <span class=s2>"n_runs"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>10_000_000</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>max_time</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>max_time</span><span class=p>,</span> <span class=s2>"max_time"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>100_000_000_000</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>max_fes</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>max_fes</span><span class=p>,</span> <span class=s2>"max_fes"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000_000</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>max_fes</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>max_time</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Either max_fes or max_time must be provided."</span><span class=p>)</span>
+
+    <span class=n>inst_gens</span> <span class=o>=</span> <span class=p>[(</span><span class=k>lambda</span> <span class=n>s</span><span class=o>=</span><span class=n>s</span><span class=p>:</span> <span class=n>Instance</span><span class=o>.</span><span class=n>from_resource</span><span class=p>(</span><span class=n>s</span><span class=p>))</span> <span class=k>for</span> <span class=n>s</span> <span class=ow>in</span> <span class=n>instances</span><span class=p>]</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>inst_gens</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"There must be at least one instance."</span><span class=p>)</span>
+    <span class=k>del</span> <span class=n>instances</span>
+
+    <span class=c1># In this loop, we convert the simple algorithm lambdas to execution</span>
+    <span class=c1># creators.</span>
+    <span class=n>algo_gens</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=k>for</span> <span class=n>algo</span> <span class=ow>in</span> <span class=n>algorithms</span><span class=p>:</span>
+        <span class=c1># we create one constructor for each algorithm factory</span>
+        <span class=k>def</span><span class=w> </span><span class=nf>creator</span><span class=p>(</span><span class=n>inst</span><span class=p>:</span> <span class=n>Instance</span><span class=p>,</span> <span class=n>algor</span><span class=p>:</span> <span class=n>Callable</span> <span class=o>=</span> <span class=n>algo</span><span class=p>)</span> <span class=o>-></span> <span class=n>Execution</span><span class=p>:</span>
+<span class=w>            </span><span class=sd>"""</span>
+<span class=sd>            Create the algorithm for a given instance.</span>
+
+<span class=sd>            :param inst: the JSSP instance</span>
+<span class=sd>            :param algor: the algorithm creator</span>
+<span class=sd>            :return: an Execution for the experiment</span>
+<span class=sd>            """</span>
+            <span class=n>pwr</span><span class=p>:</span> <span class=n>Permutations</span> <span class=o>=</span> <span class=n>Permutations</span><span class=o>.</span><span class=n>with_repetitions</span><span class=p>(</span>
+                <span class=n>inst</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span> <span class=n>inst</span><span class=o>.</span><span class=n>machines</span><span class=p>)</span>
+
+            <span class=n>val</span><span class=p>:</span> <span class=n>Execution</span> <span class=o>|</span> <span class=n>Algorithm</span> <span class=o>=</span> <span class=n>algor</span><span class=p>(</span><span class=n>inst</span><span class=p>,</span> <span class=n>pwr</span><span class=p>)</span>
+            <span class=n>experiment</span><span class=p>:</span> <span class=n>Execution</span>
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>val</span><span class=p>,</span> <span class=n>Execution</span><span class=p>):</span>
+                <span class=n>experiment</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Execution"</span><span class=p>,</span> <span class=n>val</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>val</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>val</span><span class=p>,</span> <span class=s2>"result of factory function"</span><span class=p>,</span>
+                                     <span class=n>Algorithm</span><span class=p>)</span>
+                <span class=n>experiment</span> <span class=o>=</span> <span class=n>Execution</span><span class=p>()</span>
+                <span class=n>experiment</span><span class=o>.</span><span class=n>set_algorithm</span><span class=p>(</span><span class=n>cast</span><span class=p>(</span><span class=s2>"Algorithm"</span><span class=p>,</span> <span class=n>val</span><span class=p>))</span>
+
+            <span class=k>if</span> <span class=n>max_time</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>experiment</span><span class=o>.</span><span class=n>set_max_time_millis</span><span class=p>(</span><span class=n>max_time</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>max_fes</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>experiment</span><span class=o>.</span><span class=n>set_max_fes</span><span class=p>(</span><span class=n>max_fes</span><span class=p>)</span>
+            <span class=n>experiment</span><span class=o>.</span><span class=n>set_objective</span><span class=p>(</span><span class=n>Makespan</span><span class=p>(</span><span class=n>inst</span><span class=p>))</span>
+            <span class=n>experiment</span><span class=o>.</span><span class=n>set_solution_space</span><span class=p>(</span><span class=n>GanttSpace</span><span class=p>(</span><span class=n>inst</span><span class=p>))</span>
+            <span class=n>experiment</span><span class=o>.</span><span class=n>set_search_space</span><span class=p>(</span><span class=n>pwr</span><span class=p>)</span>
+            <span class=n>experiment</span><span class=o>.</span><span class=n>set_encoding</span><span class=p>(</span><span class=n>OperationBasedEncoding</span><span class=p>(</span><span class=n>inst</span><span class=p>))</span>
+            <span class=n>experiment</span><span class=o>.</span><span class=n>set_log_improvements</span><span class=p>()</span>
+            <span class=k>return</span> <span class=n>experiment</span>
+
+        <span class=n>algo_gens</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>creator</span><span class=p>)</span>  <span class=c1># add constructor to generator list</span>
+        <span class=k>del</span> <span class=n>creator</span>  <span class=c1># the creator is no longer needed</span>
+    <span class=k>del</span> <span class=n>algorithms</span>
+
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>algo_gens</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"There must be at least one algorithm."</span><span class=p>)</span>
+
+    <span class=n>ikwargs</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=p>{</span><span class=s2>"base_dir"</span><span class=p>:</span> <span class=n>base_dir</span><span class=p>,</span>
+                               <span class=s2>"instances"</span><span class=p>:</span> <span class=n>inst_gens</span><span class=p>,</span>
+                               <span class=s2>"setups"</span><span class=p>:</span> <span class=n>algo_gens</span><span class=p>,</span>
+                               <span class=s2>"n_runs"</span><span class=p>:</span> <span class=n>n_runs</span><span class=p>,</span>
+                               <span class=s2>"perform_warmup"</span><span class=p>:</span> <span class=kc>True</span><span class=p>,</span>
+                               <span class=s2>"warmup_fes"</span><span class=p>:</span> <span class=mi>20</span><span class=p>,</span>
+                               <span class=s2>"perform_pre_warmup"</span><span class=p>:</span> <span class=kc>True</span><span class=p>,</span>
+                               <span class=s2>"pre_warmup_fes"</span><span class=p>:</span> <span class=mi>20</span><span class=p>}</span>
+
+    <span class=n>ex</span><span class=o>.</span><span class=n>run_experiment</span><span class=p>(</span><span class=o>**</span><span class=n>ikwargs</span><span class=p>)</span>  <span class=c1># invoke the actual experiment</span></div>
+
+
+
+<span class=c1># Execute experiment if run as script</span>
+<span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s2>"__main__"</span><span class=p>:</span>
+    <span class=n>parser</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>argparse</span><span class=o>.</span><span class=n>ArgumentParser</span><span class=p>]</span> <span class=o>=</span> <span class=n>moptipy_argparser</span><span class=p>(</span>
+        <span class=vm>__file__</span><span class=p>,</span> <span class=s2>"Execute the JSSP example experiment."</span><span class=p>,</span>
+        <span class=s2>"Execute an example experiment on the Job "</span>
+        <span class=s2>"Shop Scheduling Problem (JSSP)."</span><span class=p>)</span>
+    <span class=n>parser</span><span class=o>.</span><span class=n>add_argument</span><span class=p>(</span>
+        <span class=s2>"dest"</span><span class=p>,</span> <span class=n>help</span><span class=o>=</span><span class=s2>"the directory where the results should be stored"</span><span class=p>,</span>
+        <span class=nb>type</span><span class=o>=</span><span class=n>Path</span><span class=p>,</span> <span class=n>default</span><span class=o>=</span><span class=s2>"./results"</span><span class=p>,</span> <span class=n>nargs</span><span class=o>=</span><span class=s2>"?"</span><span class=p>)</span>
+    <span class=n>args</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>argparse</span><span class=o>.</span><span class=n>Namespace</span><span class=p>]</span> <span class=o>=</span> <span class=n>parser</span><span class=o>.</span><span class=n>parse_args</span><span class=p>()</span>
+    <span class=n>run_experiment</span><span class=p>(</span><span class=n>base_dir</span><span class=o>=</span><span class=n>args</span><span class=o>.</span><span class=n>dest</span><span class=p>)</span>
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.experiment</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

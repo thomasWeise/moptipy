@@ -1,0 +1,302 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.api.operators — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/api/operators.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.operators</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.api.operators</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The base classes for implementing search operators.</span>
+
+<span class=sd>Nullary search operators are used to sample the initial starting points of the</span>
+<span class=sd>optimization processes. They inherit from class</span>
+<span class=sd>:class:`~moptipy.api.operators.Op0`. The pre-defined unit test routine</span>
+<span class=sd>:func:`~moptipy.tests.op0.validate_op0` can and should be used to test all the</span>
+<span class=sd>nullary operators that are implemented.</span>
+
+<span class=sd>Unary search operators accept one point in the search space as input and</span>
+<span class=sd>generate a new, similar point as output. They inherit from class</span>
+<span class=sd>:class:`~moptipy.api.operators.Op1`. The pre-defined unit test routine</span>
+<span class=sd>:func:`~moptipy.tests.op1.validate_op1` can and should be used to test all the</span>
+<span class=sd>unary operators that are implemented.</span>
+
+<span class=sd>The basic unary operators :class:`~moptipy.api.operators.Op1` have no</span>
+<span class=sd>parameter telling them how much of the input point to change. They may do a</span>
+<span class=sd>hard-coded number of modifications (as, e.g.,</span>
+<span class=sd>:class:`~moptipy.operators.permutations.op1_swap2.Op1Swap2` does) or may</span>
+<span class=sd>apply a random number of modifications (like</span>
+<span class=sd>:class:`~moptipy.operators.permutations.op1_swapn.Op1SwapN`). There is a</span>
+<span class=sd>sub-class of unary operators named</span>
+<span class=sd>:class:`~moptipy.api.operators.Op1WithStepSize` where a parameter `step_size`</span>
+<span class=sd>with a value from the closed interval `[0.0, 1.0]` can be supplied. If</span>
+<span class=sd>`step_size=0.0`, such an operator should perform the smallest possible</span>
+<span class=sd>modification and for `step_size=1.0`, it should perform the largest possible</span>
+<span class=sd>modification.</span>
+
+<span class=sd>Binary search operators accept two points in the search space as input and</span>
+<span class=sd>generate a new point that should be similar to both inputs as output. They</span>
+<span class=sd>inherit from class :class:`~moptipy.api.operators.Op2`. The pre-defined unit</span>
+<span class=sd>test routine :func:`~moptipy.tests.op2.validate_op2` can and should be used to</span>
+<span class=sd>test all the binary operators that are implemented.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.component</span><span class=w> </span><span class=kn>import</span> <span class=n>Component</span>
+
+
+<span class=c1># start op0</span>
+<div class=viewcode-block id=Op0>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.operators.Op0>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Op0</span><span class=p>(</span><span class=n>Component</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A base class to implement a nullary search operator."""</span>
+
+<div class=viewcode-block id=Op0.op0>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.operators.Op0.op0>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>op0</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>dest</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the nullary search operator to fill object `dest`.</span>
+
+<span class=sd>        Afterwards `dest` will hold a valid point in the search space.</span>
+<span class=sd>        Often, this would be a point uniformly randomly sampled from the</span>
+<span class=sd>        search space, but it could also be the result of a heuristic or</span>
+<span class=sd>        even a specific solution.</span>
+
+<span class=sd>        :param random: the random number generator</span>
+<span class=sd>        :param dest: the destination data structure</span>
+<span class=sd>        """</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Method not implemented!"</span><span class=p>)</span></div>
+</div>
+
+<span class=c1># end op0</span>
+
+
+<div class=viewcode-block id=check_op0>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.operators.check_op0>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>check_op0</span><span class=p>(</span><span class=n>op0</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=n>Op0</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether an object is a valid instance of :class:`Op0`.</span>
+
+<span class=sd>    :param op0: the (supposed) instance of :class:`Op0`</span>
+<span class=sd>    :return: the object `op0`</span>
+<span class=sd>    :raises TypeError: if `op0` is not an instance of :class:`Op0`</span>
+
+<span class=sd>    >>> check_op0(Op0())</span>
+<span class=sd>    Op0</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_op0('A')</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    op0 should be an instance of moptipy.api.operators.Op0 but is \</span>
+<span class=sd>str, namely 'A'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_op0(None)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    op0 should be an instance of moptipy.api.operators.Op0 but is None.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>op0</span><span class=p>,</span> <span class=n>Op0</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>op0</span>
+    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>op0</span><span class=p>,</span> <span class=s2>"op0"</span><span class=p>,</span> <span class=n>Op0</span><span class=p>)</span></div>
+
+
+
+<span class=c1># start op1</span>
+<div class=viewcode-block id=Op1>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.operators.Op1>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Op1</span><span class=p>(</span><span class=n>Component</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A base class to implement a unary search operator."""</span>
+
+<div class=viewcode-block id=Op1.op1>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.operators.Op1.op1>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>op1</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>dest</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Fill `dest` with a modified copy of `x`.</span>
+
+<span class=sd>        :param random: the random number generator</span>
+<span class=sd>        :param dest: the destination data structure</span>
+<span class=sd>        :param x: the source point in the search space</span>
+<span class=sd>        """</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Method not implemented!"</span><span class=p>)</span></div>
+</div>
+
+<span class=c1># end op1</span>
+
+
+<div class=viewcode-block id=check_op1>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.operators.check_op1>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>check_op1</span><span class=p>(</span><span class=n>op1</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=n>Op1</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether an object is a valid instance of :class:`Op1`.</span>
+
+<span class=sd>    :param op1: the (supposed) instance of :class:`Op1`</span>
+<span class=sd>    :return: the object</span>
+<span class=sd>    :raises TypeError: if `op1` is not an instance of :class:`Op1`</span>
+
+<span class=sd>    >>> check_op1(Op1())</span>
+<span class=sd>    Op1</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_op1('A')</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    op1 should be an instance of moptipy.api.operators.Op1 but is str, \</span>
+<span class=sd>namely 'A'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_op1(None)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    op1 should be an instance of moptipy.api.operators.Op1 but is None.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>op1</span><span class=p>,</span> <span class=n>Op1</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>op1</span>
+    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>op1</span><span class=p>,</span> <span class=s2>"op1"</span><span class=p>,</span> <span class=n>Op1</span><span class=p>)</span></div>
+
+
+
+<span class=c1># start op2</span>
+<div class=viewcode-block id=Op2>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.operators.Op2>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Op2</span><span class=p>(</span><span class=n>Component</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A base class to implement a binary search operator."""</span>
+
+<div class=viewcode-block id=Op2.op2>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.operators.Op2.op2>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>op2</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>dest</span><span class=p>,</span> <span class=n>x0</span><span class=p>,</span> <span class=n>x1</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Fill `dest` with a combination of `x0` and `x1`.</span>
+
+<span class=sd>        :param random: the random number generator</span>
+<span class=sd>        :param dest: the destination data structure</span>
+<span class=sd>        :param x0: the first source point in the search space</span>
+<span class=sd>        :param x1: the second source point in the search space</span>
+<span class=sd>        """</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Method not implemented!"</span><span class=p>)</span></div>
+</div>
+
+<span class=c1># end op2</span>
+
+
+<div class=viewcode-block id=check_op2>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.operators.check_op2>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>check_op2</span><span class=p>(</span><span class=n>op2</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=n>Op2</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether an object is a valid instance of :class:`Op2`.</span>
+
+<span class=sd>    :param op2: the (supposed) instance of :class:`Op2`</span>
+<span class=sd>    :return: the object `op2`</span>
+<span class=sd>    :raises TypeError: if `op2` is not an instance of :class:`Op2`</span>
+
+<span class=sd>    >>> check_op2(Op2())</span>
+<span class=sd>    Op2</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_op2('A')</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    op2 should be an instance of moptipy.api.operators.Op2 but is str, \</span>
+<span class=sd>namely 'A'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_op2(None)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    op2 should be an instance of moptipy.api.operators.Op2 but is None.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>op2</span><span class=p>,</span> <span class=n>Op2</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>op2</span>
+    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>op2</span><span class=p>,</span> <span class=s2>"op2"</span><span class=p>,</span> <span class=n>Op2</span><span class=p>)</span></div>
+
+
+
+<span class=c1># start op1WithStepSize</span>
+<div class=viewcode-block id=Op1WithStepSize>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.operators.Op1WithStepSize>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Op1WithStepSize</span><span class=p>(</span><span class=n>Op1</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A unary search operator with a step size."""</span>
+
+<div class=viewcode-block id=Op1WithStepSize.op1>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.operators.Op1WithStepSize.op1>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>op1</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>dest</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>step_size</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.0</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Copy `x` to `dest` but apply a modification with a given `step_size`.</span>
+
+<span class=sd>        This operator is similar to :meth:`Op1.op1` in that it stores a</span>
+<span class=sd>        modified copy of `x` into `dest`. The difference is that you can also</span>
+<span class=sd>        specify how much that copy should be different: The parameter</span>
+<span class=sd>        `step_size` can take on any value in the interval `[0.0, 1.0]`,</span>
+<span class=sd>        including the two boundary values. A `step_size` of `0.0` indicates</span>
+<span class=sd>        the smallest possible move (for which `dest` will still be different</span>
+<span class=sd>        from `x`) and `step_size=1.0` will lead to the largest possible move.</span>
+
+<span class=sd>        The `step_size` may be interpreted differently by different operators:</span>
+<span class=sd>        Some may interpret it as an exact requirement and enforce steps of the</span>
+<span class=sd>        exact specified size, see, for example module</span>
+<span class=sd>        :mod:`~moptipy.operators.bitstrings.op1_flip_m`. Others might</span>
+<span class=sd>        interpret it stochastically as an expectation. Yet others may</span>
+<span class=sd>        interpret it as a goal step width and try to realize it in a best</span>
+<span class=sd>        effort kind of way, but may also do smaller or larger steps if the</span>
+<span class=sd>        best effort fails, see for example module</span>
+<span class=sd>        :mod:`~moptipy.operators.permutations.op1_swap_exactly_n`.</span>
+<span class=sd>        What all operators should, however, have in common is that at</span>
+<span class=sd>        `step_size=0.0`, they should try to perform a smallest possible change</span>
+<span class=sd>        and at `step_size=1.0`, they should try to perform a largest possible</span>
+<span class=sd>        change. For all values in between, step sizes should grow with rising</span>
+<span class=sd>        `step_size`. This should allow algorithms that know nothing about the</span>
+<span class=sd>        nature of the search space or the operator's moves to still tune</span>
+<span class=sd>        between small and large moves based on a policy which makes sense in a</span>
+<span class=sd>        black-box setting.</span>
+
+<span class=sd>        Every implementation of :class:`Op1WithStepSize` must specify a</span>
+<span class=sd>        reasonable default value for this parameter ensure compatibility with</span>
+<span class=sd>        :meth:`Op1.op1`. In this base class, we set the default to `0.0`.</span>
+
+<span class=sd>        Finally, if a `step_size` value is passed in which is outside the</span>
+<span class=sd>        interval `[0, 1]`, the behavior of this method is undefined. It may</span>
+<span class=sd>        throw an exception or not. It may also enter an infinite loop.</span>
+
+<span class=sd>        :param random: the random number generator</span>
+<span class=sd>        :param dest: the destination data structure</span>
+<span class=sd>        :param x: the source point in the search space</span>
+<span class=sd>        :param step_size: the step size parameter for the unary operator</span>
+<span class=sd>        """</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Method not implemented!"</span><span class=p>)</span></div>
+</div>
+
+<span class=c1># end op1WithStepSize</span>
+
+
+<div class=viewcode-block id=check_op1_with_step_size>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.operators.check_op1_with_step_size>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>check_op1_with_step_size</span><span class=p>(</span><span class=n>op1</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=n>Op1WithStepSize</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether an object is a valid instance of :class:`Op1WithStepSize`.</span>
+
+<span class=sd>    :param op1: the (supposed) instance of :class:`Op1WithStepSize`</span>
+<span class=sd>    :return: the object `op1`</span>
+<span class=sd>    :raises TypeError: if `op1` is not an instance of :class:`Op1WithStepSize`</span>
+
+<span class=sd>    >>> check_op1_with_step_size(Op1WithStepSize())</span>
+<span class=sd>    Op1WithStepSize</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_op1_with_step_size('A')</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    op1 should be an instance of moptipy.api.operators.Op1WithStepSize \</span>
+<span class=sd>but is str, namely 'A'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_op1_with_step_size(Op1())</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    op1 should be an instance of moptipy.api.operators.Op1WithStepSize \</span>
+<span class=sd>but is moptipy.api.operators.Op1.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_op1_with_step_size(None)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    op1 should be an instance of moptipy.api.operators.Op1WithStepSize \</span>
+<span class=sd>but is None.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>op1</span><span class=p>,</span> <span class=n>Op1WithStepSize</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>op1</span>
+    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>op1</span><span class=p>,</span> <span class=s2>"op1"</span><span class=p>,</span> <span class=n>Op1WithStepSize</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.operators</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

@@ -1,0 +1,177 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.spaces.intspace — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/spaces/intspace.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.spaces.intspace</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.spaces.intspace</h1><div class=highlight><pre>
+<span></span><span class=sd>"""An implementation of an integer string based search space."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.nparrayspace</span><span class=w> </span><span class=kn>import</span> <span class=n>NPArraySpace</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>int_range_to_dtype</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=n>num_to_str_for_name</span>
+
+<span class=c1>#: the log key for the minimum value</span>
+<span class=n>KEY_MIN</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"min"</span>
+<span class=c1>#: the log key for the maximum value</span>
+<span class=n>KEY_MAX</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"max"</span>
+
+
+<div class=viewcode-block id=IntSpace>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.intspace.IntSpace>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>IntSpace</span><span class=p>(</span><span class=n>NPArraySpace</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A space where each element is a one-dimensional numpy integer array.</span>
+
+<span class=sd>    Such spaces can serve as basis for implementing combinatorial</span>
+<span class=sd>    optimization and can be extended to host permutations. Their elements are</span>
+<span class=sd>    instances of :class:`numpy.ndarray`.</span>
+
+<span class=sd>    >>> s = IntSpace(5, -4, 99)</span>
+<span class=sd>    >>> print(s.dimension)</span>
+<span class=sd>    5</span>
+<span class=sd>    >>> print(s.min_value)</span>
+<span class=sd>    -4</span>
+<span class=sd>    >>> print(s.max_value)</span>
+<span class=sd>    99</span>
+<span class=sd>    >>> print(s.dtype)</span>
+<span class=sd>    int8</span>
+<span class=sd>    >>> s = IntSpace(5, 2, 200)</span>
+<span class=sd>    >>> print(s.dtype)</span>
+<span class=sd>    uint8</span>
+<span class=sd>    >>> s = IntSpace(5, 2, 202340)</span>
+<span class=sd>    >>> print(s.dtype)</span>
+<span class=sd>    int32</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>dimension</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>min_value</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>max_value</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the integer-based search space.</span>
+
+<span class=sd>        :param dimension: The dimension of the search space,</span>
+<span class=sd>            i.e., the number of decision variables.</span>
+<span class=sd>        :param min_value: the minimum value</span>
+<span class=sd>        :param max_value: the maximum value</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>min_value</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>min_value</span><span class=p>,</span> <span class=s2>"min_value"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>max_value</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>max_value</span><span class=p>,</span> <span class=s2>"max_value"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>min_value</span> <span class=o>>=</span> <span class=n>max_value</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"max_value > min_value must hold, but got "</span>
+                <span class=sa>f</span><span class=s2>"min_value=</span><span class=si>{</span><span class=n>min_value</span><span class=si>}</span><span class=s2> and max_value=</span><span class=si>{</span><span class=n>max_value</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>dimension</span><span class=p>,</span> <span class=n>int_range_to_dtype</span><span class=p>(</span>
+            <span class=n>min_value</span><span class=o>=</span><span class=n>min_value</span><span class=p>,</span> <span class=n>max_value</span><span class=o>=</span><span class=n>max_value</span><span class=p>))</span>
+        <span class=c1>#: the lower bound, i.e., the minimum permitted value</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>min_value</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>min_value</span>
+        <span class=c1>#: the upper bound, i.e., the maximum permitted value</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>max_value</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>max_value</span>
+
+<div class=viewcode-block id=IntSpace.create>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.intspace.IntSpace.create>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create an integer vector filled with the minimal value.</span>
+
+<span class=sd>        :return: the vector</span>
+
+<span class=sd>        >>> from moptipy.spaces.intspace import IntSpace</span>
+<span class=sd>        >>> s = IntSpace(dimension=12, min_value=5, max_value=332)</span>
+<span class=sd>        >>> v = s.create()</span>
+<span class=sd>        >>> print(s.to_str(v))</span>
+<span class=sd>        5;5;5;5;5;5;5;5;5;5;5;5</span>
+<span class=sd>        >>> print(v.dtype)</span>
+<span class=sd>        int16</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>full</span><span class=p>(</span><span class=n>shape</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=p>,</span> <span class=n>fill_value</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>min_value</span><span class=p>,</span>
+                       <span class=n>dtype</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=IntSpace.validate>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.intspace.IntSpace.validate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>validate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Validate an integer string.</span>
+
+<span class=sd>        :param x: the integer string</span>
+<span class=sd>        :raises TypeError: if the string is not an :class:`numpy.ndarray`.</span>
+<span class=sd>        :raises ValueError: if the shape or data type of the vector is wrong</span>
+<span class=sd>            or any of its element is not finite or if an element is out of</span>
+<span class=sd>            the bounds.</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+
+        <span class=n>miv</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>min_value</span>
+        <span class=n>mav</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_value</span>
+        <span class=k>for</span> <span class=n>index</span><span class=p>,</span> <span class=n>item</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>x</span><span class=p>):</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>miv</span> <span class=o><=</span> <span class=n>item</span> <span class=o><=</span> <span class=n>mav</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"x[</span><span class=si>{</span><span class=n>index</span><span class=si>}</span><span class=s2>]=</span><span class=si>{</span><span class=n>item</span><span class=si>}</span><span class=s2>, but should be in </span><span class=si>{</span><span class=n>miv</span><span class=si>}</span><span class=s2>..</span><span class=si>{</span><span class=n>mav</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=IntSpace.n_points>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.intspace.IntSpace.n_points>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>n_points</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the number of possible different integer strings.</span>
+
+<span class=sd>        :return: (max_value - min_value + 1) ** dimension</span>
+
+<span class=sd>        >>> print(IntSpace(4, -1, 3).n_points())</span>
+<span class=sd>        625</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>max_value</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>min_value</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>**</span> <span class=bp>self</span><span class=o>.</span><span class=n>dimension</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this integer space.</span>
+
+<span class=sd>        :return: "ints" + dimension + dtype.char + min_value + "-" + max_value</span>
+
+<span class=sd>        >>> print(IntSpace(4, -1, 3))</span>
+<span class=sd>        ints4bm1to3</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=sa>f</span><span class=s2>"ints</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=si>}{</span><span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=o>.</span><span class=n>char</span><span class=si>}</span><span class=s2>"</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>num_to_str_for_name</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>min_value</span><span class=p>)</span><span class=si>}</span><span class=s2>to"</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>num_to_str_for_name</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>max_value</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+<div class=viewcode-block id=IntSpace.log_parameters_to>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.intspace.IntSpace.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of this space to the given logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> space = IntSpace(7, -5, 5)</span>
+<span class=sd>        >>> space.dimension</span>
+<span class=sd>        7</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.key_values("C") as kv:</span>
+<span class=sd>        ...         space.log_parameters_to(kv)</span>
+<span class=sd>        ...     text = l.get_log()</span>
+<span class=sd>        >>> text[-2]</span>
+<span class=sd>        'max: 5'</span>
+<span class=sd>        >>> text[-3]</span>
+<span class=sd>        'min: -5'</span>
+<span class=sd>        >>> text[-4]</span>
+<span class=sd>        'dtype: b'</span>
+<span class=sd>        >>> text[-5]</span>
+<span class=sd>        'nvars: 7'</span>
+<span class=sd>        >>> text[-6]</span>
+<span class=sd>        'class: moptipy.spaces.intspace.IntSpace'</span>
+<span class=sd>        >>> text[-7]</span>
+<span class=sd>        'name: ints7bm5to5'</span>
+<span class=sd>        >>> len(text)</span>
+<span class=sd>        8</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_MIN</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>min_value</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_MAX</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_value</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.spaces.intspace</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

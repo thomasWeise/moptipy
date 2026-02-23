@@ -1,0 +1,215 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.tests.selection — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/tests/selection.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.selection</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.tests.selection</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Validate selection algorithms."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>default_rng</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.modules.selection</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>FitnessRecord</span><span class=p>,</span>
+    <span class=n>Selection</span><span class=p>,</span>
+    <span class=n>check_selection</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.component</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_component</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>rand_seed_generate</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>_FRecord</span><span class=p>(</span><span class=n>FitnessRecord</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The internal Fitness-record."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>tag</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize."""</span>
+        <span class=c1>#: the fitness</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>fitness</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span>
+        <span class=c1>#: the tag</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>tag</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>tag</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Get the string describing this record."""</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>tag</span><span class=si>}</span><span class=s2>/</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>fitness</span><span class=si>}</span><span class=s2>"</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__join</span><span class=p>(</span><span class=n>sets</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span><span class=p>]],</span>
+           <span class=n>lower_limit</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span><span class=p>,</span>
+           <span class=n>upper_limit</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span><span class=p>)</span> <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Joint iterables preserving unique values.</span>
+
+<span class=sd>    :param sets: the iterables</span>
+<span class=sd>    :param lower_limit: the lower limit</span>
+<span class=sd>    :param upper_limit: the upper limit</span>
+<span class=sd>    :returns: the joint iterable</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>sets</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>sets</span><span class=p>,</span> <span class=s2>"sets"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lower_limit</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>lower_limit</span><span class=p>,</span> <span class=s2>"lower_limit"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>upper_limit</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>upper_limit</span><span class=p>,</span> <span class=s2>"upper_limit"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+    <span class=k>if</span> <span class=n>upper_limit</span> <span class=o><</span> <span class=n>lower_limit</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"lower_limit=</span><span class=si>{</span><span class=n>lower_limit</span><span class=si>}</span><span class=s2> but upper_limit=</span><span class=si>{</span><span class=n>upper_limit</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+    <span class=n>x</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+    <span class=k>for</span> <span class=n>it</span> <span class=ow>in</span> <span class=n>sets</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>it</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>it</span><span class=p>,</span> <span class=s2>"it"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+        <span class=n>x</span><span class=o>.</span><span class=n>update</span><span class=p>([</span><span class=nb>int</span><span class=p>(</span><span class=n>i</span><span class=p>)</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>it</span> <span class=k>if</span> <span class=n>lower_limit</span> <span class=o><=</span> <span class=n>i</span> <span class=o><=</span> <span class=n>upper_limit</span><span class=p>])</span>
+    <span class=k>return</span> <span class=nb>list</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=validate_selection>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.selection.validate_selection>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_selection</span><span class=p>(</span><span class=n>selection</span><span class=p>:</span> <span class=n>Selection</span><span class=p>,</span>
+                       <span class=n>without_replacement</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+                       <span class=n>lower_source_size_limit</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span>
+                       <span class=n>upper_source_size_limit</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>999999</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Validate a selection algorithm.</span>
+
+<span class=sd>    :param selection: the selection algorithm</span>
+<span class=sd>    :param without_replacement: is this selection algorithm without</span>
+<span class=sd>        replacement, i.e., can it select each element at most once?</span>
+<span class=sd>    :param lower_source_size_limit: the lower limit of the source size</span>
+<span class=sd>    :param upper_source_size_limit: the upper limit for the source size</span>
+<span class=sd>    """</span>
+    <span class=n>check_selection</span><span class=p>(</span><span class=n>selection</span><span class=p>)</span>
+    <span class=n>validate_component</span><span class=p>(</span><span class=n>selection</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>without_replacement</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>without_replacement</span><span class=p>,</span> <span class=s2>"without_replacement"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>lower_source_size_limit</span><span class=p>,</span> <span class=s2>"lower_source_size_limit"</span><span class=p>,</span>
+                    <span class=mi>0</span><span class=p>,</span> <span class=mi>1000</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>upper_source_size_limit</span><span class=p>,</span> <span class=s2>"upper_source_size_limit"</span><span class=p>,</span>
+                    <span class=n>lower_source_size_limit</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+    <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>()</span>
+    <span class=n>source</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>FitnessRecord</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>source_2</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>FitnessRecord</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>copy</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>list</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{}</span>
+    <span class=n>dest</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>FitnessRecord</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>dest_2</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>FitnessRecord</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>tag</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+
+    <span class=k>for</span> <span class=n>source_size</span> <span class=ow>in</span> <span class=n>__join</span><span class=p>([</span><span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>10</span><span class=p>),</span> <span class=p>[</span><span class=mi>16</span><span class=p>,</span> <span class=mi>32</span><span class=p>,</span> <span class=mi>50</span><span class=p>,</span> <span class=mi>101</span><span class=p>],</span>
+                               <span class=n>random</span><span class=o>.</span><span class=n>choice</span><span class=p>(</span><span class=mi>100</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=kc>False</span><span class=p>),</span>
+                               <span class=p>[</span><span class=n>lower_source_size_limit</span><span class=p>]],</span>
+                              <span class=n>lower_limit</span><span class=o>=</span><span class=nb>max</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>lower_source_size_limit</span><span class=p>),</span>
+                              <span class=n>upper_limit</span><span class=o>=</span><span class=n>upper_source_size_limit</span><span class=p>):</span>
+        <span class=k>for</span> <span class=n>dest_size</span> <span class=ow>in</span> <span class=n>__join</span><span class=p>([</span>
+            <span class=p>[</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=n>source_size</span><span class=p>,</span> <span class=mi>2</span> <span class=o>*</span> <span class=n>source_size</span><span class=p>],</span>
+            <span class=n>random</span><span class=o>.</span><span class=n>choice</span><span class=p>(</span><span class=nb>min</span><span class=p>(</span><span class=mi>6</span><span class=p>,</span> <span class=mi>4</span> <span class=o>*</span> <span class=n>source_size</span><span class=p>),</span>
+                          <span class=nb>min</span><span class=p>(</span><span class=mi>6</span><span class=p>,</span> <span class=mi>4</span> <span class=o>*</span> <span class=n>source_size</span><span class=p>),</span> <span class=kc>False</span><span class=p>)],</span>
+                <span class=n>upper_limit</span><span class=o>=</span><span class=n>source_size</span> <span class=k>if</span> <span class=n>without_replacement</span> <span class=k>else</span> <span class=n>inf</span><span class=p>,</span>
+                <span class=n>lower_limit</span><span class=o>=</span><span class=mi>1</span><span class=p>):</span>
+
+            <span class=n>source</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+            <span class=n>source_2</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+            <span class=n>copy</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+            <span class=n>dest</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+            <span class=n>dest_2</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+
+            <span class=c1># choose the fitness function</span>
+            <span class=n>fit_choice</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>3</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>fit_choice</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>def</span><span class=w> </span><span class=nf>fitness</span><span class=p>(</span>  <span class=c1># noqa</span>
+                        <span class=n>value</span><span class=o>=</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=o>-</span><span class=mi>10</span><span class=p>,</span> <span class=mi>10</span><span class=p>))):</span>  <span class=c1># type: ignore</span>
+                    <span class=k>return</span> <span class=n>value</span>
+            <span class=k>elif</span> <span class=n>fit_choice</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>def</span><span class=w> </span><span class=nf>fitness</span><span class=p>(</span>  <span class=c1># noqa</span>
+                        <span class=n>limit</span><span class=o>=</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>100</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>):</span>  <span class=c1># type: ignore</span>
+                    <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>limit</span><span class=p>))</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=k>def</span><span class=w> </span><span class=nf>fitness</span><span class=p>():</span>  <span class=c1># type: ignore # noqa</span>
+                    <span class=k>return</span> <span class=nb>float</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>())</span>
+
+            <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>source_size</span><span class=p>):</span>
+                <span class=n>tag</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=n>r1</span> <span class=o>=</span> <span class=n>_FRecord</span><span class=p>(</span><span class=n>tag</span><span class=p>)</span>
+                <span class=n>r1</span><span class=o>.</span><span class=n>fitness</span> <span class=o>=</span> <span class=n>fitness</span><span class=p>()</span>
+                <span class=n>r2</span> <span class=o>=</span> <span class=n>_FRecord</span><span class=p>(</span><span class=n>tag</span><span class=p>)</span>
+                <span class=n>r2</span><span class=o>.</span><span class=n>fitness</span> <span class=o>=</span> <span class=n>r1</span><span class=o>.</span><span class=n>fitness</span>
+                <span class=n>source</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>r1</span><span class=p>)</span>
+                <span class=n>copy</span><span class=p>[</span><span class=n>r2</span><span class=o>.</span><span class=n>tag</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=n>r2</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=kc>False</span><span class=p>]</span>
+                <span class=n>r2</span> <span class=o>=</span> <span class=n>_FRecord</span><span class=p>(</span><span class=n>tag</span><span class=p>)</span>
+                <span class=n>r2</span><span class=o>.</span><span class=n>fitness</span> <span class=o>=</span> <span class=n>r1</span><span class=o>.</span><span class=n>fitness</span>
+                <span class=n>source_2</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>r2</span><span class=p>)</span>
+
+            <span class=c1># perform the selection</span>
+            <span class=n>seed</span> <span class=o>=</span> <span class=n>rand_seed_generate</span><span class=p>(</span><span class=n>random</span><span class=p>)</span>
+            <span class=n>selection</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+            <span class=n>selection</span><span class=o>.</span><span class=n>select</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=n>dest</span><span class=o>.</span><span class=n>append</span><span class=p>,</span> <span class=n>dest_size</span><span class=p>,</span>
+                             <span class=n>default_rng</span><span class=p>(</span><span class=n>seed</span><span class=p>))</span>
+            <span class=n>selection</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+            <span class=n>selection</span><span class=o>.</span><span class=n>select</span><span class=p>(</span><span class=n>source_2</span><span class=p>,</span> <span class=n>dest_2</span><span class=o>.</span><span class=n>append</span><span class=p>,</span> <span class=n>dest_size</span><span class=p>,</span>
+                             <span class=n>default_rng</span><span class=p>(</span><span class=n>seed</span><span class=p>))</span>
+
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>dest</span><span class=p>)</span> <span class=o>!=</span> <span class=n>dest_size</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"expected </span><span class=si>{</span><span class=n>selection</span><span class=si>}</span><span class=s2> to select </span><span class=si>{</span><span class=n>dest_size</span><span class=si>}</span><span class=s2> elements "</span>
+                    <span class=sa>f</span><span class=s2>"out of </span><span class=si>{</span><span class=n>source_size</span><span class=si>}</span><span class=s2>, but got </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>dest</span><span class=p>)</span><span class=si>}</span><span class=s2> instead"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>dest_2</span><span class=p>)</span> <span class=o>!=</span> <span class=n>dest_size</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"inconsistent selection: expected </span><span class=si>{</span><span class=n>selection</span><span class=si>}</span><span class=s2> to select"</span>
+                    <span class=sa>f</span><span class=s2>" </span><span class=si>{</span><span class=n>dest_size</span><span class=si>}</span><span class=s2> elements out of </span><span class=si>{</span><span class=n>source_size</span><span class=si>}</span><span class=s2>, which "</span>
+                    <span class=sa>f</span><span class=s2>"worked the first time, but got </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>dest_2</span><span class=p>)</span><span class=si>}</span><span class=s2> instead"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>source</span><span class=p>)</span> <span class=o>!=</span> <span class=n>source_size</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"selection </span><span class=si>{</span><span class=n>selection</span><span class=si>}</span><span class=s2> changed length </span><span class=si>{</span><span class=n>source_size</span><span class=si>}</span><span class=s2> "</span>
+                    <span class=sa>f</span><span class=s2>"of source list to </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>source</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>source_2</span><span class=p>)</span> <span class=o>!=</span> <span class=n>source_size</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"inconsistent selection: selection </span><span class=si>{</span><span class=n>selection</span><span class=si>}</span><span class=s2> changed "</span>
+                    <span class=sa>f</span><span class=s2>"length </span><span class=si>{</span><span class=n>source_size</span><span class=si>}</span><span class=s2> of second source list to "</span>
+                    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>source_2</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>for</span> <span class=n>ii</span><span class=p>,</span> <span class=n>ele</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>dest</span><span class=p>):</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ele</span><span class=p>,</span> <span class=n>_FRecord</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>ele</span><span class=p>,</span> <span class=s2>"element in dest"</span><span class=p>,</span> <span class=n>_FRecord</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>ele</span><span class=o>.</span><span class=n>tag</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>copy</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"element with tag </span><span class=si>{</span><span class=n>ele</span><span class=o>.</span><span class=n>tag</span><span class=si>}</span><span class=s2> does not exist in "</span>
+                        <span class=sa>f</span><span class=s2>"source but was selected by </span><span class=si>{</span><span class=n>selection</span><span class=si>}</span><span class=s2>?"</span><span class=p>)</span>
+                <span class=n>check</span> <span class=o>=</span> <span class=n>copy</span><span class=p>[</span><span class=n>ele</span><span class=o>.</span><span class=n>tag</span><span class=p>]</span>
+                <span class=k>if</span> <span class=n>check</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>fitness</span> <span class=o>!=</span> <span class=n>ele</span><span class=o>.</span><span class=n>fitness</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"fitness of source element </span><span class=si>{</span><span class=n>check</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>fitness</span><span class=si>}</span><span class=s2> has "</span>
+                        <span class=sa>f</span><span class=s2>"been changed to </span><span class=si>{</span><span class=n>ele</span><span class=o>.</span><span class=n>fitness</span><span class=si>}</span><span class=s2> by </span><span class=si>{</span><span class=n>selection</span><span class=si>}</span><span class=s2> "</span>
+                        <span class=s2>"in dest"</span><span class=p>)</span>
+                <span class=n>check</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=n>without_replacement</span> <span class=ow>and</span> <span class=p>(</span><span class=n>check</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>></span> <span class=mi>1</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>selection</span><span class=si>}</span><span class=s2> is without replacement, but selected "</span>
+                        <span class=sa>f</span><span class=s2>"element with tag </span><span class=si>{</span><span class=n>ele</span><span class=o>.</span><span class=n>tag</span><span class=si>}</span><span class=s2> at least twice!"</span><span class=p>)</span>
+                <span class=n>ele2</span> <span class=o>=</span> <span class=n>dest_2</span><span class=p>[</span><span class=n>ii</span><span class=p>]</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ele2</span><span class=p>,</span> <span class=n>_FRecord</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>ele2</span><span class=p>,</span> <span class=s2>"element in dest2"</span><span class=p>,</span> <span class=n>_FRecord</span><span class=p>)</span>
+                <span class=k>if</span> <span class=p>(</span><span class=n>ele2</span><span class=o>.</span><span class=n>tag</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>ele</span><span class=o>.</span><span class=n>tag</span><span class=p>)</span> <span class=ow>or</span> \
+                        <span class=p>(</span><span class=n>ele2</span><span class=o>.</span><span class=n>fitness</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>ele</span><span class=o>.</span><span class=n>fitness</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"inconsistent selection: found </span><span class=si>{</span><span class=n>ele2</span><span class=si>}</span><span class=s2> "</span>
+                                     <span class=sa>f</span><span class=s2>"at index </span><span class=si>{</span><span class=n>ii</span><span class=si>}</span><span class=s2> but expected </span><span class=si>{</span><span class=n>ele</span><span class=si>}</span><span class=s2> from "</span>
+                                     <span class=sa>f</span><span class=s2>"first application of </span><span class=si>{</span><span class=n>selection</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+            <span class=k>for</span> <span class=n>ele</span> <span class=ow>in</span> <span class=n>source</span><span class=p>:</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ele</span><span class=p>,</span> <span class=n>_FRecord</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>ele</span><span class=p>,</span> <span class=s2>"element in source"</span><span class=p>,</span> <span class=n>_FRecord</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>ele</span><span class=o>.</span><span class=n>tag</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>copy</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"element with tag </span><span class=si>{</span><span class=n>ele</span><span class=o>.</span><span class=n>tag</span><span class=si>}</span><span class=s2> does not exist in "</span>
+                        <span class=sa>f</span><span class=s2>"source but was created by </span><span class=si>{</span><span class=n>selection</span><span class=si>}</span><span class=s2>?"</span><span class=p>)</span>
+                <span class=n>check</span> <span class=o>=</span> <span class=n>copy</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>ele</span><span class=o>.</span><span class=n>tag</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>check</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>fitness</span> <span class=o>!=</span> <span class=n>ele</span><span class=o>.</span><span class=n>fitness</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"fitness of source element </span><span class=si>{</span><span class=n>check</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>fitness</span><span class=si>}</span><span class=s2> has "</span>
+                        <span class=sa>f</span><span class=s2>"been changed to </span><span class=si>{</span><span class=n>ele</span><span class=o>.</span><span class=n>fitness</span><span class=si>}</span><span class=s2> by </span><span class=si>{</span><span class=n>selection</span><span class=si>}</span><span class=s2> "</span>
+                        <span class=s2>"in source"</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>check</span><span class=p>[</span><span class=mi>2</span><span class=p>]:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"element with tag </span><span class=si>{</span><span class=n>ele</span><span class=o>.</span><span class=n>tag</span><span class=si>}</span><span class=s2> has been replicated "</span>
+                        <span class=sa>f</span><span class=s2>"by </span><span class=si>{</span><span class=n>selection</span><span class=si>}</span><span class=s2> in source?"</span><span class=p>)</span>
+                <span class=n>check</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span> <span class=o>=</span> <span class=kc>True</span>
+            <span class=k>for</span> <span class=n>check</span> <span class=ow>in</span> <span class=n>copy</span><span class=o>.</span><span class=n>values</span><span class=p>():</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=n>check</span><span class=p>[</span><span class=mi>2</span><span class=p>]:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"element with tag </span><span class=si>{</span><span class=n>check</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>tag</span><span class=si>}</span><span class=s2> somehow lost?"</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.selection</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

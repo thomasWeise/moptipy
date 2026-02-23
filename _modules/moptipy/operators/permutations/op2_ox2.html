@@ -1,0 +1,164 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.operators.permutations.op2_ox2 — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/operators/permutations/op2_ox2.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.permutations.op2_ox2</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.operators.permutations.op2_ox2</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The Order-based Crossover operator.</span>
+
+<span class=sd>Larrañaga et al. describe this operator as follows:</span>
+
+<span class=sd>The order-based crossover operator by Syswerda (1991) selects at random</span>
+<span class=sd>several positions in a parent tour, and the order of the cities in the</span>
+<span class=sd>selected positions of this parent is imposed on the other parent. For</span>
+<span class=sd>example, consider the parents `12345678` and `24687531`. Suppose that in the</span>
+<span class=sd>second parent the second, third, and sixth positions are selected. The values</span>
+<span class=sd>in these positions are `4`, `6`, and `5` respectively. In the first parent</span>
+<span class=sd>these cities are present at the fourth, fifth and sixth positions.</span>
+<span class=sd>Now the offspring is equal to parent 1 except in the fourth, fifth and sixth</span>
+<span class=sd>positions: `123xxx78`. We add the missing cities to the offspring in the same</span>
+<span class=sd>order in which they appear in the second parent tour. This results in</span>
+<span class=sd>`12346578`. Exchanging the role of the first parent and the second parent</span>
+<span class=sd>gives, using the same selected positions, `24387561`.</span>
+
+<span class=sd>We implement this operator such that each position has the same chance to be</span>
+<span class=sd>chosen by either parents, i.e., the total number of positions copied from</span>
+<span class=sd>the parents is binomially distributed with `p=0.5`, but we ensure that at</span>
+<span class=sd>least two positions are copied from either parents (as the result would</span>
+<span class=sd>otherwise necessarily equal one of the parents). We also switch the role of</span>
+<span class=sd>the two parents in our implementation.</span>
+
+<span class=sd>As mnemonic for the operator, we use `ox2`, similar to Larrañaga et al., who</span>
+<span class=sd>used `OX2`.</span>
+
+<span class=sd>1. G. Syswerda. Schedule Optimization Using Genetic Algorithms. In Lawrence</span>
+<span class=sd>   Davis, L. (ed.), *Handbook of Genetic Algorithms,* pages 332-349.</span>
+<span class=sd>   New York, NY, USA: Van Nostrand Reinhold.</span>
+<span class=sd>2. Pedro Larrañaga, Cindy M. H. Kuijpers, Roberto H. Murga, Iñaki Inza, and</span>
+<span class=sd>   S. Dizdarevic. Genetic Algorithms for the Travelling Salesman Problem: A</span>
+<span class=sd>   Review of Representations and Operators. *Artificial Intelligence Review,*</span>
+<span class=sd>   13(2):129-170, April 1999. Kluwer Academic Publishers, The Netherlands.</span>
+<span class=sd>   https://doi.org/10.1023/A:1006529012972</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op2</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.permutations</span><span class=w> </span><span class=kn>import</span> <span class=n>Permutations</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>DEFAULT_BOOL</span><span class=p>,</span>
+    <span class=n>DEFAULT_INT</span><span class=p>,</span>
+    <span class=n>fill_in_canonical_permutation</span><span class=p>,</span>
+<span class=p>)</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>_op2_ox2</span><span class=p>(</span><span class=n>indices</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+             <span class=n>x1_done</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+             <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>dest</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+             <span class=n>x0</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>x1</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Apply the order-based crossover from `x0` and `x1` to `dest`.</span>
+
+<span class=sd>    :param indices: the indices</span>
+<span class=sd>    :param x1_done: the elements of x1 that are done</span>
+<span class=sd>    :param random: the random number generator</span>
+<span class=sd>    :param dest: the array to receive the result</span>
+<span class=sd>    :param x0: the first existing point in the search space</span>
+<span class=sd>    :param x1: the second existing point in the search space</span>
+<span class=sd>    """</span>
+    <span class=n>x1_done</span><span class=o>.</span><span class=n>fill</span><span class=p>(</span><span class=kc>False</span><span class=p>)</span>  <span class=c1># all values in x1 are available</span>
+    <span class=n>length</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>indices</span><span class=p>)</span>  <span class=c1># get length of string</span>
+
+    <span class=c1># start book</span>
+    <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>  <span class=c1># sample the number of values to copy from x0</span>
+        <span class=n>copy_from_x0</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>binomial</span><span class=p>(</span><span class=n>length</span><span class=p>,</span> <span class=mf>0.5</span><span class=p>)</span>  <span class=c1># p=0.5 for each value</span>
+        <span class=k>if</span> <span class=mi>1</span> <span class=o><</span> <span class=n>copy_from_x0</span> <span class=o><</span> <span class=p>(</span><span class=n>length</span> <span class=o>-</span> <span class=mi>1</span><span class=p>):</span>  <span class=c1># ensure difference by</span>
+            <span class=k>break</span>  <span class=c1># copying at least two values from each parent</span>
+    <span class=n>copy_from_x0</span> <span class=o>=</span> <span class=n>length</span> <span class=o>-</span> <span class=n>copy_from_x0</span>  <span class=c1># compute end index-index</span>
+
+    <span class=n>i</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>length</span>  <span class=c1># the index into indices we iterate over</span>
+    <span class=n>mode</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>  <span class=c1># mode: True = copy from x0, False = from x1</span>
+    <span class=n>x1i</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># the index of the next unused value from x1</span>
+    <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>  <span class=c1># loop until we are finished</span>
+        <span class=n>index_i</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>i</span><span class=p>)</span>  <span class=c1># pick a random index-index</span>
+        <span class=n>index</span> <span class=o>=</span> <span class=n>indices</span><span class=p>[</span><span class=n>index_i</span><span class=p>]</span>  <span class=c1># load the actual index</span>
+        <span class=n>i</span> <span class=o>-=</span> <span class=mi>1</span>  <span class=c1># reduce the number of values</span>
+        <span class=n>indices</span><span class=p>[</span><span class=n>i</span><span class=p>],</span> <span class=n>indices</span><span class=p>[</span><span class=n>index_i</span><span class=p>]</span> <span class=o>=</span> <span class=n>index</span><span class=p>,</span> <span class=n>indices</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>  <span class=c1># swap</span>
+
+        <span class=k>if</span> <span class=n>mode</span><span class=p>:</span>  <span class=c1># copy from x0 to dest</span>
+            <span class=n>dest</span><span class=p>[</span><span class=n>index</span><span class=p>]</span> <span class=o>=</span> <span class=n>value</span> <span class=o>=</span> <span class=n>x0</span><span class=p>[</span><span class=n>index</span><span class=p>]</span>  <span class=c1># get and store value</span>
+            <span class=k>for</span> <span class=n>x1j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>x1i</span><span class=p>,</span> <span class=n>length</span><span class=p>):</span>  <span class=c1># mark as used</span>
+                <span class=k>if</span> <span class=p>(</span><span class=n>x1</span><span class=p>[</span><span class=n>x1j</span><span class=p>]</span> <span class=o>==</span> <span class=n>value</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=n>x1_done</span><span class=p>[</span><span class=n>x1j</span><span class=p>]):</span>
+                    <span class=n>x1_done</span><span class=p>[</span><span class=n>x1j</span><span class=p>]</span> <span class=o>=</span> <span class=kc>True</span>  <span class=c1># mark value as used</span>
+                    <span class=k>break</span>  <span class=c1># exit inner loop</span>
+            <span class=k>if</span> <span class=n>copy_from_x0</span> <span class=o>==</span> <span class=n>i</span><span class=p>:</span>  <span class=c1># are we done with copying?</span>
+                <span class=n>mode</span> <span class=o>=</span> <span class=kc>False</span>  <span class=c1># set mode to load from x1</span>
+                <span class=n>x1i</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># reset x1 index</span>
+        <span class=k>else</span><span class=p>:</span>  <span class=c1># go to next iteration</span>
+            <span class=n>dest</span><span class=p>[</span><span class=n>index</span><span class=p>]</span> <span class=o>=</span> <span class=n>x1</span><span class=p>[</span><span class=n>x1i</span><span class=p>]</span>  <span class=c1># and store it in dest</span>
+            <span class=k>if</span> <span class=n>i</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>  <span class=c1># check if we are done</span>
+                <span class=k>return</span>  <span class=c1># ok, we are finished</span>
+            <span class=n>x1i</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># and move on to the next value</span>
+        <span class=k>while</span> <span class=n>x1_done</span><span class=p>[</span><span class=n>x1i</span><span class=p>]:</span>  <span class=c1># step x1i to next unused value</span>
+            <span class=n>x1i</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># increment</span>
+
+
+<div class=viewcode-block id=Op2OrderBased>
+<a class=viewcode-back href=../../../../moptipy.operators.permutations.html#moptipy.operators.permutations.op2_ox2.Op2OrderBased>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Op2OrderBased</span><span class=p>(</span><span class=n>Op2</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The order-based crossover operator."""</span>
+
+<div class=viewcode-block id=Op2OrderBased.op2>
+<a class=viewcode-back href=../../../../moptipy.operators.permutations.html#moptipy.operators.permutations.op2_ox2.Op2OrderBased.op2>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>op2</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>dest</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+            <span class=n>x0</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>x1</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the order-based crossover from `x0` and `x1` to `dest`.</span>
+
+<span class=sd>        :param random: the random number generator</span>
+<span class=sd>        :param dest: the array to receive the result</span>
+<span class=sd>        :param x0: the first existing point in the search space</span>
+<span class=sd>        :param x1: the second existing point in the search space</span>
+<span class=sd>        """</span>
+        <span class=n>_op2_ox2</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__indices</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__x1_done</span><span class=p>,</span> <span class=n>random</span><span class=p>,</span> <span class=n>dest</span><span class=p>,</span> <span class=n>x0</span><span class=p>,</span> <span class=n>x1</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>space</span><span class=p>:</span> <span class=n>Permutations</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the sequence crossover operator.</span>
+
+<span class=sd>        :param space: the permutation space</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>space</span><span class=p>,</span> <span class=n>Permutations</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>space</span><span class=p>,</span> <span class=s2>"space"</span><span class=p>,</span> <span class=n>Permutations</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>space</span><span class=o>.</span><span class=n>dimension</span> <span class=o><</span> <span class=mi>4</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"dimension must be > 3, but got </span><span class=si>{</span><span class=n>space</span><span class=o>.</span><span class=n>dimension</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=c1>#: the valid indices</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__indices</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span>
+            <span class=n>space</span><span class=o>.</span><span class=n>dimension</span><span class=p>,</span> <span class=n>DEFAULT_INT</span><span class=p>)</span>
+        <span class=c1>#: the elements that are done in `x1`</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__x1_done</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>(</span>
+            <span class=p>(</span><span class=n>space</span><span class=o>.</span><span class=n>dimension</span><span class=p>,</span> <span class=p>),</span> <span class=n>DEFAULT_BOOL</span><span class=p>)</span>
+
+<div class=viewcode-block id=Op2OrderBased.initialize>
+<a class=viewcode-back href=../../../../moptipy.operators.permutations.html#moptipy.operators.permutations.op2_ox2.Op2OrderBased.initialize>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>initialize</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize this operator."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+        <span class=n>fill_in_canonical_permutation</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__indices</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this binary operator.</span>
+
+<span class=sd>        :returns: "ox2", for "order-based crossover", the name of this</span>
+<span class=sd>            operator</span>
+<span class=sd>        :retval "ox2": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"ox2"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.permutations.op2_ox2</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

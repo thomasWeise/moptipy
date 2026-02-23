@@ -1,0 +1,954 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.mock.components — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/mock/components.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.mock.components</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.mock.components</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Generate random mock experiment parameters."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>dataclasses</span><span class=w> </span><span class=kn>import</span> <span class=n>dataclass</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>ceil</span><span class=p>,</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>string</span><span class=w> </span><span class=kn>import</span> <span class=n>digits</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.console</span><span class=w> </span><span class=kn>import</span> <span class=n>logger</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>rand_generator</span><span class=p>,</span> <span class=n>rand_seeds_from_str</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=n>sanitize_name</span>
+
+
+<div class=viewcode-block id=fixed_random_generator>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.components.fixed_random_generator>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>fixed_random_generator</span><span class=p>()</span> <span class=o>-></span> <span class=n>Generator</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the single, fixed random generator for the dummy experiment API.</span>
+
+<span class=sd>    :returns: the random number generator</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>fixed_random_generator</span><span class=p>,</span> <span class=s2>"gen"</span><span class=p>):</span>
+        <span class=nb>setattr</span><span class=p>(</span><span class=n>fixed_random_generator</span><span class=p>,</span> <span class=s2>"gen"</span><span class=p>,</span> <span class=n>rand_generator</span><span class=p>(</span><span class=mi>1</span><span class=p>))</span>
+    <span class=k>return</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>fixed_random_generator</span><span class=p>,</span> <span class=s2>"gen"</span><span class=p>)</span></div>
+
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_random_name</span><span class=p>(</span><span class=n>namelen</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span> <span class=o>=</span> <span class=n>fixed_random_generator</span><span class=p>())</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Generate a random name of a given length.</span>
+
+<span class=sd>    :param namelen: the length of the name</span>
+<span class=sd>    :param random: a random number generator</span>
+<span class=sd>    :returns: a name of the length</span>
+<span class=sd>    """</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>namelen</span><span class=p>,</span> <span class=s2>"namelen"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000</span><span class=p>)</span>
+    <span class=n>namer</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span><span class=s2>"bcdfghjklmnpqrstvwxyz"</span><span class=p>,</span> <span class=s2>"aeiou"</span><span class=p>,</span>
+                                          <span class=n>digits</span><span class=p>)</span>
+    <span class=n>name</span> <span class=o>=</span> <span class=p>[</span><span class=s2>"x"</span><span class=p>]</span> <span class=o>*</span> <span class=n>namelen</span>
+    <span class=n>index</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>n_done</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>namelen</span><span class=p>):</span>
+        <span class=n>namee</span> <span class=o>=</span> <span class=n>namer</span><span class=p>[</span><span class=n>index</span><span class=p>]</span>
+        <span class=n>name</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>namee</span><span class=p>[</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>namee</span><span class=p>))]</span>
+        <span class=n>n_done</span> <span class=o>=</span> <span class=n>n_done</span> <span class=ow>or</span> <span class=p>(</span><span class=n>i</span> <span class=o>==</span> <span class=mi>2</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>index</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>index</span> <span class=o>+=</span> <span class=mi>1</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>index</span> <span class=o>==</span> <span class=mi>2</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>))</span> <span class=o><=</span> <span class=mi>0</span><span class=p>):</span>
+                <span class=k>continue</span>
+            <span class=n>index</span> <span class=o>=</span> <span class=nb>int</span><span class=p>((</span><span class=n>index</span> <span class=o>+</span> <span class=mi>1</span> <span class=o>+</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>)))</span> <span class=o>%</span> <span class=nb>len</span><span class=p>(</span><span class=n>namer</span><span class=p>))</span>
+            <span class=k>if</span> <span class=n>n_done</span><span class=p>:</span>
+                <span class=k>while</span> <span class=n>index</span> <span class=o>==</span> <span class=mi>2</span><span class=p>:</span>
+                    <span class=n>index</span> <span class=o>=</span> <span class=mi>1</span> <span class=o>-</span> <span class=nb>min</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>6</span><span class=p>)))</span>
+
+    <span class=k>return</span> <span class=s2>""</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>name</span><span class=p>)</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__append_not_allowed</span><span class=p>(</span><span class=n>forbidden</span><span class=p>,</span>
+                         <span class=n>dest</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Append items to the set of not-allowed values.</span>
+
+<span class=sd>    :param forbidden: the forbidden elements</span>
+<span class=sd>    :param dest: the set to append to</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=n>forbidden</span><span class=p>:</span>
+        <span class=k>return</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>forbidden</span><span class=p>,</span> <span class=nb>str</span> <span class=o>|</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+        <span class=n>dest</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>forbidden</span><span class=p>)</span>
+    <span class=k>elif</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>forbidden</span><span class=p>,</span> <span class=n>Instance</span><span class=p>):</span>
+        <span class=n>dest</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>forbidden</span><span class=o>.</span><span class=n>name</span><span class=p>)</span>
+        <span class=n>dest</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>forbidden</span><span class=o>.</span><span class=n>hardness</span><span class=p>)</span>
+        <span class=n>dest</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>forbidden</span><span class=o>.</span><span class=n>jitter</span><span class=p>)</span>
+        <span class=n>dest</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>forbidden</span><span class=o>.</span><span class=n>scale</span><span class=p>)</span>
+        <span class=n>dest</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>forbidden</span><span class=o>.</span><span class=n>best</span><span class=p>)</span>
+        <span class=n>dest</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>forbidden</span><span class=o>.</span><span class=n>worst</span><span class=p>)</span>
+    <span class=k>elif</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>forbidden</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>):</span>
+        <span class=n>dest</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>forbidden</span><span class=o>.</span><span class=n>name</span><span class=p>)</span>
+        <span class=n>dest</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>forbidden</span><span class=o>.</span><span class=n>strength</span><span class=p>)</span>
+        <span class=n>dest</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>forbidden</span><span class=o>.</span><span class=n>jitter</span><span class=p>)</span>
+    <span class=k>elif</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>forbidden</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>for</span> <span class=n>item</span> <span class=ow>in</span> <span class=n>forbidden</span><span class=p>:</span>
+            <span class=n>__append_not_allowed</span><span class=p>(</span><span class=n>item</span><span class=p>,</span> <span class=n>dest</span><span class=p>)</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>forbidden</span><span class=p>,</span> <span class=s2>"element to add"</span><span class=p>,</span>
+                         <span class=p>(</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=n>Instance</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>))</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_make_not_allowed</span><span class=p>(</span><span class=n>forbidden</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span> <span class=o>|</span> <span class=n>Iterable</span><span class=p>[</span>
+        <span class=n>Any</span><span class=p>]]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=nb>set</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create a set of not-allowed values.</span>
+
+<span class=sd>    :param forbidden: the forbidden elements</span>
+<span class=sd>    :returns: the set of not-allowed values</span>
+<span class=sd>    """</span>
+    <span class=n>not_allowed</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+    <span class=n>__append_not_allowed</span><span class=p>(</span><span class=n>forbidden</span><span class=p>,</span> <span class=n>not_allowed</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>not_allowed</span>
+
+
+<div class=viewcode-block id=Instance>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.components.Instance>[docs]</a>
+<span class=nd>@dataclass</span><span class=p>(</span><span class=n>frozen</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>init</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>order</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>class</span><span class=w> </span><span class=nc>Instance</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""An immutable instance description record."""</span>
+
+    <span class=c1>#: The instance name.</span>
+    <span class=n>name</span><span class=p>:</span> <span class=nb>str</span>
+    <span class=c1>#: The instance hardness, in (0, 1), larger values are worst</span>
+    <span class=n>hardness</span><span class=p>:</span> <span class=nb>float</span>
+    <span class=c1>#: The instance jitter, in (0, 1), larger values are worst</span>
+    <span class=n>jitter</span><span class=p>:</span> <span class=nb>float</span>
+    <span class=c1>#: The instance scale, in (0, 1), larger values are worst</span>
+    <span class=n>scale</span><span class=p>:</span> <span class=nb>float</span>
+    <span class=c1>#: The best (smallest) possible objective value</span>
+    <span class=n>best</span><span class=p>:</span> <span class=nb>int</span>
+    <span class=c1>#: The worst (largest) possible objective value</span>
+    <span class=n>worst</span><span class=p>:</span> <span class=nb>int</span>
+    <span class=c1>#: The set of attractors, i.e., local optima - including best and worst</span>
+    <span class=n>attractors</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                 <span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>hardness</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span>
+                 <span class=n>jitter</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span>
+                 <span class=n>scale</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span>
+                 <span class=n>best</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>worst</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>attractors</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a mock problem instance description.</span>
+
+<span class=sd>        :param name: the instance name</span>
+<span class=sd>        :param hardness: the instance hardness</span>
+<span class=sd>        :param jitter: the instance jitter</span>
+<span class=sd>        :param scale: the instance scale</span>
+<span class=sd>        :param best: the best (smallest) possible objective value</span>
+<span class=sd>        :param worst: the worst (largest) possible objective value</span>
+<span class=sd>        :param attractors: the set of attractors, i.e., local</span>
+<span class=sd>            optima - including best and worst</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=s2>"name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>name</span> <span class=o>!=</span> <span class=n>sanitize_name</span><span class=p>(</span><span class=n>name</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid name </span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"name"</span><span class=p>,</span> <span class=n>name</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>hardness</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>hardness</span><span class=p>,</span> <span class=s2>"hardness"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>hardness</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=n>hardness</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>hardness</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"hardness must be in (0, 1), but is </span><span class=si>{</span><span class=n>hardness</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"hardness"</span><span class=p>,</span> <span class=n>hardness</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>jitter</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>jitter</span><span class=p>,</span> <span class=s2>"jitter"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>jitter</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=n>jitter</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>jitter</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"jitter must be in (0, 1), but is </span><span class=si>{</span><span class=n>jitter</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"jitter"</span><span class=p>,</span> <span class=n>jitter</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>scale</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>scale</span><span class=p>,</span> <span class=s2>"scale"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>scale</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=n>scale</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>scale</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"scale must be in (0, 1), but is </span><span class=si>{</span><span class=n>scale</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"scale"</span><span class=p>,</span> <span class=n>scale</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"best"</span><span class=p>,</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>best</span><span class=p>,</span> <span class=s2>"best"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000</span><span class=p>))</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"worst"</span><span class=p>,</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>worst</span><span class=p>,</span> <span class=s2>"worst"</span><span class=p>,</span> <span class=n>best</span> <span class=o>+</span> <span class=mi>8</span><span class=p>,</span> <span class=mi>1_000_000_000</span><span class=p>))</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>attractors</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>attractors</span><span class=p>,</span> <span class=s2>"attractors"</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>attractors</span><span class=p>)</span> <span class=o><</span> <span class=mi>4</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"attractors must contain at least 2 values,"</span>
+                             <span class=sa>f</span><span class=s2>" but contains only </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>attractors</span><span class=p>)</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>attractors</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>!=</span> <span class=n>best</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"attractors[0] must be </span><span class=si>{</span><span class=n>best</span><span class=si>}</span><span class=s2>, but is </span><span class=si>{</span><span class=n>attractors</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>attractors</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>!=</span> <span class=n>worst</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"attractors[-1] must be </span><span class=si>{</span><span class=n>worst</span><span class=si>}</span><span class=s2>, but is </span><span class=si>{</span><span class=n>attractors</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=n>prev</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=k>for</span> <span class=n>att</span> <span class=ow>in</span> <span class=n>attractors</span><span class=p>:</span>
+            <span class=n>check_int_range</span><span class=p>(</span><span class=n>att</span><span class=p>,</span> <span class=s2>"each attractor"</span><span class=p>,</span> <span class=nb>max</span><span class=p>(</span><span class=n>best</span><span class=p>,</span> <span class=n>prev</span> <span class=o>+</span> <span class=mi>1</span><span class=p>),</span> <span class=n>worst</span><span class=p>)</span>
+            <span class=n>prev</span> <span class=o>=</span> <span class=n>att</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"attractors"</span><span class=p>,</span> <span class=n>attractors</span><span class=p>)</span>
+
+<div class=viewcode-block id=Instance.create>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.components.Instance.create>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+               <span class=n>forbidden</span><span class=p>:</span> <span class=n>Any</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+               <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span> <span class=o>=</span> <span class=n>fixed_random_generator</span><span class=p>())</span> \
+            <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=s2>"Instance"</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a set of fixed problem instances.</span>
+
+<span class=sd>        :param n: the number of instances to generate</span>
+<span class=sd>        :param random: a random number generator</span>
+<span class=sd>        :param forbidden: the forbidden names and hardnesses</span>
+<span class=sd>        :returns: a tuple of instances</span>
+<span class=sd>        """</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+
+        <span class=n>not_allowed</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>set</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=n>_make_not_allowed</span><span class=p>(</span><span class=n>forbidden</span><span class=p>)</span>
+        <span class=n>names</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>hardnesses</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>jitters</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>scales</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+
+        <span class=c1># First we choose a unique name.</span>
+        <span class=n>max_name_len</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=nb>max</span><span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=n>ceil</span><span class=p>(</span><span class=n>n</span> <span class=o>/</span> <span class=mi>6</span><span class=p>)))</span>
+        <span class=n>trials</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>while</span> <span class=nb>len</span><span class=p>(</span><span class=n>names</span><span class=p>)</span> <span class=o><</span> <span class=n>n</span><span class=p>:</span>
+            <span class=n>trials</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=k>if</span> <span class=n>trials</span> <span class=o>></span> <span class=mi>1000</span><span class=p>:</span>
+                <span class=n>trials</span> <span class=o>=</span> <span class=mi>1</span>
+                <span class=n>max_name_len</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=n>nv</span> <span class=o>=</span> <span class=n>_random_name</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=mi>3</span> <span class=o>+</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>max_name_len</span><span class=p>)),</span> <span class=n>random</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>nv</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>not_allowed</span><span class=p>:</span>
+                <span class=n>names</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>nv</span><span class=p>)</span>
+                <span class=n>not_allowed</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>nv</span><span class=p>)</span>
+
+        <span class=c1># Now we pick an instance hardness.</span>
+        <span class=n>limit</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>2000</span>
+        <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>while</span> <span class=nb>len</span><span class=p>(</span><span class=n>hardnesses</span><span class=p>)</span> <span class=o><</span> <span class=n>n</span><span class=p>:</span>
+            <span class=n>v</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+            <span class=k>while</span> <span class=p>(</span><span class=n>v</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>v</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>v</span><span class=p>)):</span>
+                <span class=n>trials</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=n>trials</span> <span class=o>></span> <span class=mi>1000</span><span class=p>:</span>
+                    <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+                    <span class=n>limit</span> <span class=o>*=</span> <span class=mi>2</span>
+                <span class=n>v</span> <span class=o>=</span> <span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>limit</span><span class=p>))</span> <span class=o>/</span> <span class=n>limit</span><span class=p>)</span> \
+                    <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>4</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span> <span class=k>else</span> \
+                    <span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=mf>0.5</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=mf>0.25</span><span class=p>)</span> <span class=o>*</span> <span class=n>limit</span><span class=p>)</span> <span class=o>/</span> <span class=n>limit</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>v</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>not_allowed</span><span class=p>:</span>
+                <span class=n>hardnesses</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>v</span><span class=p>)</span>
+                <span class=n>not_allowed</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>v</span><span class=p>)</span>
+
+        <span class=c1># Now we pick an instance jitter.</span>
+        <span class=n>limit</span> <span class=o>=</span> <span class=mi>2000</span>
+        <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>while</span> <span class=nb>len</span><span class=p>(</span><span class=n>jitters</span><span class=p>)</span> <span class=o><</span> <span class=n>n</span><span class=p>:</span>
+            <span class=n>v</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+            <span class=k>while</span> <span class=p>(</span><span class=n>v</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>v</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>v</span><span class=p>)):</span>
+                <span class=n>trials</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=n>trials</span> <span class=o>></span> <span class=mi>1000</span><span class=p>:</span>
+                    <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+                    <span class=n>limit</span> <span class=o>*=</span> <span class=mi>2</span>
+                <span class=n>v</span> <span class=o>=</span> <span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>limit</span><span class=p>))</span> <span class=o>/</span> <span class=n>limit</span><span class=p>)</span> \
+                    <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>4</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span> <span class=k>else</span> \
+                    <span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=mf>0.5</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=mf>0.2</span><span class=p>)</span> <span class=o>*</span> <span class=n>limit</span><span class=p>)</span> <span class=o>/</span> <span class=n>limit</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>v</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>not_allowed</span><span class=p>:</span>
+                <span class=n>jitters</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>v</span><span class=p>)</span>
+                <span class=n>not_allowed</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>v</span><span class=p>)</span>
+
+        <span class=c1># Now we choose a scale.</span>
+        <span class=n>limit</span> <span class=o>=</span> <span class=mi>2000</span>
+        <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>while</span> <span class=nb>len</span><span class=p>(</span><span class=n>scales</span><span class=p>)</span> <span class=o><</span> <span class=n>n</span><span class=p>:</span>
+            <span class=n>v</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+            <span class=k>while</span> <span class=p>(</span><span class=n>v</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>v</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>v</span><span class=p>)):</span>
+                <span class=n>trials</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=n>trials</span> <span class=o>></span> <span class=mi>1000</span><span class=p>:</span>
+                    <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+                    <span class=n>limit</span> <span class=o>*=</span> <span class=mi>2</span>
+                <span class=n>v</span> <span class=o>=</span> <span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>limit</span><span class=p>))</span> <span class=o>/</span> <span class=n>limit</span><span class=p>)</span> \
+                    <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>4</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span> <span class=k>else</span> \
+                    <span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=mf>0.5</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=mf>0.2</span><span class=p>)</span> <span class=o>*</span> <span class=n>limit</span><span class=p>)</span> <span class=o>/</span> <span class=n>limit</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>v</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>not_allowed</span><span class=p>:</span>
+                <span class=n>scales</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>v</span><span class=p>)</span>
+                <span class=n>not_allowed</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>v</span><span class=p>)</span>
+
+        <span class=c1># We choose the global optimum and the worst objective value.</span>
+        <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=n>scale</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1000</span>
+        <span class=n>loc</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1000</span>
+        <span class=n>limits</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=k>while</span> <span class=nb>len</span><span class=p>(</span><span class=n>limits</span><span class=p>)</span> <span class=o><</span> <span class=p>(</span><span class=mi>2</span> <span class=o>*</span> <span class=n>n</span><span class=p>):</span>
+            <span class=n>tbound</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+            <span class=k>while</span> <span class=p>(</span><span class=n>tbound</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>tbound</span> <span class=o>>=</span> <span class=mi>1_000_000_000</span><span class=p>):</span>
+                <span class=n>trials</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=n>trials</span> <span class=o>></span> <span class=mi>1000</span><span class=p>:</span>
+                    <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+                    <span class=n>scale</span> <span class=o>+=</span> <span class=p>(</span><span class=n>scale</span> <span class=o>//</span> <span class=mi>3</span><span class=p>)</span>
+                    <span class=n>loc</span> <span class=o>*=</span> <span class=mi>2</span>
+                <span class=n>tbound</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span>
+                    <span class=n>loc</span><span class=o>=</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>low</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>high</span><span class=o>=</span><span class=mi>4</span><span class=p>)</span> <span class=o>*</span> <span class=n>loc</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=n>scale</span><span class=p>))</span>
+            <span class=n>permitted</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+            <span class=k>for</span> <span class=n>b</span> <span class=ow>in</span> <span class=n>limits</span><span class=p>:</span>
+                <span class=k>if</span> <span class=nb>abs</span><span class=p>(</span><span class=n>b</span> <span class=o>-</span> <span class=n>tbound</span><span class=p>)</span> <span class=o><=</span> <span class=mi>41</span><span class=p>:</span>
+                    <span class=n>permitted</span> <span class=o>=</span> <span class=kc>False</span>
+                    <span class=k>break</span>
+            <span class=k>if</span> <span class=n>permitted</span> <span class=ow>and</span> <span class=p>(</span><span class=n>tbound</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>not_allowed</span><span class=p>):</span>
+                <span class=n>limits</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>tbound</span><span class=p>)</span>
+                <span class=n>not_allowed</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>tbound</span><span class=p>)</span>
+
+        <span class=n>result</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>Instance</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>attdone</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>):</span>
+            <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+            <span class=n>b1</span> <span class=o>=</span> <span class=n>b2</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+            <span class=k>while</span> <span class=n>trials</span> <span class=o><</span> <span class=mi>10</span><span class=p>:</span>
+                <span class=n>trials</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=n>b1</span> <span class=o>=</span> <span class=n>limits</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>i</span> <span class=o>*</span> <span class=mi>2</span><span class=p>))</span>
+                <span class=n>b2</span> <span class=o>=</span> <span class=n>limits</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>i</span> <span class=o>*</span> <span class=mi>2</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span>
+                <span class=k>if</span> <span class=n>b1</span> <span class=o>></span> <span class=n>b2</span><span class=p>:</span>
+                    <span class=n>b1</span><span class=p>,</span> <span class=n>b2</span> <span class=o>=</span> <span class=n>b2</span><span class=p>,</span> <span class=n>b1</span>
+                <span class=k>if</span> <span class=n>i</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>
+                    <span class=k>break</span>
+                <span class=k>if</span> <span class=p>(</span><span class=n>b1</span> <span class=o>*</span> <span class=nb>max</span><span class=p>(</span><span class=mf>2.0</span><span class=p>,</span> <span class=mf>0.4</span> <span class=o>*</span> <span class=p>(</span><span class=mi>10</span> <span class=o>-</span> <span class=n>trials</span><span class=p>)))</span> <span class=o><</span> <span class=n>b2</span><span class=p>:</span>
+                    <span class=k>break</span>
+                <span class=n>limits</span><span class=o>.</span><span class=n>extend</span><span class=p>((</span><span class=n>b1</span><span class=p>,</span> <span class=n>b2</span><span class=p>))</span>
+            <span class=n>attdone</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+            <span class=n>attdone</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>b1</span><span class=p>)</span>
+            <span class=n>attdone</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>b2</span><span class=p>)</span>
+
+            <span class=c1># Now we make sure that there are at least 6 attractors.</span>
+            <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+            <span class=n>min_dist</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=mf>7.0</span><span class=p>,</span> <span class=mf>0.07</span> <span class=o>*</span> <span class=p>(</span><span class=n>b2</span> <span class=o>-</span> <span class=n>b1</span><span class=p>))</span>
+            <span class=k>while</span> <span class=p>((</span><span class=nb>len</span><span class=p>(</span><span class=n>attdone</span><span class=p>)</span> <span class=o><</span> <span class=mi>6</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>7</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>))</span> \
+                    <span class=ow>and</span> <span class=p>(</span><span class=n>trials</span> <span class=o><</span> <span class=mi>20000</span><span class=p>):</span>
+                <span class=n>a</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+                <span class=k>while</span> <span class=p>((</span><span class=n>a</span> <span class=o><=</span> <span class=n>b1</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>a</span> <span class=o>>=</span> <span class=n>b2</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>a</span> <span class=ow>in</span> <span class=n>attdone</span><span class=p>))</span> \
+                        <span class=ow>and</span> <span class=p>(</span><span class=n>trials</span> <span class=o><</span> <span class=mi>20000</span><span class=p>):</span>
+                    <span class=n>trials</span> <span class=o>+=</span> <span class=mi>1</span>
+                    <span class=n>a</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>low</span><span class=o>=</span><span class=n>b1</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>high</span><span class=o>=</span><span class=n>b2</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span>
+                <span class=k>if</span> <span class=p>(</span><span class=n>a</span> <span class=o><=</span> <span class=n>b1</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>a</span> <span class=o>>=</span> <span class=n>b2</span><span class=p>):</span>
+                    <span class=k>continue</span>
+                <span class=n>ok</span> <span class=o>=</span> <span class=kc>True</span>
+                <span class=k>for</span> <span class=n>aa</span> <span class=ow>in</span> <span class=n>attdone</span><span class=p>:</span>
+                    <span class=k>if</span> <span class=nb>abs</span><span class=p>(</span><span class=n>aa</span> <span class=o>-</span> <span class=n>a</span><span class=p>)</span> <span class=o><</span> <span class=n>min_dist</span><span class=p>:</span>
+                        <span class=n>ok</span> <span class=o>=</span> <span class=kc>False</span>
+                        <span class=k>break</span>
+                <span class=k>if</span> <span class=n>ok</span><span class=p>:</span>
+                    <span class=n>attdone</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>a</span><span class=p>)</span>
+                <span class=k>elif</span> <span class=p>(</span><span class=n>trials</span> <span class=o>%</span> <span class=mi>1000</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>min_dist</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=mi>5</span><span class=p>,</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=n>min_dist</span><span class=p>)</span>
+
+            <span class=n>result</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>Instance</span><span class=p>(</span>
+                <span class=n>name</span><span class=o>=</span><span class=n>names</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>i</span><span class=p>)),</span>
+                <span class=n>hardness</span><span class=o>=</span><span class=n>hardnesses</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>i</span><span class=p>)),</span>
+                <span class=n>jitter</span><span class=o>=</span><span class=n>jitters</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>i</span><span class=p>)),</span>
+                <span class=n>scale</span><span class=o>=</span><span class=n>scales</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>i</span><span class=p>)),</span>
+                <span class=n>best</span><span class=o>=</span><span class=n>b1</span><span class=p>,</span>
+                <span class=n>worst</span><span class=o>=</span><span class=n>b2</span><span class=p>,</span>
+                <span class=n>attractors</span><span class=o>=</span><span class=nb>tuple</span><span class=p>(</span><span class=nb>sorted</span><span class=p>(</span><span class=n>attdone</span><span class=p>))))</span>
+        <span class=n>result</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+        <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"finished creating </span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2> instances."</span><span class=p>)</span>
+        <span class=k>return</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>result</span><span class=p>)</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=Algorithm>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.components.Algorithm>[docs]</a>
+<span class=nd>@dataclass</span><span class=p>(</span><span class=n>frozen</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>init</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>order</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>class</span><span class=w> </span><span class=nc>Algorithm</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""An immutable algorithm description record."""</span>
+
+    <span class=c1>#: The algorithm name.</span>
+    <span class=n>name</span><span class=p>:</span> <span class=nb>str</span>
+    <span class=c1>#: The algorithm strength, in (0, 1), larger values are worst</span>
+    <span class=n>strength</span><span class=p>:</span> <span class=nb>float</span>
+    <span class=c1>#: The algorithm jitter, in (0, 1), larger values are worst</span>
+    <span class=n>jitter</span><span class=p>:</span> <span class=nb>float</span>
+    <span class=c1>#: The algorithm complexity, in (0, 1), larger values are worst</span>
+    <span class=n>complexity</span><span class=p>:</span> <span class=nb>float</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                 <span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>strength</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span>
+                 <span class=n>jitter</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span>
+                 <span class=n>complexity</span><span class=p>:</span> <span class=nb>float</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a mock algorithm description record.</span>
+
+<span class=sd>        :param name: the algorithm name</span>
+<span class=sd>        :param strength: the algorithm strength</span>
+<span class=sd>        :param jitter: the algorithm jitter</span>
+<span class=sd>        :param complexity: the algorithm complexity</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=s2>"name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>name</span> <span class=o>!=</span> <span class=n>sanitize_name</span><span class=p>(</span><span class=n>name</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid name </span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"name"</span><span class=p>,</span> <span class=n>name</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>strength</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>strength</span><span class=p>,</span> <span class=s2>"strength"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>strength</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=n>strength</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>strength</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"strength must be in (0, 1), but is </span><span class=si>{</span><span class=n>strength</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"strength"</span><span class=p>,</span> <span class=n>strength</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>jitter</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>jitter</span><span class=p>,</span> <span class=s2>"jitter"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>jitter</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=n>jitter</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>jitter</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"jitter must be in (0, 1), but is </span><span class=si>{</span><span class=n>jitter</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"jitter"</span><span class=p>,</span> <span class=n>jitter</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>complexity</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>complexity</span><span class=p>,</span> <span class=s2>"complexity"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>complexity</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=n>complexity</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> \
+                <span class=ow>or</span> <span class=p>(</span><span class=n>complexity</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"complexity must be in (0, 1), but is </span><span class=si>{</span><span class=n>complexity</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"complexity"</span><span class=p>,</span> <span class=n>complexity</span><span class=p>)</span>
+
+<div class=viewcode-block id=Algorithm.create>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.components.Algorithm.create>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+               <span class=n>forbidden</span><span class=p>:</span> <span class=n>Any</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+               <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span> <span class=o>=</span> <span class=n>fixed_random_generator</span><span class=p>())</span> \
+            <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=s2>"Algorithm"</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a set of fixed mock algorithms.</span>
+
+<span class=sd>        :param n: the number of algorithms to generate</span>
+<span class=sd>        :param random: a random number generator</span>
+<span class=sd>        :param forbidden: the forbidden names and strengths and so on</span>
+<span class=sd>        :returns: a tuple of algorithms</span>
+<span class=sd>        """</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+        <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"now creating </span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2> algorithms."</span><span class=p>)</span>
+
+        <span class=n>not_allowed</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>set</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=n>_make_not_allowed</span><span class=p>(</span><span class=n>forbidden</span><span class=p>)</span>
+        <span class=n>names</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>strengths</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>jitters</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>complexities</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+
+        <span class=n>prefixes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span><span class=s2>"aco"</span><span class=p>,</span> <span class=s2>"bobyqa"</span><span class=p>,</span> <span class=s2>"cmaes"</span><span class=p>,</span> <span class=s2>"de"</span><span class=p>,</span>
+                                            <span class=s2>"ea"</span><span class=p>,</span> <span class=s2>"eda"</span><span class=p>,</span> <span class=s2>"ga"</span><span class=p>,</span> <span class=s2>"gp"</span><span class=p>,</span> <span class=s2>"hc"</span><span class=p>,</span>
+                                            <span class=s2>"ma"</span><span class=p>,</span> <span class=s2>"pso"</span><span class=p>,</span> <span class=s2>"rs"</span><span class=p>,</span> <span class=s2>"rw"</span><span class=p>,</span> <span class=s2>"sa"</span><span class=p>,</span>
+                                            <span class=s2>"umda"</span><span class=p>)</span>
+        <span class=n>suffixes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span><span class=s2>"1swap"</span><span class=p>,</span> <span class=s2>"2swap"</span><span class=p>,</span> <span class=s2>"µ"</span><span class=p>)</span>  <span class=c1># noqa</span>
+
+        <span class=n>max_name_len</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=nb>max</span><span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=n>ceil</span><span class=p>(</span><span class=n>n</span> <span class=o>/</span> <span class=mi>6</span><span class=p>)))</span>
+        <span class=n>trials</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>while</span> <span class=nb>len</span><span class=p>(</span><span class=n>names</span><span class=p>)</span> <span class=o><</span> <span class=n>n</span><span class=p>:</span>
+            <span class=n>trials</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=k>if</span> <span class=n>trials</span> <span class=o>></span> <span class=mi>1000</span><span class=p>:</span>
+                <span class=n>trials</span> <span class=o>=</span> <span class=mi>1</span>
+                <span class=n>max_name_len</span> <span class=o>+=</span> <span class=mi>1</span>
+
+            <span class=n>name_mode</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>5</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>name_mode</span> <span class=o><</span> <span class=mi>2</span><span class=p>:</span>
+                <span class=n>nva</span> <span class=o>=</span> <span class=n>_random_name</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=mi>3</span> <span class=o>+</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>max_name_len</span><span class=p>)),</span>
+                                   <span class=n>random</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>nva</span> <span class=ow>in</span> <span class=n>not_allowed</span><span class=p>:</span>
+                    <span class=k>continue</span>
+                <span class=k>if</span> <span class=n>name_mode</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                    <span class=n>nvb</span> <span class=o>=</span> <span class=n>suffixes</span><span class=p>[</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>suffixes</span><span class=p>))]</span>
+                    <span class=n>nv</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>nva</span><span class=si>}</span><span class=s2>_</span><span class=si>{</span><span class=n>nvb</span><span class=si>}</span><span class=s2>"</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>nv</span> <span class=o>=</span> <span class=n>nva</span>
+                <span class=k>if</span> <span class=n>nv</span> <span class=ow>in</span> <span class=n>not_allowed</span><span class=p>:</span>
+                    <span class=k>continue</span>
+                <span class=n>not_allowed</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>nva</span><span class=p>)</span>
+                <span class=n>not_allowed</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>nv</span><span class=p>)</span>
+                <span class=n>names</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>nv</span><span class=p>)</span>
+                <span class=k>continue</span>
+
+            <span class=n>nva</span> <span class=o>=</span> <span class=n>prefixes</span><span class=p>[</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>prefixes</span><span class=p>))]</span>
+            <span class=k>if</span> <span class=n>name_mode</span> <span class=o>==</span> <span class=mi>3</span><span class=p>:</span>
+                <span class=n>nvb</span> <span class=o>=</span> <span class=n>_random_name</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=mi>3</span> <span class=o>+</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span>
+                    <span class=n>max_name_len</span><span class=p>)),</span> <span class=n>random</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>nvb</span> <span class=ow>in</span> <span class=n>not_allowed</span><span class=p>:</span>
+                    <span class=k>continue</span>
+                <span class=n>nv</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>nva</span><span class=si>}</span><span class=s2>_</span><span class=si>{</span><span class=n>nvb</span><span class=si>}</span><span class=s2>"</span>
+            <span class=k>elif</span> <span class=n>name_mode</span> <span class=o>==</span> <span class=mi>4</span><span class=p>:</span>
+                <span class=n>nvb</span> <span class=o>=</span> <span class=n>suffixes</span><span class=p>[</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>suffixes</span><span class=p>))]</span>
+                <span class=n>nv</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>nva</span><span class=si>}</span><span class=s2>_</span><span class=si>{</span><span class=n>nvb</span><span class=si>}</span><span class=s2>"</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>nv</span> <span class=o>=</span> <span class=n>nva</span>
+                <span class=n>nvb</span> <span class=o>=</span> <span class=s2>""</span>
+
+            <span class=k>if</span> <span class=n>nv</span> <span class=ow>in</span> <span class=n>not_allowed</span><span class=p>:</span>
+                <span class=k>continue</span>
+            <span class=n>names</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>nv</span><span class=p>)</span>
+            <span class=n>not_allowed</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>nv</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>name_mode</span> <span class=o>==</span> <span class=mi>3</span><span class=p>:</span>
+                <span class=n>not_allowed</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>nvb</span><span class=p>)</span>
+
+        <span class=n>limit</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>2000</span>
+        <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>while</span> <span class=nb>len</span><span class=p>(</span><span class=n>strengths</span><span class=p>)</span> <span class=o><</span> <span class=n>n</span><span class=p>:</span>
+            <span class=n>v</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+            <span class=k>while</span> <span class=p>(</span><span class=n>v</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>v</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>v</span><span class=p>)):</span>
+                <span class=n>trials</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=n>trials</span> <span class=o>></span> <span class=mi>1000</span><span class=p>:</span>
+                    <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+                    <span class=n>limit</span> <span class=o>*=</span> <span class=mi>2</span>
+                <span class=n>v</span> <span class=o>=</span> <span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>limit</span><span class=p>))</span> <span class=o>/</span> <span class=n>limit</span><span class=p>)</span> \
+                    <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>4</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span> <span class=k>else</span> \
+                    <span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=mf>0.5</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=mf>0.25</span><span class=p>)</span> <span class=o>*</span> <span class=n>limit</span><span class=p>)</span> <span class=o>/</span> <span class=n>limit</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>v</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>not_allowed</span><span class=p>:</span>
+                <span class=n>strengths</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>v</span><span class=p>)</span>
+                <span class=n>not_allowed</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>v</span><span class=p>)</span>
+
+        <span class=n>limit</span> <span class=o>=</span> <span class=mi>2000</span>
+        <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>while</span> <span class=nb>len</span><span class=p>(</span><span class=n>jitters</span><span class=p>)</span> <span class=o><</span> <span class=n>n</span><span class=p>:</span>
+            <span class=n>v</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+            <span class=k>while</span> <span class=p>(</span><span class=n>v</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>v</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>v</span><span class=p>)):</span>
+                <span class=n>trials</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=n>trials</span> <span class=o>></span> <span class=mi>1000</span><span class=p>:</span>
+                    <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+                    <span class=n>limit</span> <span class=o>*=</span> <span class=mi>2</span>
+                <span class=n>v</span> <span class=o>=</span> <span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>limit</span><span class=p>))</span> <span class=o>/</span> <span class=n>limit</span><span class=p>)</span> \
+                    <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>4</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span> <span class=k>else</span> \
+                    <span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=mf>0.5</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=mf>0.2</span><span class=p>)</span> <span class=o>*</span> <span class=n>limit</span><span class=p>)</span> <span class=o>/</span> <span class=n>limit</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>v</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>not_allowed</span><span class=p>:</span>
+                <span class=n>jitters</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>v</span><span class=p>)</span>
+                <span class=n>not_allowed</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>v</span><span class=p>)</span>
+
+        <span class=n>limit</span> <span class=o>=</span> <span class=mi>2000</span>
+        <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>while</span> <span class=nb>len</span><span class=p>(</span><span class=n>complexities</span><span class=p>)</span> <span class=o><</span> <span class=n>n</span><span class=p>:</span>
+            <span class=n>v</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+            <span class=k>while</span> <span class=p>(</span><span class=n>v</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>v</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>v</span><span class=p>)):</span>
+                <span class=n>trials</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=n>trials</span> <span class=o>></span> <span class=mi>1000</span><span class=p>:</span>
+                    <span class=n>trials</span> <span class=o>=</span> <span class=mi>0</span>
+                    <span class=n>limit</span> <span class=o>*=</span> <span class=mi>2</span>
+                <span class=n>v</span> <span class=o>=</span> <span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>limit</span><span class=p>))</span> <span class=o>/</span> <span class=n>limit</span><span class=p>)</span> \
+                    <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>4</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span> <span class=k>else</span> \
+                    <span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=mf>0.5</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=mf>0.2</span><span class=p>)</span> <span class=o>*</span> <span class=n>limit</span><span class=p>)</span> <span class=o>/</span> <span class=n>limit</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>v</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>not_allowed</span><span class=p>:</span>
+                <span class=n>complexities</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>v</span><span class=p>)</span>
+                <span class=n>not_allowed</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>v</span><span class=p>)</span>
+
+        <span class=n>result</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>Algorithm</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span>
+            <span class=n>Algorithm</span><span class=p>(</span>
+                <span class=n>name</span><span class=o>=</span><span class=n>names</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>i</span><span class=p>)),</span>
+                <span class=n>strength</span><span class=o>=</span><span class=n>strengths</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>i</span><span class=p>)),</span>
+                <span class=n>jitter</span><span class=o>=</span><span class=n>jitters</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>i</span><span class=p>)),</span>
+                <span class=n>complexity</span><span class=o>=</span><span class=n>complexities</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>i</span><span class=p>)))</span>
+            <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>)]</span>
+        <span class=n>result</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+
+        <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"finished creating </span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2> algorithms."</span><span class=p>)</span>
+        <span class=k>return</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>result</span><span class=p>)</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=BasePerformance>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.components.BasePerformance>[docs]</a>
+<span class=nd>@dataclass</span><span class=p>(</span><span class=n>frozen</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>init</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>order</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>class</span><span class=w> </span><span class=nc>BasePerformance</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""An algorithm applied to a problem instance description record."""</span>
+
+    <span class=c1>#: the algorithm.</span>
+    <span class=n>algorithm</span><span class=p>:</span> <span class=n>Algorithm</span>
+    <span class=c1>#: the problem instance</span>
+    <span class=n>instance</span><span class=p>:</span> <span class=n>Instance</span>
+    <span class=c1>#: the base performance, in (0, 1), larger values are worst</span>
+    <span class=n>performance</span><span class=p>:</span> <span class=nb>float</span>
+    <span class=c1>#: the performance jitter, in (0, 1), larger values are worst</span>
+    <span class=n>jitter</span><span class=p>:</span> <span class=nb>float</span>
+    <span class=c1>#: the time per FE, in (0, 1), larger values are worst</span>
+    <span class=n>speed</span><span class=p>:</span> <span class=nb>float</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                 <span class=n>algorithm</span><span class=p>:</span> <span class=n>Algorithm</span><span class=p>,</span>
+                 <span class=n>instance</span><span class=p>:</span> <span class=n>Instance</span><span class=p>,</span>
+                 <span class=n>performance</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span>
+                 <span class=n>jitter</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span>
+                 <span class=n>speed</span><span class=p>:</span> <span class=nb>float</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a mock algorithm-instance application description record.</span>
+
+<span class=sd>        :param algorithm: the algorithm</span>
+<span class=sd>        :param instance: the instance</span>
+<span class=sd>        :param performance: the base performance</span>
+<span class=sd>        :param jitter: the performance jitter</span>
+<span class=sd>        :param speed: the time required per FE</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=s2>"algorithm"</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"algorithm"</span><span class=p>,</span> <span class=n>algorithm</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=n>Instance</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=s2>"instance"</span><span class=p>,</span> <span class=n>Instance</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"instance"</span><span class=p>,</span> <span class=n>instance</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>performance</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>performance</span><span class=p>,</span> <span class=s2>"performance"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>performance</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=n>performance</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> \
+                <span class=ow>or</span> <span class=p>(</span><span class=n>performance</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"performance must be in (0, 1), but is </span><span class=si>{</span><span class=n>performance</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"performance"</span><span class=p>,</span> <span class=n>performance</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>jitter</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>jitter</span><span class=p>,</span> <span class=s2>"jitter"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>jitter</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=n>jitter</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>jitter</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"jitter must be in (0, 1), but is </span><span class=si>{</span><span class=n>jitter</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"jitter"</span><span class=p>,</span> <span class=n>jitter</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>speed</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>speed</span><span class=p>,</span> <span class=s2>"speed"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>speed</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=n>speed</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>speed</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"speed must be in (0, 1), but is </span><span class=si>{</span><span class=n>speed</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"speed"</span><span class=p>,</span> <span class=n>speed</span><span class=p>)</span>
+
+<div class=viewcode-block id=BasePerformance.create>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.components.BasePerformance.create>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=n>instance</span><span class=p>:</span> <span class=n>Instance</span><span class=p>,</span>
+               <span class=n>algorithm</span><span class=p>:</span> <span class=n>Algorithm</span><span class=p>,</span>
+               <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span> <span class=o>=</span> <span class=n>fixed_random_generator</span><span class=p>())</span> \
+            <span class=o>-></span> <span class=s2>"BasePerformance"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compute the basic performance of an algorithm on a problem instance.</span>
+
+<span class=sd>        :param instance: the instance tuple</span>
+<span class=sd>        :param algorithm: the algorithm tuple</span>
+<span class=sd>        :param random: the random number generator</span>
+<span class=sd>        :returns: a tuple of the performance in (0, 1); bigger values are</span>
+<span class=sd>            worse, and a jitter in (0, 1), where bigger values are worse</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=n>Instance</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=s2>"instance"</span><span class=p>,</span> <span class=n>Instance</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=s2>"algorithm"</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>)</span>
+        <span class=n>logger</span><span class=p>(</span><span class=s2>"now creating base performance for algorithm "</span>
+               <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>algorithm</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2> on instance </span><span class=si>{</span><span class=n>instance</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=n>perf</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=n>granularity</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>2000</span>
+        <span class=k>while</span> <span class=p>(</span><span class=n>perf</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>perf</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=n>perf</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=n>low</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>high</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span> \
+                <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>20</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span> <span class=k>else</span> \
+                <span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span>
+                    <span class=n>loc</span><span class=o>=</span><span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=n>instance</span><span class=o>.</span><span class=n>hardness</span> <span class=o>+</span> <span class=n>algorithm</span><span class=o>.</span><span class=n>strength</span><span class=p>),</span>
+                    <span class=n>scale</span><span class=o>=</span><span class=mf>0.2</span> <span class=o>*</span> <span class=p>(</span><span class=n>instance</span><span class=o>.</span><span class=n>jitter</span> <span class=o>+</span> <span class=n>algorithm</span><span class=o>.</span><span class=n>jitter</span><span class=p>))</span>
+            <span class=n>perf</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>perf</span> <span class=o>*</span> <span class=n>granularity</span><span class=p>)</span> <span class=o>/</span> <span class=n>granularity</span>
+
+        <span class=n>jit</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=k>while</span> <span class=p>(</span><span class=n>jit</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>jit</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=n>jit</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=n>low</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>high</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span> \
+                <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>15</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span> <span class=k>else</span> \
+                <span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span>
+                    <span class=n>loc</span><span class=o>=</span><span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=n>instance</span><span class=o>.</span><span class=n>jitter</span> <span class=o>+</span> <span class=n>algorithm</span><span class=o>.</span><span class=n>jitter</span><span class=p>),</span>
+                    <span class=n>scale</span><span class=o>=</span><span class=mf>0.2</span> <span class=o>*</span> <span class=p>(</span><span class=n>instance</span><span class=o>.</span><span class=n>jitter</span> <span class=o>+</span> <span class=n>algorithm</span><span class=o>.</span><span class=n>jitter</span><span class=p>))</span>
+            <span class=n>jit</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>jit</span> <span class=o>*</span> <span class=n>granularity</span><span class=p>)</span> <span class=o>/</span> <span class=n>granularity</span>
+
+        <span class=n>speed</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=k>while</span> <span class=p>(</span><span class=n>speed</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>speed</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=n>speed</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=n>low</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>high</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span> \
+                <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>20</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span> <span class=k>else</span> \
+                <span class=n>random</span><span class=o>.</span><span class=n>normal</span><span class=p>(</span>
+                    <span class=n>loc</span><span class=o>=</span><span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=n>instance</span><span class=o>.</span><span class=n>scale</span> <span class=o>+</span> <span class=n>algorithm</span><span class=o>.</span><span class=n>complexity</span><span class=p>),</span>
+                    <span class=n>scale</span><span class=o>=</span><span class=mf>0.2</span> <span class=o>*</span> <span class=p>(</span><span class=n>instance</span><span class=o>.</span><span class=n>scale</span> <span class=o>+</span> <span class=n>algorithm</span><span class=o>.</span><span class=n>complexity</span><span class=p>))</span>
+            <span class=n>speed</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>speed</span> <span class=o>*</span> <span class=n>granularity</span><span class=p>)</span> <span class=o>/</span> <span class=n>granularity</span>
+
+        <span class=n>bp</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>BasePerformance</span><span class=p>]</span> <span class=o>=</span> <span class=n>BasePerformance</span><span class=p>(</span><span class=n>algorithm</span><span class=o>=</span><span class=n>algorithm</span><span class=p>,</span>
+                                                     <span class=n>instance</span><span class=o>=</span><span class=n>instance</span><span class=p>,</span>
+                                                     <span class=n>performance</span><span class=o>=</span><span class=n>perf</span><span class=p>,</span>
+                                                     <span class=n>jitter</span><span class=o>=</span><span class=n>jit</span><span class=p>,</span>
+                                                     <span class=n>speed</span><span class=o>=</span><span class=n>speed</span><span class=p>)</span>
+        <span class=n>logger</span><span class=p>(</span><span class=s2>"finished base performance "</span>
+               <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>bp</span><span class=o>.</span><span class=n>algorithm</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>@</span><span class=si>{</span><span class=n>bp</span><span class=o>.</span><span class=n>instance</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>bp</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=get_run_seeds>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.components.get_run_seeds>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>get_run_seeds</span><span class=p>(</span><span class=n>instance</span><span class=p>:</span> <span class=n>Instance</span><span class=p>,</span> <span class=n>n_runs</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the seeds for the runs.</span>
+
+<span class=sd>    :param instance: the mock instance</span>
+<span class=sd>    :param n_runs: the number of runs</span>
+<span class=sd>    :returns: a tuple of seeds</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=n>Instance</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=s2>"instance"</span><span class=p>,</span> <span class=n>Instance</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>n_runs</span><span class=p>,</span> <span class=s2>"n_runs"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+    <span class=n>res</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=nb>sorted</span><span class=p>(</span><span class=n>rand_seeds_from_str</span><span class=p>(</span>
+        <span class=n>string</span><span class=o>=</span><span class=n>instance</span><span class=o>.</span><span class=n>name</span><span class=p>,</span> <span class=n>n_seeds</span><span class=o>=</span><span class=n>n_runs</span><span class=p>)))</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"finished creating </span><span class=si>{</span><span class=n>n_runs</span><span class=si>}</span><span class=s2> seeds for instance </span><span class=si>{</span><span class=n>instance</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>res</span></div>
+
+
+
+<div class=viewcode-block id=Experiment>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.components.Experiment>[docs]</a>
+<span class=nd>@dataclass</span><span class=p>(</span><span class=n>frozen</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>init</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>order</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>class</span><span class=w> </span><span class=nc>Experiment</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""An immutable experiment description."""</span>
+
+    <span class=c1>#: The instances.</span>
+    <span class=n>instances</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>Instance</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span>
+    <span class=c1>#: The algorithms.</span>
+    <span class=n>algorithms</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>Algorithm</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span>
+    <span class=c1>#: The applications of the algorithms to the instances.</span>
+    <span class=n>applications</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>BasePerformance</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span>
+    <span class=c1>#: The random seeds per instance.</span>
+    <span class=n>per_instance_seeds</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span>
+    <span class=c1>#: the seeds per instance</span>
+    <span class=n>__seeds_per_inst</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=n>Instance</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span>
+    <span class=c1>#: the performance per algorithm</span>
+    <span class=n>__perf_per_algo</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=n>Algorithm</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>BasePerformance</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span>
+    <span class=c1>#: the performance per instance</span>
+    <span class=n>__perf_per_inst</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=n>Instance</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>BasePerformance</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span>
+    <span class=c1>#: the algorithm by names</span>
+    <span class=n>__algo_by_name</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>]</span>
+    <span class=c1>#: the algorithm names</span>
+    <span class=n>algorithm_names</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span>
+    <span class=c1>#: the instance by names</span>
+    <span class=n>__inst_by_name</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Instance</span><span class=p>]</span>
+    <span class=c1>#: the instance names</span>
+    <span class=n>instance_names</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                 <span class=n>instances</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>Instance</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span>
+                 <span class=n>algorithms</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>Algorithm</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span>
+                 <span class=n>applications</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>BasePerformance</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span>
+                 <span class=n>per_instance_seeds</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span> <span class=o>...</span><span class=p>]):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a mock experiment definition.</span>
+
+<span class=sd>        :param algorithms: the algorithms</span>
+<span class=sd>        :param instances: the instances</span>
+<span class=sd>        :param applications: the applications of the algorithms to the</span>
+<span class=sd>            instances</span>
+<span class=sd>        :param per_instance_seeds: the seeds</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>instances</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instances</span><span class=p>,</span> <span class=s2>"instances"</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>instances</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"instances must not be empty."</span><span class=p>)</span>
+        <span class=n>inst_bn</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Instance</span><span class=p>]</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=k>for</span> <span class=n>a</span> <span class=ow>in</span> <span class=n>instances</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=n>Instance</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=s2>"element of instances"</span><span class=p>,</span> <span class=n>Instance</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>a</span><span class=o>.</span><span class=n>name</span> <span class=ow>in</span> <span class=n>inst_bn</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"double instance name </span><span class=si>{</span><span class=n>a</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>inst_bn</span><span class=p>[</span><span class=n>a</span><span class=o>.</span><span class=n>name</span><span class=p>]</span> <span class=o>=</span> <span class=n>a</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"instances"</span><span class=p>,</span> <span class=n>instances</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"_Experiment__inst_by_name"</span><span class=p>,</span> <span class=n>inst_bn</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"instance_names"</span><span class=p>,</span>
+                           <span class=nb>tuple</span><span class=p>(</span><span class=nb>sorted</span><span class=p>(</span><span class=n>inst_bn</span><span class=o>.</span><span class=n>keys</span><span class=p>())))</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithms</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithms</span><span class=p>,</span> <span class=s2>"algorithms"</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>algorithms</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"algorithms must not be empty."</span><span class=p>)</span>
+        <span class=n>algo_bn</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>]</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=k>for</span> <span class=n>b</span> <span class=ow>in</span> <span class=n>algorithms</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>b</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>b</span><span class=p>,</span> <span class=s2>"element of algorithms"</span><span class=p>,</span> <span class=n>Algorithm</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>b</span><span class=o>.</span><span class=n>name</span> <span class=ow>in</span> <span class=n>algo_bn</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"double algorithm name </span><span class=si>{</span><span class=n>b</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>b</span><span class=o>.</span><span class=n>name</span> <span class=ow>in</span> <span class=n>inst_bn</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"instance/algorithm name </span><span class=si>{</span><span class=n>b</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2> clash."</span><span class=p>)</span>
+            <span class=n>algo_bn</span><span class=p>[</span><span class=n>b</span><span class=o>.</span><span class=n>name</span><span class=p>]</span> <span class=o>=</span> <span class=n>b</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"algorithms"</span><span class=p>,</span> <span class=n>algorithms</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"_Experiment__algo_by_name"</span><span class=p>,</span> <span class=n>algo_bn</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"algorithm_names"</span><span class=p>,</span>
+                           <span class=nb>tuple</span><span class=p>(</span><span class=nb>sorted</span><span class=p>(</span><span class=n>algo_bn</span><span class=o>.</span><span class=n>keys</span><span class=p>())))</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>applications</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>applications</span><span class=p>,</span> <span class=s2>"applications"</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>applications</span><span class=p>)</span> <span class=o>!=</span> <span class=nb>len</span><span class=p>(</span><span class=n>algorithms</span><span class=p>)</span> <span class=o>*</span> <span class=nb>len</span><span class=p>(</span><span class=n>instances</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"There must be </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>algorithms</span><span class=p>)</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=nb>len</span><span class=p>(</span><span class=n>instances</span><span class=p>)</span><span class=si>}</span><span class=s2> "</span>
+                <span class=sa>f</span><span class=s2>"applications, but found </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>applications</span><span class=p>)</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=n>perf_per_inst</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=n>Instance</span><span class=p>,</span> <span class=nb>list</span><span class=p>[</span><span class=n>BasePerformance</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=n>perf_per_algo</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=n>Algorithm</span><span class=p>,</span> <span class=nb>list</span><span class=p>[</span><span class=n>BasePerformance</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{}</span>
+
+        <span class=n>done</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+        <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>applications</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>c</span><span class=p>,</span> <span class=n>BasePerformance</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>c</span><span class=p>,</span> <span class=s2>"element of applications"</span><span class=p>,</span> <span class=n>BasePerformance</span><span class=p>)</span>
+            <span class=n>s</span> <span class=o>=</span> <span class=n>c</span><span class=o>.</span><span class=n>algorithm</span><span class=o>.</span><span class=n>name</span> <span class=o>+</span> <span class=s2>"+"</span> <span class=o>+</span> <span class=n>c</span><span class=o>.</span><span class=n>instance</span><span class=o>.</span><span class=n>name</span>
+            <span class=k>if</span> <span class=n>s</span> <span class=ow>in</span> <span class=n>done</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Encountered application </span><span class=si>{</span><span class=n>s</span><span class=si>}</span><span class=s2> twice."</span><span class=p>)</span>
+            <span class=n>done</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>s</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>c</span><span class=o>.</span><span class=n>algorithm</span> <span class=ow>in</span> <span class=n>perf_per_algo</span><span class=p>:</span>
+                <span class=n>perf_per_algo</span><span class=p>[</span><span class=n>c</span><span class=o>.</span><span class=n>algorithm</span><span class=p>]</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>c</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>perf_per_algo</span><span class=p>[</span><span class=n>c</span><span class=o>.</span><span class=n>algorithm</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=n>c</span><span class=p>]</span>
+            <span class=k>if</span> <span class=n>c</span><span class=o>.</span><span class=n>instance</span> <span class=ow>in</span> <span class=n>perf_per_inst</span><span class=p>:</span>
+                <span class=n>perf_per_inst</span><span class=p>[</span><span class=n>c</span><span class=o>.</span><span class=n>instance</span><span class=p>]</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>c</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>perf_per_inst</span><span class=p>[</span><span class=n>c</span><span class=o>.</span><span class=n>instance</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=n>c</span><span class=p>]</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"applications"</span><span class=p>,</span> <span class=n>applications</span><span class=p>)</span>
+
+        <span class=n>pa</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=n>Algorithm</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>BasePerformance</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=k>for</span> <span class=n>ax</span> <span class=ow>in</span> <span class=n>algorithms</span><span class=p>:</span>
+            <span class=n>lax</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>BasePerformance</span><span class=p>]</span> <span class=o>=</span> <span class=n>perf_per_algo</span><span class=p>[</span><span class=n>ax</span><span class=p>]</span>
+            <span class=n>lax</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+            <span class=n>pa</span><span class=p>[</span><span class=n>ax</span><span class=o>.</span><span class=n>name</span><span class=p>]</span> <span class=o>=</span> <span class=n>pa</span><span class=p>[</span><span class=n>ax</span><span class=p>]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>lax</span><span class=p>)</span>
+        <span class=n>pi</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=n>Instance</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>BasePerformance</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=k>for</span> <span class=n>ix</span> <span class=ow>in</span> <span class=n>instances</span><span class=p>:</span>
+            <span class=n>lix</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>BasePerformance</span><span class=p>]</span> <span class=o>=</span> <span class=n>perf_per_inst</span><span class=p>[</span><span class=n>ix</span><span class=p>]</span>
+            <span class=n>lix</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+            <span class=n>pi</span><span class=p>[</span><span class=n>ix</span><span class=o>.</span><span class=n>name</span><span class=p>]</span> <span class=o>=</span> <span class=n>pi</span><span class=p>[</span><span class=n>ix</span><span class=p>]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>lix</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"_Experiment__perf_per_algo"</span><span class=p>,</span> <span class=n>pa</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"_Experiment__perf_per_inst"</span><span class=p>,</span> <span class=n>pi</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>per_instance_seeds</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>per_instance_seeds</span><span class=p>,</span> <span class=s2>"per_instance_seeds"</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>per_instance_seeds</span><span class=p>)</span> <span class=o>!=</span> <span class=nb>len</span><span class=p>(</span><span class=n>instances</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"There must be one entry for each of the </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>instances</span><span class=p>)</span><span class=si>}</span><span class=s2> "</span>
+                <span class=s2>"instances, but per_instance_seeds only "</span>
+                <span class=sa>f</span><span class=s2>"has </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>per_instance_seeds</span><span class=p>)</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>xl</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=n>inst_seeds</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=n>Instance</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=k>for</span> <span class=n>idx</span><span class=p>,</span> <span class=n>d</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>per_instance_seeds</span><span class=p>):</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>d</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>d</span><span class=p>,</span> <span class=s2>"element of per_instance_seeds"</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>d</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"there must be at least one per "</span>
+                                 <span class=sa>f</span><span class=s2>"instance seed, but found </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>d</span><span class=p>)</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>xl</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=n>xl</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>d</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>d</span><span class=p>)</span> <span class=o>!=</span> <span class=n>xl</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"there must be </span><span class=si>{</span><span class=n>xl</span><span class=si>}</span><span class=s2> per "</span>
+                                 <span class=sa>f</span><span class=s2>"instance seeds, but found </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>d</span><span class=p>)</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>for</span> <span class=n>e</span> <span class=ow>in</span> <span class=n>d</span><span class=p>:</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>e</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>e</span><span class=p>,</span> <span class=s2>"element of seeds"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+            <span class=n>inst_seeds</span><span class=p>[</span><span class=n>instances</span><span class=p>[</span><span class=n>idx</span><span class=p>]]</span> <span class=o>=</span> <span class=n>d</span>
+            <span class=n>inst_seeds</span><span class=p>[</span><span class=n>instances</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span><span class=o>.</span><span class=n>name</span><span class=p>]</span> <span class=o>=</span> <span class=n>d</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"per_instance_seeds"</span><span class=p>,</span> <span class=n>per_instance_seeds</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"_Experiment__seeds_per_inst"</span><span class=p>,</span> <span class=n>inst_seeds</span><span class=p>)</span>
+
+<div class=viewcode-block id=Experiment.create>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.components.Experiment.create>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=n>n_instances</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+               <span class=n>n_algorithms</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+               <span class=n>n_runs</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+               <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span> <span class=o>=</span> <span class=n>fixed_random_generator</span><span class=p>())</span> <span class=o>-></span> <span class=s2>"Experiment"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create an experiment definition.</span>
+
+<span class=sd>        :param n_instances: the number of instances</span>
+<span class=sd>        :param n_algorithms: the number of algorithms</span>
+<span class=sd>        :param n_runs: the number of per-instance runs</span>
+<span class=sd>        :param random: the random number generator to use</span>
+<span class=sd>        """</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>n_instances</span><span class=p>,</span> <span class=s2>"n_instances"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>n_algorithms</span><span class=p>,</span> <span class=s2>"n_algorithms"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>n_runs</span><span class=p>,</span> <span class=s2>"n_runs"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+        <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"now creating mock experiment with </span><span class=si>{</span><span class=n>n_algorithms</span><span class=si>}</span><span class=s2> algorithms "</span>
+               <span class=sa>f</span><span class=s2>"on </span><span class=si>{</span><span class=n>n_instances</span><span class=si>}</span><span class=s2> instances for </span><span class=si>{</span><span class=n>n_runs</span><span class=si>}</span><span class=s2> runs."</span><span class=p>)</span>
+
+        <span class=n>insts</span> <span class=o>=</span> <span class=n>Instance</span><span class=o>.</span><span class=n>create</span><span class=p>(</span><span class=n>n_instances</span><span class=p>,</span> <span class=n>random</span><span class=o>=</span><span class=n>random</span><span class=p>)</span>
+        <span class=n>algos</span> <span class=o>=</span> <span class=n>Algorithm</span><span class=o>.</span><span class=n>create</span><span class=p>(</span><span class=n>n_algorithms</span><span class=p>,</span> <span class=n>forbidden</span><span class=o>=</span><span class=n>insts</span><span class=p>,</span> <span class=n>random</span><span class=o>=</span><span class=n>random</span><span class=p>)</span>
+        <span class=n>app</span> <span class=o>=</span> <span class=p>[</span><span class=n>BasePerformance</span><span class=o>.</span><span class=n>create</span><span class=p>(</span><span class=n>i</span><span class=p>,</span> <span class=n>a</span><span class=p>,</span> <span class=n>random</span><span class=p>)</span>
+               <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>insts</span> <span class=k>for</span> <span class=n>a</span> <span class=ow>in</span> <span class=n>algos</span><span class=p>]</span>
+        <span class=n>app</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+        <span class=n>seeds</span> <span class=o>=</span> <span class=p>[</span><span class=n>get_run_seeds</span><span class=p>(</span><span class=n>i</span><span class=p>,</span> <span class=n>n_runs</span><span class=p>)</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>insts</span><span class=p>]</span>
+        <span class=n>res</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Experiment</span><span class=p>]</span> <span class=o>=</span> <span class=n>Experiment</span><span class=p>(</span><span class=n>instances</span><span class=o>=</span><span class=n>insts</span><span class=p>,</span>
+                                            <span class=n>algorithms</span><span class=o>=</span><span class=n>algos</span><span class=p>,</span>
+                                            <span class=n>applications</span><span class=o>=</span><span class=nb>tuple</span><span class=p>(</span><span class=n>app</span><span class=p>),</span>
+                                            <span class=n>per_instance_seeds</span><span class=o>=</span><span class=nb>tuple</span><span class=p>(</span><span class=n>seeds</span><span class=p>))</span>
+        <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"finished creating mock experiment with </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>res</span><span class=o>.</span><span class=n>instances</span><span class=p>)</span><span class=si>}</span><span class=s2> "</span>
+               <span class=sa>f</span><span class=s2>"instances, </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>res</span><span class=o>.</span><span class=n>algorithms</span><span class=p>)</span><span class=si>}</span><span class=s2> algorithms, and "</span>
+               <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>res</span><span class=o>.</span><span class=n>per_instance_seeds</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span><span class=si>}</span><span class=s2> runs per instance-"</span>
+               <span class=sa>f</span><span class=s2>"algorithm combination."</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>res</span></div>
+
+
+<div class=viewcode-block id=Experiment.seeds_for_instance>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.components.Experiment.seeds_for_instance>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>seeds_for_instance</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>instance</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=n>Instance</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the seeds for the specified instance.</span>
+
+<span class=sd>        :param instance: the instance</span>
+<span class=sd>        :returns: the seeds</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__seeds_per_inst</span><span class=p>[</span><span class=n>instance</span><span class=p>]</span></div>
+
+
+<div class=viewcode-block id=Experiment.instance_applications>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.components.Experiment.instance_applications>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>instance_applications</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>instance</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=n>Instance</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=n>BasePerformance</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the applications of the algorithms to a specific instance.</span>
+
+<span class=sd>        :param instance: the instance</span>
+<span class=sd>        :returns: the applications</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__perf_per_inst</span><span class=p>[</span><span class=n>instance</span><span class=p>]</span></div>
+
+
+<div class=viewcode-block id=Experiment.algorithm_applications>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.components.Experiment.algorithm_applications>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>algorithm_applications</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>algorithm</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=n>Algorithm</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=n>BasePerformance</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the applications of an algorithm to the instances.</span>
+
+<span class=sd>        :param algorithm: the algorithm</span>
+<span class=sd>        :returns: the applications</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__perf_per_algo</span><span class=p>[</span><span class=n>algorithm</span><span class=p>]</span></div>
+
+
+<div class=viewcode-block id=Experiment.get_algorithm>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.components.Experiment.get_algorithm>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_algorithm</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=n>Algorithm</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get an algorithm by name.</span>
+
+<span class=sd>        :param name: the algorithm name</span>
+<span class=sd>        :returns: the algorithm instance</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__algo_by_name</span><span class=p>[</span><span class=n>name</span><span class=p>]</span></div>
+
+
+<div class=viewcode-block id=Experiment.get_instance>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.components.Experiment.get_instance>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_instance</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=n>Instance</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get an instance by name.</span>
+
+<span class=sd>        :param name: the instance name</span>
+<span class=sd>        :returns: the instance</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__inst_by_name</span><span class=p>[</span><span class=n>name</span><span class=p>]</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.mock.components</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

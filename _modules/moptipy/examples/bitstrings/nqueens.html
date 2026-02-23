@@ -1,0 +1,960 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.bitstrings.nqueens — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/bitstrings/nqueens.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a accesskey=U href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.nqueens</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.bitstrings.nqueens</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The N-Queens problem.</span>
+
+<span class=sd>The N-Queens problem is defined for bit strings of length n = N ** 2.</span>
+<span class=sd>A bit string `x` is mapped to a chess board and a queen is placed for any bit</span>
+<span class=sd>of value 1. The goal is to place N queens such that they cannot attack each</span>
+<span class=sd>other. The total number of queens on the board be Q(x) is the number of `True`</span>
+<span class=sd>bits, which might be more or less than N.</span>
+<span class=sd>We also count the number ez(x) of queens in every single row, column, and</span>
+<span class=sd>diagonal z of the chess board. The minimization version of the N-Queens</span>
+<span class=sd>problem is then `N - Q(x) + N sum_(all z) max(0, ez(x) - 1)`.</span>
+<span class=sd>The N-Queens problems are attested moderate difficulty in [1].</span>
+
+<span class=sd>Here, `N` is stored in the `k`-value of the benchmark function instances.</span>
+
+<span class=sd>The best possible objective value of this function is achieved if exactly</span>
+<span class=sd>`k=N` queens are positioned such that none can beat any other queen. The</span>
+<span class=sd>objective function then returns 0.</span>
+
+<span class=sd>The worst case is if a queen is placed on every single field, i.e., if we have</span>
+<span class=sd>`n = k*k` queens on the field. Then, the objective value will be</span>
+<span class=sd>`(((((k - 2) * 4) + 1) * k) + 3) * k`.</span>
+
+<span class=sd>1. Carola Doerr, Furong Ye, Naama Horesh, Hao Wang, Ofer M. Shir, and Thomas</span>
+<span class=sd>   Bäck. Benchmarking Discrete Optimization Heuristics with IOHprofiler.</span>
+<span class=sd>   Applied Soft Computing Journal. 88:106027. 2020.</span>
+<span class=sd>   doi: https://doi.org/10.1016/j.asoc.2019.106027</span>
+<span class=sd>2. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency</span>
+<span class=sd>   Fitness Assignment: Optimization without Bias for Good Solutions can be</span>
+<span class=sd>   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.</span>
+<span class=sd>   27(4):980-992. August 2023.</span>
+<span class=sd>   doi: https://doi.org/10.1109/TEVC.2022.3191698</span>
+
+<span class=sd>This is code is part of the research work of Mr. Jiazheng ZENG (曾嘉政),</span>
+<span class=sd>a Master's student at the Institute of Applied Optimization</span>
+<span class=sd>(应用优化研究所) of the School of Artificial</span>
+<span class=sd>Intelligence and Big Data (人工智能与大数据学院) at</span>
+<span class=sd>Hefei University (合肥大学) in</span>
+<span class=sd>Hefei, Anhui, China (中国安徽省合肥市) under the supervision of</span>
+<span class=sd>Prof. Dr. Thomas Weise (汤卫思教授).</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterator</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.bitstring_problem</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>SquareBitStringProblem</span><span class=p>,</span>
+<span class=p>)</span>
+
+
+<div class=viewcode-block id=nqueens>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.nqueens.nqueens>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>nqueens</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>k</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Evaluate the N-Queens objective function.</span>
+
+<span class=sd>    :param x: the np array representing the board (bit string)</span>
+<span class=sd>    :param k: the total number of queens (dimension of the problem)</span>
+<span class=sd>    :return: the penalty score</span>
+
+<span class=sd>    >>> nqueens(np.array([False,  True, False, False,</span>
+<span class=sd>    ...                   False, False, False,  True,</span>
+<span class=sd>    ...                    True, False, False, False,</span>
+<span class=sd>    ...                   False, False,  True, False]), 4)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    >>> nqueens(np.array([False, False,  True, False,</span>
+<span class=sd>    ...                    True, False, False, False,</span>
+<span class=sd>    ...                   False, False, False,  True,</span>
+<span class=sd>    ...                   False,  True, False, False]), 4)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    >>> nqueens(np.array([False, False, False, False,</span>
+<span class=sd>    ...                   False, False, False, False,</span>
+<span class=sd>    ...                   False, False, False, False,</span>
+<span class=sd>    ...                   False, False, False, False]), 4)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    >>> nqueens(np.array([ True, False, False, False,</span>
+<span class=sd>    ...                   False, False, False, False,</span>
+<span class=sd>    ...                   False, False, False, False,</span>
+<span class=sd>    ...                   False, False, False, False]), 4)</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # two queens, but in the same row, which gives 2 + 4</span>
+<span class=sd>    >>> nqueens(np.array([ True,  True, False, False,</span>
+<span class=sd>    ...                   False, False, False, False,</span>
+<span class=sd>    ...                   False, False, False, False,</span>
+<span class=sd>    ...                   False, False, False, False]), 4)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # three queens, but 2 in the same row, 2 in the same column, and 2 in one</span>
+<span class=sd>    # diagonal, which gives 1 + 4 + 4 + 4</span>
+<span class=sd>    >>> nqueens(np.array([ True,  True, False, False,</span>
+<span class=sd>    ...                    True, False, False, False,</span>
+<span class=sd>    ...                   False, False, False, False,</span>
+<span class=sd>    ...                   False, False, False, False]), 4)</span>
+<span class=sd>    13</span>
+
+<span class=sd>    # four queens, but 3 in the same row, 2 in the same column, and 2 in one</span>
+<span class=sd>    # diagonal, which gives 0 + 8 + 4 + 4</span>
+<span class=sd>    >>> nqueens(np.array([ True,  True,  True, False,</span>
+<span class=sd>    ...                    True, False, False, False,</span>
+<span class=sd>    ...                   False, False, False, False,</span>
+<span class=sd>    ...                   False, False, False, False]), 4)</span>
+<span class=sd>    16</span>
+
+<span class=sd>    # five queens, but 4 in the same row, 2 in the same column, and 2 in one</span>
+<span class=sd>    # diagonal, which gives -1 + 12 + 4 + 4</span>
+<span class=sd>    >>> nqueens(np.array([ True,  True,  True,  True,</span>
+<span class=sd>    ...                    True, False, False, False,</span>
+<span class=sd>    ...                   False, False, False, False,</span>
+<span class=sd>    ...                   False, False, False, False]), 4)</span>
+<span class=sd>    19</span>
+
+<span class=sd>    >>> nqueens(np.array([</span>
+<span class=sd>    ...     False, False, False, True, False, False, False, False,</span>
+<span class=sd>    ...     False, False, False, False, False, True, False, False,</span>
+<span class=sd>    ...     False, False, False, False, False, False, False, True,</span>
+<span class=sd>    ...     False, True, False, False, False, False, False, False,</span>
+<span class=sd>    ...     False, False, False, False, False, False, True, False,</span>
+<span class=sd>    ...     True, False, False, False, False, False, False, False,</span>
+<span class=sd>    ...     False, False, True, False, False, False, False, False,</span>
+<span class=sd>    ...     False, False, False, False, True, False, False, False,]), 8)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # five queens, but 4 in the same row, 2 in the same column, and 2 in one</span>
+<span class=sd>    # diagonal, which gives -1 + 12 + 4 + 4</span>
+<span class=sd>    >>> nqueens(np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 4)</span>
+<span class=sd>    19</span>
+
+<span class=sd>    # 16 bits, board width = 4, and 2 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0]), 4)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # 16 bits, board width = 4, and 2 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]), 4)</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # 16 bits, board width = 4, and 2 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0]), 4)</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # 16 bits, board width = 4, and 3 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]), 4)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # 16 bits, board width = 4, and 4 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]), 4)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # 16 bits, board width = 4, and 4 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]), 4)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # 16 bits, board width = 4, and 4 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0]), 4)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # 16 bits, board width = 4, and 4 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0]), 4)</span>
+<span class=sd>    20</span>
+
+<span class=sd>    # 16 bits, board width = 4, and 11 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1]), 4)</span>
+<span class=sd>    85</span>
+
+<span class=sd>    # 16 bits, board width = 4, and 8 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0]), 4)</span>
+<span class=sd>    52</span>
+
+<span class=sd>    # 16 bits, board width = 4, and 9 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0]), 4)</span>
+<span class=sd>    67</span>
+
+<span class=sd>    # 16 bits, board width = 4, and 10 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1]), 4)</span>
+<span class=sd>    78</span>
+
+<span class=sd>    # 16 bits, board width = 4, and 0 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 4)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # 16 bits, board width = 4, and 16 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 4)</span>
+<span class=sd>    156</span>
+
+<span class=sd>    # 25 bits, board width = 5, and 3 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    0, 0, 1, 0, 0, 0, 0, 0]), 5)</span>
+<span class=sd>    17</span>
+
+<span class=sd>    # 25 bits, board width = 5, and 1 queen</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0]), 5)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # 25 bits, board width = 5, and 4 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 1, 0, 0]), 5)</span>
+<span class=sd>    16</span>
+
+<span class=sd>    # 25 bits, board width = 5, and 1 queen</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0]), 5)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # 25 bits, board width = 5, and 5 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 1, 0, 0, 1, 0]), 5)</span>
+<span class=sd>    25</span>
+
+<span class=sd>    # 25 bits, board width = 5, and 5 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0]), 5)</span>
+<span class=sd>    30</span>
+
+<span class=sd>    # 25 bits, board width = 5, and 5 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 1]), 5)</span>
+<span class=sd>    15</span>
+
+<span class=sd>    # 25 bits, board width = 5, and 5 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 1, 0, 0, 0, 0, 0, 0]), 5)</span>
+<span class=sd>    20</span>
+
+<span class=sd>    # 25 bits, board width = 5, and 15 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1,</span>
+<span class=sd>    ...    1, 1, 0, 1, 1, 0, 1, 1]), 5)</span>
+<span class=sd>    160</span>
+
+<span class=sd>    # 25 bits, board width = 5, and 22 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1]), 5)</span>
+<span class=sd>    283</span>
+
+<span class=sd>    # 25 bits, board width = 5, and 18 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 0, 1]), 5)</span>
+<span class=sd>    217</span>
+
+<span class=sd>    # 25 bits, board width = 5, and 21 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1]), 5)</span>
+<span class=sd>    274</span>
+
+<span class=sd>    # 25 bits, board width = 5, and 0 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0]), 5)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # 25 bits, board width = 5, and 25 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1]), 5)</span>
+<span class=sd>    340</span>
+
+<span class=sd>    # 36 bits, board width = 6, and 2 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]), 6)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # 36 bits, board width = 6, and 2 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 6)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # 36 bits, board width = 6, and 4 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 6)</span>
+<span class=sd>    14</span>
+
+<span class=sd>    # 36 bits, board width = 6, and 3 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 6)</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # 36 bits, board width = 6, and 6 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]), 6)</span>
+<span class=sd>    42</span>
+
+<span class=sd>    # 36 bits, board width = 6, and 6 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0]), 6)</span>
+<span class=sd>    42</span>
+
+<span class=sd>    # 36 bits, board width = 6, and 6 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0]), 6)</span>
+<span class=sd>    36</span>
+
+<span class=sd>    # 36 bits, board width = 6, and 6 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1]), 6)</span>
+<span class=sd>    42</span>
+
+<span class=sd>    # 36 bits, board width = 6, and 17 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1]), 6)</span>
+<span class=sd>    223</span>
+
+<span class=sd>    # 36 bits, board width = 6, and 13 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0]), 6)</span>
+<span class=sd>    137</span>
+
+<span class=sd>    # 36 bits, board width = 6, and 20 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1,</span>
+<span class=sd>    ...    1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1]), 6)</span>
+<span class=sd>    274</span>
+
+<span class=sd>    # 36 bits, board width = 6, and 11 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0]), 6)</span>
+<span class=sd>    103</span>
+
+<span class=sd>    # 36 bits, board width = 6, and 0 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 6)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # 36 bits, board width = 6, and 36 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 6)</span>
+<span class=sd>    630</span>
+
+<span class=sd>    # 49 bits, board width = 7, and 1 queen</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 7)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # 49 bits, board width = 7, and 2 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 7)</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # 49 bits, board width = 7, and 3 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 7)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # 49 bits, board width = 7, and 4 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 7)</span>
+<span class=sd>    17</span>
+
+<span class=sd>    # 49 bits, board width = 7, and 7 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,</span>
+<span class=sd>    ...    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 7)</span>
+<span class=sd>    70</span>
+
+<span class=sd>    # 49 bits, board width = 7, and 7 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 0, 0, 0, 0, 0]), 7)</span>
+<span class=sd>    35</span>
+
+<span class=sd>    # 49 bits, board width = 7, and 7 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 1, 0, 0, 0, 0, 0, 0, 0]), 7)</span>
+<span class=sd>    42</span>
+
+<span class=sd>    # 49 bits, board width = 7, and 7 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 7)</span>
+<span class=sd>    63</span>
+
+<span class=sd>    # 49 bits, board width = 7, and 25 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0,</span>
+<span class=sd>    ...    0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0,</span>
+<span class=sd>    ...    1, 0, 0, 0, 0, 1, 0, 0, 0, 0]), 7)</span>
+<span class=sd>    437</span>
+
+<span class=sd>    # 49 bits, board width = 7, and 33 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0,</span>
+<span class=sd>    ...    0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 0, 1, 0, 1, 1, 0]), 7)</span>
+<span class=sd>    625</span>
+
+<span class=sd>    # 49 bits, board width = 7, and 24 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1,</span>
+<span class=sd>    ...    0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0,</span>
+<span class=sd>    ...    0, 0, 1, 0, 0, 1, 1, 0, 0, 0]), 7)</span>
+<span class=sd>    403</span>
+
+<span class=sd>    # 49 bits, board width = 7, and 15 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1,</span>
+<span class=sd>    ...    0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 0, 0, 0, 0, 1]), 7)</span>
+<span class=sd>    209</span>
+
+<span class=sd>    # 49 bits, board width = 7, and 0 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 7)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # 49 bits, board width = 7, and 49 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 7)</span>
+<span class=sd>    1050</span>
+
+<span class=sd>    # 64 bits, board width = 8, and 1 queen</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0]), 8)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # 64 bits, board width = 8, and 1 queen</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0]), 8)</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # 64 bits, board width = 8, and 3 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0]), 8)</span>
+<span class=sd>    21</span>
+
+<span class=sd>    # 64 bits, board width = 8, and 6 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0]), 8)</span>
+<span class=sd>    42</span>
+
+<span class=sd>    # 64 bits, board width = 8, and 8 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 1, 0]), 8)</span>
+<span class=sd>    64</span>
+
+<span class=sd>    # 64 bits, board width = 8, and 8 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0]), 8)</span>
+<span class=sd>    72</span>
+
+<span class=sd>    # 64 bits, board width = 8, and 8 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 1, 0]), 8)</span>
+<span class=sd>    56</span>
+
+<span class=sd>    # 64 bits, board width = 8, and 8 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0]), 8)</span>
+<span class=sd>    64</span>
+
+<span class=sd>    # 64 bits, board width = 8, and 20 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0,</span>
+<span class=sd>    ...    1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 0]), 8)</span>
+<span class=sd>    348</span>
+
+<span class=sd>    # 64 bits, board width = 8, and 46 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0,</span>
+<span class=sd>    ...    1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1,</span>
+<span class=sd>    ...    0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1,</span>
+<span class=sd>    ...    1, 0, 1]), 8)</span>
+<span class=sd>    1074</span>
+
+<span class=sd>    # 64 bits, board width = 8, and 29 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1,</span>
+<span class=sd>    ...    1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0,</span>
+<span class=sd>    ...    1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0,</span>
+<span class=sd>    ...    0, 0, 1]), 8)</span>
+<span class=sd>    579</span>
+
+<span class=sd>    # 64 bits, board width = 8, and 20 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 0]), 8)</span>
+<span class=sd>    300</span>
+
+<span class=sd>    # 64 bits, board width = 8, and 0 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0]), 8)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # 64 bits, board width = 8, and 64 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1]), 8)</span>
+<span class=sd>    1624</span>
+
+<span class=sd>    # 81 bits, board width = 9, and 1 queen</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 9)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # 81 bits, board width = 9, and 7 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]), 9)</span>
+<span class=sd>    56</span>
+
+<span class=sd>    # 81 bits, board width = 9, and 8 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 9)</span>
+<span class=sd>    73</span>
+
+<span class=sd>    # 81 bits, board width = 9, and 3 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0]), 9)</span>
+<span class=sd>    15</span>
+
+<span class=sd>    # 81 bits, board width = 9, and 9 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]), 9)</span>
+<span class=sd>    81</span>
+
+<span class=sd>    # 81 bits, board width = 9, and 9 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]), 9)</span>
+<span class=sd>    63</span>
+
+<span class=sd>    # 81 bits, board width = 9, and 9 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]), 9)</span>
+<span class=sd>    90</span>
+
+<span class=sd>    # 81 bits, board width = 9, and 9 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 9)</span>
+<span class=sd>    72</span>
+
+<span class=sd>    # 81 bits, board width = 9, and 22 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...    1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1,</span>
+<span class=sd>    ...    0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]), 9)</span>
+<span class=sd>    428</span>
+
+<span class=sd>    # 81 bits, board width = 9, and 43 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0,</span>
+<span class=sd>    ...    0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1,</span>
+<span class=sd>    ...    0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0]), 9)</span>
+<span class=sd>    1091</span>
+
+<span class=sd>    # 81 bits, board width = 9, and 18 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...    0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0]), 9)</span>
+<span class=sd>    288</span>
+
+<span class=sd>    # 81 bits, board width = 9, and 24 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...    1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0,</span>
+<span class=sd>    ...    1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1]), 9)</span>
+<span class=sd>    444</span>
+
+<span class=sd>    # 81 bits, board width = 9, and 0 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 9)</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # 81 bits, board width = 9, and 81 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 9)</span>
+<span class=sd>    2376</span>
+
+<span class=sd>    # 100 bits, board width = 10, and 6 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]), 10)</span>
+<span class=sd>    34</span>
+
+<span class=sd>    # 100 bits, board width = 10, and 7 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0]), 10)</span>
+<span class=sd>    43</span>
+
+<span class=sd>    # 100 bits, board width = 10, and 8 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 10)</span>
+<span class=sd>    72</span>
+
+<span class=sd>    # 100 bits, board width = 10, and 6 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]), 10)</span>
+<span class=sd>    34</span>
+
+<span class=sd>    # 100 bits, board width = 10, and 10 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...    1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 10)</span>
+<span class=sd>    140</span>
+
+<span class=sd>    # 100 bits, board width = 10, and 10 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...    1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 10)</span>
+<span class=sd>    80</span>
+
+<span class=sd>    # 100 bits, board width = 10, and 10 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0]), 10)</span>
+<span class=sd>    130</span>
+
+<span class=sd>    # 100 bits, board width = 10, and 10 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0,</span>
+<span class=sd>    ...    1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 10)</span>
+<span class=sd>    100</span>
+
+<span class=sd>    # 100 bits, board width = 10, and 50 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0,</span>
+<span class=sd>    ...    0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1,</span>
+<span class=sd>    ...    1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...    0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0]), 10)</span>
+<span class=sd>    1430</span>
+
+<span class=sd>    # 100 bits, board width = 10, and 42 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0,</span>
+<span class=sd>    ...    0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1,</span>
+<span class=sd>    ...    1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0,</span>
+<span class=sd>    ...    1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0]), 10)</span>
+<span class=sd>    1138</span>
+
+<span class=sd>    # 100 bits, board width = 10, and 93 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 10)</span>
+<span class=sd>    3067</span>
+
+<span class=sd>    # 100 bits, board width = 10, and 92 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1]), 10)</span>
+<span class=sd>    3018</span>
+
+<span class=sd>    # 100 bits, board width = 10, and 0 queens</span>
+<span class=sd>    >>> nqueens(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 10)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # 100 bits, board width = 10, and 100 queens</span>
+<span class=sd>    >>> nqueens(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 10)</span>
+<span class=sd>    3330</span>
+
+<span class=sd>    >>> nqueens(np.array([True] * 16), 4)</span>
+<span class=sd>    156</span>
+<span class=sd>    """</span>
+    <span class=n>n</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+
+    <span class=c1># The chess board is stored row-by-row.</span>
+    <span class=c1># Count the total number of queens on the chess board. It should be k.</span>
+    <span class=n>queens_total</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+
+    <span class=c1># Since we need to go through the board row by row anyway, we</span>
+    <span class=c1># can also check how many queens are in each row while we are at</span>
+    <span class=c1># it.</span>
+    <span class=n>must_be_one_1</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># queens per row</span>
+    <span class=n>penalty</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+
+    <span class=c1># The last row goes from index n-1 to index n-k, the row before</span>
+    <span class=c1># from n-k-1 to n-2k, ..., the first row goes from k-1 to 0.</span>
+    <span class=n>next_row_reset</span> <span class=o>=</span> <span class=n>k</span> <span class=o>-</span> <span class=mi>1</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>):</span>
+        <span class=k>if</span> <span class=n>x</span><span class=p>[</span><span class=n>i</span><span class=p>]:</span>
+            <span class=n>queens_total</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=n>must_be_one_1</span> <span class=o>+=</span> <span class=mi>1</span>
+
+        <span class=k>if</span> <span class=n>i</span> <span class=o>>=</span> <span class=n>next_row_reset</span><span class=p>:</span>  <span class=c1># We reached the end of a row.</span>
+            <span class=n>next_row_reset</span> <span class=o>+=</span> <span class=n>k</span>
+
+            <span class=c1># If there is at most one queen in the row, the penalty is zero.</span>
+            <span class=c1># Otherwise, the penalty for the row is number of queens in it</span>
+            <span class=c1># minus 1.</span>
+            <span class=k>if</span> <span class=n>must_be_one_1</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+                <span class=n>penalty</span> <span class=o>+=</span> <span class=n>must_be_one_1</span> <span class=o>-</span> <span class=mi>1</span>
+            <span class=n>must_be_one_1</span> <span class=o>=</span> <span class=mi>0</span>
+
+    <span class=c1># Count the number of queens in the columns and check if there</span>
+    <span class=c1># is more than one queen in a column.</span>
+    <span class=c1># col be the column index, it goes from 1 to k.</span>
+    <span class=k>for</span> <span class=n>col</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>k</span><span class=p>):</span>
+        <span class=n>must_be_one_1</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=c1># The cells in column j have indices k-j, 2k-j, 3k-j, ...,</span>
+        <span class=c1># k*k-j=n-j in x and we iterate them from the back.</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>col</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=n>k</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>x</span><span class=p>[</span><span class=n>i</span><span class=p>]:</span>
+                <span class=n>must_be_one_1</span> <span class=o>+=</span> <span class=mi>1</span>
+        <span class=c1># If there is at most one queen in the column, the penalty is zero.</span>
+        <span class=c1># Otherwise, the penalty for the column is number of queens in</span>
+        <span class=c1># it minus 1.</span>
+        <span class=k>if</span> <span class=n>must_be_one_1</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+            <span class=n>penalty</span> <span class=o>+=</span> <span class=n>must_be_one_1</span> <span class=o>-</span> <span class=mi>1</span>
+
+    <span class=c1># There are 1 + 2*(k-2) = 2*k-3 diagonals of any kind.</span>
+    <span class=c1># The diagonal in the "middle" is unique, the others can be</span>
+    <span class=c1># mirrored.</span>
+
+    <span class=c1># We have two types of diagonals.</span>
+    <span class=c1># One goes from top-left to bottom-right, for which we use index</span>
+    <span class=c1># i1 and count collisions in must_be_one_1 and must_be_one_2 and whose</span>
+    <span class=c1># indices step in k-1 increments.</span>
+    <span class=c1># The other one goes from bottom-left to top-right, for which we</span>
+    <span class=c1># use index i2 and count collisions in must_be_one_3 and must_be_one_4</span>
+    <span class=c1># and whose indices step in k+1 increments.</span>
+    <span class=c1># Both have the central, non-mirrored version and the others</span>
+    <span class=c1># which are mirrored around the central diagonal.</span>
+    <span class=n>diagonal_step_1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>k</span> <span class=o>-</span> <span class=mi>1</span>
+    <span class=n>diagonal_step_2</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>k</span> <span class=o>+</span> <span class=mi>1</span>
+    <span class=n>other_diagonal_start</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>n</span> <span class=o>-</span> <span class=mi>1</span>
+
+    <span class=c1># First process unique center diagonal.</span>
+    <span class=n>must_be_one_1</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>must_be_one_3</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>d</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>k</span> <span class=o>-</span> <span class=mi>1</span>
+    <span class=n>i1</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>k</span> <span class=o>*</span> <span class=n>d</span>
+    <span class=n>i2</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>i1</span> <span class=o>+</span> <span class=n>diagonal_step_1</span>
+    <span class=k>while</span> <span class=n>i1</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>x</span><span class=p>[</span><span class=n>i1</span><span class=p>]:</span>
+            <span class=n>must_be_one_1</span> <span class=o>+=</span> <span class=mi>1</span>
+        <span class=k>if</span> <span class=n>x</span><span class=p>[</span><span class=n>i2</span><span class=p>]:</span>
+            <span class=n>must_be_one_3</span> <span class=o>+=</span> <span class=mi>1</span>
+        <span class=n>i1</span> <span class=o>-=</span> <span class=n>diagonal_step_1</span>
+        <span class=n>i2</span> <span class=o>-=</span> <span class=n>diagonal_step_2</span>
+    <span class=k>if</span> <span class=n>must_be_one_1</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+        <span class=n>penalty</span> <span class=o>+=</span> <span class=n>must_be_one_1</span> <span class=o>-</span> <span class=mi>1</span>
+    <span class=k>if</span> <span class=n>must_be_one_3</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+        <span class=n>penalty</span> <span class=o>+=</span> <span class=n>must_be_one_3</span> <span class=o>-</span> <span class=mi>1</span>
+
+    <span class=c1># Now process the mirrored diagonals</span>
+    <span class=n>d</span> <span class=o>-=</span> <span class=mi>1</span>
+    <span class=k>while</span> <span class=n>d</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+        <span class=n>must_be_one_1</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=n>must_be_one_3</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=n>must_be_one_2</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=n>must_be_one_4</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+
+        <span class=n>i1</span> <span class=o>=</span> <span class=n>k</span> <span class=o>*</span> <span class=n>d</span>
+        <span class=k>if</span> <span class=n>i1</span> <span class=o>></span> <span class=n>other_diagonal_start</span><span class=p>:</span>
+            <span class=n>i1</span> <span class=o>-=</span> <span class=n>diagonal_step_1</span> <span class=o>*</span> <span class=p>(</span>
+                <span class=p>(</span><span class=n>i1</span> <span class=o>-</span> <span class=n>other_diagonal_start</span><span class=p>)</span> <span class=o>//</span> <span class=n>diagonal_step_1</span><span class=p>)</span>
+        <span class=n>i2</span> <span class=o>=</span> <span class=n>i1</span> <span class=o>+</span> <span class=n>diagonal_step_1</span>
+
+        <span class=k>while</span> <span class=n>i1</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>x</span><span class=p>[</span><span class=n>i1</span><span class=p>]:</span>
+                <span class=n>must_be_one_1</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=k>if</span> <span class=n>x</span><span class=p>[</span><span class=n>other_diagonal_start</span> <span class=o>-</span> <span class=n>i1</span><span class=p>]:</span>
+                <span class=n>must_be_one_2</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=k>if</span> <span class=n>x</span><span class=p>[</span><span class=n>i2</span><span class=p>]:</span>
+                <span class=n>must_be_one_3</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=k>if</span> <span class=n>x</span><span class=p>[</span><span class=n>other_diagonal_start</span> <span class=o>-</span> <span class=n>i2</span><span class=p>]:</span>
+                <span class=n>must_be_one_4</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=n>i1</span> <span class=o>-=</span> <span class=n>diagonal_step_1</span>
+            <span class=n>i2</span> <span class=o>-=</span> <span class=n>diagonal_step_2</span>
+
+        <span class=k>if</span> <span class=n>must_be_one_1</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+            <span class=n>penalty</span> <span class=o>+=</span> <span class=n>must_be_one_1</span> <span class=o>-</span> <span class=mi>1</span>
+        <span class=k>if</span> <span class=n>must_be_one_2</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+            <span class=n>penalty</span> <span class=o>+=</span> <span class=n>must_be_one_2</span> <span class=o>-</span> <span class=mi>1</span>
+        <span class=k>if</span> <span class=n>must_be_one_3</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+            <span class=n>penalty</span> <span class=o>+=</span> <span class=n>must_be_one_3</span> <span class=o>-</span> <span class=mi>1</span>
+        <span class=k>if</span> <span class=n>must_be_one_4</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+            <span class=n>penalty</span> <span class=o>+=</span> <span class=n>must_be_one_4</span> <span class=o>-</span> <span class=mi>1</span>
+        <span class=n>d</span> <span class=o>-=</span> <span class=mi>1</span>
+
+    <span class=c1># penalty now holds the total number of collisions in the rows, columns,</span>
+    <span class=c1># and all diagonals.</span>
+    <span class=c1># queens_total is the number of queens.</span>
+    <span class=c1># The minimization version of the IOHprofiler N queens problem is then:</span>
+    <span class=k>return</span> <span class=n>k</span> <span class=o>-</span> <span class=n>queens_total</span> <span class=o>+</span> <span class=p>(</span><span class=n>k</span> <span class=o>*</span> <span class=n>penalty</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=NQueens>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.nqueens.NQueens>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>NQueens</span><span class=p>(</span><span class=n>SquareBitStringProblem</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The N-Queens problem."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the n-queens problem.</span>
+
+<span class=sd>        :param n: the dimension of the problem (must be a perfect square)</span>
+<span class=sd>            and at least 16</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>16</span><span class=p>))</span>
+
+<div class=viewcode-block id=NQueens.evaluate>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.nqueens.NQueens.evaluate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Evaluate a solution to the N-Queens problem.</span>
+
+<span class=sd>        :param x: the bit string to evaluate</span>
+<span class=sd>        :returns: the value of the N-Queens problem for the string</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>nqueens</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>k</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the N-Queens problem.</span>
+
+<span class=sd>        :return: `NQueens_` + dimension of the board</span>
+
+<span class=sd>        >>> NQueens(16)</span>
+<span class=sd>        nqueens_16</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"nqueens_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=si>}</span><span class=s2>"</span>
+
+<div class=viewcode-block id=NQueens.upper_bound>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.nqueens.NQueens.upper_bound>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>upper_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compute the upper bound of the N-Queens objective function.</span>
+
+<span class=sd>        >>> NQueens(4 * 4).upper_bound()</span>
+<span class=sd>        156</span>
+
+<span class=sd>        >>> NQueens(5 * 5).upper_bound()</span>
+<span class=sd>        340</span>
+
+<span class=sd>        >>> NQueens(6 * 6).upper_bound()</span>
+<span class=sd>        630</span>
+
+<span class=sd>        >>> NQueens(7 * 7).upper_bound()</span>
+<span class=sd>        1050</span>
+
+<span class=sd>        >>> NQueens(8 * 8).upper_bound()</span>
+<span class=sd>        1624</span>
+
+<span class=sd>        >>> NQueens(9 * 9).upper_bound()</span>
+<span class=sd>        2376</span>
+
+<span class=sd>        >>> NQueens(10 * 10).upper_bound()</span>
+<span class=sd>        3330</span>
+
+<span class=sd>        >>> NQueens(20 * 20).upper_bound()</span>
+<span class=sd>        29260</span>
+
+<span class=sd>        >>> NQueens(30 * 30).upper_bound()</span>
+<span class=sd>        101790</span>
+
+<span class=sd>        >>> NQueens(100 * 100).upper_bound()</span>
+<span class=sd>        3930300</span>
+
+<span class=sd>        >>> NQueens(6241).upper_bound()</span>
+<span class=sd>        1928706</span>
+
+<span class=sd>        >>> NQueens(4225).upper_bound()</span>
+<span class=sd>        1069120</span>
+<span class=sd>        """</span>
+        <span class=n>k</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>k</span>
+        <span class=k>return</span> <span class=p>(((((</span><span class=n>k</span> <span class=o>-</span> <span class=mi>2</span><span class=p>)</span> <span class=o>*</span> <span class=mi>4</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>k</span><span class=p>)</span> <span class=o>+</span> <span class=mi>3</span><span class=p>)</span> <span class=o>*</span> <span class=n>k</span></div>
+
+
+<div class=viewcode-block id=NQueens.default_instances>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.nqueens.NQueens.default_instances>[docs]</a>
+    <span class=nd>@classmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>default_instances</span><span class=p>(</span>
+            <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>,</span> <span class=n>scale_min</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>16</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>144</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=n>Iterator</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=s2>"NQueens"</span><span class=p>]]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the 9 default instances of the :class:`NQueens` problem.</span>
+
+<span class=sd>        :param scale_min: the minimum permitted scale, by default `16`</span>
+<span class=sd>        :param scale_max: the maximum permitted scale, by default `144`</span>
+<span class=sd>        :returns: a sequence of default :class:`NQueens` instances</span>
+
+<span class=sd>        >>> len(list(NQueens.default_instances()))</span>
+<span class=sd>        9</span>
+
+<span class=sd>        >>> [x() for x in NQueens.default_instances()]</span>
+<span class=sd>        [nqueens_16, nqueens_25, nqueens_36, nqueens_49, nqueens_64, \</span>
+<span class=sd>nqueens_81, nqueens_100, nqueens_121, nqueens_144]</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Iterator[Callable[[], NQueens]]"</span><span class=p>,</span>
+                    <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span>  <span class=c1># type: ignore</span>
+                        <span class=n>scale_min</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>))</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.nqueens</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

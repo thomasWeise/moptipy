@@ -1,0 +1,378 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.mo.problem.weighted_sum — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/mo/problem/weighted_sum.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.mo.problem.weighted_sum</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.mo.problem.weighted_sum</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The weighted sum scalarization of multi-objective problems.</span>
+
+<span class=sd>Here we provide two simple methods to scalarize multi-objective problems by</span>
+<span class=sd>using weights, namely</span>
+
+<span class=sd>- :class:`~moptipy.mo.problem.weighted_sum.WeightedSum`, a sum with arbitrary,</span>
+<span class=sd>  user-defined weights of the objective values</span>
+<span class=sd>- :class:`~moptipy.mo.problem.weighted_sum.Prioritize`, a weighted sum of the</span>
+<span class=sd>  objective values where the weights are automatically determined such that</span>
+<span class=sd>  the first objective function is prioritized over the second one, the second</span>
+<span class=sd>  one over the third, and so on.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=kn>import</span> <span class=nb>sum</span> <span class=k>as</span> <span class=n>npsum</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.strings.string_conv</span><span class=w> </span><span class=kn>import</span> <span class=n>num_to_str</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_utils</span><span class=w> </span><span class=kn>import</span> <span class=n>dominates</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>Objective</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.mo.problem.basic_mo_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>BasicMOProblem</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.math</span><span class=w> </span><span class=kn>import</span> <span class=n>try_int</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>dtype_for_data</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_sum_int</span><span class=p>(</span><span class=n>a</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Sum up an array and convert the result to an `int` value.</span>
+
+<span class=sd>    :param a: the array</span>
+<span class=sd>    :returns: the sum of the elements in `a` as `int`</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>npsum</span><span class=p>(</span><span class=n>a</span><span class=p>))</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_sum_float</span><span class=p>(</span><span class=n>a</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Sum up an array and convert the result to a `float` value.</span>
+
+<span class=sd>    :param a: the array</span>
+<span class=sd>    :returns: the sum of the elements in `a` as `float`</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=nb>float</span><span class=p>(</span><span class=n>npsum</span><span class=p>(</span><span class=n>a</span><span class=p>))</span>
+
+
+<div class=viewcode-block id=BasicWeightedSum>
+<a class=viewcode-back href=../../../../moptipy.mo.problem.html#moptipy.mo.problem.weighted_sum.BasicWeightedSum>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>BasicWeightedSum</span><span class=p>(</span><span class=n>BasicMOProblem</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Base class for scalarizing objective values by a weighted sum.</span>
+
+<span class=sd>    This class brings the basic tools to scalarize vectors of objective</span>
+<span class=sd>    values by computing weighted sums. This class should not be used</span>
+<span class=sd>    directly. Instead, use its sub-classes</span>
+<span class=sd>    :class:`~moptipy.mo.problem.weighted_sum.WeightedSum` and</span>
+<span class=sd>    :class:`~moptipy.mo.problem.weighted_sum.Prioritize`.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>objectives</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Objective</span><span class=p>],</span>
+                 <span class=n>get_scalarizer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[</span>
+                     <span class=p>[</span><span class=nb>bool</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+                      <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span> <span class=n>Callable</span><span class=p>[</span>
+                          <span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span> <span class=o>|</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>],</span> <span class=kc>None</span><span class=p>]],</span>
+                     <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]],</span>
+                 <span class=n>domination</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span>
+                 <span class=o>=</span> <span class=n>dominates</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the sum-based scalarization.</span>
+
+<span class=sd>        :param objectives: the objectives</span>
+<span class=sd>        :param domination: a function reflecting the domination relationship</span>
+<span class=sd>            between two vectors of objective values. It must obey the contract</span>
+<span class=sd>            of :meth:`~moptipy.api.mo_problem.MOProblem.f_dominates`, which is</span>
+<span class=sd>            the same as :func:`moptipy.api.mo_utils.dominates`, to which it</span>
+<span class=sd>            defaults. `None` overrides nothing.</span>
+<span class=sd>        """</span>
+        <span class=n>holder</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span>
+            <span class=n>objectives</span><span class=p>,</span>
+            <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[bool, int, list[int | float], list[int | float]],"</span>
+                 <span class=s2>"Callable[[np.ndarray], int | float]]"</span><span class=p>,</span>
+                 <span class=k>lambda</span> <span class=n>ai</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=n>lb</span><span class=p>,</span> <span class=n>ub</span><span class=p>,</span> <span class=n>fwd</span><span class=o>=</span><span class=n>holder</span><span class=o>.</span><span class=n>append</span><span class=p>:</span>
+                 <span class=n>get_scalarizer</span><span class=p>(</span><span class=n>ai</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=n>lb</span><span class=p>,</span> <span class=n>ub</span><span class=p>,</span> <span class=n>fwd</span><span class=p>)),</span>
+            <span class=n>domination</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>holder</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>2</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"need weights and weights dtype, but got </span><span class=si>{</span><span class=n>holder</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=c1>#: the internal weights</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>weights</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> \
+            <span class=n>cast</span><span class=p>(</span><span class=s2>"tuple[int | float, ...] | None"</span><span class=p>,</span> <span class=n>holder</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>weights</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>weights</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>weights</span><span class=p>,</span> <span class=s2>"weights"</span><span class=p>,</span> <span class=p>[</span><span class=nb>tuple</span><span class=p>,</span> <span class=kc>None</span><span class=p>])</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>weights</span><span class=p>)</span> <span class=o>!=</span> <span class=bp>self</span><span class=o>.</span><span class=n>f_dimension</span><span class=p>():</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"length of weights </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>weights</span><span class=si>}</span><span class=s2> is not "</span>
+                    <span class=sa>f</span><span class=s2>"f_dimension=</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>f_dimension</span><span class=p>()</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=c1>#: the internal weights dtype</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__weights_dtype</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> \
+            <span class=n>cast</span><span class=p>(</span><span class=s2>"np.dtype | None"</span><span class=p>,</span> <span class=n>holder</span><span class=p>[</span><span class=mi>1</span><span class=p>])</span>
+        <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__weights_dtype</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> \
+                <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__weights_dtype</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__weights_dtype</span><span class=p>,</span> <span class=s2>"weights_dtype"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the string representation of the weighted sum scalarization.</span>
+
+<span class=sd>        :returns: `"weightedSumBase"`</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"weightedSumBase"</span>
+
+<div class=viewcode-block id=BasicWeightedSum.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.mo.problem.html#moptipy.mo.problem.weighted_sum.BasicWeightedSum.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of this function to the provided destination.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+
+        <span class=n>weights</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>weights</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"weights"</span><span class=p>,</span> <span class=s2>";"</span><span class=o>.</span><span class=n>join</span><span class=p>(</span>
+            <span class=p>([</span><span class=s2>"1"</span><span class=p>]</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>f_dimension</span><span class=p>())</span> <span class=k>if</span> <span class=n>weights</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span>
+            <span class=p>[</span><span class=n>num_to_str</span><span class=p>(</span><span class=n>w</span><span class=p>)</span> <span class=k>for</span> <span class=n>w</span> <span class=ow>in</span> <span class=n>weights</span><span class=p>]))</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"weightsDtype"</span><span class=p>,</span>
+                         <span class=s2>"None"</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__weights_dtype</span> <span class=ow>is</span> <span class=kc>None</span>
+                         <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>__weights_dtype</span><span class=o>.</span><span class=n>char</span><span class=p>)</span></div>
+</div>
+
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_make_sum_scalarizer</span><span class=p>(</span>
+        <span class=n>always_int</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+        <span class=n>lower_bounds</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span> <span class=n>upper_bounds</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+        <span class=n>weights</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>callback</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span> <span class=o>|</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>],</span>
+            <span class=kc>None</span><span class=p>])</span> <span class=o>-></span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create a weighted sum scalarization function.</span>
+
+<span class=sd>    If `weights` is `None`, we will just use the plain summation function from</span>
+<span class=sd>    numpy and convert its result to `int` if `always_int` is `True` and to</span>
+<span class=sd>    `float` otherwise.</span>
+<span class=sd>    If `weights` is a tuple of weights, then we will convert it to a numpy</span>
+<span class=sd>    `ndarray`. If `always_int` is `True` and all weights are integers, and the</span>
+<span class=sd>    lower and upper bound of the objectives are known, we try to pick the</span>
+<span class=sd>    smallest integer data type for this array big enough to hold both the</span>
+<span class=sd>    total lower and total upper bound. If at least the lower bounds are >= 0,</span>
+<span class=sd>    then we pick the largest unsigned integer data type. If the bounds are</span>
+<span class=sd>    unknown, then we pick the largest signed integer type. If any weight is</span>
+<span class=sd>    not an integer and `always_int` is `False`, we use a default floating</span>
+<span class=sd>    point weight array.</span>
+
+<span class=sd>    This should yield the overall fastest, most precise, and most memory</span>
+<span class=sd>    efficient way to compute a weighted sum scalarization.</span>
+
+<span class=sd>    :param always_int: will all objectives always be integer</span>
+<span class=sd>    :param n: the number of objectives</span>
+<span class=sd>    :param lower_bounds: the optional lower bounds</span>
+<span class=sd>    :param upper_bounds: the optional upper bounds</span>
+<span class=sd>    :param weights: the optional array of weights, `None` if all weights</span>
+<span class=sd>        are `1`.</span>
+<span class=sd>    :param callback: the callback function to receive the weights</span>
+<span class=sd>    :returns: the scalarization function</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lower_bounds</span><span class=p>,</span> <span class=nb>list</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>lower_bounds</span><span class=p>,</span> <span class=s2>"lower_bounds"</span><span class=p>,</span> <span class=nb>list</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>lower_bounds</span><span class=p>)</span> <span class=o>!=</span> <span class=n>n</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"there should be </span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2> values in lower_bounds=</span><span class=si>{</span><span class=n>lower_bounds</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>upper_bounds</span><span class=p>,</span> <span class=nb>list</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>upper_bounds</span><span class=p>,</span> <span class=s2>"upper_bounds"</span><span class=p>,</span> <span class=nb>list</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>upper_bounds</span><span class=p>)</span> <span class=o>!=</span> <span class=n>n</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"there should be </span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2> values in upper_bounds=</span><span class=si>{</span><span class=n>lower_bounds</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>weights</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>callback</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span>
+        <span class=n>callback</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>_sum_int</span> <span class=k>if</span> <span class=n>always_int</span> <span class=k>else</span> <span class=n>_sum_float</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>weights</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>weights</span><span class=p>,</span> <span class=s2>"weights"</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>weights</span><span class=p>)</span> <span class=o>!=</span> <span class=n>n</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"there should be </span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2> values in weights=</span><span class=si>{</span><span class=n>lower_bounds</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>always_int</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>always_int</span><span class=p>,</span> <span class=s2>"always_int"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+
+    <span class=n>min_sum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>max_sum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>min_weight</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span>
+    <span class=n>max_weight</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span>
+    <span class=n>everything_is_int</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=n>always_int</span>
+
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>weight</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>weights</span><span class=p>):</span>
+        <span class=k>if</span> <span class=n>weight</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"no weight can be <=0, but encountered "</span>
+                             <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>weight</span><span class=si>}</span><span class=s2> in </span><span class=si>{</span><span class=n>weights</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>weight</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+            <span class=n>everything_is_int</span> <span class=o>=</span> <span class=kc>False</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>weight</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"weight must be finite, but "</span>
+                                 <span class=sa>f</span><span class=s2>"encountered </span><span class=si>{</span><span class=n>weight</span><span class=si>}</span><span class=s2> in </span><span class=si>{</span><span class=n>weights</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>min_sum</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span>
+            <span class=n>max_sum</span> <span class=o>=</span> <span class=n>inf</span>
+            <span class=k>break</span>
+
+        <span class=n>min_weight</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>min_weight</span><span class=p>,</span> <span class=n>weight</span><span class=p>)</span>
+        <span class=n>max_weight</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>max_weight</span><span class=p>,</span> <span class=n>weight</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>lower_bounds</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>min_sum</span> <span class=o>+=</span> <span class=n>weight</span> <span class=o>*</span> <span class=n>lower_bounds</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+        <span class=k>if</span> <span class=n>upper_bounds</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>max_sum</span> <span class=o>+=</span> <span class=n>weight</span> <span class=o>*</span> <span class=n>upper_bounds</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+
+    <span class=k>if</span> <span class=n>min_sum</span> <span class=o>>=</span> <span class=n>max_sum</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"weighted sum minimum=</span><span class=si>{</span><span class=n>min_sum</span><span class=si>}</span><span class=s2> >= maximum=</span><span class=si>{</span><span class=n>max_sum</span><span class=si>}</span><span class=s2>?"</span><span class=p>)</span>
+
+    <span class=c1># re-check for plain summation</span>
+    <span class=k>if</span> <span class=mi>1</span> <span class=o><=</span> <span class=n>min_weight</span> <span class=o><=</span> <span class=n>max_weight</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>
+        <span class=n>callback</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span>
+        <span class=n>callback</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>_sum_int</span> <span class=k>if</span> <span class=n>always_int</span> <span class=k>else</span> <span class=n>_sum_float</span>
+
+    <span class=n>dtype</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>]</span> <span class=o>=</span> <span class=n>dtype_for_data</span><span class=p>(</span>
+        <span class=n>everything_is_int</span><span class=p>,</span> <span class=n>min_sum</span><span class=p>,</span> <span class=n>max_sum</span><span class=p>)</span>
+    <span class=n>use_weights</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>weights</span><span class=p>,</span> <span class=n>dtype</span><span class=p>)</span>
+
+    <span class=n>callback</span><span class=p>(</span><span class=n>weights</span><span class=p>)</span>
+    <span class=n>callback</span><span class=p>(</span><span class=n>dtype</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>everything_is_int</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[np.ndarray], int | float]"</span><span class=p>,</span>
+                    <span class=k>lambda</span> <span class=n>a</span><span class=p>,</span> <span class=n>w</span><span class=o>=</span><span class=n>use_weights</span><span class=p>:</span> <span class=nb>int</span><span class=p>(</span><span class=n>npsum</span><span class=p>(</span><span class=n>a</span> <span class=o>*</span> <span class=n>w</span><span class=p>)))</span>
+    <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[np.ndarray], int | float]"</span><span class=p>,</span>
+                <span class=k>lambda</span> <span class=n>a</span><span class=p>,</span> <span class=n>w</span><span class=o>=</span><span class=n>use_weights</span><span class=p>:</span> <span class=nb>float</span><span class=p>(</span><span class=n>npsum</span><span class=p>(</span><span class=n>a</span> <span class=o>*</span> <span class=n>w</span><span class=p>)))</span>
+
+
+<div class=viewcode-block id=WeightedSum>
+<a class=viewcode-back href=../../../../moptipy.mo.problem.html#moptipy.mo.problem.weighted_sum.WeightedSum>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>WeightedSum</span><span class=p>(</span><span class=n>BasicWeightedSum</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""Scalarize objective values by computing their weighted sum."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>objectives</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Objective</span><span class=p>],</span>
+                 <span class=n>weights</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>domination</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span>
+                 <span class=o>=</span> <span class=n>dominates</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the sum-based scalarization.</span>
+
+<span class=sd>        :param objectives: the objectives</span>
+<span class=sd>        :param weights: the weights of the objective values, or `None` if all</span>
+<span class=sd>            weights are `1`.</span>
+<span class=sd>        :param domination: a function reflecting the domination relationship</span>
+<span class=sd>            between two vectors of objective values. It must obey the contract</span>
+<span class=sd>            of :meth:`~moptipy.api.mo_problem.MOProblem.f_dominates`, which is</span>
+<span class=sd>            the same as :func:`moptipy.api.mo_utils.dominates`, to which it</span>
+<span class=sd>            defaults. `None` overrides nothing.</span>
+<span class=sd>        """</span>
+        <span class=n>use_weights</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> \
+            <span class=o>=</span> <span class=kc>None</span> <span class=k>if</span> <span class=n>weights</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>try_int</span><span class=p>(</span><span class=n>w</span><span class=p>)</span> <span class=k>for</span> <span class=n>w</span> <span class=ow>in</span> <span class=n>weights</span><span class=p>)</span>
+
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span>
+            <span class=n>objectives</span><span class=p>,</span>
+            <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[bool, int, list[int | float], list[int | float], "</span>
+                 <span class=s2>"Callable[[np.dtype | tuple[int | float, ...] | None], "</span>
+                 <span class=s2>"None]], Callable[[np.ndarray], int | float]]"</span><span class=p>,</span>
+                 <span class=k>lambda</span> <span class=n>ai</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=n>lb</span><span class=p>,</span> <span class=n>ub</span><span class=p>,</span> <span class=n>cb</span><span class=p>,</span> <span class=n>uw</span><span class=o>=</span><span class=n>use_weights</span><span class=p>:</span>
+                 <span class=n>_make_sum_scalarizer</span><span class=p>(</span><span class=n>ai</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=n>lb</span><span class=p>,</span> <span class=n>ub</span><span class=p>,</span> <span class=n>uw</span><span class=p>,</span> <span class=n>cb</span><span class=p>)),</span>
+            <span class=n>domination</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the string representation of the weighted sum scalarization.</span>
+
+<span class=sd>        :returns: `"weightedSum"`</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"weightedSum"</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>f_dominates</span> <span class=ow>is</span> <span class=n>dominates</span> \
+            <span class=k>else</span> <span class=s2>"weightedSumWithDominationFunc"</span></div>
+
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_prioritize</span><span class=p>(</span>
+        <span class=n>always_int</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+        <span class=n>lower_bounds</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span> <span class=n>upper_bounds</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+        <span class=n>callback</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span> <span class=o>|</span> <span class=nb>tuple</span><span class=p>[</span>
+            <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>],</span> <span class=kc>None</span><span class=p>])</span> \
+        <span class=o>-></span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create a weighted-sum based prioritization of the objective functions.</span>
+
+<span class=sd>    If all objective functions are integers and have upper and lower bounds,</span>
+<span class=sd>    we can use integer weights to create a prioritization such that gaining</span>
+<span class=sd>    one unit of the first objective function is always more important than any</span>
+<span class=sd>    improvement of the second objective, that gaining one unit of the second</span>
+<span class=sd>    objective always outweighs all possible gains in terms of the third one,</span>
+<span class=sd>    and so on.</span>
+
+<span class=sd>    :param always_int: will all objectives always be integer</span>
+<span class=sd>    :param n: the number of objectives</span>
+<span class=sd>    :param lower_bounds: the optional lower bounds</span>
+<span class=sd>    :param upper_bounds: the optional upper bounds</span>
+<span class=sd>    :param callback: the callback function to receive the weights</span>
+<span class=sd>    :returns: the scalarization function</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=n>n</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>_make_sum_scalarizer</span><span class=p>(</span><span class=n>always_int</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=n>lower_bounds</span><span class=p>,</span>
+                                    <span class=n>upper_bounds</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=n>callback</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=n>always_int</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"priority-based weighting is only possible for "</span>
+                         <span class=s2>"integer-valued objectives"</span><span class=p>)</span>
+    <span class=n>weights</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=mi>1</span><span class=p>]</span>
+    <span class=n>weight</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span> <span class=o>-</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>):</span>
+        <span class=n>lb</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>lower_bounds</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"lower_bound[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>]"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>lb</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"lower_bound[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>]=</span><span class=si>{</span><span class=n>lb</span><span class=si>}</span><span class=s2>, but must be finite"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"finite lower_bound[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>]"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+        <span class=n>ub</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>upper_bounds</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ub</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>ub</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"upper_bound[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>]"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>ub</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"upper_bound[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>]=</span><span class=si>{</span><span class=n>ub</span><span class=si>}</span><span class=s2>, but must be finite"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ub</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>ub</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"finite upper_bound[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>]"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+        <span class=n>weight</span> <span class=o>*=</span> <span class=p>(</span><span class=mi>1</span> <span class=o>+</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"int"</span><span class=p>,</span> <span class=n>ub</span><span class=p>)</span> <span class=o>-</span> <span class=nb>min</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"int"</span><span class=p>,</span> <span class=n>lb</span><span class=p>)))</span>
+        <span class=n>weights</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>weight</span><span class=p>)</span>
+
+    <span class=n>weights</span><span class=o>.</span><span class=n>reverse</span><span class=p>()</span>
+    <span class=k>return</span> <span class=n>_make_sum_scalarizer</span><span class=p>(</span><span class=n>always_int</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=n>lower_bounds</span><span class=p>,</span> <span class=n>upper_bounds</span><span class=p>,</span>
+                                <span class=nb>tuple</span><span class=p>(</span><span class=n>weights</span><span class=p>),</span> <span class=n>callback</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=Prioritize>
+<a class=viewcode-back href=../../../../moptipy.mo.problem.html#moptipy.mo.problem.weighted_sum.Prioritize>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Prioritize</span><span class=p>(</span><span class=n>BasicWeightedSum</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""Prioritize the first objective over the second and so on."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>objectives</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Objective</span><span class=p>],</span>
+                 <span class=n>domination</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span>
+                 <span class=o>=</span> <span class=n>dominates</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the sum-based prioritization.</span>
+
+<span class=sd>        :param objectives: the objectives</span>
+<span class=sd>        :param domination: a function reflecting the domination relationship</span>
+<span class=sd>            between two vectors of objective values. It must obey the contract</span>
+<span class=sd>            of :meth:`~moptipy.api.mo_problem.MOProblem.f_dominates`, which is</span>
+<span class=sd>            the same as :func:`moptipy.api.mo_utils.dominates`, to which it</span>
+<span class=sd>            defaults. `None` overrides nothing.</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>objectives</span><span class=p>,</span> <span class=n>_prioritize</span><span class=p>,</span> <span class=n>domination</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the weighted sum-based prioritization.</span>
+
+<span class=sd>        :returns: `"weightBasedPrioritization"`</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"weightBasedPrioritization"</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>f_dominates</span> <span class=ow>is</span> <span class=n>dominates</span> \
+            <span class=k>else</span> <span class=s2>"weightBasedPrioritizationWithDominationFunc"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.mo.problem.weighted_sum</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

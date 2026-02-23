@@ -1,0 +1,262 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.ea — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/ea.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.ea</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.ea</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>A simple implementation of a (mu+lambda) Evolutionary Algorithm.</span>
+
+<span class=sd>This is the basic `mu+lambda`-EA, which works as follows:</span>
+
+<span class=sd>1. Start with a list `lst` of `mu` random records and `lambda` blank records.</span>
+<span class=sd>2. In each iteration:</span>
+
+<span class=sd>    2.1. Use the `mu` first records as input to the search operators to</span>
+<span class=sd>         generate `lambda` new points in the search space.</span>
+<span class=sd>         For each new point to be created, the binary operator is applied</span>
+<span class=sd>         with probability `0<=br<=1` and the unary operator is used otherwise.</span>
+
+<span class=sd>    2.2. Sort the list `lst` according to the objective value of the record.</span>
+<span class=sd>         Ties are broken by preferring younger solutions over old ones. Soring</span>
+<span class=sd>         uses the `__lt__` dunder method of class</span>
+<span class=sd>         :class:`~moptipy.algorithms.so.record.Record`. This moves the best</span>
+<span class=sd>         solutions to the front of the list. The tie breaking method both</span>
+<span class=sd>         encourages drift and ensures compatibility with `RLS`.</span>
+
+<span class=sd>If `mu=1`, `lambda=1`, and `br=0`, then this algorithm is exactly equivalent</span>
+<span class=sd>to the :class:`~moptipy.algorithms.so.rls.RLS` if the same unary and nullary</span>
+<span class=sd>operator are used. It is only a bit slower due to the additional overhead of</span>
+<span class=sd>maintaining a list of records. This compatibility is achieved by the tie</span>
+<span class=sd>breaking strategy of `step 2.2` above: RLS will prefer the newer solution over</span>
+<span class=sd>the current one if the new solution is either better or as same as good. Now</span>
+<span class=sd>the latter case cannot be achieved by just sorting the list without</span>
+<span class=sd>considering the iteration at which a solution was created, since sorting in</span>
+<span class=sd>Python is *stable* (equal elements remain in the order in which they are</span>
+<span class=sd>encountered in the original list) and because our new solutions would be in</span>
+<span class=sd>the `lambda` last entries of the list. This can easily be fixed by the tie</span>
+<span class=sd>breaking, which is implemented in the `__lt__` dunder method of class</span>
+<span class=sd>:class:`~moptipy.algorithms.so.record.Record`.</span>
+
+<span class=sd>1. Thomas Bäck, David B. Fogel, and Zbigniew Michalewicz, eds., *Handbook of</span>
+<span class=sd>   Evolutionary Computation.* 1997. Computational Intelligence Library.</span>
+<span class=sd>   New York, NY, USA: Oxford University Press, Inc. ISBN: 0-7503-0392-1</span>
+<span class=sd>2. James C. Spall. *Introduction to Stochastic Search and Optimization.*</span>
+<span class=sd>   Estimation, Simulation, and Control - Wiley-Interscience Series in Discrete</span>
+<span class=sd>   Mathematics and Optimization, volume 6. 2003. Chichester, West Sussex, UK:</span>
+<span class=sd>   Wiley Interscience. ISBN: 0-471-33052-3. http://www.jhuapl.edu/ISSO/.</span>
+<span class=sd>3. Frank Hoffmeister and Thomas Bäck. Genetic Algorithms and Evolution</span>
+<span class=sd>   Strategies: Similarities and Differences. In Hans-Paul Schwefel and</span>
+<span class=sd>   Reinhard Männer, *Proceedings of the International Conference on Parallel</span>
+<span class=sd>   Problem Solving from Nature (PPSN I),* October 1-3, 1990, Dortmund,</span>
+<span class=sd>   Germany, volume 496 of Lecture Notes in Computer Science, pages 455-469,</span>
+<span class=sd>   Berlin/Heidelberg, Germany: Springer. ISBN: 978-3-540-54148-6.</span>
+<span class=sd>   https://doi.org/10.1007/BFb0029787.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.record</span><span class=w> </span><span class=kn>import</span> <span class=n>Record</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm2</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>Op1</span><span class=p>,</span> <span class=n>Op2</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=n>PART_SEPARATOR</span><span class=p>,</span> <span class=n>num_to_str_for_name</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_int_0</span><span class=p>(</span><span class=n>_</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Return an integer with value `0`.</span>
+
+<span class=sd>    :retval 0: always</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=mi>0</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_float_0</span><span class=p>()</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Return a float with value `0.0`.</span>
+
+<span class=sd>    :retval 0.0: always</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=mf>0.0</span>
+
+
+<span class=c1># start nobinary</span>
+<div class=viewcode-block id=EA>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.ea.EA>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>EA</span><span class=p>(</span><span class=n>Algorithm2</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The EA is a population-based algorithm using unary and binary operators.</span>
+
+<span class=sd>    It starts with a list of :attr:`mu` randomly initialized solutions. In</span>
+<span class=sd>    each step, it retains the `mu` best solutions and generates</span>
+<span class=sd>    :attr:`lambda_` new solutions from them using the unary operator</span>
+<span class=sd>    (:attr:`~moptipy.api.algorithm.Algorithm1.op1`) with probability</span>
+<span class=sd>    1-:attr:`br` and the binary search operator</span>
+<span class=sd>    ((:attr:`~moptipy.api.algorithm.Algorithm2.op2`) at rate :attr:`br`. From</span>
+<span class=sd>    the joint set of `mu+lambda_` solutions, it again selects the best `mu`</span>
+<span class=sd>    ones for the next iteration. And so on.</span>
+
+<span class=sd>    If `mu=1`, `lambda_=1`, and `br=0`, then this algorithm is exactly</span>
+<span class=sd>    equivalent to the :class:`~moptipy.algorithms.so.rls.RLS` if the same</span>
+<span class=sd>    unary and nullary operator are used.</span>
+<span class=sd>    """</span>
+
+<div class=viewcode-block id=EA.solve>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.ea.EA.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the EA to an optimization problem.</span>
+
+<span class=sd>        :param process: the black-box process object</span>
+<span class=sd>        """</span>
+        <span class=n>mu</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>mu</span>  <span class=c1># mu: number of best solutions kept</span>
+        <span class=n>mu_plus_lambda</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>mu</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>lambda_</span>  <span class=c1># size</span>
+        <span class=c1># initialization of some variables omitted in book for brevity</span>
+        <span class=c1># end nobinary</span>
+        <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>()</span>  <span class=c1># random gen</span>
+        <span class=n>create</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span>  <span class=c1># create x container</span>
+        <span class=n>evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>evaluate</span>  <span class=c1># the objective</span>
+        <span class=n>op0</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op0</span><span class=o>.</span><span class=n>op0</span>  <span class=c1># the nullary operator</span>
+        <span class=n>op1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op1</span><span class=o>.</span><span class=n>op1</span>  <span class=c1># the unary operator</span>
+        <span class=n>op2</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op2</span><span class=o>.</span><span class=n>op2</span>  <span class=c1># the binary operator</span>
+        <span class=n>br</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>br</span>  <span class=c1># the rate at which to use op2</span>
+        <span class=n>should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>
+        <span class=n>r0i</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>],</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span>     <span class=c1># only if m > 1, we</span>
+            <span class=s2>"Callable[[int], int]"</span><span class=p>,</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span>  <span class=c1># need random</span>
+            <span class=k>if</span> <span class=n>mu</span> <span class=o>></span> <span class=mi>1</span> <span class=k>else</span> <span class=n>_int_0</span><span class=p>)</span>                 <span class=c1># indices</span>
+        <span class=n>r01</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span>  <span class=c1># only if 0&LTbr&LT1, we</span>
+            <span class=s2>"Callable[[], float]"</span><span class=p>,</span>               <span class=c1># need random floats</span>
+            <span class=n>random</span><span class=o>.</span><span class=n>random</span> <span class=k>if</span> <span class=mi>0</span> <span class=o><</span> <span class=n>br</span> <span class=o><</span> <span class=mi>1</span> <span class=k>else</span> <span class=n>_float_0</span><span class=p>)</span>
+        <span class=c1># start nobinary</span>
+        <span class=c1># create list of mu random records and lambda empty records</span>
+        <span class=n>lst</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=kc>None</span><span class=p>]</span> <span class=o>*</span> <span class=n>mu_plus_lambda</span>  <span class=c1># pre-allocate list</span>
+        <span class=n>f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># variable to hold objective values</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>mu_plus_lambda</span><span class=p>):</span>  <span class=c1># fill list of size mu+lambda</span>
+            <span class=n>x</span> <span class=o>=</span> <span class=n>create</span><span class=p>()</span>  <span class=c1># by creating point in search space</span>
+            <span class=k>if</span> <span class=n>i</span> <span class=o><</span> <span class=n>mu</span><span class=p>:</span>  <span class=c1># only the first mu records are initialized by</span>
+                <span class=n>op0</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span>  <span class=c1># applying nullary operator = randomize</span>
+                <span class=k>if</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># should we quit?</span>
+                    <span class=k>return</span>   <span class=c1># computational budget exhausted -> quit</span>
+                <span class=n>f</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>  <span class=c1># continue? ok, evaluate new solution</span>
+            <span class=n>lst</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>Record</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>)</span>  <span class=c1># create and store record</span>
+
+        <span class=n>it</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># set iteration counter=0 (but immediately increment)</span>
+        <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>  <span class=c1># lst: keep 0..mu-1, overwrite mu..mu+lambda-1</span>
+            <span class=n>it</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># step iteration counter</span>
+            <span class=k>for</span> <span class=n>oi</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>mu</span><span class=p>,</span> <span class=n>mu_plus_lambda</span><span class=p>):</span>  <span class=c1># for all offspring</span>
+                <span class=k>if</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># only continue if we still...</span>
+                    <span class=k>return</span>  <span class=c1># have sufficient budget ... otherwise quit</span>
+                <span class=n>dest</span><span class=p>:</span> <span class=n>Record</span> <span class=o>=</span> <span class=n>lst</span><span class=p>[</span><span class=n>oi</span><span class=p>]</span>  <span class=c1># pick destination record</span>
+                <span class=n>x</span> <span class=o>=</span> <span class=n>dest</span><span class=o>.</span><span class=n>x</span>  <span class=c1># the destination "x" value</span>
+                <span class=n>dest</span><span class=o>.</span><span class=n>it</span> <span class=o>=</span> <span class=n>it</span>  <span class=c1># remember iteration of solution creation</span>
+
+                <span class=n>sx</span> <span class=o>=</span> <span class=n>lst</span><span class=p>[</span><span class=n>r0i</span><span class=p>(</span><span class=n>mu</span><span class=p>)]</span><span class=o>.</span><span class=n>x</span>  <span class=c1># pick a random source "x"</span>
+                <span class=c1># end nobinary</span>
+                <span class=c1># start binary</span>
+                <span class=k>if</span> <span class=n>r01</span><span class=p>()</span> <span class=o><</span> <span class=n>br</span><span class=p>:</span>  <span class=c1># apply binary operator at rate br</span>
+                    <span class=n>sx2</span> <span class=o>=</span> <span class=n>sx</span>    <span class=c1># second source "x" initially=first sx</span>
+                    <span class=k>while</span> <span class=n>sx2</span> <span class=ow>is</span> <span class=n>sx</span><span class=p>:</span>     <span class=c1># until different from sx...</span>
+                        <span class=n>sx2</span> <span class=o>=</span> <span class=n>lst</span><span class=p>[</span><span class=n>r0i</span><span class=p>(</span><span class=n>mu</span><span class=p>)]</span><span class=o>.</span><span class=n>x</span>  <span class=c1># ..get random second "x"</span>
+                    <span class=n>op2</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>sx</span><span class=p>,</span> <span class=n>sx2</span><span class=p>)</span>  <span class=c1># apply binary operator</span>
+                    <span class=n>dest</span><span class=o>.</span><span class=n>f</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>  <span class=c1># evaluate new point</span>
+                    <span class=k>continue</span>  <span class=c1># below is "else" part with unary operat.</span>
+                <span class=c1># end binary</span>
+                <span class=c1># start nobinary</span>
+                <span class=n>op1</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>sx</span><span class=p>)</span>  <span class=c1># apply unary operator</span>
+                <span class=n>dest</span><span class=o>.</span><span class=n>f</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>  <span class=c1># evaluate new point</span>
+
+            <span class=n>lst</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>  <span class=c1># best records come first, ties broken by age</span></div>
+
+<span class=c1># end nobinary</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span>
+                 <span class=n>op1</span><span class=p>:</span> <span class=n>Op1</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>op2</span><span class=p>:</span> <span class=n>Op2</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>mu</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span><span class=p>,</span> <span class=n>lambda_</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span><span class=p>,</span>
+                 <span class=n>br</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"ea"</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the Evolutionary Algorithm (EA).</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param op1: the unary search operator</span>
+<span class=sd>        :param op2: the binary search operator</span>
+<span class=sd>        :param mu: the number of best solutions to survive in each generation</span>
+<span class=sd>        :param lambda_: the number of offspring in each generation</span>
+<span class=sd>        :param br: the rate at which the binary operator is applied</span>
+<span class=sd>        :param name: the base name of the algorithm</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=n>op1</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>op1</span> <span class=o>=</span> <span class=n>Op1</span><span class=p>()</span>
+            <span class=k>if</span> <span class=n>br</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>br</span> <span class=o>=</span> <span class=mf>1.0</span>
+            <span class=k>elif</span> <span class=n>br</span> <span class=o>!=</span> <span class=mf>1.0</span><span class=p>:</span>  <span class=c1># noqa: RUF069</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"if op1==None, br must be None or 1.0, but is </span><span class=si>{</span><span class=n>br</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=n>op1</span><span class=o>.</span><span class=vm>__class__</span> <span class=ow>is</span> <span class=n>Op1</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>br</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>br</span> <span class=o>=</span> <span class=mf>1.0</span>
+            <span class=k>elif</span> <span class=n>br</span> <span class=o>!=</span> <span class=mf>1.0</span><span class=p>:</span>  <span class=c1># noqa: RUF069</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"if op1 is Op1, br must be None or 1.0, but is </span><span class=si>{</span><span class=n>br</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=p>(</span><span class=n>br</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>br</span> <span class=o>==</span> <span class=mf>1.0</span><span class=p>):</span>  <span class=c1># noqa: RUF069</span>
+            <span class=n>op1</span> <span class=o>=</span> <span class=n>Op1</span><span class=p>()</span>
+
+        <span class=k>if</span> <span class=n>op2</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>op2</span> <span class=o>=</span> <span class=n>Op2</span><span class=p>()</span>
+            <span class=k>if</span> <span class=n>br</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>br</span> <span class=o>=</span> <span class=mf>0.0</span>
+            <span class=k>elif</span> <span class=n>br</span> <span class=o>!=</span> <span class=mf>0.0</span><span class=p>:</span>  <span class=c1># noqa: RUF069</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"if op2==None, br must be None or 0.0, but is </span><span class=si>{</span><span class=n>br</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=n>op2</span><span class=o>.</span><span class=vm>__class__</span> <span class=ow>is</span> <span class=n>Op2</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>br</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>br</span> <span class=o>=</span> <span class=mf>0.0</span>
+            <span class=k>elif</span> <span class=n>br</span> <span class=o>!=</span> <span class=mf>0.0</span><span class=p>:</span>  <span class=c1># noqa: RUF069</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"if op2 is Op2, br must be None or 0.0, but is </span><span class=si>{</span><span class=n>br</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=p>(</span><span class=n>br</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>br</span> <span class=o>==</span> <span class=mf>0.0</span><span class=p>):</span>  <span class=c1># noqa: RUF069</span>
+            <span class=n>op2</span> <span class=o>=</span> <span class=n>Op2</span><span class=p>()</span>
+        <span class=k>elif</span> <span class=p>(</span><span class=n>mu</span> <span class=o>==</span> <span class=mi>1</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>br</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>):</span>
+            <span class=n>br</span> <span class=o>=</span> <span class=mf>0.0</span>
+            <span class=n>op2</span> <span class=o>=</span> <span class=n>Op2</span><span class=p>()</span>
+
+        <span class=k>if</span> <span class=n>br</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>br</span> <span class=o>=</span> <span class=mf>0.2</span>
+
+        <span class=n>name</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>name</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}{</span><span class=n>mu</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}{</span><span class=n>lambda_</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>if</span> <span class=mi>0</span> <span class=o><</span> <span class=n>br</span> <span class=o><</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=n>name</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>name</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}{</span><span class=n>num_to_str_for_name</span><span class=p>(</span><span class=n>br</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=n>op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>,</span> <span class=n>op2</span><span class=p>)</span>
+
+        <span class=c1>#: the number of records to survive in each generation</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>mu</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>mu</span><span class=p>,</span> <span class=s2>"mu"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+        <span class=c1>#: the number of offsprings per generation</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>lambda_</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>lambda_</span><span class=p>,</span> <span class=s2>"lambda"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>br</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>br</span><span class=p>,</span> <span class=s2>"br"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>isfinite</span><span class=p>(</span><span class=n>br</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=mf>0.0</span> <span class=o><=</span> <span class=n>br</span> <span class=o><=</span> <span class=mf>1.0</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid br=</span><span class=si>{</span><span class=n>br</span><span class=si>}</span><span class=s2>, must be in [0, 1]."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>br</span> <span class=o>></span> <span class=mf>0.0</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>mu</span> <span class=o><=</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"if br (=</span><span class=si>{</span><span class=n>br</span><span class=si>}</span><span class=s2>) > 0, then mu (=</span><span class=si>{</span><span class=n>mu</span><span class=si>}</span><span class=s2>) must be > 1."</span><span class=p>)</span>
+        <span class=c1>#: the rate at which the binary operator is applied</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>br</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>br</span>
+
+<div class=viewcode-block id=EA.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.ea.EA.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of the algorithm to a logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"mu"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>mu</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"lambda"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>lambda_</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"br"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>br</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.ea</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

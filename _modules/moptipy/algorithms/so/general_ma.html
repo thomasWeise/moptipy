@@ -1,0 +1,297 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.general_ma — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/general_ma.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.general_ma</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.general_ma</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>A fully configurable, general (mu+lambda) Memetic Algorithm.</span>
+
+<span class=sd>This Memetic Algorithm implementation compares to the one in</span>
+<span class=sd>:mod:`~moptipy.algorithms.so.ma` like the general Evolutionary Algorithm</span>
+<span class=sd>from :mod:`~moptipy.algorithms.so.general_ea` compares to the simple one</span>
+<span class=sd>in :mod:`~moptipy.algorithms.so.ea`: It adds survival and mating selection as</span>
+<span class=sd>well as a fitness assignment procedure.</span>
+
+<span class=sd>It begins by sampling :attr:`~moptipy.algorithms.so.ma.MA.mu`</span>
+<span class=sd>solutions using the nullary search operation</span>
+<span class=sd>:attr:`~moptipy.api.algorithm.Algorithm0.op0`. Each of these solutions is</span>
+<span class=sd>refined for :attr:`~moptipy.algorithms.so.ma.MA.ls_fes` objective function</span>
+<span class=sd>evaluations using the local search :attr:`~moptipy.algorithms.so.ma.MA.ls`.</span>
+<span class=sd>In each iteration, this algorithm then uses</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ma.MA.mu` existing solutions as input for</span>
+<span class=sd>the binary search operation :attr:`~moptipy.api.algorithm.Algorithm2.op2`.</span>
+<span class=sd>The inputs of the operator are chosen from the</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ma.MA.mu` solutions using</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.general_ma.GeneralMA.mating`</span>
+<span class=sd>selection. Each of the :attr:`~moptipy.algorithms.so.ma.MA.lambda_` new</span>
+<span class=sd>solutions have been created this way are again refined for</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.ma.MA.ls_fes` objective function evaluations</span>
+<span class=sd>using the local search :attr:`~moptipy.algorithms.so.ma.MA.ls`. Then, a</span>
+<span class=sd>fitness assignment process (:class:`~moptipy.algorithms.so.fitness.Fitness`)</span>
+<span class=sd>assigns fitness values to them based on their objective values</span>
+<span class=sd>(:attr:`~moptipy.algorithms.so.record.Record.f`), maybe also using the index</span>
+<span class=sd>of the iteration (:attr:`~moptipy.algorithms.so.record.Record.it`) in which</span>
+<span class=sd>they were created. The survival selection</span>
+<span class=sd>:attr:`~moptipy.algorithms.so.general_ma.GeneralMA.survival` then chooses,</span>
+<span class=sd>from the joint set of `mu+lambda` solutions, the `mu` solutions for the</span>
+<span class=sd>next iteration. Both mating and survival selection are instances of class</span>
+<span class=sd>:class:`~moptipy.algorithms.modules.selection.Selection`.</span>
+
+<span class=sd>1. Pablo Moscato. *On Evolution, Search, Optimization, Genetic Algorithms and</span>
+<span class=sd>   Martial Arts: Towards Memetic Algorithms.* Caltech Concurrent Computation</span>
+<span class=sd>   Program Report C3P 826. 1989. Pasadena, CA, USA: California Institute of</span>
+<span class=sd>   Technology (Caltech), Caltech Concurrent Computation Program (C3P).</span>
+<span class=sd>   https://www.researchgate.net/publication/2354457</span>
+<span class=sd>2. Carlos Cotta, Luke Mathieson, and Pablo Moscato. Memetic Algorithms. In</span>
+<span class=sd>   Rafael Martí, Panos M. Pardalos, and Mauricio G. C. Resende, editors,</span>
+<span class=sd>   *Handbook of Heuristics.* Part~III: Metaheuristics, pages 607-638. 2018.</span>
+<span class=sd>   Cham, Switzerland: Springer. ISBN: 978-3-319-07123-7.</span>
+<span class=sd>   doi: https://doi.org/10.1007/978-3-319-07153-4_29-1</span>
+<span class=sd>   https://www.researchgate.net/publication/315660932</span>
+<span class=sd>3. William Eugene Hart, James E. Smith, and Natalio Krasnogor, editors.</span>
+<span class=sd>   *Recent Advances in Memetic Algorithms.* Studies in Fuzziness and Soft</span>
+<span class=sd>   Computing (STUDFUZZ), volume 166. 2005. Berlin/Heidelberg, Germany:</span>
+<span class=sd>   Springer. ISBN: 978-3-540-22904-9.</span>
+<span class=sd>   doi: https://doi.org/10.1007/3-540-32363-5</span>
+<span class=sd>4. Ferrante Neri, Carlos Cotta, and Pablo Moscato. *Handbook of Memetic</span>
+<span class=sd>   Algorithms.* Volume 379 of Studies in Computational Intelligence (SCI).</span>
+<span class=sd>   2012. Berlin/Heidelberg, Germany: Springer. ISBN: 978-3-642-23246-6</span>
+<span class=sd>   doi https://doi.org/10.1007/978-3-642-23247-3.</span>
+<span class=sd>5. L. Darrell Whitley, V. Scott Gordon, and Keith E. Mathias. Lamarckian</span>
+<span class=sd>   Evolution, The Baldwin Effect and Function Optimization. In Yuval Davidor,</span>
+<span class=sd>   Hans-Paul Schwefel, and Reinhard Männer, editors, *Proceedings of the Third</span>
+<span class=sd>   Conference on Parallel Problem Solving from Nature; International</span>
+<span class=sd>   Conference on Evolutionary Computation (PPSN III),* October 9-14, 1994,</span>
+<span class=sd>   Jerusalem, Israel, pages 5-15. Volume 866/1994 of Lecture Notes in Computer</span>
+<span class=sd>   Science, Berlin, Germany: Springer-Verlag GmbH. ISBN 0387584846.</span>
+<span class=sd>   doi: https://doi.org/10.1007/3-540-58484-6_245.</span>
+<span class=sd>   https://www.researchgate.net/publication/2521727</span>
+<span class=sd>6. Thomas Bäck, David B. Fogel, and Zbigniew Michalewicz, eds., *Handbook of</span>
+<span class=sd>   Evolutionary Computation.* 1997. Computational Intelligence Library.</span>
+<span class=sd>   New York, NY, USA: Oxford University Press, Inc. ISBN: 0-7503-0392-1</span>
+<span class=sd>7. James C. Spall. *Introduction to Stochastic Search and Optimization.*</span>
+<span class=sd>   Estimation, Simulation, and Control - Wiley-Interscience Series in Discrete</span>
+<span class=sd>   Mathematics and Optimization, volume 6. 2003. Chichester, West Sussex, UK:</span>
+<span class=sd>   Wiley Interscience. ISBN: 0-471-33052-3. http://www.jhuapl.edu/ISSO/.</span>
+<span class=sd>8. Frank Hoffmeister and Thomas Bäck. Genetic Algorithms and Evolution</span>
+<span class=sd>   Strategies: Similarities and Differences. In Hans-Paul Schwefel and</span>
+<span class=sd>   Reinhard Männer, *Proceedings of the International Conference on Parallel</span>
+<span class=sd>   Problem Solving from Nature (PPSN I),* October 1-3, 1990, Dortmund,</span>
+<span class=sd>   Germany, volume 496 of Lecture Notes in Computer Science, pages 455-469,</span>
+<span class=sd>   Berlin/Heidelberg, Germany: Springer. ISBN: 978-3-540-54148-6.</span>
+<span class=sd>   https://doi.org/10.1007/BFb0029787.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.modules.selection</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>FitnessRecord</span><span class=p>,</span>
+    <span class=n>Selection</span><span class=p>,</span>
+    <span class=n>check_selection</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.modules.selections.best</span><span class=w> </span><span class=kn>import</span> <span class=n>Best</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.modules.selections.random_without_repl</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>RandomWithoutReplacement</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.fitness</span><span class=w> </span><span class=kn>import</span> <span class=n>Fitness</span><span class=p>,</span> <span class=n>FRecord</span><span class=p>,</span> <span class=n>check_fitness</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.fitnesses.rank_and_iteration</span><span class=w> </span><span class=kn>import</span> <span class=n>RankAndIteration</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.general_ea</span><span class=w> </span><span class=kn>import</span> <span class=n>_Record</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.ma</span><span class=w> </span><span class=kn>import</span> <span class=n>MA</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm0</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>Op2</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.subprocesses</span><span class=w> </span><span class=kn>import</span> <span class=n>for_fes</span><span class=p>,</span> <span class=n>from_starting_point</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.operators.op0_forward</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0Forward</span>  <span class=c1># pylint: disable=W0611</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=n>PART_SEPARATOR</span>
+
+
+<div class=viewcode-block id=GeneralMA>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.general_ma.GeneralMA>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>GeneralMA</span><span class=p>(</span><span class=n>MA</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The fully customizable (mu+lambda) MA."""</span>
+
+<div class=viewcode-block id=GeneralMA.solve>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.general_ma.GeneralMA.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the (mu+lambda) MA to an optimization problem.</span>
+
+<span class=sd>        :param process: the black-box process object</span>
+<span class=sd>        """</span>
+        <span class=c1># initialization of some variables omitted in book for brevity</span>
+        <span class=n>mu</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>mu</span>  <span class=c1># mu: number of best solutions kept</span>
+        <span class=n>lambda_</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>lambda_</span>  <span class=c1># number of new solutions/gen</span>
+        <span class=n>mu_plus_lambda</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>mu</span> <span class=o>+</span> <span class=n>lambda_</span>  <span class=c1># size = mu + lambda</span>
+        <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>()</span>  <span class=c1># random gen</span>
+        <span class=n>create</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span>  <span class=c1># create x container</span>
+        <span class=n>evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>evaluate</span>  <span class=c1># the objective</span>
+        <span class=n>op0</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op0</span><span class=o>.</span><span class=n>op0</span>  <span class=c1># the nullary operator</span>
+        <span class=n>op2</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op2</span><span class=o>.</span><span class=n>op2</span>  <span class=c1># the binary operator</span>
+        <span class=n>should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>
+        <span class=n>ls_fes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>ls_fes</span>  <span class=c1># the number of FEs per ls run</span>
+        <span class=n>ls_solve</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Process</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>ls</span><span class=o>.</span><span class=n>solve</span>  <span class=c1># +book</span>
+        <span class=n>forward_ls_op0_to</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span>  <span class=c1># forward starting</span>
+            <span class=s2>"Op0Forward"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>ls</span><span class=o>.</span><span class=n>op0</span><span class=p>)</span><span class=o>.</span><span class=n>forward_to</span>  <span class=c1># point of ls to...</span>
+        <span class=n>assign_fitness</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=nb>list</span><span class=p>[</span><span class=n>FRecord</span><span class=p>],</span> <span class=n>Generator</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=bp>self</span><span class=o>.</span><span class=n>fitness</span><span class=o>.</span><span class=n>assign_fitness</span>
+        <span class=n>survival_selection</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>FRecord</span><span class=p>],</span> <span class=n>Callable</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=n>Generator</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[list[FRecord], Callable, int, Generator],"</span>
+                 <span class=s2>"None]"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>survival</span><span class=o>.</span><span class=n>select</span><span class=p>)</span>
+        <span class=n>mating_selection</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>FRecord</span><span class=p>],</span> <span class=n>Callable</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=n>Generator</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[list[FRecord], Callable, int, Generator],"</span>
+                 <span class=s2>"None]"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>mating</span><span class=o>.</span><span class=n>select</span><span class=p>)</span>
+        <span class=n>recs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=kc>None</span><span class=p>]</span> <span class=o>*</span> <span class=n>mu_plus_lambda</span>  <span class=c1># pre-allocate list</span>
+        <span class=n>parents</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=kc>None</span><span class=p>,</span> <span class=kc>None</span><span class=p>]</span>  <span class=c1># mating pool: length 2</span>
+        <span class=n>population</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=kc>None</span><span class=p>]</span> <span class=o>*</span> <span class=n>mu_plus_lambda</span>  <span class=c1># whole pop</span>
+        <span class=n>parents_clear</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=n>parents</span><span class=o>.</span><span class=n>clear</span>
+        <span class=n>parents_append</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>FitnessRecord</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[FitnessRecord], None]"</span><span class=p>,</span> <span class=n>parents</span><span class=o>.</span><span class=n>append</span><span class=p>)</span>
+        <span class=n>population_clear</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=n>population</span><span class=o>.</span><span class=n>clear</span>
+        <span class=n>population_append</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>_Record</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[_Record], None]"</span><span class=p>,</span> <span class=n>population</span><span class=o>.</span><span class=n>append</span><span class=p>)</span>
+
+        <span class=c1># create list of mu random/ls records and lambda empty records</span>
+        <span class=n>f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># variable to hold objective values</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>mu_plus_lambda</span><span class=p>):</span>  <span class=c1># fill list of size mu+lambda</span>
+            <span class=n>x</span> <span class=o>=</span> <span class=n>create</span><span class=p>()</span>  <span class=c1># by creating point in search space</span>
+            <span class=n>selected</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=n>i</span> <span class=o><</span> <span class=n>mu</span>  <span class=c1># only fully create first mu recs</span>
+            <span class=k>if</span> <span class=n>selected</span><span class=p>:</span>  <span class=c1># only the first mu records are initialized by</span>
+                <span class=n>op0</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span>  <span class=c1># applying nullary operator = randomize</span>
+                <span class=k>if</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># should we stop now?</span>
+                    <span class=n>cast</span><span class=p>(</span><span class=s2>"Op0Forward"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>ls</span><span class=o>.</span><span class=n>op0</span><span class=p>)</span><span class=o>.</span><span class=n>stop_forwarding</span><span class=p>()</span>
+                    <span class=k>if</span> <span class=n>process</span><span class=o>.</span><span class=n>has_log</span><span class=p>():</span>
+                        <span class=bp>self</span><span class=o>.</span><span class=n>fitness</span><span class=o>.</span><span class=n>log_information_after_run</span><span class=p>(</span><span class=n>process</span><span class=p>)</span>
+                    <span class=k>return</span>   <span class=c1># computational budget exhausted -> quit</span>
+                <span class=k>with</span> <span class=n>for_fes</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=n>ls_fes</span><span class=p>)</span> <span class=k>as</span> <span class=n>s1</span><span class=p>,</span> \
+                        <span class=n>from_starting_point</span><span class=p>(</span><span class=n>s1</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>))</span> <span class=k>as</span> <span class=n>s2</span><span class=p>:</span>
+                    <span class=n>forward_ls_op0_to</span><span class=p>(</span><span class=n>s2</span><span class=o>.</span><span class=n>get_copy_of_best_x</span><span class=p>)</span>
+                    <span class=n>ls_solve</span><span class=p>(</span><span class=n>s2</span><span class=p>)</span>  <span class=c1># apply local search modifying x</span>
+                    <span class=n>f</span> <span class=o>=</span> <span class=n>s2</span><span class=o>.</span><span class=n>get_best_f</span><span class=p>()</span>  <span class=c1># get quality of x</span>
+            <span class=n>recs</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>_Record</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>,</span> <span class=n>selected</span><span class=p>)</span>  <span class=c1># create and store record</span>
+
+        <span class=n>mating_pool</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>]</span> <span class=o>=</span> <span class=n>recs</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=n>mu</span><span class=p>]</span>  <span class=c1># the selection survivors</span>
+        <span class=n>assign_fitness</span><span class=p>(</span><span class=n>mating_pool</span><span class=p>,</span> <span class=n>random</span><span class=p>)</span>  <span class=c1># assign fitness first time</span>
+
+        <span class=n>mating_pool_clear</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=n>mating_pool</span><span class=o>.</span><span class=n>clear</span>
+        <span class=n>mating_pool_append</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>FitnessRecord</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[FitnessRecord], None]"</span><span class=p>,</span> <span class=n>mating_pool</span><span class=o>.</span><span class=n>append</span><span class=p>)</span>
+
+        <span class=n>it</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># set the iteration counter</span>
+        <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>  <span class=c1># lst: keep 0..mu-1, overwrite mu..mu+lambda-1</span>
+            <span class=n>it</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># step the iteration counter</span>
+            <span class=n>population_clear</span><span class=p>()</span>  <span class=c1># clear population</span>
+
+            <span class=n>di</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># set index of next potential destination</span>
+            <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>lambda_</span><span class=p>):</span>  <span class=c1># for all lambda offspring</span>
+                <span class=k>if</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># should we stop now?</span>
+                    <span class=n>cast</span><span class=p>(</span><span class=s2>"Op0Forward"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>ls</span><span class=o>.</span><span class=n>op0</span><span class=p>)</span><span class=o>.</span><span class=n>stop_forwarding</span><span class=p>()</span>
+                    <span class=k>if</span> <span class=n>process</span><span class=o>.</span><span class=n>has_log</span><span class=p>():</span>
+                        <span class=bp>self</span><span class=o>.</span><span class=n>fitness</span><span class=o>.</span><span class=n>log_information_after_run</span><span class=p>(</span><span class=n>process</span><span class=p>)</span>
+                    <span class=k>return</span>   <span class=c1># computational budget exhausted -> quit</span>
+                <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>  <span class=c1># get the next non-selected record</span>
+                    <span class=n>dest</span> <span class=o>=</span> <span class=n>recs</span><span class=p>[</span><span class=n>di</span><span class=p>]</span>  <span class=c1># get the record</span>
+                    <span class=n>di</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># step counter</span>
+                    <span class=k>if</span> <span class=n>dest</span><span class=o>.</span><span class=n>_selected</span><span class=p>:</span>  <span class=c1># if it was selected</span>
+                        <span class=n>dest</span><span class=o>.</span><span class=n>_selected</span> <span class=o>=</span> <span class=kc>False</span>  <span class=c1># mark it as unselected</span>
+                        <span class=n>population_append</span><span class=p>(</span><span class=n>dest</span><span class=p>)</span>  <span class=c1># store in population</span>
+                        <span class=k>continue</span>  <span class=c1># try next record</span>
+                    <span class=k>break</span>  <span class=c1># use the (unselected) record as destination</span>
+
+                <span class=n>x</span> <span class=o>=</span> <span class=n>dest</span><span class=o>.</span><span class=n>x</span>  <span class=c1># the destination "x" value</span>
+                <span class=n>dest</span><span class=o>.</span><span class=n>it</span> <span class=o>=</span> <span class=n>it</span>  <span class=c1># remember iteration of solution creation</span>
+                <span class=n>parents_clear</span><span class=p>()</span>  <span class=c1># clear mating pool to make room for 2</span>
+                <span class=n>mating_selection</span><span class=p>(</span><span class=n>mating_pool</span><span class=p>,</span> <span class=n>parents_append</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=n>random</span><span class=p>)</span>
+
+                <span class=n>op2</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>parents</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>x</span><span class=p>,</span> <span class=n>parents</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>x</span><span class=p>)</span>
+                <span class=k>with</span> <span class=n>for_fes</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=n>ls_fes</span><span class=p>)</span> <span class=k>as</span> <span class=n>s1</span><span class=p>,</span> \
+                        <span class=n>from_starting_point</span><span class=p>(</span><span class=n>s1</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>))</span> <span class=k>as</span> <span class=n>s2</span><span class=p>:</span>
+                    <span class=n>forward_ls_op0_to</span><span class=p>(</span><span class=n>s2</span><span class=o>.</span><span class=n>get_copy_of_best_x</span><span class=p>)</span>
+                    <span class=n>ls_solve</span><span class=p>(</span><span class=n>s2</span><span class=p>)</span>  <span class=c1># apply local search modifying x</span>
+                    <span class=n>dest</span><span class=o>.</span><span class=n>f</span> <span class=o>=</span> <span class=n>s2</span><span class=o>.</span><span class=n>get_best_f</span><span class=p>()</span>  <span class=c1># get quality of x</span>
+
+                <span class=n>population_append</span><span class=p>(</span><span class=n>dest</span><span class=p>)</span>  <span class=c1># store in population</span>
+
+            <span class=c1># add remaining selected solutions from recs to population</span>
+            <span class=k>for</span> <span class=n>di2</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>di</span><span class=p>,</span> <span class=n>mu_plus_lambda</span><span class=p>):</span>
+                <span class=n>other</span> <span class=o>=</span> <span class=n>recs</span><span class=p>[</span><span class=n>di2</span><span class=p>]</span>
+                <span class=k>if</span> <span class=n>other</span><span class=o>.</span><span class=n>_selected</span><span class=p>:</span>  <span class=c1># only if solution was selected</span>
+                    <span class=n>other</span><span class=o>.</span><span class=n>_selected</span> <span class=o>=</span> <span class=kc>False</span>  <span class=c1># set as unselected</span>
+                    <span class=n>population_append</span><span class=p>(</span><span class=n>other</span><span class=p>)</span>  <span class=c1># put into population</span>
+
+            <span class=n>assign_fitness</span><span class=p>(</span><span class=n>population</span><span class=p>,</span> <span class=n>random</span><span class=p>)</span>  <span class=c1># assign fitness</span>
+            <span class=n>mating_pool_clear</span><span class=p>()</span>  <span class=c1># clear list of survived records</span>
+            <span class=n>survival_selection</span><span class=p>(</span><span class=n>population</span><span class=p>,</span> <span class=n>mating_pool_append</span><span class=p>,</span> <span class=n>mu</span><span class=p>,</span> <span class=n>random</span><span class=p>)</span>
+            <span class=k>for</span> <span class=n>rec</span> <span class=ow>in</span> <span class=n>mating_pool</span><span class=p>:</span>  <span class=c1># mark all selected solutions as</span>
+                <span class=n>rec</span><span class=o>.</span><span class=n>_selected</span> <span class=o>=</span> <span class=kc>True</span>  <span class=c1># selected</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>op2</span><span class=p>:</span> <span class=n>Op2</span><span class=p>,</span>
+                 <span class=n>ls</span><span class=p>:</span> <span class=n>Algorithm0</span><span class=p>,</span>
+                 <span class=n>mu</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>2</span><span class=p>,</span> <span class=n>lambda_</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span><span class=p>,</span>
+                 <span class=n>ls_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1000</span><span class=p>,</span>
+                 <span class=n>fitness</span><span class=p>:</span> <span class=n>Fitness</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>survival</span><span class=p>:</span> <span class=n>Selection</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>mating</span><span class=p>:</span> <span class=n>Selection</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"generalMa"</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the customizable Memetic Algorithm (MA).</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param op2: the binary search operator</span>
+<span class=sd>        :param ls: the local search to apply to each new solution</span>
+<span class=sd>        :param mu: the number of best solutions to survive in each generation</span>
+<span class=sd>        :param lambda_: the number of offspring in each generation</span>
+<span class=sd>        :param ls_fes: the number of FEs (steps) per local search run</span>
+<span class=sd>        :param fitness: the fitness assignment process</span>
+<span class=sd>        :param survival: the survival selections algorithm</span>
+<span class=sd>        :param mating: the mating selections algorithm</span>
+<span class=sd>        :param name: the base name of the algorithm</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=n>fitness</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>fitness</span> <span class=o>=</span> <span class=n>RankAndIteration</span><span class=p>()</span>
+        <span class=k>if</span> <span class=n>fitness</span><span class=o>.</span><span class=vm>__class__</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>RankAndIteration</span><span class=p>:</span>
+            <span class=n>name</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>name</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}{</span><span class=n>fitness</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>if</span> <span class=n>survival</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>survival</span> <span class=o>=</span> <span class=n>Best</span><span class=p>()</span>
+        <span class=k>if</span> <span class=n>mating</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>mating</span> <span class=o>=</span> <span class=n>RandomWithoutReplacement</span><span class=p>()</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>survival</span><span class=o>.</span><span class=vm>__class__</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>Best</span><span class=p>)</span> \
+                <span class=ow>or</span> <span class=p>(</span><span class=n>mating</span><span class=o>.</span><span class=vm>__class__</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>RandomWithoutReplacement</span><span class=p>):</span>
+            <span class=n>name</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>name</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}{</span><span class=n>survival</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}{</span><span class=n>mating</span><span class=si>}</span><span class=s2>"</span>
+
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>op0</span><span class=p>,</span> <span class=n>op2</span><span class=p>,</span> <span class=n>ls</span><span class=p>,</span> <span class=n>mu</span><span class=p>,</span> <span class=n>lambda_</span><span class=p>,</span> <span class=n>ls_fes</span><span class=p>,</span> <span class=n>name</span><span class=p>)</span>
+        <span class=c1>#: the fitness assignment process</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>fitness</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Fitness</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_fitness</span><span class=p>(</span><span class=n>fitness</span><span class=p>)</span>
+        <span class=c1>#: the survival selection algorithm</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>survival</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Selection</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_selection</span><span class=p>(</span><span class=n>survival</span><span class=p>)</span>
+        <span class=c1>#: the mating selection algorithm</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>mating</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Selection</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_selection</span><span class=p>(</span><span class=n>mating</span><span class=p>)</span>
+
+<div class=viewcode-block id=GeneralMA.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.general_ma.GeneralMA.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of the algorithm to a logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=k>with</span> <span class=n>logger</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=s2>"fitness"</span><span class=p>)</span> <span class=k>as</span> <span class=n>v</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>fitness</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>v</span><span class=p>)</span>
+        <span class=k>with</span> <span class=n>logger</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=s2>"survival"</span><span class=p>)</span> <span class=k>as</span> <span class=n>s</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>survival</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>s</span><span class=p>)</span>
+        <span class=k>with</span> <span class=n>logger</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=s2>"mating"</span><span class=p>)</span> <span class=k>as</span> <span class=n>m</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>mating</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>m</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=GeneralMA.initialize>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.general_ma.GeneralMA.initialize>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>initialize</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize the algorithm."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>survival</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>mating</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>fitness</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.general_ma</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

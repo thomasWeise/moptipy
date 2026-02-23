@@ -1,0 +1,152 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.fitness — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/fitness.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.fitness</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.fitness</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Fitness Assignment Processes assign scalar fitnesses to solutions.</span>
+
+<span class=sd>A :class:`~moptipy.algorithms.so.fitness.Fitness` Assignment Process uses</span>
+<span class=sd>the information of a set of instances of</span>
+<span class=sd>:class:`~moptipy.algorithms.so.fitness.FRecord` to compute their scalar</span>
+<span class=sd>:attr:`~moptipy.algorithms.modules.selection.FitnessRecord.fitness`.</span>
+<span class=sd>This fitness is then used by</span>
+<span class=sd>:class:`~moptipy.algorithms.modules.selection.Selection` algorithms.</span>
+<span class=sd>:class:`~moptipy.algorithms.modules.selection.Selection` is important in,</span>
+<span class=sd>e.g., Evolutionary Algorithms (`~moptipy.algorithms.so.general_ea.GeneralEA`),</span>
+<span class=sd>where it is used in two places: As *survival selection*, it chooses which</span>
+<span class=sd>points will be allowed to remain in the population and, hence, survive into</span>
+<span class=sd>the mating pool for the next generation. As *mating selection* methods, they</span>
+<span class=sd>choose the inputs of the search operations from the mating pool.</span>
+
+<span class=sd>The following :class:`~moptipy.algorithms.so.fitness.Fitness` Assignment</span>
+<span class=sd>Processes have been implemented so far:</span>
+
+<span class=sd>- :class:`~moptipy.algorithms.so.fitnesses.direct.Direct` directly copies the</span>
+<span class=sd>  objective values (:attr:`~moptipy.algorithms.so.record.Record.f`) of the</span>
+<span class=sd>  solution records directly over to the fitness.</span>
+<span class=sd>- :class:`~moptipy.algorithms.so.fitnesses.rank.Rank` ranks the solutions by</span>
+<span class=sd>  their objective values and uses the ranks as fitness.</span>
+<span class=sd>- :class:`~moptipy.algorithms.so.fitnesses.rank_and_iteration\</span>
+<span class=sd>.RankAndIteration` also uses the rank of the objective values in the fitness.</span>
+<span class=sd>  Additionally, if two solutions have the same objective value but one of them</span>
+<span class=sd>  is newer, then the newer one will receive the better fitness. This is done</span>
+<span class=sd>  by accessing the iteration counter</span>
+<span class=sd>  (:attr:`~moptipy.algorithms.so.record.Record.it`) of the solution records.</span>
+<span class=sd>- :class:`~moptipy.algorithms.so.ffa.ffa_fitness.FFA` performs the Frequency</span>
+<span class=sd>  Fitness Assignment which is suitable for problems with few different</span>
+<span class=sd>  objective values and large computational budgets.</span>
+
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.modules.selection</span><span class=w> </span><span class=kn>import</span> <span class=n>FitnessRecord</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.record</span><span class=w> </span><span class=kn>import</span> <span class=n>Record</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.component</span><span class=w> </span><span class=kn>import</span> <span class=n>Component</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=FRecord>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.fitness.FRecord>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>FRecord</span><span class=p>(</span><span class=n>Record</span><span class=p>,</span> <span class=n>FitnessRecord</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A point `x` in the search space with its quality and fitness."""</span>
+
+<span class=c1># end book</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the record.</span>
+
+<span class=sd>        :param x: the data structure for a point in the search space</span>
+<span class=sd>        :param f: the corresponding objective value</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>)</span>
+        <span class=c1>#: the fitness assigned to the solution `x`</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>fitness</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__lt__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>other</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Precedence on better ftness.</span>
+
+<span class=sd>        :param other: the other record</span>
+<span class=sd>        :returns: `True` if this record has a better fitness value</span>
+<span class=sd>            (:attr:`fitness`)</span>
+
+<span class=sd>        >>> r1 = FRecord(None, 1)</span>
+<span class=sd>        >>> r2 = FRecord(None, 1)</span>
+<span class=sd>        >>> r1 < r2</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> r2 < r1</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> r1.fitness = 10</span>
+<span class=sd>        >>> r2.fitness = 9</span>
+<span class=sd>        >>> r2 < r1</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> r1 < r2</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> r1.fitness = r2.fitness</span>
+<span class=sd>        >>> r1.it = 10</span>
+<span class=sd>        >>> r2.it = 9</span>
+<span class=sd>        >>> r1 < r2</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> r2 < r1</span>
+<span class=sd>        False</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>fitness</span> <span class=o><</span> <span class=n>other</span><span class=o>.</span><span class=n>fitness</span></div>
+
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=Fitness>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.fitness.Fitness>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Fitness</span><span class=p>(</span><span class=n>Component</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The base class for fitness assignment processes."""</span>
+
+<div class=viewcode-block id=Fitness.assign_fitness>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.fitness.Fitness.assign_fitness>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>assign_fitness</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>p</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>FRecord</span><span class=p>],</span>
+                       <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># pylint: disable=W0613</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Assign a fitness to each element in the list `p`.</span>
+
+<span class=sd>        :param p: the list of :class:`FRecord` instances</span>
+<span class=sd>        :param random: the random number generator</span>
+<span class=sd>        """</span></div>
+
+<span class=c1># end book</span>
+
+<div class=viewcode-block id=Fitness.log_information_after_run>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.fitness.Fitness.log_information_after_run>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_information_after_run</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the information of this fitness assignment process to the process.</span>
+
+<span class=sd>        An instance of :class:`~moptipy.api.process.Process` is given to this</span>
+<span class=sd>        method after the algorithm has completed its work. The fitness</span>
+<span class=sd>        assignment process then may store some data as a separate log section</span>
+<span class=sd>        via :meth:`~moptipy.api.process.Process.add_log_section` if it wants</span>
+<span class=sd>        to. Implementing this method is optional. This method is only invoked</span>
+<span class=sd>        if :meth:`~moptipy.api.process.Process.has_log` returns `True`.</span>
+<span class=sd>        """</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=check_fitness>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.fitness.check_fitness>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>check_fitness</span><span class=p>(</span><span class=n>fitness</span><span class=p>:</span> <span class=n>Fitness</span><span class=p>)</span> <span class=o>-></span> <span class=n>Fitness</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether an object is a valid instance of :class:`Fitness`.</span>
+
+<span class=sd>    :param fitness: the Fitness object</span>
+<span class=sd>    :return: the object</span>
+<span class=sd>    :raises TypeError: if `fitness` is not an instance of :class:`Fitness`</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>fitness</span><span class=p>,</span> <span class=n>Fitness</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>fitness</span><span class=p>,</span> <span class=s2>"op0"</span><span class=p>,</span> <span class=n>Fitness</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>fitness</span><span class=o>.</span><span class=vm>__class__</span> <span class=ow>is</span> <span class=n>Fitness</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>TypeError</span><span class=p>(</span><span class=s2>"cannot use abstract class 'Fitness' directly"</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>fitness</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.fitness</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

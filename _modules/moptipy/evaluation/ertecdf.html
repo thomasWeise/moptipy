@@ -1,0 +1,138 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.ertecdf — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/ertecdf.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.ertecdf</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.ertecdf</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Approximate the ECDF over the ERT to reach certain goals.</span>
+
+<span class=sd>The empirical cumulative distribution function (ECDF, see</span>
+<span class=sd>:mod:`~moptipy.evaluation.ecdf`) is a function that shows the fraction of runs</span>
+<span class=sd>that were successful in attaining a certain goal objective value over the</span>
+<span class=sd>time. The (empirically estimated) Expected Running Time (ERT, see</span>
+<span class=sd>:mod:`~moptipy.evaluation.ert`) is a function that tries to give an estimate</span>
+<span class=sd>how long a given algorithm setup will need (y-axis) to achieve given solution</span>
+<span class=sd>qualities (x-axis). It uses a set of runs of the algorithm on the problem to</span>
+<span class=sd>make this estimate under the assumption of independent restarts.</span>
+
+<span class=sd>Now in the ERT-ECDF we combine both concepts to join several different</span>
+<span class=sd>optimization problems or problem instances into one plot. The goal becomes</span>
+<span class=sd>"solving the problem". For each problem instance, we compute the ERT, i.e.,</span>
+<span class=sd>estimate how long a given algorithm will need to reach the goal. This becomes</span>
+<span class=sd>the time axis. Over this time axis, the ERT-ECDF displays the fraction of</span>
+<span class=sd>instances that were solved.</span>
+
+<span class=sd>1. Thomas Weise, Zhize Wu, Xinlu Li, and Yan Chen. Frequency Fitness</span>
+<span class=sd>   Assignment: Making Optimization Algorithms Invariant under Bijective</span>
+<span class=sd>   Transformations of the Objective Function Value. *IEEE Transactions on</span>
+<span class=sd>   Evolutionary Computation* 25(2):307-319. April 2021. Preprint available at</span>
+<span class=sd>   arXiv:2001.01416v5 [cs.NE] 15 Oct 2020. http://arxiv.org/abs/2001.01416.</span>
+<span class=sd>   doi: https://doi.org/10.1109/TEVC.2020.3032090</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>dataclasses</span><span class=w> </span><span class=kn>import</span> <span class=n>dataclass</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.ecdf</span><span class=w> </span><span class=kn>import</span> <span class=n>Ecdf</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.ert</span><span class=w> </span><span class=kn>import</span> <span class=n>compute_single_ert</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.progress</span><span class=w> </span><span class=kn>import</span> <span class=n>Progress</span>
+
+
+<div class=viewcode-block id=ErtEcdf>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.ertecdf.ErtEcdf>[docs]</a>
+<span class=nd>@dataclass</span><span class=p>(</span><span class=n>frozen</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>init</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>order</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>eq</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>class</span><span class=w> </span><span class=nc>ErtEcdf</span><span class=p>(</span><span class=n>Ecdf</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The ERT-ECDF."""</span>
+
+<div class=viewcode-block id=ErtEcdf.time_label>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.ertecdf.ErtEcdf.time_label>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>time_label</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the time axis label.</span>
+
+<span class=sd>        :return: the time key</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"ERT</span><span class=se>\u2009</span><span class=s2>[</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>time_unit</span><span class=si>}</span><span class=s2>]"</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_time_key</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the time key.</span>
+
+<span class=sd>        :return: the time key</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"ert[</span><span class=si>{</span><span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_time_key</span><span class=p>()</span><span class=si>}</span><span class=s2>]"</span>
+
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>_compute_times</span><span class=p>(</span><span class=n>source</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>Progress</span><span class=p>],</span>
+                       <span class=n>goal</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compute the times for the given goals.</span>
+
+<span class=sd>        Warning: `source` must only contain progress objects that contain</span>
+<span class=sd>        monotonously improving points. It must not contain runs that may get</span>
+<span class=sd>        worse over time.</span>
+
+<span class=sd>        :param source: the source array</span>
+<span class=sd>        :param goal: the goal value</span>
+<span class=sd>        :return: a list of times</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>[</span><span class=n>compute_single_ert</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=n>goal</span><span class=p>)]</span>
+
+    <span class=c1># noinspection PyUnusedLocal</span>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>_get_div</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>n_insts</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the divisor.</span>
+
+<span class=sd>        :param n: the number of runs</span>
+<span class=sd>        :param n_insts: the number of instances</span>
+<span class=sd>        :return: the divisor</span>
+<span class=sd>        """</span>
+        <span class=k>del</span> <span class=n>n</span>
+        <span class=k>return</span> <span class=n>n_insts</span></div>
+
+
+
+<div class=viewcode-block id=create>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.ertecdf.create>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=n>source</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Progress</span><span class=p>],</span>
+           <span class=n>goal_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+           <span class=n>use_default_goal_f</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-></span> <span class=n>Ecdf</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create one single Ert-Ecdf record from an iterable of Progress records.</span>
+
+<span class=sd>    :param source: the set of progress instances</span>
+<span class=sd>    :param goal_f: the goal objective value</span>
+<span class=sd>    :param use_default_goal_f: should we use the default lower bounds as</span>
+<span class=sd>        goals?</span>
+<span class=sd>    :return: the Ert-Ecdf record</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>ErtEcdf</span><span class=o>.</span><span class=n>_create</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=n>goal_f</span><span class=p>,</span> <span class=n>use_default_goal_f</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=from_progresses>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.ertecdf.from_progresses>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>from_progresses</span><span class=p>(</span>
+        <span class=n>source</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Progress</span><span class=p>],</span> <span class=n>consumer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Ecdf</span><span class=p>],</span> <span class=n>Any</span><span class=p>],</span>
+        <span class=n>f_goal</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span>
+                    <span class=o>|</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>join_all_algorithms</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+        <span class=n>join_all_objectives</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+        <span class=n>join_all_encodings</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute one or multiple Ert-ECDFs from a stream of end results.</span>
+
+<span class=sd>    :param source: the set of progress instances</span>
+<span class=sd>    :param f_goal: one or multiple goal values</span>
+<span class=sd>    :param consumer: the destination to which the new records will be</span>
+<span class=sd>        passed, can be the `append` method of a :class:`list`</span>
+<span class=sd>    :param join_all_algorithms: should the Ecdf be aggregated over all</span>
+<span class=sd>        algorithms</span>
+<span class=sd>    :param join_all_objectives: should the Ecdf be aggregated over all</span>
+<span class=sd>        objective functions</span>
+<span class=sd>    :param join_all_encodings: should the Ecdf be aggregated over all</span>
+<span class=sd>        encodings</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>ErtEcdf</span><span class=o>.</span><span class=n>_from_progresses</span><span class=p>(</span>
+        <span class=n>source</span><span class=p>,</span> <span class=n>consumer</span><span class=p>,</span> <span class=n>f_goal</span><span class=p>,</span> <span class=n>join_all_algorithms</span><span class=p>,</span>
+        <span class=n>join_all_objectives</span><span class=p>,</span> <span class=n>join_all_encodings</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.ertecdf</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

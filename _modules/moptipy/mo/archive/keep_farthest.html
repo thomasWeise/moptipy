@@ -1,0 +1,233 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.mo.archive.keep_farthest — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/mo/archive/keep_farthest.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.mo.archive.keep_farthest</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.mo.archive.keep_farthest</h1><div class=highlight><pre>
+<span></span><span class=sd>"""A multi-objective archive pruner based on distance."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>collections</span><span class=w> </span><span class=kn>import</span> <span class=n>Counter</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.linalg</span><span class=w> </span><span class=kn>import</span> <span class=n>norm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_archive</span><span class=w> </span><span class=kn>import</span> <span class=n>MOArchivePruner</span><span class=p>,</span> <span class=n>MORecord</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>MOProblem</span><span class=p>,</span> <span class=n>check_mo_problem</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>DEFAULT_FLOAT</span><span class=p>,</span> <span class=n>is_np_int</span>
+
+
+<div class=viewcode-block id=KeepFarthest>
+<a class=viewcode-back href=../../../../moptipy.mo.archive.html#moptipy.mo.archive.keep_farthest.KeepFarthest>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>KeepFarthest</span><span class=p>(</span><span class=n>MOArchivePruner</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Keep the best records of selected dimensions and those farthest from them.</span>
+
+<span class=sd>    This archive pruner proceeds in two steps:</span>
+
+<span class=sd>    First, it keeps the records that minimize a user-provided set of</span>
+<span class=sd>    dimensions.</span>
+
+<span class=sd>    Second, it iteratively adds the records to the selection which have the</span>
+<span class=sd>    maximum minimal distance to the already selected ones in terms of the</span>
+<span class=sd>    square distance over the normalized dimensions.</span>
+
+<span class=sd>    This should provide some sort of diversity in the archive while allowing</span>
+<span class=sd>    the user to preserve optima in certain dimensions.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>problem</span><span class=p>:</span> <span class=n>MOProblem</span><span class=p>,</span>
+                 <span class=n>keep_best_of_dimension</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the distance-based pruner.</span>
+
+<span class=sd>        :param problem: the multi-objective optimization problem</span>
+<span class=sd>        :param keep_best_of_dimension: the dimensions of which we will always</span>
+<span class=sd>            keep the best record, `None` (=default) for all dimensions</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+
+        <span class=n>check_mo_problem</span><span class=p>(</span><span class=n>problem</span><span class=p>)</span>
+        <span class=n>dimension</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>problem</span><span class=o>.</span><span class=n>f_dimension</span><span class=p>(),</span> <span class=s2>"dimension"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>keep_best_of_dimension</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>keep_best_of_dimension</span> <span class=o>=</span> <span class=nb>range</span><span class=p>(</span><span class=n>dimension</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>keep_best_of_dimension</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>keep_best_of_dimension</span><span class=p>,</span>
+                             <span class=s2>"keep_best_of_dimension"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+
+        <span class=n>dt</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span> <span class=o>=</span> <span class=n>problem</span><span class=o>.</span><span class=n>f_dtype</span><span class=p>()</span>
+        <span class=n>pinf</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>number</span>
+        <span class=n>ninf</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>number</span>
+        <span class=k>if</span> <span class=n>is_np_int</span><span class=p>(</span><span class=n>dt</span><span class=p>):</span>
+            <span class=n>ii</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>iinfo</span><span class=p>(</span><span class=n>dt</span><span class=p>)</span>
+            <span class=n>pinf</span> <span class=o>=</span> <span class=n>dt</span><span class=o>.</span><span class=n>type</span><span class=p>(</span><span class=n>ii</span><span class=o>.</span><span class=n>max</span><span class=p>)</span>
+            <span class=n>ninf</span> <span class=o>=</span> <span class=n>dt</span><span class=o>.</span><span class=n>type</span><span class=p>(</span><span class=n>ii</span><span class=o>.</span><span class=n>min</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>pinf</span> <span class=o>=</span> <span class=n>dt</span><span class=o>.</span><span class=n>type</span><span class=p>(</span><span class=n>inf</span><span class=p>)</span>
+            <span class=n>ninf</span> <span class=o>=</span> <span class=n>dt</span><span class=o>.</span><span class=n>type</span><span class=p>(</span><span class=o>-</span><span class=n>inf</span><span class=p>)</span>
+
+        <span class=c1>#: the array for minima</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__min</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=n>dimension</span><span class=p>,</span> <span class=n>dt</span><span class=p>)</span>
+        <span class=c1>#: the array for maxima</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__max</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=n>dimension</span><span class=p>,</span> <span class=n>dt</span><span class=p>)</span>
+        <span class=c1>#: the initial number for minimum searching</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__pinf</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>number</span><span class=p>]</span> <span class=o>=</span> <span class=n>pinf</span>
+        <span class=c1>#: the initial number for maximum searching</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__ninf</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>number</span><span class=p>]</span> <span class=o>=</span> <span class=n>ninf</span>
+        <span class=c1>#: the list of items to preserve per dimension</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__preserve</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>set</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[</span><span class=kc>None</span><span class=p>]</span> <span class=o>*</span> <span class=n>dimension</span>
+        <span class=k>for</span> <span class=n>d</span> <span class=ow>in</span> <span class=n>keep_best_of_dimension</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__preserve</span><span class=p>[</span><span class=n>d</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+        <span class=c1>#: the list of all items to preserve</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__all_preserve</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>set</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>__preserve</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>p</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__all_preserve</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>p</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__all_preserve</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"there must be at least one dimension of which we keep the "</span>
+                <span class=sa>f</span><span class=s2>"best, but keep_best_of_dimension=</span><span class=si>{</span><span class=n>keep_best_of_dimension</span><span class=si>}</span><span class=s2>!"</span><span class=p>)</span>
+        <span class=c1>#: the counter for keeping the best</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__counter</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Counter</span><span class=p>]</span> <span class=o>=</span> <span class=n>Counter</span><span class=p>()</span>
+        <span class=c1>#: the chosen elements to keep</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__chosen</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=c1>#: the minimal distances</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__min_dists</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=mi>8</span><span class=p>,</span> <span class=n>DEFAULT_FLOAT</span><span class=p>)</span>
+
+<div class=viewcode-block id=KeepFarthest.prune>
+<a class=viewcode-back href=../../../../moptipy.mo.archive.html#moptipy.mo.archive.keep_farthest.KeepFarthest.prune>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>prune</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>archive</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>MORecord</span><span class=p>],</span> <span class=n>n_keep</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>size</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Preserve the best of certain dimensions and keep the rest diverse.</span>
+
+<span class=sd>        :param archive: the archive, i.e., a list of tuples of solutions and</span>
+<span class=sd>            their objective vectors</span>
+<span class=sd>        :param n_keep: the number of solutions to keep</span>
+<span class=sd>        :param size: the current size of the archive</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=n>size</span> <span class=o><=</span> <span class=n>n_keep</span><span class=p>:</span>
+            <span class=k>return</span>
+
+        <span class=c1># set up basic variables</span>
+        <span class=n>mi</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__min</span>
+        <span class=n>mi</span><span class=o>.</span><span class=n>fill</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__pinf</span><span class=p>)</span>
+        <span class=n>ma</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__max</span>
+        <span class=n>ma</span><span class=o>.</span><span class=n>fill</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__ninf</span><span class=p>)</span>
+        <span class=n>dim</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>mi</span><span class=p>)</span>
+        <span class=n>preserve</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>set</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__preserve</span>
+        <span class=n>all_preserve</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>set</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__all_preserve</span>
+        <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>all_preserve</span><span class=p>:</span>
+            <span class=n>p</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+        <span class=n>counter</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Counter</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__counter</span>
+        <span class=n>counter</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+        <span class=n>chosen</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__chosen</span>
+        <span class=n>chosen</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+        <span class=n>min_dists</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__min_dists</span>
+        <span class=n>mdl</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>min_dists</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>mdl</span> <span class=o><</span> <span class=n>size</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__min_dists</span> <span class=o>=</span> <span class=n>min_dists</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>full</span><span class=p>(</span><span class=n>size</span><span class=p>,</span> <span class=n>inf</span><span class=p>,</span> <span class=n>DEFAULT_FLOAT</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>min_dists</span><span class=o>.</span><span class=n>fill</span><span class=p>(</span><span class=n>inf</span><span class=p>)</span>
+
+        <span class=c1># get the ranges of the dimension and remember the record with</span>
+        <span class=c1># the minimal value per dimension</span>
+        <span class=k>for</span> <span class=n>idx</span><span class=p>,</span> <span class=n>ind</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>archive</span><span class=p>):</span>
+            <span class=n>fs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>=</span> <span class=n>ind</span><span class=o>.</span><span class=n>fs</span>
+            <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>f</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>fs</span><span class=p>):</span>
+                <span class=k>if</span> <span class=n>f</span> <span class=o><=</span> <span class=n>mi</span><span class=p>[</span><span class=n>i</span><span class=p>]:</span>
+                    <span class=n>q</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>preserve</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+                    <span class=k>if</span> <span class=n>f</span> <span class=o><</span> <span class=n>mi</span><span class=p>[</span><span class=n>i</span><span class=p>]:</span>
+                        <span class=n>mi</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>f</span>
+                        <span class=k>if</span> <span class=n>q</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                            <span class=n>q</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+                    <span class=k>if</span> <span class=n>q</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                        <span class=n>q</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>idx</span><span class=p>)</span>
+                <span class=n>ma</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>f</span><span class=p>,</span> <span class=n>ma</span><span class=p>[</span><span class=n>i</span><span class=p>])</span>
+
+        <span class=c1># the number of selected records be 0 at the beginning</span>
+        <span class=n>selected</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+
+        <span class=c1># In a first step, we want to keep the minimal elements of the</span>
+        <span class=c1># selected objectives. Now there might be non-dominated records that</span>
+        <span class=c1># are minimal in more than one objective. In this case, we prefer</span>
+        <span class=c1># those that can satisfy several objectives. So we first check how</span>
+        <span class=c1># many objectives are minimized by each minimal element. We then</span>
+        <span class=c1># pick the one that satisfies most. We only pick one minimal element</span>
+        <span class=c1># per objective.</span>
+
+        <span class=c1># Count how often the records were selected for minimizing an objective</span>
+        <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>all_preserve</span><span class=p>:</span>
+            <span class=n>counter</span><span class=o>.</span><span class=n>update</span><span class=p>(</span><span class=n>p</span><span class=p>)</span>
+
+        <span class=c1># Now pick the elements that minimize most objectives.</span>
+        <span class=c1># We first sort keys for stability, then we sort based on the counter.</span>
+        <span class=k>for</span> <span class=n>maxc</span> <span class=ow>in</span> <span class=nb>sorted</span><span class=p>(</span><span class=nb>sorted</span><span class=p>(</span><span class=n>counter</span><span class=o>.</span><span class=n>keys</span><span class=p>()),</span>  <span class=c1># noqa</span>
+                           <span class=n>key</span><span class=o>=</span><span class=k>lambda</span> <span class=n>kk</span><span class=p>:</span> <span class=o>-</span><span class=n>counter</span><span class=p>[</span><span class=n>kk</span><span class=p>]):</span>
+            <span class=n>found</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+            <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>all_preserve</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>maxc</span> <span class=ow>in</span> <span class=n>p</span><span class=p>:</span>     <span class=c1># If the objective can be minimized by the</span>
+                    <span class=n>p</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>     <span class=c1># element, we don't need to minimize it with</span>
+                    <span class=n>found</span> <span class=o>=</span> <span class=kc>True</span>  <span class=c1># another element and can keep this one.</span>
+            <span class=k>if</span> <span class=n>found</span><span class=p>:</span>
+                <span class=n>chosen</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>maxc</span><span class=p>)</span>
+        <span class=n>chosen</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>  <span class=c1># Sort by index: We swap the selected records forward</span>
+
+        <span class=c1># Now preserve the selected records by moving them to the front.</span>
+        <span class=k>for</span> <span class=n>choseni</span> <span class=ow>in</span> <span class=n>chosen</span><span class=p>:</span>
+            <span class=n>archive</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=n>selected</span><span class=p>,</span> <span class=n>archive</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>choseni</span><span class=p>))</span>
+            <span class=n>selected</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=k>if</span> <span class=n>selected</span> <span class=o>>=</span> <span class=n>n_keep</span><span class=p>:</span>
+                <span class=k>return</span>
+
+        <span class=c1># Now we have the elements that minimize the selected dimensions.</span>
+        <span class=c1># Now we prepare the distances to ensure that we do not get any</span>
+        <span class=c1># overflow when normalizing them.</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>dim</span><span class=p>):</span>
+            <span class=n>maa</span> <span class=o>=</span> <span class=n>ma</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+            <span class=k>if</span> <span class=n>maa</span> <span class=o>>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__pinf</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"maximum of dimension </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2> is </span><span class=si>{</span><span class=n>maa</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>mii</span> <span class=o>=</span> <span class=n>mi</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+            <span class=k>if</span> <span class=n>mii</span> <span class=o><=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__ninf</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"minimum of dimension </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2> is </span><span class=si>{</span><span class=n>mii</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>maa</span> <span class=o><</span> <span class=n>mii</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"minimum of dimension </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2> is </span><span class=si>{</span><span class=n>mii</span><span class=si>}</span><span class=s2> and maximum is </span><span class=si>{</span><span class=n>maa</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>ma</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=mi>1</span> <span class=k>if</span> <span class=n>maa</span> <span class=o><=</span> <span class=n>mii</span> <span class=k>else</span> <span class=n>maa</span> <span class=o>-</span> <span class=n>mii</span>  <span class=c1># ensure finite on div=0</span>
+
+        <span class=c1># Now we fill up the archive with those records most different from</span>
+        <span class=c1># the already included ones based on the square distance in the</span>
+        <span class=c1># normalized dimensions. In each iteration, we compute the minimal</span>
+        <span class=c1># normalized distance of each element to the already-selected ones.</span>
+        <span class=c1># We then keep the one which has the largest minimal distance and add</span>
+        <span class=c1># it to the selection.</span>
+        <span class=n>dist_update_start</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>while</span> <span class=n>selected</span> <span class=o><</span> <span class=n>n_keep</span><span class=p>:</span>  <span class=c1># until we have selected sufficiently many</span>
+            <span class=n>max_dist</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span>  <span class=c1># the maximum distance to be selected</span>
+            <span class=n>max_dist_idx</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>selected</span>  <span class=c1># the index of that record</span>
+            <span class=k>for</span> <span class=n>rec_idx</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>selected</span><span class=p>,</span> <span class=n>size</span><span class=p>):</span>  <span class=c1># iterate over unselected</span>
+                <span class=n>min_dist_rec</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>min_dists</span><span class=p>[</span><span class=n>rec_idx</span><span class=p>]</span>  <span class=c1># min dist so far</span>
+                <span class=n>rec</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>=</span> <span class=n>archive</span><span class=p>[</span><span class=n>rec_idx</span><span class=p>]</span><span class=o>.</span><span class=n>fs</span>  <span class=c1># objective vec</span>
+                <span class=k>for</span> <span class=n>cmp_idx</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>dist_update_start</span><span class=p>,</span> <span class=n>selected</span><span class=p>):</span>
+                    <span class=n>cmp</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>=</span> <span class=n>archive</span><span class=p>[</span><span class=n>cmp_idx</span><span class=p>]</span><span class=o>.</span><span class=n>fs</span>  <span class=c1># objective vector</span>
+                    <span class=n>dst</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>norm</span><span class=p>((</span><span class=n>cmp</span> <span class=o>-</span> <span class=n>rec</span><span class=p>)</span> <span class=o>/</span> <span class=n>ma</span><span class=p>))</span>
+                    <span class=n>min_dist_rec</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>min_dist_rec</span><span class=p>,</span> <span class=n>dst</span><span class=p>)</span>
+                <span class=n>min_dists</span><span class=p>[</span><span class=n>rec_idx</span><span class=p>]</span> <span class=o>=</span> <span class=n>min_dist_rec</span>  <span class=c1># remember</span>
+                <span class=k>if</span> <span class=n>min_dist_rec</span> <span class=o>></span> <span class=n>max_dist</span><span class=p>:</span>  <span class=c1># keep record with largest</span>
+                    <span class=n>max_dist</span> <span class=o>=</span> <span class=n>min_dist_rec</span>  <span class=c1># normalized distance</span>
+                    <span class=n>max_dist_idx</span> <span class=o>=</span> <span class=n>rec_idx</span>   <span class=c1># remember its index</span>
+            <span class=c1># swap the record to the front of the archive</span>
+            <span class=n>archive</span><span class=p>[</span><span class=n>selected</span><span class=p>],</span> <span class=n>archive</span><span class=p>[</span><span class=n>max_dist_idx</span><span class=p>]</span> <span class=o>=</span> \
+                <span class=n>archive</span><span class=p>[</span><span class=n>max_dist_idx</span><span class=p>],</span> <span class=n>archive</span><span class=p>[</span><span class=n>selected</span><span class=p>]</span>
+            <span class=c1># preserve the distance of the element swapped back</span>
+            <span class=n>min_dists</span><span class=p>[</span><span class=n>max_dist_idx</span><span class=p>]</span> <span class=o>=</span> <span class=n>min_dists</span><span class=p>[</span><span class=n>selected</span><span class=p>]</span>
+            <span class=n>dist_update_start</span> <span class=o>=</span> <span class=n>selected</span>
+            <span class=n>selected</span> <span class=o>+=</span> <span class=mi>1</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this pruning strategy.</span>
+
+<span class=sd>        :returns: always `"keepFarthest"`</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"keepFarthest"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.mo.archive.keep_farthest</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

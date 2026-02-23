@@ -1,0 +1,169 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.bitstrings.binint — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/bitstrings/binint.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a accesskey=U href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.binint</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.bitstrings.binint</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The BinInt problem maximizes the binary value of a bit string.</span>
+
+<span class=sd>The BinInt problem is similar to the OneMax and LinearHarmonic in that it</span>
+<span class=sd>tries to maximize the number of `True` bits in a string.</span>
+<span class=sd>Different from these problems, however, it assigns exponentially increasing</span>
+<span class=sd>weights to the bits.</span>
+<span class=sd>The bit at index `1` has weight `2 ** (n - 1)`.</span>
+<span class=sd>The bit at the last position has weight 1.</span>
+<span class=sd>The upper bound for the objective function, reached when all bits are `False`,</span>
+<span class=sd>therefore is `2 ** n - 1`. The lower bound, reached when all bits are `True`,</span>
+<span class=sd>is `0`.</span>
+
+<span class=sd>1. William Michael Rudnick. Genetic Algorithms and Fitness Variance with an</span>
+<span class=sd>   Application to the Automated Design of Artiﬁcial Neural Networks.</span>
+<span class=sd>   PhD thesis, Oregon Graduate Institute of Science & Technology: Beaverton,</span>
+<span class=sd>   OR, USA, 1992. UMI Order No.: GAX92-22642.</span>
+<span class=sd>2. Dirk Thierens, David Edward Goldberg, and Ângela Guimarães Pereira. Domino</span>
+<span class=sd>   Convergence, Drift, and the Temporal-Salience Structure of Problems. In</span>
+<span class=sd>   CEC'98, pages 535-540, 1998.</span>
+<span class=sd>   doi: https://doi.org/10.1109/ICEC.1998.700085.</span>
+<span class=sd>3. Kumara Sastry and David Edward Goldberg. Let's Get Ready to Rumble Redux:</span>
+<span class=sd>   Crossover versus Mutation Head to Head on Exponentially Scaled Problems.</span>
+<span class=sd>   In GECCO'07-I, pages 1380-1387, 2007.</span>
+<span class=sd>   doi: https://doi.org10.1145/1276958.1277215.</span>
+<span class=sd>4. Kumara Sastry and David Edward Goldberg. Let's Get Ready to Rumble Redux:</span>
+<span class=sd>   Crossover versus Mutation Head to Head on Exponentially Scaled Problems.</span>
+<span class=sd>   IlliGAL Report 2007005, Illinois Genetic Algorithms Laboratory (IlliGAL),</span>
+<span class=sd>   Department of Computer Science, Department of General Engineering,</span>
+<span class=sd>   University of Illinois at Urbana-Champaign: Urbana-Champaign, IL, USA,</span>
+<span class=sd>   February 11, 2007.</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterator</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.bitstring_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>BitStringProblem</span>
+
+
+<div class=viewcode-block id=binint>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.binint.binint>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>binint</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the binint objective value: decode the inverted bit string as integer.</span>
+
+<span class=sd>    :param x: the np array</span>
+<span class=sd>    :return: the inverted bit string represented as integer</span>
+
+<span class=sd>    >>> binint(np.array([0]))</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> binint(np.array([1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    >>> binint(np.array([0, 0]))</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> binint(np.array([0, 1]))</span>
+<span class=sd>    2</span>
+<span class=sd>    >>> binint(np.array([1, 0]))</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> binint(np.array([1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    >>> binint(np.array([0, 0, 0]))</span>
+<span class=sd>    7</span>
+<span class=sd>    >>> binint(np.array([0, 0, 1]))</span>
+<span class=sd>    6</span>
+<span class=sd>    >>> binint(np.array([0, 1, 0]))</span>
+<span class=sd>    5</span>
+<span class=sd>    >>> binint(np.array([0, 1, 1]))</span>
+<span class=sd>    4</span>
+<span class=sd>    >>> binint(np.array([1, 0, 0]))</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> binint(np.array([1, 0, 1]))</span>
+<span class=sd>    2</span>
+<span class=sd>    >>> binint(np.array([1, 1, 0]))</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> binint(np.array([1, 1, 1]))</span>
+<span class=sd>    0</span>
+<span class=sd>    """</span>
+    <span class=n>n</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+    <span class=n>weight</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span> <span class=o><<</span> <span class=n>n</span>
+    <span class=n>result</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>weight</span> <span class=o>-</span> <span class=mi>1</span>
+    <span class=k>for</span> <span class=n>xx</span> <span class=ow>in</span> <span class=n>x</span><span class=p>:</span>
+        <span class=n>weight</span> <span class=o>>>=</span> <span class=mi>1</span>
+        <span class=k>if</span> <span class=n>xx</span><span class=p>:</span>
+            <span class=n>result</span> <span class=o>-=</span> <span class=n>weight</span>
+    <span class=k>return</span> <span class=n>result</span></div>
+
+
+
+<div class=viewcode-block id=BinInt>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.binint.BinInt>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>BinInt</span><span class=p>(</span><span class=n>BitStringProblem</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""Maximize the binary value of a bit string."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the binint objective function.</span>
+
+<span class=sd>        :param n: the dimension of the problem</span>
+
+<span class=sd>        >>> print(BinInt(2).n)</span>
+<span class=sd>        2</span>
+<span class=sd>        >>> print(BinInt(4).evaluate(np.array([True, True, False, True])))</span>
+<span class=sd>        2</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>n</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>evaluate</span> <span class=o>=</span> <span class=n>binint</span>  <span class=c1># type: ignore</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the binint objective function.</span>
+
+<span class=sd>        :return: `binint_` + length of string</span>
+
+<span class=sd>        >>> BinInt(13)</span>
+<span class=sd>        binint_13</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"binint_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=si>}</span><span class=s2>"</span>
+
+<div class=viewcode-block id=BinInt.upper_bound>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.binint.BinInt.upper_bound>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>upper_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the upper bound of the :class:`BinInt` problem.</span>
+
+<span class=sd>        :returns: `(1 << n) - 1`</span>
+
+<span class=sd>        >>> BinInt(4).upper_bound()</span>
+<span class=sd>        15</span>
+<span class=sd>        >>> BinInt(4).evaluate(np.array([0, 0, 0, 0]))</span>
+<span class=sd>        15</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=mi>1</span> <span class=o><<</span> <span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span></div>
+
+
+<div class=viewcode-block id=BinInt.default_instances>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.binint.BinInt.default_instances>[docs]</a>
+    <span class=nd>@classmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>default_instances</span><span class=p>(</span>
+            <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>,</span> <span class=n>scale_min</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>2</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>30</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=n>Iterator</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=s2>"BinInt"</span><span class=p>]]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the 29 default instances of the :class:`BinInt` problem.</span>
+
+<span class=sd>        :param scale_min: the minimum permitted scale, by default `2`</span>
+<span class=sd>        :param scale_max: the maximum permitted scale, by default `32`</span>
+<span class=sd>        :returns: a sequence of default :class:`BinInt` instances</span>
+
+<span class=sd>        >>> len(list(BinInt.default_instances()))</span>
+<span class=sd>        29</span>
+
+<span class=sd>        >>> [x() for x in BinInt.default_instances()]</span>
+<span class=sd>        [binint_2, binint_3, binint_4, binint_5, binint_6, binint_7, \</span>
+<span class=sd>binint_8, binint_9, binint_10, binint_11, binint_12, binint_13, binint_14, \</span>
+<span class=sd>binint_15, binint_16, binint_17, binint_18, binint_19, binint_20, binint_21, \</span>
+<span class=sd>binint_22, binint_23, binint_24, binint_25, binint_26, binint_27, binint_28, \</span>
+<span class=sd>binint_29, binint_30]</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Iterator[Callable[[], BinInt]]"</span><span class=p>,</span>
+                    <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span>  <span class=c1># type: ignore</span>
+                        <span class=n>scale_min</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>))</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.binint</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

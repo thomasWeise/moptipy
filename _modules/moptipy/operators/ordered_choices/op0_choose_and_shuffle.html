@@ -1,0 +1,62 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.operators.ordered_choices.op0_choose_and_shuffle — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/operators/ordered_choices/op0_choose_and_shuffle.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.ordered_choices.op0_choose_and_shuffle</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.operators.ordered_choices.op0_choose_and_shuffle</h1><div class=highlight><pre>
+<span></span><span class=sd>"""A nullary operator filling a :mod:`~moptipy.spaces.ordered_choices`."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.ordered_choices</span><span class=w> </span><span class=kn>import</span> <span class=n>OrderedChoices</span>
+
+
+<div class=viewcode-block id=Op0ChooseAndShuffle>
+<a class=viewcode-back href=../../../../moptipy.operators.ordered_choices.html#moptipy.operators.ordered_choices.op0_choose_and_shuffle.Op0ChooseAndShuffle>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Op0ChooseAndShuffle</span><span class=p>(</span><span class=n>Op0</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""Randomly initialize :mod:`~moptipy.spaces.ordered_choices` elements."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>space</span><span class=p>:</span> <span class=n>OrderedChoices</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize this shuffle operation: use blueprint from space.</span>
+
+<span class=sd>        :param space: the search space</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>space</span><span class=p>,</span> <span class=n>OrderedChoices</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>space</span><span class=p>,</span> <span class=s2>"space"</span><span class=p>,</span> <span class=n>OrderedChoices</span><span class=p>)</span>
+        <span class=c1>#: the internal blueprint for filling permutations</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__blueprint</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>space</span><span class=o>.</span><span class=n>blueprint</span>
+        <span class=c1>#: the internal choices</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__choices</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>],</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]]]</span> \
+            <span class=o>=</span> <span class=n>space</span><span class=o>.</span><span class=n>choices</span><span class=o>.</span><span class=fm>__getitem__</span>
+
+<div class=viewcode-block id=Op0ChooseAndShuffle.op0>
+<a class=viewcode-back href=../../../../moptipy.operators.ordered_choices.html#moptipy.operators.ordered_choices.op0_choose_and_shuffle.Op0ChooseAndShuffle.op0>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>op0</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>dest</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Fill the destination with random choices and shuffle it.</span>
+
+<span class=sd>        :param random: the random number generator</span>
+<span class=sd>        :param dest: the destination array</span>
+<span class=sd>        """</span>
+        <span class=n>np</span><span class=o>.</span><span class=n>copyto</span><span class=p>(</span><span class=n>dest</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__blueprint</span><span class=p>)</span>  <span class=c1># Copy blueprint to dest.</span>
+        <span class=n>random</span><span class=o>.</span><span class=n>shuffle</span><span class=p>(</span><span class=n>dest</span><span class=p>)</span>  <span class=c1># Shuffle destination array randomly.</span>
+
+        <span class=c1># Now we replace the elements in the shuffled destination array</span>
+        <span class=c1># with random selections.</span>
+        <span class=n>ri</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>],</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span>  <span class=c1># fast call</span>
+        <span class=n>choices</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>],</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__choices</span>
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>e</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>dest</span><span class=p>):</span>
+            <span class=n>source</span> <span class=o>=</span> <span class=n>choices</span><span class=p>(</span><span class=n>e</span><span class=p>)</span>
+            <span class=n>dest</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>source</span><span class=p>[</span><span class=n>ri</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>source</span><span class=p>))]</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this operator.</span>
+
+<span class=sd>        :return: "chooseAndShuffle"</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"chooseAndShuffle"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.ordered_choices.op0_choose_and_shuffle</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

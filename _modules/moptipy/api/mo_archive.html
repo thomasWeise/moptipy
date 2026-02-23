@@ -1,0 +1,173 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.api.mo_archive — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/api/mo_archive.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.mo_archive</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.api.mo_archive</h1><div class=highlight><pre>
+<span></span><span class=sd>"""An archive of solutions to a multi-objective problems."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.component</span><span class=w> </span><span class=kn>import</span> <span class=n>Component</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_utils</span><span class=w> </span><span class=kn>import</span> <span class=n>lexicographic</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>array_to_str</span>
+
+
+<div class=viewcode-block id=MORecord>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_archive.MORecord>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>MORecord</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A record for the multi-objective archive.</span>
+
+<span class=sd>    The default sorting order of multi-objective records is lexicographic</span>
+<span class=sd>    based on the objective value vector.</span>
+
+<span class=sd>    >>> import numpy as npx</span>
+<span class=sd>    >>> mr1 = MORecord("xxx", npx.array([1, 2, 3], int))</span>
+<span class=sd>    >>> print(mr1.x)</span>
+<span class=sd>    xxx</span>
+<span class=sd>    >>> print(mr1.fs)</span>
+<span class=sd>    [1 2 3]</span>
+<span class=sd>    >>> print(mr1)</span>
+<span class=sd>    fs=1;2;3, x=xxx</span>
+<span class=sd>    >>> mr2 = MORecord("yyy", npx.array([1, 2, 1], int))</span>
+<span class=sd>    >>> print(mr2.x)</span>
+<span class=sd>    yyy</span>
+<span class=sd>    >>> print(mr2.fs)</span>
+<span class=sd>    [1 2 1]</span>
+<span class=sd>    >>> mr1 < mr2</span>
+<span class=sd>    False</span>
+<span class=sd>    >>> mr2 < mr1</span>
+<span class=sd>    True</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>Any</span><span class=p>,</span> <span class=n>fs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a multi-objective record.</span>
+
+<span class=sd>        :param x: the point in the search space</span>
+<span class=sd>        :param fs: the vector of objective values</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=n>x</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>TypeError</span><span class=p>(</span><span class=s2>"x must not be None"</span><span class=p>)</span>
+        <span class=c1>#: the point in the search space</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>x</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=n>x</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>fs</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>fs</span><span class=p>,</span> <span class=s2>"fs"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span>
+        <span class=c1>#: the vector of objective values</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>fs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>fs</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__lt__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>other</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compare for sorting.</span>
+
+<span class=sd>        :param other: the other record</span>
+
+<span class=sd>        >>> import numpy as npx</span>
+<span class=sd>        >>> r1 = MORecord("a", npx.array([1, 1, 1]))</span>
+<span class=sd>        >>> r2 = MORecord("b", npx.array([1, 1, 1]))</span>
+<span class=sd>        >>> r1 < r2</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> r2 < r1</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> r2 = MORecord("b", npx.array([1, 1, 2]))</span>
+<span class=sd>        >>> r1 < r2</span>
+<span class=sd>        True</span>
+<span class=sd>        >>> r2 < r1</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> r1 = MORecord("a", npx.array([2, 1, 1]))</span>
+<span class=sd>        >>> r1 < r2</span>
+<span class=sd>        False</span>
+<span class=sd>        >>> r2 < r1</span>
+<span class=sd>        True</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>lexicographic</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>fs</span><span class=p>,</span> <span class=n>other</span><span class=o>.</span><span class=n>fs</span><span class=p>)</span> <span class=o><</span> <span class=mi>0</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the string representation of this record.</span>
+
+<span class=sd>        :returns: the string representation of this record</span>
+
+<span class=sd>        >>> import numpy as npx</span>
+<span class=sd>        >>> r = MORecord(4, npx.array([1, 2, 3]))</span>
+<span class=sd>        >>> print(r)</span>
+<span class=sd>        fs=1;2;3, x=4</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"fs=</span><span class=si>{</span><span class=n>array_to_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>fs</span><span class=p>)</span><span class=si>}</span><span class=s2>, x=</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>x</span><span class=si>}</span><span class=s2>"</span></div>
+
+
+
+<div class=viewcode-block id=MOArchivePruner>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_archive.MOArchivePruner>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>MOArchivePruner</span><span class=p>(</span><span class=n>Component</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A strategy for pruning an archive of solutions."""</span>
+
+<div class=viewcode-block id=MOArchivePruner.prune>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_archive.MOArchivePruner.prune>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>prune</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>archive</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>MORecord</span><span class=p>],</span> <span class=n>n_keep</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>size</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Prune an archive.</span>
+
+<span class=sd>        After invoking this method, the first `n_keep` entries in `archive`</span>
+<span class=sd>        are selected to be preserved. The remaining entries</span>
+<span class=sd>        (at indices `n_keep...len(archive)-1`) can be deleted.</span>
+
+<span class=sd>        Pruning therefore is basically just a method of sorting the archive</span>
+<span class=sd>        according to a preference order of solutions. It will not delete any</span>
+<span class=sd>        element from the list. The caller can do that afterwards if she wants.</span>
+
+<span class=sd>        This base class just provides a simple FIFO scheme.</span>
+
+<span class=sd>        :param archive: the archive, i.e., a list of tuples of solutions and</span>
+<span class=sd>            their objective vectors</span>
+<span class=sd>        :param n_keep: the number of solutions to keep</span>
+<span class=sd>        :param size: the current size of the archive</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=n>size</span> <span class=o>></span> <span class=n>n_keep</span><span class=p>:</span>
+            <span class=n>n_delete</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>size</span> <span class=o>-</span> <span class=n>n_keep</span>
+            <span class=n>move_to_end</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>MORecord</span><span class=p>]]</span> <span class=o>=</span> <span class=n>archive</span><span class=p>[:</span><span class=n>n_delete</span><span class=p>]</span>
+            <span class=n>archive</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=n>n_keep</span><span class=p>]</span> <span class=o>=</span> <span class=n>archive</span><span class=p>[</span><span class=n>n_delete</span><span class=p>:</span><span class=n>size</span><span class=p>]</span>
+            <span class=n>archive</span><span class=p>[</span><span class=n>size</span> <span class=o>-</span> <span class=n>n_delete</span><span class=p>:</span><span class=n>size</span><span class=p>]</span> <span class=o>=</span> <span class=n>move_to_end</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this archive pruning strategy.</span>
+
+<span class=sd>        :returns: the name of this archive pruning strategy</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"fifo"</span></div>
+
+
+
+<div class=viewcode-block id=check_mo_archive_pruner>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_archive.check_mo_archive_pruner>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>check_mo_archive_pruner</span><span class=p>(</span><span class=n>pruner</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=n>MOArchivePruner</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether an object is a valid instance of :class:`MOArchivePruner`.</span>
+
+<span class=sd>    :param pruner: the multi-objective archive pruner</span>
+<span class=sd>    :return: the object</span>
+<span class=sd>    :raises TypeError: if `pruner` is not an instance of</span>
+<span class=sd>        :class:`MOArchivePruner`</span>
+
+<span class=sd>    >>> check_mo_archive_pruner(MOArchivePruner())</span>
+<span class=sd>    fifo</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_mo_archive_pruner('A')</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    pruner should be an instance of moptipy.api.mo_archive.\</span>
+<span class=sd>MOArchivePruner but is str, namely 'A'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_mo_archive_pruner(None)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    pruner should be an instance of moptipy.api.mo_archive.\</span>
+<span class=sd>MOArchivePruner but is None.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>pruner</span><span class=p>,</span> <span class=n>MOArchivePruner</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>pruner</span>
+    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>pruner</span><span class=p>,</span> <span class=s2>"pruner"</span><span class=p>,</span> <span class=n>MOArchivePruner</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.mo_archive</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

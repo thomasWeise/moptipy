@@ -1,0 +1,180 @@
+<!doctype html><html data-content_root=../../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.ffa.ffa_h — moptipy 0.9.172 documentation</title><link href="../../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/ffa/ffa_h.html rel=canonical><link href=../../../../../genindex.html rel=index title=Index><link href=../../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.ffa.ffa_h</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.ffa.ffa_h</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Here we provide some tools for implementing FFA."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>collections</span><span class=w> </span><span class=kn>import</span> <span class=n>Counter</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>io</span><span class=w> </span><span class=kn>import</span> <span class=n>StringIO</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>nan</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.csv</span><span class=w> </span><span class=kn>import</span> <span class=n>CSV_SEPARATOR</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.math.int_math</span><span class=w> </span><span class=kn>import</span> <span class=n>try_int</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>Objective</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>DEFAULT_INT</span>
+
+<span class=c1>#: the log section for the frequency table</span>
+<span class=n>H_LOG_SECTION</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"H"</span>
+
+<span class=c1>#: The difference between upper- and lower bound at which we switch from</span>
+<span class=c1>#: using arrays as backing store for the frequency table H to maps.</span>
+<span class=n>SWITCH_TO_MAP_RANGE</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>67_108_864</span>
+
+
+<div class=viewcode-block id=create_h>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.ffa.html#moptipy.algorithms.so.ffa.ffa_h.create_h>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>create_h</span><span class=p>(</span><span class=n>objective</span><span class=p>:</span> <span class=n>Objective</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span>
+        <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>|</span> <span class=n>Counter</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span> <span class=nb>int</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create a data structure for recording frequencies.</span>
+
+<span class=sd>    If our objective function always returns integer values and its range is</span>
+<span class=sd>    not too large, then we can use a :class:`numpy.ndarray` as a backing</span>
+<span class=sd>    datastructure for the `H`-map used in FFA. If the objective function may</span>
+<span class=sd>    sometimes return `float` values or has a wide range, it will be better</span>
+<span class=sd>    (or even necessary) to use :class:`Counter` instead.</span>
+
+<span class=sd>    This function here makes the decision of what backing datastructure to</span>
+<span class=sd>    use.</span>
+
+<span class=sd>    Additionally, it may be the lower or even upper bound of an integer</span>
+<span class=sd>    objective function could be negative. To avoid dealing with negative</span>
+<span class=sd>    indices, we would then add an offset to each objective value before</span>
+<span class=sd>    accessing it. This function will return an appropriate offset as well.</span>
+
+<span class=sd>    :param objective: the objective for which the data structure should be</span>
+<span class=sd>        created</span>
+<span class=sd>    :return: a tuple of the `H`-data structure as well as an offset to be</span>
+<span class=sd>        added to all objective values.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>objective</span><span class=p>,</span> <span class=n>Objective</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>objective</span><span class=p>,</span> <span class=s2>"objective"</span><span class=p>,</span> <span class=n>Objective</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>objective</span><span class=o>.</span><span class=n>is_always_integer</span><span class=p>():</span>
+        <span class=n>lb</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>objective</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>()</span>
+        <span class=n>ub</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>objective</span><span class=o>.</span><span class=n>upper_bound</span><span class=p>()</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ub</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span> <span class=ow>and</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span> \
+                <span class=ow>and</span> <span class=p>((</span><span class=n>ub</span> <span class=o>-</span> <span class=n>lb</span><span class=p>)</span> <span class=o><=</span> <span class=n>SWITCH_TO_MAP_RANGE</span><span class=p>):</span>
+            <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>ub</span> <span class=o>-</span> <span class=n>lb</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>DEFAULT_INT</span><span class=p>),</span> <span class=o>-</span><span class=n>lb</span>
+    <span class=k>return</span> <span class=n>Counter</span><span class=p>(),</span> <span class=mi>0</span></div>
+
+
+
+<div class=viewcode-block id=clear_h>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.ffa.html#moptipy.algorithms.so.ffa.ffa_h.clear_h>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>clear_h</span><span class=p>(</span><span class=n>h</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>|</span> <span class=n>Counter</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Clear a H-Table.</span>
+
+<span class=sd>    :param h: the H-table to clear.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>h</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+        <span class=n>h</span><span class=o>.</span><span class=n>fill</span><span class=p>(</span><span class=mi>0</span><span class=p>)</span>
+    <span class=k>elif</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>h</span><span class=p>,</span> <span class=nb>dict</span><span class=p>):</span>
+        <span class=n>h</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>h</span><span class=p>,</span> <span class=s2>"h"</span><span class=p>,</span> <span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>Counter</span><span class=p>))</span></div>
+
+
+
+<div class=viewcode-block id=h_to_str>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.ffa.html#moptipy.algorithms.so.ffa.ffa_h.h_to_str>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>h_to_str</span><span class=p>(</span>
+        <span class=n>h</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>|</span> <span class=n>Counter</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+        <span class=n>offset</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Convert a `H`-table to a string.</span>
+
+<span class=sd>    :param h: the `H`-table, as created by :func:`create_h`.</span>
+<span class=sd>    :param offset: the offset, as computed by :func:`create_h`.</span>
+
+<span class=sd>    >>> hl = np.array([0, 0, 1, 7, 4, 0, 0, 9, 0])</span>
+<span class=sd>    >>> h_to_str(hl, 0)</span>
+<span class=sd>    '2;;;7;;4;7;9'</span>
+<span class=sd>    >>> h_to_str(hl, -1)</span>
+<span class=sd>    '3;;;7;;4;8;9'</span>
+<span class=sd>    >>> hd = Counter((1, 1, 1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3,</span>
+<span class=sd>    ...               3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2))</span>
+<span class=sd>    >>> h_to_str(hd, 0)</span>
+<span class=sd>    '1;5;;9;;6;;7'</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     hd = {1: 0}</span>
+<span class=sd>    ...     h_to_str(hd, 0)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    empty H table?</span>
+<span class=sd>    >>> hx = np.zeros(100, int)</span>
+<span class=sd>    >>> hx[10] = 4</span>
+<span class=sd>    >>> hx[12] = 234</span>
+<span class=sd>    >>> hx[89] = 111</span>
+<span class=sd>    >>> hx[90] = 1</span>
+<span class=sd>    >>> hx[45] = 2314</span>
+<span class=sd>    >>> h_to_str(hx, 0)</span>
+<span class=sd>    '10;4;12;234;45;2314;89;111;;'</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>h</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>|</span> <span class=nb>dict</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>h</span><span class=p>,</span> <span class=s2>"h"</span><span class=p>,</span> <span class=p>(</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>Counter</span><span class=p>))</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>offset</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>offset</span><span class=p>,</span> <span class=s2>"offset"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+    <span class=n>csep</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>CSV_SEPARATOR</span>
+    <span class=n>sep</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>""</span>
+
+    <span class=k>with</span> <span class=n>StringIO</span><span class=p>()</span> <span class=k>as</span> <span class=n>out</span><span class=p>:</span>
+        <span class=n>write</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>out</span><span class=o>.</span><span class=n>write</span>  <span class=c1># fast call</span>
+        <span class=n>old_index</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>nan</span>
+
+        <span class=c1># We iterate over the whole `H` table.</span>
+        <span class=c1># If the table is an np.array, then we just use the indices to</span>
+        <span class=c1># iterate directly. If it is a `Counter`, then we iterate over</span>
+        <span class=c1># its keys. If there are not too many keys, then we sort them</span>
+        <span class=c1># first.</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>h</span><span class=p>))</span> <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>h</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=k>else</span> <span class=p>(</span><span class=nb>sorted</span><span class=p>(</span>
+                <span class=n>h</span><span class=o>.</span><span class=n>keys</span><span class=p>())</span> <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>h</span><span class=p>)</span> <span class=o><=</span> <span class=n>SWITCH_TO_MAP_RANGE</span> <span class=k>else</span> <span class=n>h</span><span class=o>.</span><span class=n>keys</span><span class=p>()):</span>
+            <span class=n>value</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>h</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>  <span class=c1># type: ignore</span>
+            <span class=k>if</span> <span class=n>value</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>  <span class=c1># skip over values that have never been hit</span>
+                <span class=k>continue</span>
+            <span class=n>write</span><span class=p>(</span><span class=n>sep</span><span class=p>)</span>  <span class=c1># write separator (nothing upon first call)</span>
+            <span class=n>sep</span> <span class=o>=</span> <span class=n>csep</span>  <span class=c1># now the next call will write ;</span>
+            <span class=n>use_index</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>i</span> <span class=o>-</span> <span class=n>offset</span>  <span class=c1># subtract the offset</span>
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>use_index</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>  <span class=c1># if it's float, try to convert</span>
+                <span class=n>use_index</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>use_index</span><span class=p>)</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>use_index</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>!=</span> <span class=n>old_index</span><span class=p>:</span>  <span class=c1># we skip if current = old + 1</span>
+                <span class=n>write</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>use_index</span><span class=p>))</span>
+            <span class=n>old_index</span> <span class=o>=</span> <span class=n>use_index</span>  <span class=c1># step the index</span>
+            <span class=n>write</span><span class=p>(</span><span class=n>csep</span><span class=p>)</span>  <span class=c1># write separator to frequency counter</span>
+            <span class=k>if</span> <span class=n>value</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+                <span class=n>write</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>value</span><span class=p>))</span>  <span class=c1># write the frequency</span>
+        <span class=n>res</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>out</span><span class=o>.</span><span class=n>getvalue</span><span class=p>()</span>  <span class=c1># get the final string</span>
+
+    <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>res</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"empty H table?"</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>res</span></div>
+
+
+
+<div class=viewcode-block id=log_h>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.ffa.html#moptipy.algorithms.so.ffa.ffa_h.log_h>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>log_h</span><span class=p>(</span><span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>,</span> <span class=n>h</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>|</span> <span class=n>Counter</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+          <span class=n>offset</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Convert a frequency table `H` to a string and log it to a process.</span>
+
+<span class=sd>    The frequency table is logged as a single line of text into a section</span>
+<span class=sd>    `H` delimited by the lines `BEGIN_H` and `END_H`. The line consists</span>
+<span class=sd>    of `2*n` semicolon separated values. Each such value pair consists of</span>
+<span class=sd>    an objective value `y` and its observed frequency `H[y]`. The former is</span>
+<span class=sd>    either an integer or a float and the latter is an integer.</span>
+<span class=sd>    If two consecutive objective values take the form 'f` and `f+1`, then</span>
+<span class=sd>    the second one will be omitted, and so on.</span>
+
+<span class=sd>    :param process: the process</span>
+<span class=sd>    :param h: the `H`-table, as created by :func:`create_h`.</span>
+<span class=sd>    :param offset: the offset, as computed by :func:`create_h`.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=n>Process</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=s2>"process"</span><span class=p>,</span> <span class=n>Process</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>process</span><span class=o>.</span><span class=n>has_log</span><span class=p>():</span>
+        <span class=n>process</span><span class=o>.</span><span class=n>add_log_section</span><span class=p>(</span><span class=n>H_LOG_SECTION</span><span class=p>,</span> <span class=n>h_to_str</span><span class=p>(</span><span class=n>h</span><span class=p>,</span> <span class=n>offset</span><span class=p>))</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.ffa.ffa_h</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

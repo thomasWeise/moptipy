@@ -1,0 +1,424 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.utils.sys_info — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/utils/sys_info.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.sys_info</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.utils.sys_info</h1><div class=highlight><pre>
+<span></span><span class=sd>"""A tool for writing a section with system information into log files."""</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>contextlib</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>importlib.metadata</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>ilm</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>os</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>platform</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>re</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>socket</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>sys</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>contextlib</span><span class=w> </span><span class=kn>import</span> <span class=n>suppress</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>datetime</span><span class=w> </span><span class=kn>import</span> <span class=n>UTC</span><span class=p>,</span> <span class=n>datetime</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>psutil</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.csv</span><span class=w> </span><span class=kn>import</span> <span class=n>CSV_SEPARATOR</span><span class=p>,</span> <span class=n>SCOPE_SEPARATOR</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.processes.caller</span><span class=w> </span><span class=kn>import</span> <span class=n>is_build</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>moptipy.version</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>ver</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api</span><span class=w> </span><span class=kn>import</span> <span class=n>logging</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>KEY_VALUE_SEPARATOR</span><span class=p>,</span>
+    <span class=n>InMemoryLogger</span><span class=p>,</span>
+    <span class=n>KeyValueLogSection</span><span class=p>,</span>
+    <span class=n>Logger</span><span class=p>,</span>
+<span class=p>)</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__cpu_affinity</span><span class=p>(</span><span class=n>proc</span><span class=p>:</span> <span class=n>psutil</span><span class=o>.</span><span class=n>Process</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the CPU affinity.</span>
+
+<span class=sd>    :param proc: the process handle</span>
+<span class=sd>    :return: the CPU affinity string.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=n>proc</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>proc</span> <span class=o>=</span> <span class=n>psutil</span><span class=o>.</span><span class=n>Process</span><span class=p>()</span>
+    <span class=k>if</span> <span class=n>proc</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>return</span> <span class=kc>None</span>
+    <span class=n>cpua</span> <span class=o>=</span> <span class=n>proc</span><span class=o>.</span><span class=n>cpu_affinity</span><span class=p>()</span>
+    <span class=k>if</span> <span class=n>cpua</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>cpua</span> <span class=o>=</span> <span class=n>CSV_SEPARATOR</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=nb>map</span><span class=p>(</span><span class=nb>str</span><span class=p>,</span> <span class=n>cpua</span><span class=p>))</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>cpua</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>cpua</span>
+    <span class=k>return</span> <span class=kc>None</span>
+
+
+<span class=c1>#: the dependencies</span>
+<span class=n>__DEPENDENCIES</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=p>{</span>
+    <span class=s2>"cmaes"</span><span class=p>,</span> <span class=s2>"contourpy"</span><span class=p>,</span> <span class=s2>"cycler"</span><span class=p>,</span> <span class=s2>"fonttools"</span><span class=p>,</span> <span class=s2>"intel-cmplr-lib-rt"</span><span class=p>,</span>
+    <span class=s2>"joblib"</span><span class=p>,</span> <span class=s2>"kiwisolver"</span><span class=p>,</span> <span class=s2>"llvmlite"</span><span class=p>,</span> <span class=s2>"matplotlib"</span><span class=p>,</span> <span class=s2>"moptipy"</span><span class=p>,</span> <span class=s2>"numba"</span><span class=p>,</span>
+    <span class=s2>"numpy"</span><span class=p>,</span> <span class=s2>"packaging"</span><span class=p>,</span> <span class=s2>"pillow"</span><span class=p>,</span> <span class=s2>"psutil"</span><span class=p>,</span> <span class=s2>"pycommons"</span><span class=p>,</span> <span class=s2>"pyparsing"</span><span class=p>,</span>
+    <span class=s2>"python-dateutil"</span><span class=p>,</span> <span class=s2>"scipy"</span><span class=p>,</span> <span class=s2>"setuptools"</span><span class=p>,</span> <span class=s2>"six"</span><span class=p>,</span> <span class=s2>"threadpoolctl"</span><span class=p>}</span>
+
+
+<div class=viewcode-block id=add_dependency>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.sys_info.add_dependency>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>add_dependency</span><span class=p>(</span><span class=n>dependency</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                   <span class=n>ignore_if_make_build</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Add a dependency so that its version can be stored in log files.</span>
+
+<span class=sd>    Warning: You must add all dependencies *before* the first log file is</span>
+<span class=sd>    written. As soon as the :func:`log_sys_info` is invoked for the first</span>
+<span class=sd>    time, adding new dependencies will cause an error. And writing a log</span>
+<span class=sd>    file via the :mod:`~moptipy.api.experiment` API or to a file specified in</span>
+<span class=sd>    the :mod:`~moptipy.api.execution` API will invoke this function.</span>
+
+<span class=sd>    :param dependency: the basic name of the library, exactly as you would</span>
+<span class=sd>        `import` it in a Python module. For example, to include the version of</span>
+<span class=sd>        `numpy` in the log files, you would do `add_dependency("numpy")` (of</span>
+<span class=sd>        course, the version of `numpy` is already automatically included</span>
+<span class=sd>        anyway).</span>
+<span class=sd>    :param ignore_if_make_build: should this dependency be ignored if this</span>
+<span class=sd>        method is invoked during a `make` build? This makes sense if the</span>
+<span class=sd>        dependency itself is a package which is uninstalled and then</span>
+<span class=sd>        re-installed during a `make` build process. In such a situation, the</span>
+<span class=sd>        dependency version may be unavailable and cause an exception.</span>
+<span class=sd>    :raises TypeError: if `dependency` is not a string</span>
+<span class=sd>    :raises ValueError: if `dependency` is an invalid string or the log</span>
+<span class=sd>        information has already been accessed before and modifying it now is</span>
+<span class=sd>        not permissible.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>dependency</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>dependency</span> <span class=o>!=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>dependency</span><span class=p>))</span>\
+            <span class=ow>or</span> <span class=p>(</span><span class=s2>" "</span> <span class=ow>in</span> <span class=n>dependency</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid dependency string </span><span class=si>{</span><span class=n>dependency</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>__DEPENDENCIES</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"Too late. Cannot add dependency </span><span class=si>{</span><span class=n>dependency</span><span class=si>!r}</span><span class=s2> anymore."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>ignore_if_make_build</span> <span class=ow>and</span> <span class=n>is_build</span><span class=p>():</span>
+        <span class=k>return</span>
+    <span class=n>__DEPENDENCIES</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>dependency</span><span class=p>)</span></div>
+
+
+
+<span class=c1># noinspection PyBroadException</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__make_sys_info</span><span class=p>()</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Build the system info string.</span>
+
+<span class=sd>    This method is only used once and then deleted.</span>
+
+<span class=sd>    :returns: the system info string.</span>
+<span class=sd>    """</span>
+    <span class=k>global</span> <span class=n>__DEPENDENCIES</span>  <span class=c1># noqa: PLW0603  # pylint: disable=W0603</span>
+    <span class=k>if</span> <span class=n>__DEPENDENCIES</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Cannot re-create log info."</span><span class=p>)</span>
+    <span class=n>dep</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>set</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=n>__DEPENDENCIES</span>
+    <span class=n>__DEPENDENCIES</span> <span class=o>=</span> <span class=kc>None</span>  <span class=c1># noqa: PLW0603  # pylint: disable=W0603</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>__v</span><span class=p>(</span><span class=n>sec</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>,</span> <span class=n>key</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>value</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a key-value pair if value is not empty.</span>
+
+<span class=sd>        :param sec: the section to write to.</span>
+<span class=sd>        :param key: the key</span>
+<span class=sd>        :param value: an arbitrary value, maybe consisting of multiple lines.</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=n>value</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>return</span>
+        <span class=n>value</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=s2>" "</span><span class=o>.</span><span class=n>join</span><span class=p>([</span><span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>ts</span><span class=p>)</span> <span class=k>for</span> <span class=n>ts</span> <span class=ow>in</span>
+                                    <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>value</span><span class=p>))</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=s2>"</span><span class=se>\n</span><span class=s2>"</span><span class=p>)]))</span>
+        <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>value</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>return</span>
+        <span class=n>sec</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=n>value</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>__get_processor_name</span><span class=p>()</span> <span class=o>-></span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the processor name.</span>
+
+<span class=sd>        :returns: a string if there is any processor information</span>
+<span class=sd>        """</span>
+        <span class=k>with</span> <span class=n>contextlib</span><span class=o>.</span><span class=n>suppress</span><span class=p>(</span><span class=ne>Exception</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>platform</span><span class=o>.</span><span class=n>system</span><span class=p>()</span> <span class=o>==</span> <span class=s2>"Windows"</span><span class=p>:</span>
+                <span class=k>return</span> <span class=n>platform</span><span class=o>.</span><span class=n>processor</span><span class=p>()</span>
+            <span class=k>if</span> <span class=n>platform</span><span class=o>.</span><span class=n>system</span><span class=p>()</span> <span class=o>==</span> <span class=s2>"Linux"</span><span class=p>:</span>
+                <span class=k>with</span> <span class=n>Path</span><span class=p>(</span><span class=s2>"/proc/cpuinfo"</span><span class=p>)</span><span class=o>.</span><span class=n>open_for_read</span><span class=p>()</span> <span class=k>as</span> <span class=n>rd</span><span class=p>:</span>
+                    <span class=k>for</span> <span class=n>line</span> <span class=ow>in</span> <span class=n>rd</span><span class=p>:</span>
+                        <span class=k>if</span> <span class=s2>"model name"</span> <span class=ow>in</span> <span class=n>line</span><span class=p>:</span>
+                            <span class=k>return</span> <span class=n>re</span><span class=o>.</span><span class=n>sub</span><span class=p>(</span>
+                                <span class=n>pattern</span><span class=o>=</span><span class=s2>".*model name.*:"</span><span class=p>,</span>
+                                <span class=n>repl</span><span class=o>=</span><span class=s2>""</span><span class=p>,</span> <span class=n>string</span><span class=o>=</span><span class=n>line</span><span class=p>,</span> <span class=n>count</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+        <span class=k>return</span> <span class=kc>None</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>__get_mem_size_sysconf</span><span class=p>()</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the memory size information from sysconf.</span>
+
+<span class=sd>        :returns: an integer with the memory size if available</span>
+<span class=sd>        """</span>
+        <span class=k>with</span> <span class=n>contextlib</span><span class=o>.</span><span class=n>suppress</span><span class=p>(</span><span class=ne>Exception</span><span class=p>):</span>
+            <span class=n>k1</span> <span class=o>=</span> <span class=s2>"SC_PAGESIZE"</span>
+            <span class=k>if</span> <span class=n>k1</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>os</span><span class=o>.</span><span class=n>sysconf_names</span><span class=p>:</span>
+                <span class=n>k1</span> <span class=o>=</span> <span class=s2>"SC_PAGE_SIZE"</span>
+                <span class=k>if</span> <span class=n>k1</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>os</span><span class=o>.</span><span class=n>sysconf_names</span><span class=p>:</span>
+                    <span class=k>return</span> <span class=kc>None</span>
+            <span class=n>v1</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>sysconf</span><span class=p>(</span><span class=n>k1</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>v1</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+                <span class=k>return</span> <span class=kc>None</span>
+            <span class=n>k2</span> <span class=o>=</span> <span class=s2>"SC_PHYS_PAGES"</span>
+            <span class=k>if</span> <span class=n>k2</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>os</span><span class=o>.</span><span class=n>sysconf_names</span><span class=p>:</span>
+                <span class=n>k2</span> <span class=o>=</span> <span class=s2>"_SC_PHYS_PAGES"</span>
+                <span class=k>if</span> <span class=n>k2</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>os</span><span class=o>.</span><span class=n>sysconf_names</span><span class=p>:</span>
+                    <span class=k>return</span> <span class=kc>None</span>
+            <span class=n>v2</span> <span class=o>=</span> <span class=n>os</span><span class=o>.</span><span class=n>sysconf</span><span class=p>(</span><span class=n>k2</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>v1</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+                <span class=k>return</span> <span class=kc>None</span>
+
+            <span class=k>if</span> <span class=p>(</span><span class=n>v1</span> <span class=o>></span> <span class=mi>0</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>v2</span> <span class=o>></span> <span class=mi>0</span><span class=p>):</span>
+                <span class=k>return</span> <span class=n>v1</span> <span class=o>*</span> <span class=n>v2</span>
+        <span class=k>return</span> <span class=kc>None</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>__get_mem_size_meminfo</span><span class=p>()</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the memory size information from meminfo.</span>
+
+<span class=sd>        :returns: an integer with the memory size if available</span>
+<span class=sd>        """</span>
+        <span class=k>with</span> <span class=n>contextlib</span><span class=o>.</span><span class=n>suppress</span><span class=p>(</span><span class=ne>Exception</span><span class=p>):</span>
+            <span class=k>with</span> <span class=n>Path</span><span class=p>(</span><span class=s2>"/proc/meminfo"</span><span class=p>)</span><span class=o>.</span><span class=n>open_for_read</span><span class=p>()</span> <span class=k>as</span> <span class=n>rd</span><span class=p>:</span>
+                <span class=n>meminfo</span> <span class=o>=</span> <span class=p>{</span><span class=n>i</span><span class=o>.</span><span class=n>split</span><span class=p>()[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>rstrip</span><span class=p>(</span><span class=s2>":"</span><span class=p>):</span> <span class=nb>int</span><span class=p>(</span><span class=n>i</span><span class=o>.</span><span class=n>split</span><span class=p>()[</span><span class=mi>1</span><span class=p>])</span>
+                           <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>rd</span><span class=p>}</span>
+            <span class=n>mem_kib</span> <span class=o>=</span> <span class=n>meminfo</span><span class=p>[</span><span class=s2>"MemTotal"</span><span class=p>]</span>  <span class=c1># e.g. 3921852</span>
+            <span class=n>mem_kib</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>mem_kib</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>mem_kib</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>return</span> <span class=mi>1024</span> <span class=o>*</span> <span class=n>mem_kib</span>
+        <span class=k>return</span> <span class=kc>None</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>__get_mem_size</span><span class=p>()</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the memory size information from any available source.</span>
+
+<span class=sd>        :returns: an integer with the memory size if available</span>
+<span class=sd>        """</span>
+        <span class=n>vs</span> <span class=o>=</span> <span class=n>__get_mem_size_sysconf</span><span class=p>()</span>
+        <span class=k>if</span> <span class=n>vs</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>vs</span> <span class=o>=</span> <span class=n>__get_mem_size_meminfo</span><span class=p>()</span>
+        <span class=k>if</span> <span class=n>vs</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>psutil</span><span class=o>.</span><span class=n>virtual_memory</span><span class=p>()</span><span class=o>.</span><span class=n>total</span>
+        <span class=k>return</span> <span class=n>vs</span>
+
+    <span class=c1># log all information in memory to convert it to one constant string.</span>
+    <span class=k>with</span> <span class=n>InMemoryLogger</span><span class=p>()</span> <span class=k>as</span> <span class=n>imr</span><span class=p>:</span>
+        <span class=k>with</span> <span class=n>imr</span><span class=o>.</span><span class=n>key_values</span><span class=p>(</span><span class=n>logging</span><span class=o>.</span><span class=n>SECTION_SYS_INFO</span><span class=p>)</span> <span class=k>as</span> <span class=n>kv</span><span class=p>:</span>
+            <span class=k>with</span> <span class=n>kv</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=n>logging</span><span class=o>.</span><span class=n>SCOPE_SESSION</span><span class=p>)</span> <span class=k>as</span> <span class=n>k</span><span class=p>:</span>
+                <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_SESSION_START</span><span class=p>,</span>
+                    <span class=n>datetime</span><span class=o>.</span><span class=n>now</span><span class=p>(</span><span class=n>tz</span><span class=o>=</span><span class=n>UTC</span><span class=p>))</span>
+                <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_NODE_NAME</span><span class=p>,</span> <span class=n>platform</span><span class=o>.</span><span class=n>node</span><span class=p>())</span>
+                <span class=n>proc</span> <span class=o>=</span> <span class=n>psutil</span><span class=o>.</span><span class=n>Process</span><span class=p>()</span>
+                <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_PROCESS_ID</span><span class=p>,</span> <span class=nb>hex</span><span class=p>(</span><span class=n>proc</span><span class=o>.</span><span class=n>pid</span><span class=p>))</span>
+                <span class=n>cpua</span> <span class=o>=</span> <span class=n>__cpu_affinity</span><span class=p>(</span><span class=n>proc</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>cpua</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                    <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_CPU_AFFINITY</span><span class=p>,</span> <span class=n>cpua</span><span class=p>)</span>
+                <span class=k>del</span> <span class=n>proc</span><span class=p>,</span> <span class=n>cpua</span>
+
+                <span class=c1># get the command line and working directory of the process</span>
+                <span class=k>with</span> <span class=n>contextlib</span><span class=o>.</span><span class=n>suppress</span><span class=p>(</span><span class=ne>Exception</span><span class=p>):</span>
+                    <span class=n>proc</span> <span class=o>=</span> <span class=n>psutil</span><span class=o>.</span><span class=n>Process</span><span class=p>(</span><span class=n>os</span><span class=o>.</span><span class=n>getpid</span><span class=p>())</span>
+                    <span class=n>cmd</span> <span class=o>=</span> <span class=n>proc</span><span class=o>.</span><span class=n>cmdline</span><span class=p>()</span>
+                    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>cmd</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+                        <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_COMMAND_LINE</span><span class=p>,</span>
+                            <span class=s2>" "</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=nb>map</span><span class=p>(</span><span class=nb>repr</span><span class=p>,</span> <span class=n>proc</span><span class=o>.</span><span class=n>cmdline</span><span class=p>())))</span>
+                    <span class=n>cwd</span> <span class=o>=</span> <span class=n>proc</span><span class=o>.</span><span class=n>cwd</span><span class=p>()</span>
+                    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>cwd</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+                        <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_WORKING_DIRECTORY</span><span class=p>,</span>
+                            <span class=nb>repr</span><span class=p>(</span><span class=n>proc</span><span class=o>.</span><span class=n>cwd</span><span class=p>()))</span>
+
+                <span class=c1># see https://stackoverflow.com/questions/166506/.</span>
+                <span class=n>s</span> <span class=o>=</span> <span class=n>socket</span><span class=o>.</span><span class=n>socket</span><span class=p>(</span><span class=n>socket</span><span class=o>.</span><span class=n>AF_INET</span><span class=p>,</span> <span class=n>socket</span><span class=o>.</span><span class=n>SOCK_DGRAM</span><span class=p>)</span>
+                <span class=k>try</span><span class=p>:</span>
+                    <span class=c1># doesn't even have to be reachable</span>
+                    <span class=n>s</span><span class=o>.</span><span class=n>connect</span><span class=p>((</span><span class=s2>"10.255.255.255"</span><span class=p>,</span> <span class=mi>1</span><span class=p>))</span>
+                    <span class=n>ip</span> <span class=o>=</span> <span class=n>s</span><span class=o>.</span><span class=n>getsockname</span><span class=p>()[</span><span class=mi>0</span><span class=p>]</span>
+                <span class=k>except</span> <span class=ne>Exception</span><span class=p>:</span>  <span class=c1># noqa</span>
+                    <span class=n>ip</span> <span class=o>=</span> <span class=s2>"127.0.0.1"</span>
+                <span class=k>finally</span><span class=p>:</span>
+                    <span class=n>s</span><span class=o>.</span><span class=n>close</span><span class=p>()</span>
+                <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_NODE_IP</span><span class=p>,</span> <span class=n>ip</span><span class=p>)</span>
+
+            <span class=k>with</span> <span class=n>kv</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=n>logging</span><span class=o>.</span><span class=n>SCOPE_VERSIONS</span><span class=p>)</span> <span class=k>as</span> <span class=n>k</span><span class=p>:</span>
+                <span class=k>for</span> <span class=n>package</span> <span class=ow>in</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>dep</span><span class=p>):</span>
+                    <span class=k>if</span> <span class=n>package</span> <span class=o>==</span> <span class=s2>"moptipy"</span><span class=p>:</span>
+                        <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=s2>"moptipy"</span><span class=p>,</span> <span class=n>ver</span><span class=o>.</span><span class=n>__version__</span><span class=p>)</span>
+                    <span class=k>else</span><span class=p>:</span>
+                        <span class=n>use_v</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+                        <span class=k>with</span> <span class=n>suppress</span><span class=p>(</span><span class=ne>BaseException</span><span class=p>):</span>
+                            <span class=n>use_v</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>ilm</span><span class=o>.</span><span class=n>version</span><span class=p>(</span><span class=n>package</span><span class=p>))</span>
+                        <span class=k>if</span> <span class=p>(</span><span class=n>use_v</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>use_v</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>):</span>
+                            <span class=n>use_v</span> <span class=o>=</span> <span class=s2>"notFound"</span>
+                        <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>package</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>"-"</span><span class=p>,</span> <span class=s2>""</span><span class=p>),</span> <span class=n>use_v</span><span class=p>)</span>
+
+            <span class=k>with</span> <span class=n>kv</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=n>logging</span><span class=o>.</span><span class=n>SCOPE_HARDWARE</span><span class=p>)</span> <span class=k>as</span> <span class=n>k</span><span class=p>:</span>
+                <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_HW_MACHINE</span><span class=p>,</span> <span class=n>platform</span><span class=o>.</span><span class=n>machine</span><span class=p>())</span>
+                <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_HW_N_PHYSICAL_CPUS</span><span class=p>,</span>
+                    <span class=n>psutil</span><span class=o>.</span><span class=n>cpu_count</span><span class=p>(</span><span class=n>logical</span><span class=o>=</span><span class=kc>False</span><span class=p>))</span>
+                <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_HW_N_LOGICAL_CPUS</span><span class=p>,</span>
+                    <span class=n>psutil</span><span class=o>.</span><span class=n>cpu_count</span><span class=p>(</span><span class=n>logical</span><span class=o>=</span><span class=kc>True</span><span class=p>))</span>
+
+                <span class=c1># store the CPU speed information</span>
+                <span class=n>cpuf</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>{}</span>
+                <span class=n>total</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+                <span class=k>for</span> <span class=n>cf</span> <span class=ow>in</span> <span class=n>psutil</span><span class=o>.</span><span class=n>cpu_freq</span><span class=p>(</span><span class=kc>True</span><span class=p>):</span>
+                    <span class=n>t</span> <span class=o>=</span> <span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>cf</span><span class=o>.</span><span class=n>min</span><span class=p>),</span> <span class=nb>int</span><span class=p>(</span><span class=n>cf</span><span class=o>.</span><span class=n>max</span><span class=p>))</span>
+                    <span class=n>cpuf</span><span class=p>[</span><span class=n>t</span><span class=p>]</span> <span class=o>=</span> <span class=n>cpuf</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>t</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span>
+                    <span class=n>total</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=n>memlst</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span>
+                <span class=k>if</span> <span class=n>total</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+                    <span class=n>memlst</span> <span class=o>=</span> <span class=p>[(</span><span class=n>key</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>key</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span> <span class=n>value</span><span class=p>)</span> <span class=k>for</span>
+                              <span class=n>key</span><span class=p>,</span> <span class=n>value</span> <span class=ow>in</span> <span class=n>cpuf</span><span class=o>.</span><span class=n>items</span><span class=p>()]</span>
+                    <span class=n>memlst</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>memlst</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>cpuf</span><span class=p>)</span>
+
+                <span class=k>def</span><span class=w> </span><span class=nf>__make_mhz_str</span><span class=p>(</span><span class=n>tpl</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>])</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>                    </span><span class=sd>"""Convert a MHz tuple to a string."""</span>
+                    <span class=n>base</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"(</span><span class=si>{</span><span class=n>tpl</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=si>}</span><span class=s2>MHz..</span><span class=si>{</span><span class=n>tpl</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span><span class=si>}</span><span class=s2>MHz)"</span> \
+                        <span class=k>if</span> <span class=n>tpl</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>></span> <span class=n>tpl</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=k>else</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>tpl</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=si>}</span><span class=s2>MHz"</span>
+                    <span class=k>return</span> <span class=n>base</span> <span class=k>if</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>tpl</span><span class=p>)</span> <span class=o><</span> <span class=mi>3</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>tpl</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span> <span class=o><=</span> <span class=mi>1</span><span class=p>)</span> \
+                        <span class=k>else</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>base</span><span class=si>}</span><span class=s2>*</span><span class=si>{</span><span class=n>tpl</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span><span class=si>}</span><span class=s2>"</span>
+                <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_HW_CPU_MHZ</span><span class=p>,</span>
+                    <span class=s2>"+"</span><span class=o>.</span><span class=n>join</span><span class=p>([</span><span class=n>__make_mhz_str</span><span class=p>(</span><span class=n>t</span><span class=p>)</span> <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>memlst</span><span class=p>]))</span>
+
+                <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_HW_BYTE_ORDER</span><span class=p>,</span> <span class=n>sys</span><span class=o>.</span><span class=n>byteorder</span><span class=p>)</span>
+                <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_HW_CPU_NAME</span><span class=p>,</span> <span class=n>__get_processor_name</span><span class=p>())</span>
+                <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_HW_MEM_SIZE</span><span class=p>,</span> <span class=n>__get_mem_size</span><span class=p>())</span>
+
+            <span class=k>with</span> <span class=n>kv</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=n>logging</span><span class=o>.</span><span class=n>SCOPE_PYTHON</span><span class=p>)</span> <span class=k>as</span> <span class=n>k</span><span class=p>:</span>
+                <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_PYTHON_VERSION</span><span class=p>,</span> <span class=n>sys</span><span class=o>.</span><span class=n>version</span><span class=p>)</span>
+                <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_PYTHON_IMPLEMENTATION</span><span class=p>,</span>
+                    <span class=n>platform</span><span class=o>.</span><span class=n>python_implementation</span><span class=p>())</span>
+
+            <span class=k>with</span> <span class=n>kv</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=n>logging</span><span class=o>.</span><span class=n>SCOPE_OS</span><span class=p>)</span> <span class=k>as</span> <span class=n>k</span><span class=p>:</span>
+                <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_OS_NAME</span><span class=p>,</span> <span class=n>platform</span><span class=o>.</span><span class=n>system</span><span class=p>())</span>
+                <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_OS_RELEASE</span><span class=p>,</span> <span class=n>platform</span><span class=o>.</span><span class=n>release</span><span class=p>())</span>
+                <span class=n>__v</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>logging</span><span class=o>.</span><span class=n>KEY_OS_VERSION</span><span class=p>,</span> <span class=n>platform</span><span class=o>.</span><span class=n>version</span><span class=p>())</span>
+
+        <span class=n>lst</span> <span class=o>=</span> <span class=n>imr</span><span class=o>.</span><span class=n>get_log</span><span class=p>()</span>
+
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>lst</span><span class=p>)</span> <span class=o><</span> <span class=mi>3</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"sys info turned out to be empty?"</span><span class=p>)</span>
+    <span class=n>__DEPENDENCIES</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=k>return</span> <span class=s2>"</span><span class=se>\n</span><span class=s2>"</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>lst</span><span class=p>[</span><span class=mi>1</span><span class=p>:(</span><span class=nb>len</span><span class=p>(</span><span class=n>lst</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)])</span>
+
+
+<div class=viewcode-block id=get_sys_info>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.sys_info.get_sys_info>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>get_sys_info</span><span class=p>()</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sa>r</span><span class=sd>"""</span>
+<span class=sd>    Get the system information as string.</span>
+
+<span class=sd>    :returns: the system information as string</span>
+
+<span class=sd>    >>> raw_infos = get_sys_info()</span>
+<span class=sd>    >>> raw_infos is get_sys_info()  # caching!</span>
+<span class=sd>    True</span>
+<span class=sd>    >>> for k in raw_infos.split("\n"):</span>
+<span class=sd>    ...     print(k[:k.find(": ")])</span>
+<span class=sd>    session.start</span>
+<span class=sd>    session.node</span>
+<span class=sd>    session.processId</span>
+<span class=sd>    session.cpuAffinity</span>
+<span class=sd>    session.commandLine</span>
+<span class=sd>    session.workingDirectory</span>
+<span class=sd>    session.ipAddress</span>
+<span class=sd>    version.cmaes</span>
+<span class=sd>    version.contourpy</span>
+<span class=sd>    version.cycler</span>
+<span class=sd>    version.fonttools</span>
+<span class=sd>    version.intelcmplrlibrt</span>
+<span class=sd>    version.joblib</span>
+<span class=sd>    version.kiwisolver</span>
+<span class=sd>    version.llvmlite</span>
+<span class=sd>    version.matplotlib</span>
+<span class=sd>    version.moptipy</span>
+<span class=sd>    version.numba</span>
+<span class=sd>    version.numpy</span>
+<span class=sd>    version.packaging</span>
+<span class=sd>    version.pillow</span>
+<span class=sd>    version.psutil</span>
+<span class=sd>    version.pycommons</span>
+<span class=sd>    version.pyparsing</span>
+<span class=sd>    version.pythondateutil</span>
+<span class=sd>    version.scipy</span>
+<span class=sd>    version.setuptools</span>
+<span class=sd>    version.six</span>
+<span class=sd>    version.threadpoolctl</span>
+<span class=sd>    hardware.machine</span>
+<span class=sd>    hardware.nPhysicalCpus</span>
+<span class=sd>    hardware.nLogicalCpus</span>
+<span class=sd>    hardware.cpuMhz</span>
+<span class=sd>    hardware.byteOrder</span>
+<span class=sd>    hardware.cpu</span>
+<span class=sd>    hardware.memSize</span>
+<span class=sd>    python.version</span>
+<span class=sd>    python.implementation</span>
+<span class=sd>    os.name</span>
+<span class=sd>    os.release</span>
+<span class=sd>    os.version</span>
+<span class=sd>    """</span>
+    <span class=n>the_object</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>object</span><span class=p>]</span> <span class=o>=</span> <span class=n>get_sys_info</span>
+    <span class=n>the_attr</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"__the_sysinfo"</span>
+    <span class=k>if</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>the_object</span><span class=p>,</span> <span class=n>the_attr</span><span class=p>):</span>
+        <span class=k>return</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>the_object</span><span class=p>,</span> <span class=n>the_attr</span><span class=p>)</span>
+    <span class=n>sys_info</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>__make_sys_info</span><span class=p>()</span>
+    <span class=nb>setattr</span><span class=p>(</span><span class=n>the_object</span><span class=p>,</span> <span class=n>the_attr</span><span class=p>,</span> <span class=n>sys_info</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>sys_info</span></div>
+
+
+
+<div class=viewcode-block id=update_sys_info_cpu_affinity>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.sys_info.update_sys_info_cpu_affinity>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>update_sys_info_cpu_affinity</span><span class=p>()</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""Update the CPU affinity of the system information."""</span>
+    <span class=n>sys_info_str</span> <span class=o>=</span> <span class=n>get_sys_info</span><span class=p>()</span>
+    <span class=n>start</span> <span class=o>=</span> <span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=se>\n</span><span class=si>{</span><span class=n>logging</span><span class=o>.</span><span class=n>SCOPE_SESSION</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}</span><span class=s2>"</span>
+             <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>logging</span><span class=o>.</span><span class=n>KEY_CPU_AFFINITY</span><span class=si>}{</span><span class=n>KEY_VALUE_SEPARATOR</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+    <span class=n>start_i</span> <span class=o>=</span> <span class=n>sys_info_str</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>start</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>start_i</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>return</span>   <span class=c1># no affinity, don't need to update</span>
+    <span class=n>start_i</span> <span class=o>+=</span> <span class=nb>len</span><span class=p>(</span><span class=n>start</span><span class=p>)</span>
+    <span class=n>end_i</span> <span class=o>=</span> <span class=n>sys_info_str</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>"</span><span class=se>\n</span><span class=s2>"</span><span class=p>,</span> <span class=n>start_i</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>end_i</span> <span class=o><=</span> <span class=n>start_i</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Empty </span><span class=si>{</span><span class=n>logging</span><span class=o>.</span><span class=n>KEY_CPU_AFFINITY</span><span class=si>}</span><span class=s2>?"</span><span class=p>)</span>
+    <span class=n>affinity</span> <span class=o>=</span> <span class=n>__cpu_affinity</span><span class=p>()</span>
+    <span class=k>if</span> <span class=n>affinity</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"first affinity query is </span><span class=si>{</span><span class=n>sys_info_str</span><span class=p>[</span><span class=n>start_i</span><span class=p>:</span><span class=n>end_i</span><span class=p>]</span><span class=si>}</span><span class=s2>,"</span>
+            <span class=sa>f</span><span class=s2>" but second one is None?"</span><span class=p>)</span>
+    <span class=n>sys_info_str</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>sys_info_str</span><span class=p>[:</span><span class=n>start_i</span><span class=p>]</span><span class=si>}{</span><span class=n>affinity</span><span class=si>}{</span><span class=n>sys_info_str</span><span class=p>[</span><span class=n>end_i</span><span class=p>:]</span><span class=si>}</span><span class=s2>"</span>
+
+    <span class=n>the_object</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>object</span><span class=p>]</span> <span class=o>=</span> <span class=n>get_sys_info</span>
+    <span class=n>the_attr</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"__the_sysinfo"</span>
+    <span class=nb>setattr</span><span class=p>(</span><span class=n>the_object</span><span class=p>,</span> <span class=n>the_attr</span><span class=p>,</span> <span class=n>sys_info_str</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=log_sys_info>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.sys_info.log_sys_info>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>log_sys_info</span><span class=p>(</span><span class=n>logger</span><span class=p>:</span> <span class=n>Logger</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sa>r</span><span class=sd>"""</span>
+<span class=sd>    Write the system information section to a logger.</span>
+
+<span class=sd>    The concept of this method is that we only construct the whole system</span>
+<span class=sd>    configuration exactly once in memory and then always directly flush it</span>
+<span class=sd>    as a string to the logger. This is much more efficient than querying it</span>
+<span class=sd>    every single time.</span>
+
+<span class=sd>    :param logger: the logger</span>
+
+<span class=sd>    >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>    >>> with InMemoryLogger() as l:</span>
+<span class=sd>    ...     log_sys_info(l)</span>
+<span class=sd>    ...     log = l.get_log()</span>
+<span class=sd>    >>> print(log[0])</span>
+<span class=sd>    BEGIN_SYS_INFO</span>
+<span class=sd>    >>> print(log[-1])</span>
+<span class=sd>    END_SYS_INFO</span>
+<span class=sd>    >>> log[1:-1] == get_sys_info().split('\n')</span>
+<span class=sd>    True</span>
+<span class=sd>    """</span>
+    <span class=k>with</span> <span class=n>logger</span><span class=o>.</span><span class=n>text</span><span class=p>(</span><span class=n>logging</span><span class=o>.</span><span class=n>SECTION_SYS_INFO</span><span class=p>)</span> <span class=k>as</span> <span class=n>txt</span><span class=p>:</span>
+        <span class=n>txt</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=n>get_sys_info</span><span class=p>())</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.sys_info</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

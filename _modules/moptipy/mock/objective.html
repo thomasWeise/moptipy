@@ -1,0 +1,247 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.mock.objective — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/mock/objective.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.mock.objective</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.mock.objective</h1><div class=highlight><pre>
+<span></span><span class=sd>"""A mock-up of an objective function."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isfinite</span><span class=p>,</span> <span class=n>nextafter</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>default_rng</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.strings.string_conv</span><span class=w> </span><span class=kn>import</span> <span class=n>num_to_str</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>Objective</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.mock.utils</span><span class=w> </span><span class=kn>import</span> <span class=n>make_ordered_list</span><span class=p>,</span> <span class=n>sample_from_attractors</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>CSV_SEPARATOR</span><span class=p>,</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>is_np_float</span><span class=p>,</span> <span class=n>is_np_int</span>
+
+
+<div class=viewcode-block id=MockObjective>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.objective.MockObjective>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>MockObjective</span><span class=p>(</span><span class=n>Objective</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A mock-up of an objective function."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                 <span class=n>is_int</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+                 <span class=n>lb</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span><span class=p>,</span>
+                 <span class=n>ub</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span><span class=p>,</span>
+                 <span class=n>fmin</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>fattractors</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>fmax</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>seed</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a mock objective function.</span>
+
+<span class=sd>        :param is_int: is this objective function always integer?</span>
+<span class=sd>        :param lb: the lower bound</span>
+<span class=sd>        :param ub: the upper bound</span>
+<span class=sd>        :param fmin: the minimum value this objective actually takes on</span>
+<span class=sd>        :param fattractors: the attractor points</span>
+<span class=sd>        :param fmax: the maximum value this objective actually takes on</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>is_int</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>is_int</span><span class=p>,</span> <span class=s2>"is_int"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=c1>#: is this objective integer?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>is_int</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>is_int</span>
+
+        <span class=k>if</span> <span class=n>seed</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>seed</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>default_rng</span><span class=p>()</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span> <span class=o><<</span> <span class=mi>63</span><span class=p>))</span>
+        <span class=k>elif</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>seed</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>seed</span><span class=p>,</span> <span class=s2>"seed"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+        <span class=c1>#: the random seed</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>seed</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>seed</span>
+
+        <span class=c1>#: the generator for setting up the mock objective</span>
+        <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>(</span><span class=n>seed</span><span class=p>)</span>
+        <span class=c1>#: the name of this objective function</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>name</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"mock</span><span class=si>{</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span><span class=w> </span><span class=mi>100_000_000</span><span class=p>)</span><span class=si>:</span><span class=s2>x</span><span class=si>}</span><span class=s2>"</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=s2>"lb"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>lb</span><span class=p>)</span> <span class=ow>and</span> <span class=n>is_int</span> <span class=ow>and</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"finite lb @ is_int=</span><span class=si>{</span><span class=n>is_int</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ub</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>ub</span><span class=p>,</span> <span class=s2>"ub"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>ub</span><span class=p>)</span> <span class=ow>and</span> <span class=n>is_int</span> <span class=ow>and</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ub</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>ub</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"finite lb @ is_int=</span><span class=si>{</span><span class=n>is_int</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>lb</span> <span class=o>>=</span> <span class=n>ub</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"lb=</span><span class=si>{</span><span class=n>lb</span><span class=si>}</span><span class=s2> >= ub=</span><span class=si>{</span><span class=n>ub</span><span class=si>}</span><span class=s2> not permitted"</span><span class=p>)</span>
+        <span class=c1>#: the lower bound</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>lb</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>lb</span>
+        <span class=c1>#: the upper bound</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>ub</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>ub</span>
+
+        <span class=k>if</span> <span class=n>fmin</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>fmin</span><span class=p>,</span> <span class=nb>int</span> <span class=k>if</span> <span class=n>is_int</span> <span class=k>else</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>)):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>fmin</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"fmin[is_int=</span><span class=si>{</span><span class=n>is_int</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+                                 <span class=nb>int</span> <span class=k>if</span> <span class=n>is_int</span> <span class=k>else</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+            <span class=k>if</span> <span class=n>fmin</span> <span class=o><</span> <span class=n>lb</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"fmin=</span><span class=si>{</span><span class=n>fmin</span><span class=si>}</span><span class=s2> < lb=</span><span class=si>{</span><span class=n>lb</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>fmax</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>fmax</span><span class=p>,</span> <span class=nb>int</span> <span class=k>if</span> <span class=n>is_int</span> <span class=k>else</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>)):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>fmax</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"fmax[is_int=</span><span class=si>{</span><span class=n>is_int</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
+                                 <span class=nb>int</span> <span class=k>if</span> <span class=n>is_int</span> <span class=k>else</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+            <span class=k>if</span> <span class=n>fmax</span> <span class=o>></span> <span class=n>ub</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"fmax=</span><span class=si>{</span><span class=n>fmax</span><span class=si>}</span><span class=s2> < ub=</span><span class=si>{</span><span class=n>ub</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>fmin</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>fmax</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>fmin</span> <span class=o>>=</span> <span class=n>fmax</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"fmin=</span><span class=si>{</span><span class=n>fmin</span><span class=si>}</span><span class=s2> >= fmax=</span><span class=si>{</span><span class=n>fmax</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+        <span class=n>values</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=n>lb</span><span class=p>,</span> <span class=n>fmin</span><span class=p>]</span>
+        <span class=k>if</span> <span class=n>fattractors</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+                <span class=n>values</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>break</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>values</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>fattractors</span><span class=p>)</span>
+        <span class=n>values</span><span class=o>.</span><span class=n>extend</span><span class=p>((</span><span class=n>fmax</span><span class=p>,</span> <span class=n>ub</span><span class=p>))</span>
+
+        <span class=n>values</span> <span class=o>=</span> <span class=n>make_ordered_list</span><span class=p>(</span><span class=n>values</span><span class=p>,</span> <span class=n>is_int</span><span class=p>,</span> <span class=n>random</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>values</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"could not create mock objective with lb=</span><span class=si>{</span><span class=n>lb</span><span class=si>}</span><span class=s2>, fmin=</span><span class=si>{</span><span class=n>fmin</span><span class=si>}</span><span class=s2>, "</span>
+                <span class=sa>f</span><span class=s2>"fattractors=</span><span class=si>{</span><span class=n>fattractors</span><span class=si>}</span><span class=s2>, fmax=</span><span class=si>{</span><span class=n>fmax</span><span class=si>}</span><span class=s2>, ub=</span><span class=si>{</span><span class=n>ub</span><span class=si>}</span><span class=s2>, "</span>
+                <span class=sa>f</span><span class=s2>"is_int=</span><span class=si>{</span><span class=n>is_int</span><span class=si>}</span><span class=s2>, and seed=</span><span class=si>{</span><span class=n>seed</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+        <span class=c1>#: the minimum value the function actually takes on</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>fmin</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>values</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span>
+        <span class=c1>#: the maximum value the function actually takes on</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>fmax</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>values</span><span class=p>[</span><span class=o>-</span><span class=mi>2</span><span class=p>]</span>
+        <span class=c1>#: the mean value the function actually takes on</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>fattractors</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span>\
+            <span class=n>cast</span><span class=p>(</span><span class=s2>"tuple[int | float, ...]"</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>values</span><span class=p>[</span><span class=mi>2</span><span class=p>:</span><span class=o>-</span><span class=mi>2</span><span class=p>]))</span>
+        <span class=c1>#: the internal random number generator</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>random</span>
+
+<div class=viewcode-block id=MockObjective.sample>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.objective.MockObjective.sample>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>sample</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Sample the mock objective function.</span>
+
+<span class=sd>        :returns: the value of the mock objective function</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>sample_from_attractors</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__random</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>fattractors</span><span class=p>,</span>
+                                      <span class=bp>self</span><span class=o>.</span><span class=n>is_int</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>lb</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>ub</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=MockObjective.evaluate>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.objective.MockObjective.evaluate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Return a mock objective value.</span>
+
+<span class=sd>        :param x: the candidate solution</span>
+<span class=sd>        :return: the objective value</span>
+<span class=sd>        """</span>
+        <span class=n>seed</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=k>if</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=s2>"__hash__"</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=fm>__hash__</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>):</span>
+            <span class=n>seed</span> <span class=o>=</span> <span class=nb>hash</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+            <span class=n>seed</span> <span class=o>=</span> <span class=nb>hash</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>tobytes</span><span class=p>())</span>
+        <span class=k>elif</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=nb>list</span><span class=p>):</span>
+            <span class=n>seed</span> <span class=o>=</span> <span class=nb>hash</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>x</span><span class=p>))</span>
+        <span class=n>random</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__random</span> <span class=k>if</span> <span class=n>seed</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>default_rng</span><span class=p>(</span><span class=nb>abs</span><span class=p>(</span><span class=n>seed</span><span class=p>))</span>
+
+        <span class=k>return</span> <span class=n>sample_from_attractors</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>fattractors</span><span class=p>,</span>
+                                      <span class=bp>self</span><span class=o>.</span><span class=n>is_int</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>lb</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>ub</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=MockObjective.lower_bound>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.objective.MockObjective.lower_bound>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>lower_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the lower bound of the objective value.</span>
+
+<span class=sd>        :return: the lower bound of the objective value</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>lb</span></div>
+
+
+<div class=viewcode-block id=MockObjective.upper_bound>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.objective.MockObjective.upper_bound>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>upper_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the upper bound of the objective value.</span>
+
+<span class=sd>        :return: the upper bound of the objective value</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>ub</span></div>
+
+
+<div class=viewcode-block id=MockObjective.is_always_integer>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.objective.MockObjective.is_always_integer>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>is_always_integer</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Return `True` if :meth:`~evaluate` will always return an `int` value.</span>
+
+<span class=sd>        :returns: `True` if :meth:`~evaluate` will always return an `int`</span>
+<span class=sd>          or `False` if also a `float` may be returned.</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>is_int</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""Get the name of this mock objective function."""</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>name</span>
+
+<div class=viewcode-block id=MockObjective.log_parameters_to>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.objective.MockObjective.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Log the special parameters of tis mock objective function."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"min"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>fmin</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"attractors"</span><span class=p>,</span> <span class=n>CSV_SEPARATOR</span><span class=o>.</span><span class=n>join</span><span class=p>([</span>
+            <span class=n>num_to_str</span><span class=p>(</span><span class=n>n</span><span class=p>)</span> <span class=k>for</span> <span class=n>n</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>fattractors</span><span class=p>]))</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"max"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>fmax</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"seed"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>seed</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"is_int"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>is_int</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=MockObjective.for_type>
+<a class=viewcode-back href=../../../moptipy.mock.html#moptipy.mock.objective.MockObjective.for_type>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>for_type</span><span class=p>(</span><span class=n>dtype</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"MockObjective"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a mock objective function with values bound by a given `dtype`.</span>
+
+<span class=sd>        :param dtype: the numpy data type</span>
+<span class=sd>        :returns: the mock objective function</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dtype</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>dtype</span><span class=p>,</span> <span class=s2>"dtype"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span>
+
+        <span class=n>random</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>()</span>
+        <span class=n>params</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=n>use_min</span> <span class=o>=</span> <span class=nb>bool</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span>
+        <span class=n>use_max</span> <span class=o>=</span> <span class=nb>bool</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>use_min</span> <span class=ow>or</span> <span class=n>use_max</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>5</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=n>use_min</span> <span class=o>=</span> <span class=kc>True</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>use_max</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=k>if</span> <span class=n>is_np_int</span><span class=p>(</span><span class=n>dtype</span><span class=p>):</span>
+            <span class=n>params</span><span class=p>[</span><span class=s2>"is_int"</span><span class=p>]</span> <span class=o>=</span> <span class=kc>True</span>
+            <span class=n>iix</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>iinfo</span><span class=p>(</span><span class=n>cast</span><span class=p>(</span><span class=s2>"Any"</span><span class=p>,</span> <span class=n>dtype</span><span class=p>))</span>
+            <span class=n>params</span><span class=p>[</span><span class=s2>"lb"</span><span class=p>]</span> <span class=o>=</span> <span class=n>lbi</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>iix</span><span class=o>.</span><span class=n>min</span><span class=p>),</span> <span class=o>-</span><span class=p>(</span><span class=mi>1</span> <span class=o><<</span> <span class=mi>58</span><span class=p>))</span>
+            <span class=n>params</span><span class=p>[</span><span class=s2>"ub"</span><span class=p>]</span> <span class=o>=</span> <span class=n>ubi</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>iix</span><span class=o>.</span><span class=n>max</span><span class=p>),</span> <span class=p>(</span><span class=mi>1</span> <span class=o><<</span> <span class=mi>58</span><span class=p>))</span>
+            <span class=k>if</span> <span class=n>use_min</span><span class=p>:</span>
+                <span class=n>params</span><span class=p>[</span><span class=s2>"fmin"</span><span class=p>]</span> <span class=o>=</span> <span class=n>lbi</span> <span class=o>+</span> <span class=mi>1</span>
+            <span class=k>if</span> <span class=n>use_max</span><span class=p>:</span>
+                <span class=n>params</span><span class=p>[</span><span class=s2>"fmax"</span><span class=p>]</span> <span class=o>=</span> <span class=n>ubi</span> <span class=o>-</span> <span class=mi>1</span>
+
+        <span class=k>if</span> <span class=n>is_np_float</span><span class=p>(</span><span class=n>dtype</span><span class=p>):</span>
+            <span class=n>params</span><span class=p>[</span><span class=s2>"is_int"</span><span class=p>]</span> <span class=o>=</span> <span class=kc>False</span>
+            <span class=n>fix</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>finfo</span><span class=p>(</span><span class=n>dtype</span><span class=p>)</span>
+            <span class=n>params</span><span class=p>[</span><span class=s2>"lb"</span><span class=p>]</span> <span class=o>=</span> <span class=n>lbf</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=nb>float</span><span class=p>(</span><span class=n>fix</span><span class=o>.</span><span class=n>min</span><span class=p>),</span> <span class=o>-</span><span class=mf>1e300</span><span class=p>)</span>
+            <span class=n>params</span><span class=p>[</span><span class=s2>"ub"</span><span class=p>]</span> <span class=o>=</span> <span class=n>ubf</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=nb>float</span><span class=p>(</span><span class=n>fix</span><span class=o>.</span><span class=n>max</span><span class=p>),</span> <span class=mf>1e300</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>use_min</span><span class=p>:</span>
+                <span class=n>params</span><span class=p>[</span><span class=s2>"fmin"</span><span class=p>]</span> <span class=o>=</span> <span class=n>nextafter</span><span class=p>(</span><span class=nb>float</span><span class=p>(</span><span class=n>lbf</span> <span class=o>+</span> <span class=nb>float</span><span class=p>(</span><span class=n>fix</span><span class=o>.</span><span class=n>eps</span><span class=p>)),</span> <span class=n>inf</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>use_max</span><span class=p>:</span>
+                <span class=n>params</span><span class=p>[</span><span class=s2>"fmax"</span><span class=p>]</span> <span class=o>=</span> <span class=n>nextafter</span><span class=p>(</span><span class=nb>float</span><span class=p>(</span><span class=n>ubf</span> <span class=o>-</span> <span class=nb>float</span><span class=p>(</span><span class=n>fix</span><span class=o>.</span><span class=n>eps</span><span class=p>)),</span> <span class=o>-</span><span class=n>inf</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>params</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>MockObjective</span><span class=p>(</span><span class=o>**</span><span class=n>params</span><span class=p>)</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"unsupported dtype: </span><span class=si>{</span><span class=n>dtype</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.mock.objective</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

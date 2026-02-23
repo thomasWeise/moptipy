@@ -1,0 +1,119 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.tests.op1_with_step_size — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/tests/op1_with_step_size.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.op1_with_step_size</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.tests.op1_with_step_size</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Functions for testing unary search operators with step size."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>default_rng</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op1WithStepSize</span><span class=p>,</span> <span class=n>check_op1_with_step_size</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.space</span><span class=w> </span><span class=kn>import</span> <span class=n>Space</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.op1</span><span class=w> </span><span class=kn>import</span> <span class=n>default_min_unique_samples</span><span class=p>,</span> <span class=n>validate_op1</span>
+
+
+<div class=viewcode-block id=validate_op1_with_step_size>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.op1_with_step_size.validate_op1_with_step_size>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_op1_with_step_size</span><span class=p>(</span>
+        <span class=n>op1</span><span class=p>:</span> <span class=n>Op1WithStepSize</span><span class=p>,</span>
+        <span class=n>search_space</span><span class=p>:</span> <span class=n>Space</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>make_search_space_element_valid</span><span class=p>:</span>
+        <span class=n>Callable</span><span class=p>[[</span><span class=n>Generator</span><span class=p>,</span> <span class=n>Any</span><span class=p>],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>_</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>,</span>
+        <span class=n>number_of_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>100</span><span class=p>,</span>
+        <span class=n>min_unique_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>,</span> <span class=n>Space</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span>
+        <span class=o>=</span> <span class=n>default_min_unique_samples</span><span class=p>,</span>
+        <span class=n>step_sizes</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>(),</span>
+        <span class=n>get_step_size</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span>
+            <span class=n>Space</span><span class=p>,</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Any</span><span class=p>],</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether an object is a valid moptipy unary operator with step size.</span>
+
+<span class=sd>    :param op1: the operator</span>
+<span class=sd>    :param search_space: the search space</span>
+<span class=sd>    :param make_search_space_element_valid: make a point in the search</span>
+<span class=sd>        space valid</span>
+<span class=sd>    :param number_of_samples: the number of times to invoke the operator</span>
+<span class=sd>    :param min_unique_samples: a lambda for computing the number</span>
+<span class=sd>    :param step_sizes: the step sizes to test</span>
+<span class=sd>    :param get_step_size: try to get the step size difference from two space</span>
+<span class=sd>        elements</span>
+<span class=sd>    :raises ValueError: if `op1` is not a valid instance of</span>
+<span class=sd>        :class:`~moptipy.api.operators.Op1`</span>
+<span class=sd>    :raises TypeError: if incorrect types are encountered</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>op1</span><span class=p>,</span> <span class=n>Op1WithStepSize</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>op1</span><span class=p>,</span> <span class=s2>"op1"</span><span class=p>,</span> <span class=n>Op1WithStepSize</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>op1</span><span class=o>.</span><span class=vm>__class__</span> <span class=o>==</span> <span class=n>Op1WithStepSize</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Cannot use abstract base Op1WithStepSize directly."</span><span class=p>)</span>
+    <span class=n>check_op1_with_step_size</span><span class=p>(</span><span class=n>op1</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>step_sizes</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>step_sizes</span><span class=p>,</span> <span class=s2>"step_sizes"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>get_step_size</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>get_step_size</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>get_step_size</span><span class=p>,</span> <span class=s2>"get_step_size"</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=n>validate_op1</span><span class=p>(</span><span class=n>op1</span><span class=p>,</span> <span class=n>search_space</span><span class=p>,</span> <span class=n>make_search_space_element_valid</span><span class=p>,</span>
+                 <span class=n>number_of_samples</span><span class=p>,</span> <span class=n>min_unique_samples</span><span class=p>)</span>
+
+    <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>x</span><span class=p>:</span> <span class=n>Any</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>x_copy</span><span class=p>:</span> <span class=n>Any</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>dest</span><span class=p>:</span> <span class=n>Any</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=k>if</span> <span class=n>search_space</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>random</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>random</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>()</span>
+        <span class=n>x</span> <span class=o>=</span> <span class=n>search_space</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>
+        <span class=k>if</span> <span class=n>x</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"search_space.create()=None for </span><span class=si>{</span><span class=n>search_space</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=n>x_copy</span> <span class=o>=</span> <span class=n>search_space</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>
+        <span class=k>if</span> <span class=n>x_copy</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"search_space.create()=None for </span><span class=si>{</span><span class=n>search_space</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=n>dest</span> <span class=o>=</span> <span class=n>search_space</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>
+        <span class=k>if</span> <span class=n>dest</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"search_space.create()=None for </span><span class=si>{</span><span class=n>search_space</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>step_size</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>step_sizes</span><span class=p>):</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>step_size</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>step_size</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"step_sizes[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>]"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>isfinite</span><span class=p>(</span><span class=n>step_size</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=mi>0</span> <span class=o><=</span> <span class=n>step_size</span> <span class=o><=</span> <span class=mi>1</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Forbidden step_sizes[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>]=</span><span class=si>{</span><span class=n>step_size</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>random</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>search_space</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>make_search_space_element_valid</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>x</span> <span class=o>=</span> <span class=n>make_search_space_element_valid</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>x</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"make_search_space_element_valid(search_space.create())="</span>
+                    <span class=sa>f</span><span class=s2>"None for </span><span class=si>{</span><span class=n>search_space</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>search_space</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+            <span class=n>search_space</span><span class=o>.</span><span class=n>copy</span><span class=p>(</span><span class=n>x_copy</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>search_space</span><span class=o>.</span><span class=n>is_equal</span><span class=p>(</span><span class=n>x_copy</span><span class=p>,</span> <span class=n>x</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"error when copying </span><span class=si>{</span><span class=n>x</span><span class=si>}</span><span class=s2>, got </span><span class=si>{</span><span class=n>x_copy</span><span class=si>}</span><span class=s2> on </span><span class=si>{</span><span class=n>search_space</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>op1</span><span class=o>.</span><span class=n>op1</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>dest</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>step_size</span><span class=p>)</span>
+            <span class=n>search_space</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>dest</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>search_space</span><span class=o>.</span><span class=n>is_equal</span><span class=p>(</span><span class=n>dest</span><span class=p>,</span> <span class=n>x_copy</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"operator copies source for step_size=</span><span class=si>{</span><span class=n>step_size</span><span class=si>}</span><span class=s2> "</span>
+                    <span class=sa>f</span><span class=s2>"on </span><span class=si>{</span><span class=n>search_space</span><span class=si>}</span><span class=s2> and </span><span class=si>{</span><span class=n>dest</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>search_space</span><span class=o>.</span><span class=n>is_equal</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>x_copy</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"operator modifies source for step_size=</span><span class=si>{</span><span class=n>step_size</span><span class=si>}</span><span class=s2> "</span>
+                    <span class=sa>f</span><span class=s2>"on </span><span class=si>{</span><span class=n>search_space</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>get_step_size</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>found_step_size</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> \
+                    <span class=n>get_step_size</span><span class=p>(</span><span class=n>search_space</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>dest</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>found_step_size</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                    <span class=k>continue</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>isfinite</span><span class=p>(</span><span class=n>found_step_size</span><span class=p>)</span>
+                        <span class=ow>and</span> <span class=p>(</span><span class=mi>0</span> <span class=o><=</span> <span class=n>found_step_size</span> <span class=o><=</span> <span class=mi>1</span><span class=p>)):</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"invalid detected step size </span><span class=si>{</span><span class=n>found_step_size</span><span class=si>}</span><span class=s2> "</span>
+                        <span class=sa>f</span><span class=s2>"for </span><span class=si>{</span><span class=n>search_space</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>found_step_size</span> <span class=o>!=</span> <span class=n>step_size</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"step_size=</span><span class=si>{</span><span class=n>step_size</span><span class=si>}</span><span class=s2> but </span><span class=si>{</span><span class=n>op1</span><span class=si>}</span><span class=s2> actually "</span>
+                        <span class=sa>f</span><span class=s2>"performs step of size </span><span class=si>{</span><span class=n>found_step_size</span><span class=si>}</span><span class=s2> for "</span>
+                        <span class=sa>f</span><span class=s2>"x=</span><span class=si>{</span><span class=n>x</span><span class=si>}</span><span class=s2> and returns </span><span class=si>{</span><span class=n>dest</span><span class=si>}</span><span class=s2> for </span><span class=si>{</span><span class=n>search_space</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.op1_with_step_size</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

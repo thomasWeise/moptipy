@@ -1,0 +1,468 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.jssp.plots — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/jssp/plots.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.plots</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.jssp.plots</h1><div class=highlight><pre>
+<span></span><span class=sd>"""The JSSP-example specific plots."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>statistics</span><span class=w> </span><span class=kn>import</span> <span class=n>median</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.console</span><span class=w> </span><span class=kn>import</span> <span class=n>logger</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span><span class=p>,</span> <span class=n>directory_path</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>moptipy.utils.plot_utils</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>pu</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.axis_ranger</span><span class=w> </span><span class=kn>import</span> <span class=n>AxisRanger</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.base</span><span class=w> </span><span class=kn>import</span> <span class=n>F_NAME_RAW</span><span class=p>,</span> <span class=n>F_NAME_SCALED</span><span class=p>,</span> <span class=n>TIME_UNIT_MILLIS</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_results</span><span class=w> </span><span class=kn>import</span> <span class=n>EndResult</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_statistics</span><span class=w> </span><span class=kn>import</span> <span class=n>EndStatistics</span><span class=p>,</span> <span class=n>from_end_results</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.plot_end_results</span><span class=w> </span><span class=kn>import</span> <span class=n>plot_end_results</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.plot_end_statistics_over_parameter</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>plot_end_statistics_over_param</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.plot_progress</span><span class=w> </span><span class=kn>import</span> <span class=n>plot_progress</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.progress</span><span class=w> </span><span class=kn>import</span> <span class=n>Progress</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.progress</span><span class=w> </span><span class=kn>import</span> <span class=n>from_logs</span> <span class=k>as</span> <span class=n>pr_from_logs</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.stat_run</span><span class=w> </span><span class=kn>import</span> <span class=n>STAT_MEAN_ARITH</span><span class=p>,</span> <span class=n>StatRun</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.stat_run</span><span class=w> </span><span class=kn>import</span> <span class=n>from_progress</span> <span class=k>as</span> <span class=n>sr_from_progress</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.plot_gantt_chart</span><span class=w> </span><span class=kn>import</span> <span class=n>plot_gantt_chart</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.lang</span><span class=w> </span><span class=kn>import</span> <span class=n>Lang</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.plot_defaults</span><span class=w> </span><span class=kn>import</span> <span class=n>importance_to_font_size</span>
+
+
+<div class=viewcode-block id=plot_end_makespans>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.plots.plot_end_makespans>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>plot_end_makespans</span><span class=p>(</span><span class=n>end_results</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>EndResult</span><span class=p>],</span>
+                       <span class=n>name_base</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                       <span class=n>dest_dir</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                       <span class=n>instance_sort_key</span><span class=p>:</span> <span class=n>Callable</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>,</span>
+                       <span class=n>algorithm_sort_key</span><span class=p>:</span> <span class=n>Callable</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>,</span>
+                       <span class=n>algorithm_namer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>,</span>
+                       <span class=n>x_label_location</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>1.0</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=n>Path</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Plot a set of end result boxes/violins functions into one chart.</span>
+
+<span class=sd>    :param end_results: the iterable of end results</span>
+<span class=sd>    :param name_base: the basic name</span>
+<span class=sd>    :param dest_dir: the destination directory</span>
+<span class=sd>    :param instance_sort_key: the sort key function for instances</span>
+<span class=sd>    :param algorithm_sort_key: the sort key function for algorithms</span>
+<span class=sd>    :param algorithm_namer: the name function for algorithms receives an</span>
+<span class=sd>        algorithm ID and returns an instance name; default=identity function</span>
+<span class=sd>    :param x_label_location: the location of the label of the x-axis</span>
+<span class=sd>    :returns: the list of generated files</span>
+<span class=sd>    """</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"beginning to plot chart </span><span class=si>{</span><span class=n>name_base</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>end_results</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>end_results</span><span class=p>,</span> <span class=s2>"end_results"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>name_base</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>name_base</span><span class=p>,</span> <span class=s2>"name_base"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dest_dir</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>dest_dir</span><span class=p>,</span> <span class=s2>"dest_dir"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>instance_sort_key</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instance_sort_key</span><span class=p>,</span> <span class=s2>"instance_sort_key"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>algorithm_sort_key</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm_sort_key</span><span class=p>,</span> <span class=s2>"algorithm_sort_key"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=n>algorithms</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+    <span class=n>instances</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+    <span class=n>pairs</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+    <span class=k>for</span> <span class=n>er</span> <span class=ow>in</span> <span class=n>end_results</span><span class=p>:</span>
+        <span class=n>algorithms</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>er</span><span class=o>.</span><span class=n>algorithm</span><span class=p>)</span>
+        <span class=n>instances</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>er</span><span class=o>.</span><span class=n>instance</span><span class=p>)</span>
+        <span class=n>pairs</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>er</span><span class=o>.</span><span class=n>algorithm</span><span class=si>}</span><span class=s2>+</span><span class=si>{</span><span class=n>er</span><span class=o>.</span><span class=n>instance</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+    <span class=n>n_algos</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>algorithms</span><span class=p>)</span>
+    <span class=n>n_insts</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>instances</span><span class=p>)</span>
+    <span class=n>n_pairs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>pairs</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>n_pairs</span> <span class=o>!=</span> <span class=p>(</span><span class=n>n_algos</span> <span class=o>*</span> <span class=n>n_insts</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"found </span><span class=si>{</span><span class=n>n_algos</span><span class=si>}</span><span class=s2> algorithms and </span><span class=si>{</span><span class=n>n_insts</span><span class=si>}</span><span class=s2> instances, "</span>
+            <span class=sa>f</span><span class=s2>"but only </span><span class=si>{</span><span class=n>n_pairs</span><span class=si>}</span><span class=s2> algorithm-instance pairs!"</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>n_algos</span> <span class=o>>=</span> <span class=mi>16</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>n_algos</span><span class=si>}</span><span class=s2> are just too many algorithms..."</span><span class=p>)</span>
+    <span class=n>max_insts</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>16</span> <span class=o>//</span> <span class=n>n_algos</span>
+    <span class=n>insts</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>instances</span><span class=p>,</span> <span class=n>key</span><span class=o>=</span><span class=n>instance_sort_key</span><span class=p>)</span>
+    <span class=n>result</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>Path</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+
+    <span class=k>for</span> <span class=n>lang</span> <span class=ow>in</span> <span class=n>Lang</span><span class=o>.</span><span class=n>all_langs</span><span class=p>():</span>
+        <span class=n>lang</span><span class=o>.</span><span class=n>set_current</span><span class=p>()</span>
+        <span class=n>figure</span><span class=p>,</span> <span class=n>plots</span> <span class=o>=</span> <span class=n>pu</span><span class=o>.</span><span class=n>create_figure_with_subplots</span><span class=p>(</span>
+            <span class=n>items</span><span class=o>=</span><span class=n>n_insts</span><span class=p>,</span> <span class=n>max_items_per_plot</span><span class=o>=</span><span class=n>max_insts</span><span class=p>,</span> <span class=n>max_rows</span><span class=o>=</span><span class=mi>5</span><span class=p>,</span>
+            <span class=n>max_cols</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>max_width</span><span class=o>=</span><span class=mf>8.6</span><span class=p>,</span> <span class=n>default_height_per_row</span><span class=o>=</span><span class=mf>2.5</span><span class=p>)</span>
+
+        <span class=k>for</span> <span class=n>plot</span><span class=p>,</span> <span class=n>start_inst</span><span class=p>,</span> <span class=n>end_inst</span><span class=p>,</span> <span class=n>_</span><span class=p>,</span> <span class=n>_</span><span class=p>,</span> <span class=n>_</span> <span class=ow>in</span> <span class=n>plots</span><span class=p>:</span>
+            <span class=n>instances</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+            <span class=n>instances</span><span class=o>.</span><span class=n>update</span><span class=p>(</span><span class=n>insts</span><span class=p>[</span><span class=n>start_inst</span><span class=p>:</span><span class=n>end_inst</span><span class=p>])</span>
+            <span class=n>plot_end_results</span><span class=p>(</span>
+                <span class=n>end_results</span><span class=o>=</span><span class=p>[</span><span class=n>er</span> <span class=k>for</span> <span class=n>er</span> <span class=ow>in</span> <span class=n>end_results</span>
+                             <span class=k>if</span> <span class=n>er</span><span class=o>.</span><span class=n>instance</span> <span class=ow>in</span> <span class=n>instances</span><span class=p>],</span>
+                <span class=n>figure</span><span class=o>=</span><span class=n>plot</span><span class=p>,</span>
+                <span class=n>dimension</span><span class=o>=</span><span class=n>F_NAME_SCALED</span><span class=p>,</span>
+                <span class=n>instance_sort_key</span><span class=o>=</span><span class=n>instance_sort_key</span><span class=p>,</span>
+                <span class=n>algorithm_sort_key</span><span class=o>=</span><span class=n>algorithm_sort_key</span><span class=p>,</span>
+                <span class=n>y_label_location</span><span class=o>=</span><span class=mf>1.0</span><span class=p>,</span>
+                <span class=n>x_label_location</span><span class=o>=</span><span class=n>x_label_location</span><span class=p>,</span>
+                <span class=n>algorithm_namer</span><span class=o>=</span><span class=n>algorithm_namer</span><span class=p>)</span>
+
+        <span class=n>result</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>pu</span><span class=o>.</span><span class=n>save_figure</span><span class=p>(</span><span class=n>fig</span><span class=o>=</span><span class=n>figure</span><span class=p>,</span>
+                                     <span class=n>file_name</span><span class=o>=</span><span class=n>lang</span><span class=o>.</span><span class=n>filename</span><span class=p>(</span><span class=n>name_base</span><span class=p>),</span>
+                                     <span class=n>dir_name</span><span class=o>=</span><span class=n>dest_dir</span><span class=p>))</span>
+        <span class=k>del</span> <span class=n>figure</span>
+
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"finished plotting chart </span><span class=si>{</span><span class=n>name_base</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>result</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+    <span class=k>return</span> <span class=n>result</span></div>
+
+
+
+<div class=viewcode-block id=plot_stat_gantt_charts>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.plots.plot_stat_gantt_charts>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>plot_stat_gantt_charts</span><span class=p>(</span>
+        <span class=n>end_results</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>EndResult</span><span class=p>],</span>
+        <span class=n>results_dir</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+        <span class=n>name_base</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+        <span class=n>dest_dir</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+        <span class=n>instance_sort_key</span><span class=p>:</span> <span class=n>Callable</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>,</span>
+        <span class=n>statistic</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]],</span>
+                            <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>median</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=n>Path</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Plot a set of Gantt charts following a specific statistics.</span>
+
+<span class=sd>    :param end_results: the iterable of end results</span>
+<span class=sd>    :param results_dir: the result directory</span>
+<span class=sd>    :param name_base: the basic name</span>
+<span class=sd>    :param dest_dir: the destination directory</span>
+<span class=sd>    :param instance_sort_key: the sort key function for instances</span>
+<span class=sd>    :param statistic: the statistic to use</span>
+<span class=sd>    :returns: the list of generated files</span>
+<span class=sd>    """</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"beginning to plot stat chart </span><span class=si>{</span><span class=n>name_base</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>end_results</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>end_results</span><span class=p>,</span> <span class=s2>"end_results"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>results_dir</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>results_dir</span><span class=p>,</span> <span class=s2>"results_dir"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>name_base</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>name_base</span><span class=p>,</span> <span class=s2>"name_base"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dest_dir</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>dest_dir</span><span class=p>,</span> <span class=s2>"dest_dir"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>instance_sort_key</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instance_sort_key</span><span class=p>,</span> <span class=s2>"instance_sort_key"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>statistic</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>statistic</span><span class=p>,</span> <span class=s2>"statistic"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=n>results</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>Path</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>  <span class=c1># the list of generated files</span>
+
+    <span class=c1># gather all the data</span>
+    <span class=n>data</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>list</span><span class=p>[</span><span class=n>EndResult</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>{}</span>
+    <span class=n>algorithm</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=k>for</span> <span class=n>er</span> <span class=ow>in</span> <span class=n>end_results</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>algorithm</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>algorithm</span> <span class=o>=</span> <span class=n>er</span><span class=o>.</span><span class=n>algorithm</span>
+        <span class=k>elif</span> <span class=n>algorithm</span> <span class=o>!=</span> <span class=n>er</span><span class=o>.</span><span class=n>algorithm</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"found two algorithms: </span><span class=si>{</span><span class=n>algorithm</span><span class=si>}</span><span class=s2> and </span><span class=si>{</span><span class=n>er</span><span class=o>.</span><span class=n>algorithm</span><span class=si>}</span><span class=s2>!"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>er</span><span class=o>.</span><span class=n>instance</span> <span class=ow>in</span> <span class=n>data</span><span class=p>:</span>
+            <span class=n>data</span><span class=p>[</span><span class=n>er</span><span class=o>.</span><span class=n>instance</span><span class=p>]</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>er</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>data</span><span class=p>[</span><span class=n>er</span><span class=o>.</span><span class=n>instance</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=n>er</span><span class=p>]</span>
+    <span class=k>if</span> <span class=n>algorithm</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Did not encounter any algorithm?"</span><span class=p>)</span>
+    <span class=n>instances</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>data</span><span class=o>.</span><span class=n>keys</span><span class=p>(),</span> <span class=n>key</span><span class=o>=</span><span class=n>instance_sort_key</span><span class=p>)</span>
+    <span class=k>del</span> <span class=n>end_results</span>
+
+    <span class=c1># get the median runs</span>
+    <span class=n>stat_runs</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>results_dir</span> <span class=o>=</span> <span class=n>directory_path</span><span class=p>(</span><span class=n>results_dir</span><span class=p>)</span>
+    <span class=k>for</span> <span class=n>instance</span> <span class=ow>in</span> <span class=n>instances</span><span class=p>:</span>
+        <span class=n>runs</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>EndResult</span><span class=p>]</span> <span class=o>=</span> <span class=n>data</span><span class=p>[</span><span class=n>instance</span><span class=p>]</span>
+        <span class=n>runs</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+        <span class=n>med</span> <span class=o>=</span> <span class=n>statistic</span><span class=p>([</span><span class=n>er</span><span class=o>.</span><span class=n>best_f</span> <span class=k>for</span> <span class=n>er</span> <span class=ow>in</span> <span class=n>runs</span><span class=p>])</span>
+        <span class=n>best</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span>
+        <span class=n>solution</span><span class=p>:</span> <span class=n>EndResult</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=k>for</span> <span class=n>er</span> <span class=ow>in</span> <span class=n>runs</span><span class=p>:</span>
+            <span class=n>current</span> <span class=o>=</span> <span class=nb>abs</span><span class=p>(</span><span class=n>er</span><span class=o>.</span><span class=n>best_f</span> <span class=o>-</span> <span class=n>med</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>current</span> <span class=o><</span> <span class=n>best</span><span class=p>:</span>
+                <span class=n>best</span> <span class=o>=</span> <span class=n>current</span>
+                <span class=n>solution</span> <span class=o>=</span> <span class=n>er</span>
+        <span class=k>if</span> <span class=n>solution</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"found no </span><span class=si>{</span><span class=n>name_base</span><span class=si>}</span><span class=s2> end result for instance </span><span class=si>{</span><span class=n>instance</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>path</span><span class=p>:</span> <span class=n>Path</span> <span class=o>=</span> <span class=n>solution</span><span class=o>.</span><span class=n>path_to_file</span><span class=p>(</span><span class=n>results_dir</span><span class=p>)</span>
+        <span class=n>path</span><span class=o>.</span><span class=n>enforce_file</span><span class=p>()</span>
+        <span class=n>stat_runs</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>path</span><span class=p>)</span>
+    <span class=k>del</span> <span class=n>data</span>
+    <span class=k>del</span> <span class=n>instances</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>stat_runs</span><span class=p>)</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"empty set of runs?"</span><span class=p>)</span>
+
+    <span class=c1># plot the gantt charts</span>
+    <span class=k>for</span> <span class=n>lang</span> <span class=ow>in</span> <span class=n>Lang</span><span class=o>.</span><span class=n>all_langs</span><span class=p>():</span>
+        <span class=n>lang</span><span class=o>.</span><span class=n>set_current</span><span class=p>()</span>
+
+        <span class=n>figure</span><span class=p>,</span> <span class=n>plots</span> <span class=o>=</span> <span class=n>pu</span><span class=o>.</span><span class=n>create_figure_with_subplots</span><span class=p>(</span>
+            <span class=n>items</span><span class=o>=</span><span class=nb>len</span><span class=p>(</span><span class=n>stat_runs</span><span class=p>),</span> <span class=n>max_items_per_plot</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>max_cols</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span>
+            <span class=n>max_rows</span><span class=o>=</span><span class=mi>4</span><span class=p>,</span> <span class=n>max_width</span><span class=o>=</span><span class=mf>8.6</span><span class=p>,</span> <span class=n>max_height</span><span class=o>=</span><span class=mf>11.5</span><span class=p>)</span>
+
+        <span class=k>for</span> <span class=n>plot</span><span class=p>,</span> <span class=n>start</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>_</span><span class=p>,</span> <span class=n>_</span><span class=p>,</span> <span class=n>_</span> <span class=ow>in</span> <span class=n>plots</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>start</span> <span class=o>!=</span> <span class=p>(</span><span class=n>end</span> <span class=o>-</span> <span class=mi>1</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>start</span><span class=si>}</span><span class=s2> != </span><span class=si>{</span><span class=n>end</span><span class=si>}</span><span class=s2> - 1"</span><span class=p>)</span>
+
+            <span class=n>args</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=p>{</span>
+                <span class=s2>"gantt"</span><span class=p>:</span> <span class=n>stat_runs</span><span class=p>[</span><span class=n>start</span><span class=p>],</span>
+                <span class=s2>"figure"</span><span class=p>:</span> <span class=n>plot</span><span class=p>,</span>
+            <span class=p>}</span>
+            <span class=k>if</span> <span class=n>statistic</span> <span class=ow>is</span> <span class=nb>min</span><span class=p>:</span>
+                <span class=n>args</span><span class=p>[</span><span class=s2>"markers"</span><span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>args</span><span class=p>[</span><span class=s2>"info"</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>gantt</span><span class=p>:</span> \
+                    <span class=n>Lang</span><span class=o>.</span><span class=n>current</span><span class=p>()</span><span class=o>.</span><span class=n>format_str</span><span class=p>(</span><span class=s2>"gantt_info_short"</span><span class=p>,</span> <span class=n>gantt</span><span class=o>=</span><span class=n>gantt</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>plots</span><span class=p>)</span> <span class=o>></span> <span class=mi>2</span><span class=p>:</span>
+                <span class=n>args</span><span class=p>[</span><span class=s2>"importance_to_font_size_func"</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>i</span><span class=p>:</span> \
+                    <span class=mf>0.9</span> <span class=o>*</span> <span class=n>importance_to_font_size</span><span class=p>(</span><span class=n>i</span><span class=p>)</span>
+
+            <span class=n>plot_gantt_chart</span><span class=p>(</span><span class=o>**</span><span class=n>args</span><span class=p>)</span>
+
+        <span class=n>results</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>pu</span><span class=o>.</span><span class=n>save_figure</span><span class=p>(</span><span class=n>fig</span><span class=o>=</span><span class=n>figure</span><span class=p>,</span>
+                                      <span class=n>file_name</span><span class=o>=</span><span class=n>lang</span><span class=o>.</span><span class=n>filename</span><span class=p>(</span><span class=n>name_base</span><span class=p>),</span>
+                                      <span class=n>dir_name</span><span class=o>=</span><span class=n>dest_dir</span><span class=p>))</span>
+
+    <span class=n>logger</span><span class=p>(</span><span class=s2>"done plotting stat gantt charts."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>results</span></div>
+
+
+
+<div class=viewcode-block id=plot_progresses>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.plots.plot_progresses>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>plot_progresses</span><span class=p>(</span><span class=n>results_dir</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                    <span class=n>algorithms</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>],</span>
+                    <span class=n>name_base</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                    <span class=n>dest_dir</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                    <span class=n>time_unit</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>TIME_UNIT_MILLIS</span><span class=p>,</span>
+                    <span class=n>log_time</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+                    <span class=n>instance_sort_key</span><span class=p>:</span> <span class=n>Callable</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>,</span>
+                    <span class=n>algorithm_sort_key</span><span class=p>:</span> <span class=n>Callable</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>,</span>
+                    <span class=n>x_label_location</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.0</span><span class=p>,</span>
+                    <span class=n>include_runs</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+                    <span class=n>algorithm_namer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=n>Path</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Plot a set of end result boxes/violins functions into one chart.</span>
+
+<span class=sd>    :param results_dir: the directory with the log files</span>
+<span class=sd>    :param algorithms: the set of algorithms to plot together</span>
+<span class=sd>    :param name_base: the basic name</span>
+<span class=sd>    :param dest_dir: the destination directory</span>
+<span class=sd>    :param time_unit: the time unit to plot</span>
+<span class=sd>    :param log_time: should the time axis be scaled logarithmically?</span>
+<span class=sd>    :param instance_sort_key: the sort key function for instances</span>
+<span class=sd>    :param algorithm_sort_key: the sort key function for algorithms</span>
+<span class=sd>    :param x_label_location: the location of the x-labels</span>
+<span class=sd>    :param include_runs: should we include the pure runs as well?</span>
+<span class=sd>    :param algorithm_namer: the name function for algorithms receives an</span>
+<span class=sd>        algorithm ID and returns an instance name; default=identity function</span>
+<span class=sd>    :returns: the list of generated files</span>
+<span class=sd>    """</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"beginning to plot chart </span><span class=si>{</span><span class=n>name_base</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>results_dir</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>results_dir</span><span class=p>,</span> <span class=s2>"results_dir"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>algorithms</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithms</span><span class=p>,</span> <span class=s2>"algorithms"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>name_base</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>name_base</span><span class=p>,</span> <span class=s2>"name_base"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dest_dir</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>dest_dir</span><span class=p>,</span> <span class=s2>"dest_dir"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>time_unit</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>time_unit</span><span class=p>,</span> <span class=s2>"time_unit"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>log_time</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>log_time</span><span class=p>,</span> <span class=s2>"log_time"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>instance_sort_key</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instance_sort_key</span><span class=p>,</span> <span class=s2>"instance_sort_key"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>algorithm_sort_key</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm_sort_key</span><span class=p>,</span> <span class=s2>"algorithm_sort_key"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>x_label_location</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>x_label_location</span><span class=p>,</span> <span class=s2>"x_label_location"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>include_runs</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>include_runs</span><span class=p>,</span> <span class=s2>"include_runs"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>algorithm_namer</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm_namer</span><span class=p>,</span> <span class=s2>"algorithm_namer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=c1># get the data</span>
+    <span class=n>spath</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>directory_path</span><span class=p>(</span><span class=n>results_dir</span><span class=p>)</span>
+    <span class=n>progresses</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>Progress</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=k>for</span> <span class=n>algorithm</span> <span class=ow>in</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>algorithms</span><span class=p>,</span> <span class=n>key</span><span class=o>=</span><span class=n>algorithm_sort_key</span><span class=p>):</span>
+        <span class=n>progresses</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>pr_from_logs</span><span class=p>(</span><span class=n>spath</span><span class=o>.</span><span class=n>resolve_inside</span><span class=p>(</span>
+            <span class=n>algorithm</span><span class=p>),</span> <span class=n>time_unit</span><span class=o>=</span><span class=n>time_unit</span><span class=p>,</span> <span class=n>f_name</span><span class=o>=</span><span class=n>F_NAME_RAW</span><span class=p>))</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>progresses</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"did not find log files in dir </span><span class=si>{</span><span class=n>results_dir</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=n>stat_runs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>Progress</span> <span class=o>|</span> <span class=n>StatRun</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>sr_from_progress</span><span class=p>(</span><span class=n>progresses</span><span class=p>,</span> <span class=n>STAT_MEAN_ARITH</span><span class=p>,</span>
+                     <span class=n>stat_runs</span><span class=o>.</span><span class=n>append</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>stat_runs</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"failed to compile stat runs from dir </span><span class=si>{</span><span class=n>results_dir</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>include_runs</span><span class=p>:</span>
+        <span class=n>stat_runs</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>progresses</span><span class=p>)</span>
+    <span class=k>del</span> <span class=n>progresses</span>
+    <span class=n>instances</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>({</span><span class=n>sr</span><span class=o>.</span><span class=n>instance</span> <span class=k>for</span> <span class=n>sr</span> <span class=ow>in</span> <span class=n>stat_runs</span><span class=p>},</span>
+                                         <span class=n>key</span><span class=o>=</span><span class=n>instance_sort_key</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>instances</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"no instances in dir </span><span class=si>{</span><span class=n>results_dir</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>algos</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>({</span><span class=n>sr</span><span class=o>.</span><span class=n>algorithm</span> <span class=k>for</span> <span class=n>sr</span> <span class=ow>in</span> <span class=n>stat_runs</span><span class=p>},</span>
+                                     <span class=n>key</span><span class=o>=</span><span class=n>algorithm_sort_key</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=nb>set</span><span class=p>(</span><span class=n>algorithms</span><span class=p>)</span><span class=o>.</span><span class=n>difference</span><span class=p>(</span><span class=n>algos</span><span class=p>))</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"found the </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>algos</span><span class=p>)</span><span class=si>}</span><span class=s2> algorithms </span><span class=si>{</span><span class=n>algos</span><span class=si>}</span><span class=s2>, but expected "</span>
+            <span class=sa>f</span><span class=s2>"algorithms </span><span class=si>{</span><span class=n>algorithms</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=n>results</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>Path</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>  <span class=c1># the list of generated files</span>
+
+    <span class=c1># plot the progress charts</span>
+    <span class=k>for</span> <span class=n>lang</span> <span class=ow>in</span> <span class=n>Lang</span><span class=o>.</span><span class=n>all_langs</span><span class=p>():</span>
+        <span class=n>lang</span><span class=o>.</span><span class=n>set_current</span><span class=p>()</span>
+        <span class=n>figure</span><span class=p>,</span> <span class=n>plots</span> <span class=o>=</span> <span class=n>pu</span><span class=o>.</span><span class=n>create_figure_with_subplots</span><span class=p>(</span>
+            <span class=n>items</span><span class=o>=</span><span class=nb>len</span><span class=p>(</span><span class=n>instances</span><span class=p>),</span> <span class=n>max_items_per_plot</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>max_cols</span><span class=o>=</span><span class=mi>2</span><span class=p>,</span>
+            <span class=n>max_rows</span><span class=o>=</span><span class=mi>4</span><span class=p>,</span> <span class=n>max_width</span><span class=o>=</span><span class=mf>8.6</span><span class=p>,</span> <span class=n>max_height</span><span class=o>=</span><span class=mf>11.5</span><span class=p>)</span>
+
+        <span class=k>for</span> <span class=n>plot</span><span class=p>,</span> <span class=n>start</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>_</span><span class=p>,</span> <span class=n>_</span><span class=p>,</span> <span class=n>_</span> <span class=ow>in</span> <span class=n>plots</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>start</span> <span class=o>!=</span> <span class=p>(</span><span class=n>end</span> <span class=o>-</span> <span class=mi>1</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>start</span><span class=si>}</span><span class=s2> != </span><span class=si>{</span><span class=n>end</span><span class=si>}</span><span class=s2> - 1"</span><span class=p>)</span>
+            <span class=n>inst</span> <span class=o>=</span> <span class=n>instances</span><span class=p>[</span><span class=n>start</span><span class=p>]</span>
+            <span class=n>plot_progress</span><span class=p>(</span>
+                <span class=n>progresses</span><span class=o>=</span><span class=p>[</span><span class=n>sr</span> <span class=k>for</span> <span class=n>sr</span> <span class=ow>in</span> <span class=n>stat_runs</span> <span class=k>if</span> <span class=n>sr</span><span class=o>.</span><span class=n>instance</span> <span class=o>==</span> <span class=n>inst</span><span class=p>],</span>
+                <span class=n>figure</span><span class=o>=</span><span class=n>plot</span><span class=p>,</span>
+                <span class=n>x_axis</span><span class=o>=</span><span class=n>AxisRanger</span><span class=o>.</span><span class=n>for_axis_func</span><span class=p>(</span><span class=n>log_scale</span><span class=o>=</span><span class=n>log_time</span><span class=p>),</span>
+                <span class=n>importance_to_font_size_func</span><span class=o>=</span><span class=k>lambda</span> <span class=n>i</span><span class=p>:</span>
+                <span class=mf>0.9</span> <span class=o>*</span> <span class=n>importance_to_font_size</span><span class=p>(</span><span class=n>i</span><span class=p>),</span>
+                <span class=n>algorithm_sort_key</span><span class=o>=</span><span class=n>algorithm_sort_key</span><span class=p>,</span>
+                <span class=n>instance_sort_key</span><span class=o>=</span><span class=n>instance_sort_key</span><span class=p>,</span>
+                <span class=n>x_label_location</span><span class=o>=</span><span class=n>x_label_location</span><span class=p>,</span>
+                <span class=n>algorithm_namer</span><span class=o>=</span><span class=n>algorithm_namer</span><span class=p>)</span>
+            <span class=n>axes</span> <span class=o>=</span> <span class=n>pu</span><span class=o>.</span><span class=n>get_axes</span><span class=p>(</span><span class=n>plot</span><span class=p>)</span>
+            <span class=n>pu</span><span class=o>.</span><span class=n>label_box</span><span class=p>(</span><span class=n>axes</span><span class=p>,</span> <span class=n>inst</span><span class=p>,</span> <span class=n>x</span><span class=o>=</span><span class=mf>0.5</span><span class=p>,</span> <span class=n>y</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+
+        <span class=n>results</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>pu</span><span class=o>.</span><span class=n>save_figure</span><span class=p>(</span><span class=n>fig</span><span class=o>=</span><span class=n>figure</span><span class=p>,</span>
+                                      <span class=n>file_name</span><span class=o>=</span><span class=n>lang</span><span class=o>.</span><span class=n>filename</span><span class=p>(</span><span class=n>name_base</span><span class=p>),</span>
+                                      <span class=n>dir_name</span><span class=o>=</span><span class=n>dest_dir</span><span class=p>))</span>
+
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"finished plotting chart </span><span class=si>{</span><span class=n>name_base</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>results</span></div>
+
+
+
+<div class=viewcode-block id=plot_end_makespans_over_param>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.plots.plot_end_makespans_over_param>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>plot_end_makespans_over_param</span><span class=p>(</span>
+    <span class=n>end_results</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>EndResult</span><span class=p>],</span>
+    <span class=n>name_base</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+    <span class=n>dest_dir</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+    <span class=n>x_getter</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>EndStatistics</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+    <span class=n>algorithm_getter</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>EndStatistics</span><span class=p>],</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span>
+    <span class=k>lambda</span> <span class=n>es</span><span class=p>:</span> <span class=n>es</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span>
+    <span class=n>instance_sort_key</span><span class=p>:</span> <span class=n>Callable</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>,</span>
+    <span class=n>algorithm_sort_key</span><span class=p>:</span> <span class=n>Callable</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>,</span>
+    <span class=n>title</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+    <span class=n>x_axis</span><span class=p>:</span> <span class=n>AxisRanger</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[],</span> <span class=n>AxisRanger</span><span class=p>]</span> <span class=o>=</span> <span class=n>AxisRanger</span><span class=p>,</span>
+    <span class=n>x_label</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+    <span class=n>x_label_location</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>1.0</span><span class=p>,</span>
+    <span class=n>plot_single_instances</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+    <span class=n>plot_instance_summary</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+    <span class=n>legend_pos</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"upper right"</span><span class=p>,</span>
+    <span class=n>title_x</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.5</span><span class=p>,</span>
+    <span class=n>y_label_location</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>1.0</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=n>Path</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Plot the performance over a parameter.</span>
+
+<span class=sd>    :param end_results: the iterable of end results</span>
+<span class=sd>    :param name_base: the basic name</span>
+<span class=sd>    :param dest_dir: the destination directory</span>
+<span class=sd>    :param title: the optional title</span>
+<span class=sd>    :param x_getter: the function computing the x-value for each statistics</span>
+<span class=sd>        object</span>
+<span class=sd>    :param algorithm_getter: the algorithm getter</span>
+<span class=sd>    :param instance_sort_key: the sort key function for instances</span>
+<span class=sd>    :param algorithm_sort_key: the sort key function for algorithms</span>
+<span class=sd>    :param x_axis: the x_axis ranger</span>
+<span class=sd>    :param x_label: the x-label</span>
+<span class=sd>    :param x_label_location: the location of the x-labels</span>
+<span class=sd>    :param plot_single_instances: shall we plot the values for each single</span>
+<span class=sd>        instance?</span>
+<span class=sd>    :param plot_instance_summary: shall we plot the value over all instances?</span>
+<span class=sd>    :param legend_pos: the legend position</span>
+<span class=sd>    :param title_x: the title position</span>
+<span class=sd>    :param y_label_location: the location of the y label</span>
+<span class=sd>    :returns: the list of generated files</span>
+<span class=sd>    """</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"beginning to plot chart </span><span class=si>{</span><span class=n>name_base</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>end_results</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>end_results</span><span class=p>,</span> <span class=s2>"end_results"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>name_base</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>name_base</span><span class=p>,</span> <span class=s2>"name_base"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dest_dir</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>dest_dir</span><span class=p>,</span> <span class=s2>"dest_dir"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>x_getter</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>x_getter</span><span class=p>,</span> <span class=s2>"x_getter"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>algorithm_getter</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm_getter</span><span class=p>,</span> <span class=s2>"algorithm_getter"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>instance_sort_key</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instance_sort_key</span><span class=p>,</span> <span class=s2>"instance_sort_key"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>algorithm_sort_key</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm_sort_key</span><span class=p>,</span> <span class=s2>"algorithm_sort_key"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>x_label_location</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>x_label_location</span><span class=p>,</span> <span class=s2>"x_label_location"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>y_label_location</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>y_label_location</span><span class=p>,</span> <span class=s2>"y_label_location"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>title</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>title</span><span class=p>,</span> <span class=nb>str</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>title</span><span class=p>,</span> <span class=s2>"title"</span><span class=p>,</span> <span class=p>(</span><span class=nb>str</span><span class=p>,</span> <span class=kc>None</span><span class=p>))</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>plot_single_instances</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>plot_single_instances</span><span class=p>,</span> <span class=s2>"plot_single_instances"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>plot_instance_summary</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>plot_instance_summary</span><span class=p>,</span> <span class=s2>"plot_instance_summary"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>plot_single_instances</span> <span class=ow>or</span> <span class=n>plot_instance_summary</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"plot_instance_summary and plot_single_instances "</span>
+                         <span class=s2>"cannot both be False"</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>legend_pos</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>legend_pos</span><span class=p>,</span> <span class=s2>"legend_pos"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>title_x</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>title_x</span><span class=p>,</span> <span class=s2>"title_x"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"now plotting end statistics over parameter </span><span class=si>{</span><span class=n>title</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=n>end_stats</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>EndStatistics</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=k>if</span> <span class=n>plot_single_instances</span><span class=p>:</span>
+        <span class=n>end_stats</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>from_end_results</span><span class=p>(</span><span class=n>end_results</span><span class=p>))</span>
+    <span class=k>if</span> <span class=n>plot_instance_summary</span><span class=p>:</span>
+        <span class=n>end_stats</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>from_end_results</span><span class=p>(</span>
+            <span class=n>end_results</span><span class=p>,</span> <span class=n>join_all_instances</span><span class=o>=</span><span class=kc>True</span><span class=p>))</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>end_stats</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"no end statistics records to plot!"</span><span class=p>)</span>
+    <span class=n>result</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+
+    <span class=k>for</span> <span class=n>lang</span> <span class=ow>in</span> <span class=n>Lang</span><span class=o>.</span><span class=n>all_langs</span><span class=p>():</span>
+        <span class=n>lang</span><span class=o>.</span><span class=n>set_current</span><span class=p>()</span>
+        <span class=n>figure</span> <span class=o>=</span> <span class=n>pu</span><span class=o>.</span><span class=n>create_figure</span><span class=p>(</span><span class=n>width</span><span class=o>=</span><span class=mf>5.5</span><span class=p>)</span>
+
+        <span class=n>axes</span> <span class=o>=</span> <span class=n>plot_end_statistics_over_param</span><span class=p>(</span>
+            <span class=n>data</span><span class=o>=</span><span class=n>end_stats</span><span class=p>,</span> <span class=n>figure</span><span class=o>=</span><span class=n>figure</span><span class=p>,</span>
+            <span class=n>algorithm_getter</span><span class=o>=</span><span class=n>algorithm_getter</span><span class=p>,</span>
+            <span class=n>x_axis</span><span class=o>=</span><span class=n>x_axis</span><span class=p>,</span>
+            <span class=n>x_getter</span><span class=o>=</span><span class=n>x_getter</span><span class=p>,</span>
+            <span class=n>x_label</span><span class=o>=</span><span class=n>x_label</span><span class=p>,</span>
+            <span class=n>x_label_location</span><span class=o>=</span><span class=n>x_label_location</span><span class=p>,</span>
+            <span class=n>algorithm_sort_key</span><span class=o>=</span><span class=n>algorithm_sort_key</span><span class=p>,</span>
+            <span class=n>instance_sort_key</span><span class=o>=</span><span class=n>instance_sort_key</span><span class=p>,</span>
+            <span class=n>legend_pos</span><span class=o>=</span><span class=n>legend_pos</span><span class=p>,</span>
+            <span class=n>y_label_location</span><span class=o>=</span><span class=n>y_label_location</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>title</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>pu</span><span class=o>.</span><span class=n>label_box</span><span class=p>(</span><span class=n>axes</span><span class=p>,</span> <span class=n>title</span><span class=p>,</span> <span class=n>x</span><span class=o>=</span><span class=n>title_x</span><span class=p>,</span> <span class=n>y</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+
+        <span class=n>result</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>pu</span><span class=o>.</span><span class=n>save_figure</span><span class=p>(</span><span class=n>fig</span><span class=o>=</span><span class=n>figure</span><span class=p>,</span>
+                                     <span class=n>file_name</span><span class=o>=</span><span class=n>lang</span><span class=o>.</span><span class=n>filename</span><span class=p>(</span><span class=n>name_base</span><span class=p>),</span>
+                                     <span class=n>dir_name</span><span class=o>=</span><span class=n>dest_dir</span><span class=p>))</span>
+
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"done plotting end statistics over parameter </span><span class=si>{</span><span class=n>title</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>result</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.plots</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

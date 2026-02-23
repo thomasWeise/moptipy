@@ -1,0 +1,1187 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.end_results — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/end_results.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.end_results</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.end_results</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Record for EndResult as well as parsing, serialization, and parsing.</span>
+
+<span class=sd>When doing experiments with `moptipy`, you apply algorithm setups to problem</span>
+<span class=sd>instances. For each `setup x instance` combination, you may conduct a series</span>
+<span class=sd>of repetitions (so-called runs) with different random seeds. Each single run</span>
+<span class=sd>of an algorithm setup on a problem instances can produce a separate log file.</span>
+<span class=sd>From each log file, we can load a :class:`EndResult` instance, which</span>
+<span class=sd>represents, well, the end result of the run, i.e., information such as the</span>
+<span class=sd>best solution quality reached, when it was reached, and the termination</span>
+<span class=sd>criterion. These end result records then can be the basis for, e.g., computing</span>
+<span class=sd>summary statistics via :mod:`~moptipy.evaluation.end_statistics` or for</span>
+<span class=sd>plotting the end result distribution via</span>
+<span class=sd>:mod:`~moptipy.evaluation.plot_end_results`.</span>
+<span class=sd>"""</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>argparse</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>dataclasses</span><span class=w> </span><span class=kn>import</span> <span class=n>dataclass</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>TypeVar</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.ds.sequences</span><span class=w> </span><span class=kn>import</span> <span class=n>reiterable</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.console</span><span class=w> </span><span class=kn>import</span> <span class=n>logger</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.csv</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>CSV_SEPARATOR</span><span class=p>,</span>
+    <span class=n>SCOPE_SEPARATOR</span><span class=p>,</span>
+    <span class=n>csv_column</span><span class=p>,</span>
+    <span class=n>csv_column_or_none</span><span class=p>,</span>
+    <span class=n>csv_scope</span><span class=p>,</span>
+    <span class=n>csv_str_or_none</span><span class=p>,</span>
+    <span class=n>csv_val_or_none</span><span class=p>,</span>
+    <span class=n>pycommons_footer_bottom_comments</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.csv</span><span class=w> </span><span class=kn>import</span> <span class=n>CsvReader</span> <span class=k>as</span> <span class=n>CsvReaderBase</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.csv</span><span class=w> </span><span class=kn>import</span> <span class=n>CsvWriter</span> <span class=k>as</span> <span class=n>CsvWriterBase</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span><span class=p>,</span> <span class=n>file_path</span><span class=p>,</span> <span class=n>write_lines</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.strings.string_conv</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>int_or_none_to_str</span><span class=p>,</span>
+    <span class=n>num_or_none_to_str</span><span class=p>,</span>
+    <span class=n>num_to_str</span><span class=p>,</span>
+    <span class=n>str_to_num</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>check_int_range</span><span class=p>,</span>
+    <span class=n>check_to_int_range</span><span class=p>,</span>
+    <span class=n>type_error</span><span class=p>,</span>
+<span class=p>)</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>KEY_ALGORITHM</span><span class=p>,</span>
+    <span class=n>KEY_BEST_F</span><span class=p>,</span>
+    <span class=n>KEY_GOAL_F</span><span class=p>,</span>
+    <span class=n>KEY_INSTANCE</span><span class=p>,</span>
+    <span class=n>KEY_LAST_IMPROVEMENT_FE</span><span class=p>,</span>
+    <span class=n>KEY_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=p>,</span>
+    <span class=n>KEY_MAX_FES</span><span class=p>,</span>
+    <span class=n>KEY_MAX_TIME_MILLIS</span><span class=p>,</span>
+    <span class=n>KEY_RAND_SEED</span><span class=p>,</span>
+    <span class=n>KEY_TOTAL_FES</span><span class=p>,</span>
+    <span class=n>KEY_TOTAL_TIME_MILLIS</span><span class=p>,</span>
+    <span class=n>PROGRESS_CURRENT_F</span><span class=p>,</span>
+    <span class=n>PROGRESS_FES</span><span class=p>,</span>
+    <span class=n>PROGRESS_TIME_MILLIS</span><span class=p>,</span>
+    <span class=n>SECTION_PROGRESS</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation._utils</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>_check_max_time_millis</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.base</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>DESC_ALGORITHM</span><span class=p>,</span>
+    <span class=n>DESC_ENCODING</span><span class=p>,</span>
+    <span class=n>DESC_INSTANCE</span><span class=p>,</span>
+    <span class=n>DESC_OBJECTIVE_FUNCTION</span><span class=p>,</span>
+    <span class=n>F_NAME_NORMALIZED</span><span class=p>,</span>
+    <span class=n>F_NAME_RAW</span><span class=p>,</span>
+    <span class=n>F_NAME_SCALED</span><span class=p>,</span>
+    <span class=n>KEY_ENCODING</span><span class=p>,</span>
+    <span class=n>KEY_OBJECTIVE_FUNCTION</span><span class=p>,</span>
+    <span class=n>PerRunData</span><span class=p>,</span>
+    <span class=n>motipy_footer_bottom_comments</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.log_parser</span><span class=w> </span><span class=kn>import</span> <span class=n>SetupAndStateParser</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.help</span><span class=w> </span><span class=kn>import</span> <span class=n>moptipy_argparser</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.math</span><span class=w> </span><span class=kn>import</span> <span class=n>try_float_div</span><span class=p>,</span> <span class=n>try_int</span><span class=p>,</span> <span class=n>try_int_div</span>
+
+<span class=c1>#: a description of the random seed</span>
+<span class=n>DESC_RAND_SEED</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span>
+    <span class=s2>"the value of the seed of the random number generator used in the run. "</span>
+    <span class=sa>f</span><span class=s2>"Random seeds are in 0..</span><span class=si>{</span><span class=p>((</span><span class=mi>1</span><span class=w> </span><span class=o><<</span><span class=w> </span><span class=p>(</span><span class=mi>8</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=mi>8</span><span class=p>))</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=mi>1</span><span class=p>)</span><span class=si>}</span><span class=s2> and the random "</span>
+    <span class=sa>f</span><span class=s2>"number generators are those from numpy."</span><span class=p>)</span>
+<span class=c1>#: the description of best-F</span>
+<span class=n>DESC_BEST_F</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span>
+    <span class=s2>" the best (smallest) objective value ever encountered during the run ("</span>
+    <span class=s2>"regardless whether the algorithm later forgot it again or not)."</span><span class=p>)</span>
+<span class=c1>#: the description of the last improvement FE</span>
+<span class=n>DESC_LAST_IMPROVEMENT_FE</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span>
+    <span class=s2>"the objective function evaluation (FE) when the last improving move took"</span>
+    <span class=s2>" place. 1 FE corresponds to the construction and evaluation "</span>
+    <span class=s2>"of one solution. The first FE has index 1. With 'last "</span>
+    <span class=s2>"improving move' we mean the last time when a solution was "</span>
+    <span class=s2>"discovered that was better than all previous solutions. This "</span>
+    <span class=s2>"time / FE index is the one when the solution with objective "</span>
+    <span class=sa>f</span><span class=s2>"value </span><span class=si>{</span><span class=n>KEY_BEST_F</span><span class=si>}</span><span class=s2> was discovered."</span><span class=p>)</span>
+<span class=c1>#: the description of the last improvement time milliseconds</span>
+<span class=n>DESC_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span>
+    <span class=s2>"the clock time in milliseconds after the begin of the run when "</span>
+    <span class=s2>"the last improving search move took place."</span><span class=p>)</span>
+<span class=c1>#: the description of the total FEs</span>
+<span class=n>DESC_TOTAL_FES</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span>
+    <span class=s2>"the total number of objective function evaluations (FEs) that were "</span>
+    <span class=s2>"performed during the run."</span><span class=p>)</span>
+<span class=c1>#: the total consumed time in milliseconds</span>
+<span class=n>DESC_TOTAL_TIME_MILLIS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span>
+    <span class=s2>"the clock time in milliseconds that has passed between the begin of the "</span>
+    <span class=s2>"run and the end of the run."</span><span class=p>)</span>
+<span class=c1>#: the description of the goal objective value</span>
+<span class=n>DESC_GOAL_F</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span>
+    <span class=s2>"the goal objective value. A run will stop as soon as a solution was"</span>
+    <span class=s2>"discovered which has an objective value less than or equal to "</span>
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_GOAL_F</span><span class=si>}</span><span class=s2>. In other words, as soon as </span><span class=si>{</span><span class=n>KEY_BEST_F</span><span class=si>}</span><span class=s2> reaches or dips "</span>
+    <span class=sa>f</span><span class=s2>"under </span><span class=si>{</span><span class=n>KEY_GOAL_F</span><span class=si>}</span><span class=s2>, the algorithm will stop. If </span><span class=si>{</span><span class=n>KEY_GOAL_F</span><span class=si>}</span><span class=s2> is not "</span>
+    <span class=s2>"reached, the run will continue until other budget limits are exhausted. "</span>
+    <span class=s2>"If a lower bound for the objective function is known, this is often used"</span>
+    <span class=s2>" as a goal objective value. If o goal objective value is specified, this"</span>
+    <span class=s2>" field is empty."</span><span class=p>)</span>
+<span class=c1>#: a description of the budget as the maximum objective function evaluation</span>
+<span class=n>DESC_MAX_FES</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span>
+    <span class=s2>"the maximum number of permissible FEs per run. As soon as this limit is "</span>
+    <span class=sa>f</span><span class=s2>"reached, the run will stop. In other words, </span><span class=si>{</span><span class=n>KEY_TOTAL_FES</span><span class=si>}</span><span class=s2> will never "</span>
+    <span class=sa>f</span><span class=s2>"be more than </span><span class=si>{</span><span class=n>KEY_MAX_FES</span><span class=si>}</span><span class=s2>. A run may stop earlier if some other "</span>
+    <span class=s2>"termination criterion is reached, but never later."</span><span class=p>)</span>
+<span class=c1>#: a description of the budget in terms of maximum runtime</span>
+<span class=n>DESC_MAX_TIME_MILLIS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span>
+    <span class=s2>"the maximum number of milliseconds of clock time that a run is permitted"</span>
+    <span class=s2>" to use as computational budget before being terminated. This limit is "</span>
+    <span class=s2>"more of a soft limit, as we cannot physically stop a run at arbitrary "</span>
+    <span class=s2>"points without causing mayhem. Thus, it may be that some runs consume "</span>
+    <span class=s2>"slightly more runtime than this limit. But the rule is that the "</span>
+    <span class=s2>"algorithm gets told to stop (via should_terminate() becoming True) as "</span>
+    <span class=sa>f</span><span class=s2>"soon as this time has elapsed. But generally, </span><span class=si>{</span><span class=n>KEY_TOTAL_TIME_MILLIS</span><span class=si>}</span><span class=s2><="</span>
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_MAX_TIME_MILLIS</span><span class=si>}</span><span class=s2> approximately holds."</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=EndResult>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult>[docs]</a>
+<span class=nd>@dataclass</span><span class=p>(</span><span class=n>frozen</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>init</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>order</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>eq</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>class</span><span class=w> </span><span class=nc>EndResult</span><span class=p>(</span><span class=n>PerRunData</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    An immutable end result record of one run of one algorithm on one problem.</span>
+
+<span class=sd>    This record provides the information of the outcome of one application of</span>
+<span class=sd>    one algorithm to one problem instance in an immutable way.</span>
+<span class=sd>    """</span>
+
+    <span class=c1>#: The best objective value encountered.</span>
+    <span class=n>best_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span>
+
+    <span class=c1>#: The index of the function evaluation when best_f was reached.</span>
+    <span class=n>last_improvement_fe</span><span class=p>:</span> <span class=nb>int</span>
+
+    <span class=c1>#: The time when best_f was reached.</span>
+    <span class=n>last_improvement_time_millis</span><span class=p>:</span> <span class=nb>int</span>
+
+    <span class=c1>#: The total number of performed FEs.</span>
+    <span class=n>total_fes</span><span class=p>:</span> <span class=nb>int</span>
+
+    <span class=c1>#: The total time consumed by the run.</span>
+    <span class=n>total_time_millis</span><span class=p>:</span> <span class=nb>int</span>
+
+    <span class=c1>#: The goal objective value if provided</span>
+    <span class=n>goal_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span>
+
+    <span class=c1>#: The (optional) maximum permitted FEs.</span>
+    <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span>
+
+    <span class=c1>#: The (optional) maximum runtime.</span>
+    <span class=n>max_time_millis</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                 <span class=n>algorithm</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>instance</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>objective</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>encoding</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>rand_seed</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>best_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span>
+                 <span class=n>last_improvement_fe</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>last_improvement_time_millis</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>total_fes</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>total_time_millis</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>goal_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>max_time_millis</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a consistent instance of :class:`EndResult`.</span>
+
+<span class=sd>        :param algorithm: the algorithm name</span>
+<span class=sd>        :param instance: the instance name</span>
+<span class=sd>        :param objective: the name of the objective function</span>
+<span class=sd>        :param encoding: the name of the encoding that was used, if any, or</span>
+<span class=sd>            `None` if no encoding was used</span>
+<span class=sd>        :param rand_seed: the random seed</span>
+<span class=sd>        :param best_f: the best reached objective value</span>
+<span class=sd>        :param last_improvement_fe: the FE when best_f was reached</span>
+<span class=sd>        :param last_improvement_time_millis: the time when best_f was reached</span>
+<span class=sd>        :param total_fes: the total FEs</span>
+<span class=sd>        :param total_time_millis: the total runtime</span>
+<span class=sd>        :param goal_f: the goal objective value, if provide</span>
+<span class=sd>        :param max_fes: the optional maximum FEs</span>
+<span class=sd>        :param max_time_millis: the optional maximum runtime</span>
+
+<span class=sd>        :raises TypeError: if any parameter has a wrong type</span>
+<span class=sd>        :raises ValueError: if the parameter values are inconsistent</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>instance</span><span class=p>,</span> <span class=n>objective</span><span class=p>,</span> <span class=n>encoding</span><span class=p>,</span> <span class=n>rand_seed</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"best_f"</span><span class=p>,</span> <span class=n>try_int</span><span class=p>(</span><span class=n>best_f</span><span class=p>))</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span>
+            <span class=bp>self</span><span class=p>,</span> <span class=s2>"last_improvement_fe"</span><span class=p>,</span> <span class=n>check_int_range</span><span class=p>(</span>
+                <span class=n>last_improvement_fe</span><span class=p>,</span> <span class=s2>"last_improvement_fe"</span><span class=p>,</span>
+                <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000_000_000</span><span class=p>))</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span>
+            <span class=bp>self</span><span class=p>,</span> <span class=s2>"last_improvement_time_millis"</span><span class=p>,</span> <span class=n>check_int_range</span><span class=p>(</span>
+                <span class=n>last_improvement_time_millis</span><span class=p>,</span> <span class=s2>"last_improvement_time_millis"</span><span class=p>,</span>
+                <span class=mi>0</span><span class=p>,</span> <span class=mi>100_000_000_000</span><span class=p>))</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span>
+            <span class=bp>self</span><span class=p>,</span> <span class=s2>"total_fes"</span><span class=p>,</span> <span class=n>check_int_range</span><span class=p>(</span>
+                <span class=n>total_fes</span><span class=p>,</span> <span class=s2>"total_fes"</span><span class=p>,</span> <span class=n>last_improvement_fe</span><span class=p>,</span>
+                <span class=mi>1_000_000_000_000_000</span><span class=p>))</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span>
+            <span class=bp>self</span><span class=p>,</span> <span class=s2>"total_time_millis"</span><span class=p>,</span> <span class=n>check_int_range</span><span class=p>(</span>
+                <span class=n>total_time_millis</span><span class=p>,</span> <span class=s2>"total_time_millis"</span><span class=p>,</span>
+                <span class=n>last_improvement_time_millis</span><span class=p>,</span> <span class=mi>100_000_000_000</span><span class=p>))</span>
+
+        <span class=k>if</span> <span class=n>goal_f</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>goal_f</span> <span class=o>=</span> <span class=kc>None</span> <span class=k>if</span> <span class=n>goal_f</span> <span class=o><=</span> <span class=o>-</span><span class=n>inf</span> <span class=k>else</span> <span class=n>try_int</span><span class=p>(</span><span class=n>goal_f</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"goal_f"</span><span class=p>,</span> <span class=n>goal_f</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>max_fes</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>check_int_range</span><span class=p>(</span><span class=n>max_fes</span><span class=p>,</span> <span class=s2>"max_fes"</span><span class=p>,</span> <span class=n>total_fes</span><span class=p>,</span>
+                            <span class=mi>1_000_000_000_000_000_000</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"max_fes"</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>max_time_millis</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>check_int_range</span><span class=p>(</span>
+                <span class=n>max_time_millis</span><span class=p>,</span> <span class=s2>"max_time_millis"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>100_000_000_000</span><span class=p>)</span>
+            <span class=n>_check_max_time_millis</span><span class=p>(</span><span class=n>max_time_millis</span><span class=p>,</span>
+                                   <span class=n>total_fes</span><span class=p>,</span>
+                                   <span class=n>total_time_millis</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"max_time_millis"</span><span class=p>,</span> <span class=n>max_time_millis</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_tuple</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=n>Any</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the tuple representation of this object used in comparisons.</span>
+
+<span class=sd>        :return: the comparison-relevant data of this object in a tuple</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=vm>__class__</span><span class=o>.</span><span class=vm>__name__</span><span class=p>,</span>
+                <span class=s2>""</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span>
+                <span class=s2>""</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>instance</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span>
+                <span class=s2>""</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>objective</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>objective</span><span class=p>,</span>
+                <span class=s2>""</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoding</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoding</span><span class=p>,</span>
+                <span class=mi>1</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>rand_seed</span><span class=p>,</span> <span class=s2>""</span><span class=p>,</span> <span class=s2>""</span><span class=p>,</span>
+                <span class=n>inf</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span><span class=p>,</span>
+                <span class=n>inf</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span><span class=p>,</span>
+                <span class=n>inf</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_time_millis</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_time_millis</span><span class=p>,</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>best_f</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>last_improvement_fe</span><span class=p>,</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>last_improvement_time_millis</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>total_fes</span><span class=p>,</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>total_time_millis</span><span class=p>)</span>
+
+<div class=viewcode-block id=EndResult.success>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult.success>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>success</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Check if a run is successful.</span>
+
+<span class=sd>        This method returns `True` if and only if `goal_f` is defined and</span>
+<span class=sd>        `best_f <= goal_f` (and `False` otherwise).</span>
+
+<span class=sd>        :return: `True` if and only if `best_f<=goal_f`</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=kc>False</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>best_f</span> <span class=o><=</span> <span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span></div>
+
+
+<div class=viewcode-block id=EndResult.get_best_f>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult.get_best_f>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_best_f</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the best objective value reached.</span>
+
+<span class=sd>        :returns: the best objective value reached</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"self"</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>best_f</span></div>
+
+
+<div class=viewcode-block id=EndResult.get_last_improvement_fe>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult.get_last_improvement_fe>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_last_improvement_fe</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the index of the function evaluation when `best_f` was reached.</span>
+
+<span class=sd>        :returns: the index of the function evaluation when `best_f` was</span>
+<span class=sd>            reached</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"self"</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>last_improvement_fe</span></div>
+
+
+<div class=viewcode-block id=EndResult.get_last_improvement_time_millis>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult.get_last_improvement_time_millis>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_last_improvement_time_millis</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the milliseconds when `best_f` was reached.</span>
+
+<span class=sd>        :returns: the milliseconds when `best_f` was reached</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"self"</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>last_improvement_time_millis</span></div>
+
+
+<div class=viewcode-block id=EndResult.get_total_fes>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult.get_total_fes>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_total_fes</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the total number of performed FEs.</span>
+
+<span class=sd>        :returns: the total number of performed FEs</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"self"</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>total_fes</span></div>
+
+
+<div class=viewcode-block id=EndResult.get_total_time_millis>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult.get_total_time_millis>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_total_time_millis</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the total time consumed by the run.</span>
+
+<span class=sd>        :returns: the total time consumed by the run</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"self"</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>total_time_millis</span></div>
+
+
+<div class=viewcode-block id=EndResult.get_goal_f>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult.get_goal_f>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_goal_f</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the goal objective value, if any.</span>
+
+<span class=sd>        :returns: the goal objective value, if any</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"self"</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span></div>
+
+
+<div class=viewcode-block id=EndResult.get_max_fes>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult.get_max_fes>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_max_fes</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the maximum number of FEs permissible.</span>
+
+<span class=sd>        :returns: the maximum number of FEs permissible</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"self"</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span></div>
+
+
+<div class=viewcode-block id=EndResult.get_max_time_millis>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult.get_max_time_millis>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_max_time_millis</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the maximum permissible milliseconds permitted.</span>
+
+<span class=sd>        :returns: the maximum permissible milliseconds permitted</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"self"</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_time_millis</span></div>
+
+
+<div class=viewcode-block id=EndResult.get_normalized_best_f>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult.get_normalized_best_f>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_normalized_best_f</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the normalized f.</span>
+
+<span class=sd>        :returns: the normalized f</span>
+<span class=sd>        """</span>
+        <span class=n>g</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_goal_f</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>g</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>g</span> <span class=o><=</span> <span class=mi>0</span><span class=p>):</span>
+            <span class=k>return</span> <span class=kc>None</span>
+        <span class=k>return</span> <span class=n>try_float_div</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>best_f</span> <span class=o>-</span> <span class=n>g</span><span class=p>,</span> <span class=n>g</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=EndResult.get_scaled_best_f>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult.get_scaled_best_f>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_scaled_best_f</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the normalized f.</span>
+
+<span class=sd>        :returns: the normalized f</span>
+<span class=sd>        """</span>
+        <span class=n>g</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_goal_f</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>g</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>g</span> <span class=o><=</span> <span class=mi>0</span><span class=p>):</span>
+            <span class=k>return</span> <span class=kc>None</span>
+        <span class=k>return</span> <span class=n>try_float_div</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>best_f</span><span class=p>,</span> <span class=n>g</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=EndResult.get_fes_per_time_milli>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.EndResult.get_fes_per_time_milli>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_fes_per_time_milli</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the fes per time milliseconds.</span>
+
+<span class=sd>        :returns: the fes per time milliseconds</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>try_int_div</span><span class=p>(</span><span class=n>EndResult</span><span class=o>.</span><span class=n>get_total_fes</span><span class=p>(</span><span class=bp>self</span><span class=p>),</span> <span class=nb>max</span><span class=p>(</span>
+            <span class=mi>1</span><span class=p>,</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_total_time_millis</span><span class=p>(</span><span class=bp>self</span><span class=p>)))</span></div>
+</div>
+
+
+
+<span class=c1>#: A set of getters for accessing variables of the end result</span>
+<span class=n>__PROPERTIES</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=n>Callable</span><span class=p>[[</span>
+    <span class=n>EndResult</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>{</span>
+    <span class=n>KEY_LAST_IMPROVEMENT_FE</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_last_improvement_fe</span><span class=p>,</span>
+    <span class=s2>"last improvement FE"</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_last_improvement_fe</span><span class=p>,</span>
+    <span class=n>KEY_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=p>:</span>
+        <span class=n>EndResult</span><span class=o>.</span><span class=n>get_last_improvement_time_millis</span><span class=p>,</span>
+    <span class=s2>"last improvement ms"</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_last_improvement_time_millis</span><span class=p>,</span>
+    <span class=n>KEY_TOTAL_FES</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_total_fes</span><span class=p>,</span>
+    <span class=s2>"fes"</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_total_fes</span><span class=p>,</span>
+    <span class=n>KEY_TOTAL_TIME_MILLIS</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_total_time_millis</span><span class=p>,</span>
+    <span class=s2>"ms"</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_total_time_millis</span><span class=p>,</span>
+    <span class=n>KEY_GOAL_F</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_goal_f</span><span class=p>,</span>
+    <span class=n>F_NAME_RAW</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_best_f</span><span class=p>,</span>
+    <span class=n>KEY_BEST_F</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_best_f</span><span class=p>,</span>
+    <span class=s2>"f"</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_best_f</span><span class=p>,</span>
+    <span class=n>F_NAME_SCALED</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_scaled_best_f</span><span class=p>,</span>
+    <span class=s2>"bestFscaled"</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_scaled_best_f</span><span class=p>,</span>
+    <span class=n>F_NAME_NORMALIZED</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_normalized_best_f</span><span class=p>,</span>
+    <span class=s2>"bestFnormalized"</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_normalized_best_f</span><span class=p>,</span>
+    <span class=n>KEY_MAX_FES</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_max_fes</span><span class=p>,</span>
+    <span class=s2>"budgetFEs"</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_max_fes</span><span class=p>,</span>
+    <span class=n>KEY_MAX_TIME_MILLIS</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_max_time_millis</span><span class=p>,</span>
+    <span class=s2>"budgetMS"</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_max_time_millis</span><span class=p>,</span>
+    <span class=s2>"fesPerTimeMilli"</span><span class=p>:</span> <span class=n>EndResult</span><span class=o>.</span><span class=n>get_fes_per_time_milli</span><span class=p>,</span>
+<span class=p>}</span><span class=o>.</span><span class=n>get</span>
+
+
+<div class=viewcode-block id=getter>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.getter>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>getter</span><span class=p>(</span><span class=n>dimension</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=n>Callable</span><span class=p>[[</span><span class=n>EndResult</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Produce a function that obtains the given dimension from EndResults.</span>
+
+<span class=sd>    The following dimensions are supported:</span>
+
+<span class=sd>    1. `lastImprovementFE`: :attr:`~EndResult.last_improvement_fe`</span>
+<span class=sd>    2. `lastImprovementTimeMillis`:</span>
+<span class=sd>        :attr:`~EndResult.last_improvement_time_millis`</span>
+<span class=sd>    3. `totalFEs`: :attr:`~EndResult.total_fes`</span>
+<span class=sd>    4. `totalTimeMillis`: :attr:`~EndResult.total_time_millis`</span>
+<span class=sd>    5. `goalF`: :attr:`~EndResult.goal_f`</span>
+<span class=sd>    6.  `plainF`, `bestF`: :attr:`~EndResult.best_f`</span>
+<span class=sd>    7. `scaledF`: :attr:`~EndResult.best_f`/:attr:`~EndResult.goal_f`</span>
+<span class=sd>    8. `normalizedF`: (:attr:`~EndResult.best_f`-attr:`~EndResult.goal_f`)/</span>
+<span class=sd>        :attr:`~EndResult.goal_f`</span>
+<span class=sd>    9. `maxFEs`: :attr:`~EndResult.max_fes`</span>
+<span class=sd>    10. `maxTimeMillis`: :attr:`~EndResult.max_time_millis`</span>
+<span class=sd>    11. `fesPerTimeMilli`:  :attr:`~EndResult.total_fes`</span>
+<span class=sd>        /:attr:`~EndResult.total_time_millis`</span>
+
+<span class=sd>    :param dimension: the dimension</span>
+<span class=sd>    :returns: a callable that returns the value corresponding to the</span>
+<span class=sd>        dimension from its input value, which must be an :class:`EndResult`</span>
+<span class=sd>    """</span>
+    <span class=n>result</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>EndResult</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>__PROPERTIES</span><span class=p>(</span>
+        <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>dimension</span><span class=p>))</span>
+    <span class=k>if</span> <span class=n>result</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Unknown EndResult dimension </span><span class=si>{</span><span class=n>dimension</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>result</span></div>
+
+
+
+<div class=viewcode-block id=to_csv>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.to_csv>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>to_csv</span><span class=p>(</span><span class=n>results</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>EndResult</span><span class=p>],</span> <span class=n>file</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=n>Path</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Write a sequence of end results to a file in CSV format.</span>
+
+<span class=sd>    :param results: the end results</span>
+<span class=sd>    :param file: the path</span>
+<span class=sd>    :return: the path of the file that was written</span>
+<span class=sd>    """</span>
+    <span class=n>path</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Writing end results to CSV file </span><span class=si>{</span><span class=n>path</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>path</span><span class=o>.</span><span class=n>ensure_parent_dir_exists</span><span class=p>()</span>
+    <span class=k>with</span> <span class=n>path</span><span class=o>.</span><span class=n>open_for_write</span><span class=p>()</span> <span class=k>as</span> <span class=n>wt</span><span class=p>:</span>
+        <span class=n>write_lines</span><span class=p>(</span><span class=n>CsvWriter</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=n>results</span><span class=p>),</span> <span class=n>wt</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Done writing end results to CSV file </span><span class=si>{</span><span class=n>path</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>path</span></div>
+
+
+
+<div class=viewcode-block id=from_csv>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.from_csv>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>from_csv</span><span class=p>(</span><span class=n>file</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+             <span class=n>filterer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>EndResult</span><span class=p>],</span> <span class=nb>bool</span><span class=p>]</span>
+             <span class=o>=</span> <span class=k>lambda</span> <span class=n>_</span><span class=p>:</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-></span> <span class=n>Generator</span><span class=p>[</span><span class=n>EndResult</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Parse a given CSV file to get :class:`EndResult` Records.</span>
+
+<span class=sd>    :param file: the path to parse</span>
+<span class=sd>    :param filterer: an optional filter function</span>
+<span class=sd>    """</span>
+    <span class=n>path</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>file_path</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Now reading CSV file </span><span class=si>{</span><span class=n>path</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>with</span> <span class=n>path</span><span class=o>.</span><span class=n>open_for_read</span><span class=p>()</span> <span class=k>as</span> <span class=n>rd</span><span class=p>:</span>
+        <span class=k>for</span> <span class=n>r</span> <span class=ow>in</span> <span class=n>CsvReader</span><span class=o>.</span><span class=n>read</span><span class=p>(</span><span class=n>rd</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>filterer</span><span class=p>(</span><span class=n>r</span><span class=p>):</span>
+                <span class=k>yield</span> <span class=n>r</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Done reading CSV file </span><span class=si>{</span><span class=n>path</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=CsvWriter>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.CsvWriter>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>CsvWriter</span><span class=p>(</span><span class=n>CsvWriterBase</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A class for CSV writing of :class:`EndResult`."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>data</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>EndResult</span><span class=p>],</span>
+                 <span class=n>scope</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the csv writer.</span>
+
+<span class=sd>        :param data: the data</span>
+<span class=sd>        :param scope: the prefix to be pre-pended to all columns</span>
+<span class=sd>        """</span>
+        <span class=n>data</span> <span class=o>=</span> <span class=n>reiterable</span><span class=p>(</span><span class=n>data</span><span class=p>)</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=n>scope</span><span class=p>)</span>
+        <span class=n>no_encoding</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=n>no_max_fes</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=n>no_max_ms</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=n>no_goal_f</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=n>check</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>4</span>
+        <span class=k>for</span> <span class=n>er</span> <span class=ow>in</span> <span class=n>data</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>no_encoding</span> <span class=ow>and</span> <span class=p>(</span><span class=n>er</span><span class=o>.</span><span class=n>encoding</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>):</span>
+                <span class=n>no_encoding</span> <span class=o>=</span> <span class=kc>False</span>
+                <span class=n>check</span> <span class=o>-=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=n>check</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>break</span>
+            <span class=k>if</span> <span class=n>no_max_fes</span> <span class=ow>and</span> <span class=p>(</span><span class=n>er</span><span class=o>.</span><span class=n>max_fes</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>):</span>
+                <span class=n>no_max_fes</span> <span class=o>=</span> <span class=kc>False</span>
+                <span class=n>check</span> <span class=o>-=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=n>check</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>break</span>
+            <span class=k>if</span> <span class=n>no_max_ms</span> <span class=ow>and</span> <span class=p>(</span><span class=n>er</span><span class=o>.</span><span class=n>max_time_millis</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>):</span>
+                <span class=n>no_max_ms</span> <span class=o>=</span> <span class=kc>False</span>
+                <span class=n>check</span> <span class=o>-=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=n>check</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>break</span>
+            <span class=k>if</span> <span class=n>no_goal_f</span> <span class=ow>and</span> <span class=p>(</span><span class=n>er</span><span class=o>.</span><span class=n>goal_f</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span>
+                    <span class=n>isfinite</span><span class=p>(</span><span class=n>er</span><span class=o>.</span><span class=n>goal_f</span><span class=p>)):</span>
+                <span class=n>no_goal_f</span> <span class=o>=</span> <span class=kc>False</span>
+                <span class=n>check</span> <span class=o>-=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=n>check</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>break</span>
+        <span class=c1>#: do we need the encoding?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__needs_encoding</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=ow>not</span> <span class=n>no_encoding</span>
+        <span class=c1>#: do we need the max FEs?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__needs_max_fes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=ow>not</span> <span class=n>no_max_fes</span>
+        <span class=c1>#: do we need the max millis?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__needs_max_ms</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=ow>not</span> <span class=n>no_max_ms</span>
+        <span class=c1>#: do we need the goal F?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__needs_goal_f</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=ow>not</span> <span class=n>no_goal_f</span>
+
+<div class=viewcode-block id=CsvWriter.get_column_titles>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.CsvWriter.get_column_titles>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_column_titles</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the column titles.</span>
+
+<span class=sd>        :returns: the column titles</span>
+<span class=sd>        """</span>
+        <span class=n>p</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>scope</span>
+        <span class=n>data</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span>
+            <span class=n>KEY_ALGORITHM</span><span class=p>,</span> <span class=n>KEY_INSTANCE</span><span class=p>,</span> <span class=n>KEY_OBJECTIVE_FUNCTION</span><span class=p>]</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__needs_encoding</span><span class=p>:</span>
+            <span class=n>data</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>KEY_ENCODING</span><span class=p>)</span>
+        <span class=n>data</span><span class=o>.</span><span class=n>extend</span><span class=p>((</span><span class=n>KEY_RAND_SEED</span><span class=p>,</span> <span class=n>KEY_BEST_F</span><span class=p>,</span> <span class=n>KEY_LAST_IMPROVEMENT_FE</span><span class=p>,</span>
+                     <span class=n>KEY_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=p>,</span> <span class=n>KEY_TOTAL_FES</span><span class=p>,</span>
+                     <span class=n>KEY_TOTAL_TIME_MILLIS</span><span class=p>))</span>
+
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__needs_goal_f</span><span class=p>:</span>
+            <span class=n>data</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>KEY_GOAL_F</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__needs_max_fes</span><span class=p>:</span>
+            <span class=n>data</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>KEY_MAX_FES</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__needs_max_ms</span><span class=p>:</span>
+            <span class=n>data</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>KEY_MAX_TIME_MILLIS</span><span class=p>)</span>
+        <span class=k>return</span> <span class=p>(</span><span class=n>csv_scope</span><span class=p>(</span><span class=n>p</span><span class=p>,</span> <span class=n>q</span><span class=p>)</span> <span class=k>for</span> <span class=n>q</span> <span class=ow>in</span> <span class=n>data</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=CsvWriter.get_row>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.CsvWriter.get_row>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_row</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>data</span><span class=p>:</span> <span class=n>EndResult</span><span class=p>)</span> <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Render a single end result record to a CSV row.</span>
+
+<span class=sd>        :param data: the end result record</span>
+<span class=sd>        :returns: the row iterator</span>
+<span class=sd>        """</span>
+        <span class=k>yield</span> <span class=n>data</span><span class=o>.</span><span class=n>algorithm</span>
+        <span class=k>yield</span> <span class=n>data</span><span class=o>.</span><span class=n>instance</span>
+        <span class=k>yield</span> <span class=n>data</span><span class=o>.</span><span class=n>objective</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__needs_encoding</span><span class=p>:</span>
+            <span class=k>yield</span> <span class=n>data</span><span class=o>.</span><span class=n>encoding</span> <span class=ow>or</span> <span class=s2>""</span>
+        <span class=k>yield</span> <span class=nb>hex</span><span class=p>(</span><span class=n>data</span><span class=o>.</span><span class=n>rand_seed</span><span class=p>)</span>
+        <span class=k>yield</span> <span class=n>num_to_str</span><span class=p>(</span><span class=n>data</span><span class=o>.</span><span class=n>best_f</span><span class=p>)</span>
+        <span class=k>yield</span> <span class=nb>str</span><span class=p>(</span><span class=n>data</span><span class=o>.</span><span class=n>last_improvement_fe</span><span class=p>)</span>
+        <span class=k>yield</span> <span class=nb>str</span><span class=p>(</span><span class=n>data</span><span class=o>.</span><span class=n>last_improvement_time_millis</span><span class=p>)</span>
+        <span class=k>yield</span> <span class=nb>str</span><span class=p>(</span><span class=n>data</span><span class=o>.</span><span class=n>total_fes</span><span class=p>)</span>
+        <span class=k>yield</span> <span class=nb>str</span><span class=p>(</span><span class=n>data</span><span class=o>.</span><span class=n>total_time_millis</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__needs_goal_f</span><span class=p>:</span>
+            <span class=k>yield</span> <span class=n>num_or_none_to_str</span><span class=p>(</span><span class=n>data</span><span class=o>.</span><span class=n>goal_f</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__needs_max_fes</span><span class=p>:</span>
+            <span class=k>yield</span> <span class=n>int_or_none_to_str</span><span class=p>(</span><span class=n>data</span><span class=o>.</span><span class=n>max_fes</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__needs_max_ms</span><span class=p>:</span>
+            <span class=k>yield</span> <span class=n>int_or_none_to_str</span><span class=p>(</span><span class=n>data</span><span class=o>.</span><span class=n>max_time_millis</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=CsvWriter.get_header_comments>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.CsvWriter.get_header_comments>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_header_comments</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get any possible header comments.</span>
+
+<span class=sd>        :returns: the header comments</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=s2>"Experiment End Results"</span><span class=p>,</span>
+                <span class=s2>"See the description at the bottom of the file."</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=CsvWriter.get_footer_comments>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.CsvWriter.get_footer_comments>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_footer_comments</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get any possible footer comments.</span>
+
+<span class=sd>        :returns: the footer comments</span>
+<span class=sd>        """</span>
+        <span class=k>yield</span> <span class=s2>""</span>
+        <span class=n>scope</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>scope</span>
+        <span class=k>yield</span> <span class=p>(</span><span class=s2>"Records describing the end results of single runs ("</span>
+               <span class=s2>"single executions) of algorithms applied to optimization "</span>
+               <span class=s2>"problems."</span><span class=p>)</span>
+        <span class=k>yield</span> <span class=p>(</span><span class=s2>"Each run is characterized by an algorithm setup, a problem "</span>
+               <span class=s2>"instance, and a random seed."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>scope</span><span class=p>:</span>
+            <span class=k>yield</span> <span class=p>(</span><span class=s2>"All end result records start with prefix "</span>
+                   <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>scope</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>yield</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>csv_scope</span><span class=p>(</span><span class=n>scope</span><span class=p>,</span><span class=w> </span><span class=n>KEY_ALGORITHM</span><span class=p>)</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>DESC_ALGORITHM</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>yield</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>csv_scope</span><span class=p>(</span><span class=n>scope</span><span class=p>,</span><span class=w> </span><span class=n>KEY_INSTANCE</span><span class=p>)</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>DESC_INSTANCE</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>yield</span> <span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>csv_scope</span><span class=p>(</span><span class=n>scope</span><span class=p>,</span><span class=w> </span><span class=n>KEY_OBJECTIVE_FUNCTION</span><span class=p>)</span><span class=si>}</span><span class=s2>:"</span>
+               <span class=sa>f</span><span class=s2>" </span><span class=si>{</span><span class=n>DESC_OBJECTIVE_FUNCTION</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__needs_encoding</span><span class=p>:</span>
+            <span class=k>yield</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>csv_scope</span><span class=p>(</span><span class=n>scope</span><span class=p>,</span><span class=w> </span><span class=n>KEY_ENCODING</span><span class=p>)</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>DESC_ENCODING</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>yield</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>csv_scope</span><span class=p>(</span><span class=n>scope</span><span class=p>,</span><span class=w> </span><span class=n>KEY_RAND_SEED</span><span class=p>)</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>DESC_RAND_SEED</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>yield</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>csv_scope</span><span class=p>(</span><span class=n>scope</span><span class=p>,</span><span class=w> </span><span class=n>KEY_BEST_F</span><span class=p>)</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>DESC_BEST_F</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>yield</span> <span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>csv_scope</span><span class=p>(</span><span class=n>scope</span><span class=p>,</span><span class=w> </span><span class=n>KEY_LAST_IMPROVEMENT_FE</span><span class=p>)</span><span class=si>}</span><span class=s2>: "</span>
+               <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>DESC_LAST_IMPROVEMENT_FE</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=k>yield</span> <span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>csv_scope</span><span class=p>(</span><span class=n>scope</span><span class=p>,</span><span class=w> </span><span class=n>KEY_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=p>)</span><span class=si>}</span><span class=s2>: "</span>
+               <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>DESC_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=k>yield</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>csv_scope</span><span class=p>(</span><span class=n>scope</span><span class=p>,</span><span class=w> </span><span class=n>KEY_TOTAL_FES</span><span class=p>)</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>DESC_TOTAL_FES</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>yield</span> <span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>csv_scope</span><span class=p>(</span><span class=n>scope</span><span class=p>,</span><span class=w> </span><span class=n>KEY_TOTAL_TIME_MILLIS</span><span class=p>)</span><span class=si>}</span><span class=s2>: "</span>
+               <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>DESC_TOTAL_TIME_MILLIS</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__needs_goal_f</span><span class=p>:</span>
+            <span class=k>yield</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>csv_scope</span><span class=p>(</span><span class=n>scope</span><span class=p>,</span><span class=w> </span><span class=n>KEY_GOAL_F</span><span class=p>)</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>DESC_GOAL_F</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__needs_max_fes</span><span class=p>:</span>
+            <span class=k>yield</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>csv_scope</span><span class=p>(</span><span class=n>scope</span><span class=p>,</span><span class=w> </span><span class=n>KEY_MAX_FES</span><span class=p>)</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>DESC_MAX_FES</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__needs_max_ms</span><span class=p>:</span>
+            <span class=k>yield</span> <span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>csv_scope</span><span class=p>(</span><span class=n>scope</span><span class=p>,</span><span class=w> </span><span class=n>KEY_MAX_TIME_MILLIS</span><span class=p>)</span><span class=si>}</span><span class=s2>: "</span>
+                   <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>DESC_MAX_TIME_MILLIS</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=CsvWriter.get_footer_bottom_comments>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.CsvWriter.get_footer_bottom_comments>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_footer_bottom_comments</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the footer bottom comments.</span>
+
+<span class=sd>        :returns: the footer comments</span>
+<span class=sd>        """</span>
+        <span class=k>yield from</span> <span class=n>motipy_footer_bottom_comments</span><span class=p>(</span>
+            <span class=bp>self</span><span class=p>,</span> <span class=p>(</span><span class=s2>"The end results data is produced using module "</span>
+                   <span class=s2>"moptipy.evaluation.end_results."</span><span class=p>))</span>
+        <span class=k>yield from</span> <span class=n>pycommons_footer_bottom_comments</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=CsvReader>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.CsvReader>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>CsvReader</span><span class=p>(</span><span class=n>CsvReaderBase</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A csv parser for end results."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>columns</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a CSV parser for :class:`EndResult`.</span>
+
+<span class=sd>        :param columns: the columns</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>columns</span><span class=p>)</span>
+        <span class=c1>#: the index of the algorithm column, if any</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__idx_algorithm</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>csv_column</span><span class=p>(</span><span class=n>columns</span><span class=p>,</span> <span class=n>KEY_ALGORITHM</span><span class=p>)</span>
+        <span class=c1>#: the index of the instance column, if any</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__idx_instance</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>csv_column</span><span class=p>(</span><span class=n>columns</span><span class=p>,</span> <span class=n>KEY_INSTANCE</span><span class=p>)</span>
+        <span class=c1>#: the index of the objective function column, if any</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__idx_objective</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>csv_column</span><span class=p>(</span>
+            <span class=n>columns</span><span class=p>,</span> <span class=n>KEY_OBJECTIVE_FUNCTION</span><span class=p>)</span>
+        <span class=c1>#: the index of the encoding column, if any</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__idx_encoding</span> <span class=o>=</span> <span class=n>csv_column_or_none</span><span class=p>(</span><span class=n>columns</span><span class=p>,</span> <span class=n>KEY_ENCODING</span><span class=p>)</span>
+
+        <span class=c1>#: the index of the random seed column</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__idx_seed</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>csv_column</span><span class=p>(</span><span class=n>columns</span><span class=p>,</span> <span class=n>KEY_RAND_SEED</span><span class=p>)</span>
+        <span class=c1>#: the column with the last improvement FE</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__idx_li_fe</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>csv_column</span><span class=p>(</span>
+            <span class=n>columns</span><span class=p>,</span> <span class=n>KEY_LAST_IMPROVEMENT_FE</span><span class=p>)</span>
+        <span class=c1>#: the column with the last improvement time milliseconds</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__idx_li_ms</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>csv_column</span><span class=p>(</span>
+            <span class=n>columns</span><span class=p>,</span> <span class=n>KEY_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=p>)</span>
+        <span class=c1>#: the column with the best obtained objective value</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__idx_best_f</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>csv_column</span><span class=p>(</span><span class=n>columns</span><span class=p>,</span> <span class=n>KEY_BEST_F</span><span class=p>)</span>
+        <span class=c1>#: the column with the total time in FEs</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__idx_tt_fe</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>csv_column</span><span class=p>(</span><span class=n>columns</span><span class=p>,</span> <span class=n>KEY_TOTAL_FES</span><span class=p>)</span>
+        <span class=c1>#: the column with the total time in milliseconds</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__idx_tt_ms</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>csv_column</span><span class=p>(</span>
+            <span class=n>columns</span><span class=p>,</span> <span class=n>KEY_TOTAL_TIME_MILLIS</span><span class=p>)</span>
+
+        <span class=c1>#: the column with the goal objective value, if any</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__idx_goal_f</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>csv_column_or_none</span><span class=p>(</span>
+            <span class=n>columns</span><span class=p>,</span> <span class=n>KEY_GOAL_F</span><span class=p>)</span>
+        <span class=c1>#: the column with the maximum FEs, if any such budget constraint was</span>
+        <span class=c1>#: defined</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__idx_max_fes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>csv_column_or_none</span><span class=p>(</span>
+            <span class=n>columns</span><span class=p>,</span> <span class=n>KEY_MAX_FES</span><span class=p>)</span>
+        <span class=c1>#: the column with the maximum runtime in milliseconds, if any such</span>
+        <span class=c1>#: budget constraint was defined</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__idx_max_ms</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>csv_column_or_none</span><span class=p>(</span>
+            <span class=n>columns</span><span class=p>,</span> <span class=n>KEY_MAX_TIME_MILLIS</span><span class=p>)</span>
+
+<div class=viewcode-block id=CsvReader.parse_row>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.CsvReader.parse_row>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>parse_row</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>data</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=n>EndResult</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Parse a row of data.</span>
+
+<span class=sd>        :param data: the data row</span>
+<span class=sd>        :return: the end result statistics</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>EndResult</span><span class=p>(</span>
+            <span class=n>data</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>__idx_algorithm</span><span class=p>],</span>  <span class=c1># algorithm</span>
+            <span class=n>data</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>__idx_instance</span><span class=p>],</span>  <span class=c1># instance</span>
+            <span class=n>data</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>__idx_objective</span><span class=p>],</span>  <span class=c1># objective</span>
+            <span class=n>csv_str_or_none</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__idx_encoding</span><span class=p>),</span>  <span class=c1># encoding</span>
+            <span class=nb>int</span><span class=p>(</span><span class=n>data</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>__idx_seed</span><span class=p>],</span> <span class=n>base</span><span class=o>=</span><span class=mi>0</span><span class=p>),</span>  <span class=c1># rand seed</span>
+            <span class=n>str_to_num</span><span class=p>(</span><span class=n>data</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>__idx_best_f</span><span class=p>]),</span>  <span class=c1># best_f</span>
+            <span class=nb>int</span><span class=p>(</span><span class=n>data</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>__idx_li_fe</span><span class=p>]),</span>  <span class=c1># last_improvement_fe</span>
+            <span class=nb>int</span><span class=p>(</span><span class=n>data</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>__idx_li_ms</span><span class=p>]),</span>  <span class=c1># last_improvement_time_millis</span>
+            <span class=nb>int</span><span class=p>(</span><span class=n>data</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>__idx_tt_fe</span><span class=p>]),</span>  <span class=c1># total_fes</span>
+            <span class=nb>int</span><span class=p>(</span><span class=n>data</span><span class=p>[</span><span class=bp>self</span><span class=o>.</span><span class=n>__idx_tt_ms</span><span class=p>]),</span>  <span class=c1># total_time_millis</span>
+            <span class=n>csv_val_or_none</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__idx_goal_f</span><span class=p>,</span> <span class=n>str_to_num</span><span class=p>),</span>
+            <span class=n>csv_val_or_none</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__idx_max_fes</span><span class=p>,</span> <span class=nb>int</span><span class=p>),</span>  <span class=c1># max_fes</span>
+            <span class=n>csv_val_or_none</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__idx_max_ms</span><span class=p>,</span> <span class=nb>int</span><span class=p>))</span>  <span class=c1># max_time_ms</span></div>
+</div>
+
+
+
+<span class=c1>#: the type variable for data to be read from the directories</span>
+<span class=n>T</span> <span class=o>=</span> <span class=n>TypeVar</span><span class=p>(</span><span class=s2>"T"</span><span class=p>,</span> <span class=n>bound</span><span class=o>=</span><span class=n>EndResult</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=EndResultLogParser>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.EndResultLogParser>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>EndResultLogParser</span><span class=p>[</span><span class=n>T</span><span class=p>](</span><span class=n>SetupAndStateParser</span><span class=p>[</span><span class=n>T</span><span class=p>]):</span>
+<span class=w>    </span><span class=sd>"""The internal log parser class."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_parse_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=n>T</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the parsing result.</span>
+
+<span class=sd>        :returns: the :class:`EndResult` instance</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_parse_file</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"T"</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span>
+                                   <span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span>
+                                   <span class=bp>self</span><span class=o>.</span><span class=n>objective</span><span class=p>,</span>
+                                   <span class=bp>self</span><span class=o>.</span><span class=n>encoding</span><span class=p>,</span>
+                                   <span class=bp>self</span><span class=o>.</span><span class=n>rand_seed</span><span class=p>,</span>
+                                   <span class=bp>self</span><span class=o>.</span><span class=n>best_f</span><span class=p>,</span>
+                                   <span class=bp>self</span><span class=o>.</span><span class=n>last_improvement_fe</span><span class=p>,</span>
+                                   <span class=bp>self</span><span class=o>.</span><span class=n>last_improvement_time_millis</span><span class=p>,</span>
+                                   <span class=bp>self</span><span class=o>.</span><span class=n>total_fes</span><span class=p>,</span>
+                                   <span class=bp>self</span><span class=o>.</span><span class=n>total_time_millis</span><span class=p>,</span>
+                                   <span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span><span class=p>,</span>
+                                   <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span><span class=p>,</span>
+                                   <span class=bp>self</span><span class=o>.</span><span class=n>max_time_millis</span><span class=p>))</span></div>
+
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_join_goals</span><span class=p>(</span><span class=n>vlimit</span><span class=p>,</span> <span class=n>vgoal</span><span class=p>,</span> <span class=n>select</span><span class=p>):</span>  <span class=c1># noqa</span>
+    <span class=k>if</span> <span class=n>vlimit</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>vgoal</span>
+    <span class=k>if</span> <span class=n>vgoal</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>vlimit</span>
+    <span class=k>return</span> <span class=n>select</span><span class=p>(</span><span class=n>vlimit</span><span class=p>,</span> <span class=n>vgoal</span><span class=p>)</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__EndResultProgressLogParser</span><span class=p>(</span><span class=n>SetupAndStateParser</span><span class=p>[</span><span class=n>EndResult</span><span class=p>]):</span>
+<span class=w>    </span><span class=sd>"""The internal log parser class for virtual end results."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span>
+            <span class=bp>self</span><span class=p>,</span>
+            <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+            <span class=n>max_time_millis</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+            <span class=n>goal_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[</span>
+                <span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+            <span class=n>path_filter</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Path</span><span class=p>],</span> <span class=nb>bool</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the internal log parser.</span>
+
+<span class=sd>        :param max_fes: the maximum FEs, or `None` if unspecified</span>
+<span class=sd>        :param max_time_millis: the maximum runtime in milliseconds, or</span>
+<span class=sd>            `None` if unspecified</span>
+<span class=sd>        :param goal_f: the goal objective value, or `None` if unspecified</span>
+<span class=sd>        :param path_filter: the path filter</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>path_filter</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__src_limit_ms</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span>
+            <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>max_time_millis</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__src_limit_fes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span>
+            <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>max_fes</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__src_limit_f</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span>
+            <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[</span>
+                <span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>goal_f</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_ms</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_ms_n</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_fes_n</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_f_n</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>__stop_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__stop_ms</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__stop_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__stop_li_fe</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__stop_li_ms</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__hit_goal</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__state</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_parse_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=n>EndResult</span><span class=p>:</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_parse_file</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>!=</span> <span class=mi>2</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=s2>"Illegal state, log file must have a "</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SECTION_PROGRESS</span><span class=si>!r}</span><span class=s2> section."</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=n>l_hit_goal</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__hit_goal</span>
+        <span class=n>stop_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__stop_fes</span>
+        <span class=n>stop_ms</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__stop_ms</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>l_hit_goal</span><span class=p>:</span>
+            <span class=n>stop_ms</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>stop_ms</span><span class=p>,</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"int"</span><span class=p>,</span> <span class=nb>min</span><span class=p>(</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>total_time_millis</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__limit_ms</span><span class=p>)))</span>
+            <span class=n>ul_fes</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>total_fes</span>
+            <span class=k>if</span> <span class=n>stop_ms</span> <span class=o><</span> <span class=bp>self</span><span class=o>.</span><span class=n>total_time_millis</span><span class=p>:</span>
+                <span class=n>ul_fes</span> <span class=o>-=</span> <span class=mi>1</span>
+            <span class=n>stop_fes</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>stop_fes</span><span class=p>,</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"int"</span><span class=p>,</span> <span class=nb>min</span><span class=p>(</span>
+                <span class=n>ul_fes</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__limit_fes</span><span class=p>)))</span>
+
+        <span class=k>return</span> <span class=n>EndResult</span><span class=p>(</span>
+            <span class=n>algorithm</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span>
+            <span class=n>instance</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span>
+            <span class=n>objective</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>objective</span><span class=p>,</span>
+            <span class=n>encoding</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>encoding</span><span class=p>,</span>
+            <span class=n>rand_seed</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>rand_seed</span><span class=p>,</span>
+            <span class=n>best_f</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>__stop_f</span><span class=p>,</span>
+            <span class=n>last_improvement_fe</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>__stop_li_fe</span><span class=p>,</span>
+            <span class=n>last_improvement_time_millis</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>__stop_li_ms</span><span class=p>,</span>
+            <span class=n>total_fes</span><span class=o>=</span><span class=n>stop_fes</span><span class=p>,</span>
+            <span class=n>total_time_millis</span><span class=o>=</span><span class=n>stop_ms</span><span class=p>,</span>
+            <span class=n>goal_f</span><span class=o>=</span><span class=n>_join_goals</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__limit_f_n</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span><span class=p>,</span> <span class=nb>max</span><span class=p>),</span>
+            <span class=n>max_fes</span><span class=o>=</span><span class=n>_join_goals</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__limit_fes_n</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span><span class=p>,</span> <span class=nb>min</span><span class=p>),</span>
+            <span class=n>max_time_millis</span><span class=o>=</span><span class=n>_join_goals</span><span class=p>(</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__limit_ms_n</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_time_millis</span><span class=p>,</span> <span class=nb>min</span><span class=p>))</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_end_parse_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Cleanup.</span>
+
+<span class=sd>        :param file: the file that was parsed.</span>
+<span class=sd>        """</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__stop_fes</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__stop_ms</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__stop_f</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__stop_li_fe</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__stop_li_ms</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_fes_n</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_fes</span> <span class=o>=</span> <span class=n>inf</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_ms_n</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_ms</span> <span class=o>=</span> <span class=n>inf</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_f_n</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_f</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__hit_goal</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_end_parse_file</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_start_parse_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_start_parse_file</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+        <span class=n>a</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span>
+        <span class=n>i</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>instance</span>
+
+        <span class=n>fes</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__src_limit_fes</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=n>i</span><span class=p>)</span> <span class=k>if</span> <span class=p>(</span><span class=n>a</span> <span class=ow>and</span> <span class=n>i</span> <span class=ow>and</span> <span class=nb>callable</span><span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__src_limit_fes</span><span class=p>))</span> <span class=k>else</span> <span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__src_limit_fes</span> <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__src_limit_fes</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+            <span class=k>else</span> <span class=kc>None</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_fes_n</span> <span class=o>=</span> <span class=kc>None</span> <span class=k>if</span> <span class=n>fes</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> \
+            <span class=n>check_int_range</span><span class=p>(</span><span class=n>fes</span><span class=p>,</span> <span class=s2>"limit_fes"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000_000_000</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_fes</span> <span class=o>=</span> <span class=n>inf</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__limit_fes_n</span> <span class=ow>is</span> <span class=kc>None</span> \
+            <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>__limit_fes_n</span>
+
+        <span class=n>time</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__src_limit_ms</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=n>i</span><span class=p>)</span> <span class=k>if</span> <span class=p>(</span><span class=n>a</span> <span class=ow>and</span> <span class=n>i</span> <span class=ow>and</span> <span class=nb>callable</span><span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__src_limit_ms</span><span class=p>))</span> <span class=k>else</span> <span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__src_limit_ms</span> <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__src_limit_ms</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+            <span class=k>else</span> <span class=kc>None</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_ms_n</span> <span class=o>=</span> <span class=kc>None</span> <span class=k>if</span> <span class=n>time</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> \
+            <span class=n>check_int_range</span><span class=p>(</span><span class=n>time</span><span class=p>,</span> <span class=s2>"l_limit_ms"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000_000</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_ms</span> <span class=o>=</span> <span class=n>inf</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__limit_ms_n</span> <span class=ow>is</span> <span class=kc>None</span> \
+            <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>__limit_ms_n</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_f_n</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__src_limit_f</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=n>i</span><span class=p>)</span> <span class=k>if</span> <span class=p>(</span><span class=n>a</span> <span class=ow>and</span> <span class=n>i</span> <span class=ow>and</span> <span class=nb>callable</span><span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__src_limit_f</span><span class=p>))</span> <span class=k>else</span> <span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__src_limit_f</span> <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__src_limit_f</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span>
+            <span class=k>else</span> <span class=kc>None</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__limit_f_n</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__limit_f_n</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__limit_f_n</span><span class=p>,</span> <span class=s2>"limit_f"</span><span class=p>,</span> <span class=p>(</span>
+                    <span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__limit_f_n</span><span class=p>):</span>
+                <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__limit_f_n</span> <span class=o><=</span> <span class=o>-</span><span class=n>inf</span><span class=p>:</span>
+                    <span class=bp>self</span><span class=o>.</span><span class=n>__limit_f_n</span> <span class=o>=</span> <span class=kc>None</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"invalid limit f=</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__limit_f_n</span><span class=si>}</span><span class=s2> for "</span>
+                        <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span><span class=si>}</span><span class=s2> on </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__limit_f</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__limit_f_n</span> <span class=ow>is</span> <span class=kc>None</span> \
+            <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>__limit_f_n</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_start_section</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>title</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>title</span> <span class=o>==</span> <span class=n>SECTION_PROGRESS</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Already did section </span><span class=si>{</span><span class=n>title</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>=</span> <span class=mi>1</span>
+            <span class=k>return</span> <span class=kc>True</span>
+        <span class=k>return</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_start_section</span><span class=p>(</span><span class=n>title</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_needs_more_lines</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+        <span class=k>return</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o><</span> <span class=mi>2</span><span class=p>)</span> <span class=ow>or</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_needs_more_lines</span><span class=p>()</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_lines</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>lines</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>return</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_lines</span><span class=p>(</span><span class=n>lines</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>=</span> <span class=mi>2</span>
+
+        <span class=n>n_rows</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>lines</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>n_rows</span> <span class=o><</span> <span class=mi>2</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"lines must contain at least two elements,"</span>
+                             <span class=sa>f</span><span class=s2>"but contains </span><span class=si>{</span><span class=n>n_rows</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=n>columns</span> <span class=o>=</span> <span class=p>[</span><span class=n>c</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span> <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>lines</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>CSV_SEPARATOR</span><span class=p>)]</span>
+        <span class=n>fe_col</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>columns</span><span class=o>.</span><span class=n>index</span><span class=p>(</span><span class=n>PROGRESS_FES</span><span class=p>)</span>
+        <span class=n>ms_col</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>columns</span><span class=o>.</span><span class=n>index</span><span class=p>(</span><span class=n>PROGRESS_TIME_MILLIS</span><span class=p>)</span>
+        <span class=n>f_col</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>columns</span><span class=o>.</span><span class=n>index</span><span class=p>(</span><span class=n>PROGRESS_CURRENT_F</span><span class=p>)</span>
+        <span class=n>current_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=n>current_ms</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=n>current_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span>
+        <span class=n>current_li_fe</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>current_li_ms</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>stop_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>stop_ms</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>stop_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>stop_li_fe</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>stop_li_ms</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>limit_fes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__limit_fes</span>
+        <span class=n>l_limit_ms</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__limit_ms</span>
+        <span class=n>limit_f</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__limit_f</span>
+
+        <span class=k>for</span> <span class=n>line</span> <span class=ow>in</span> <span class=n>lines</span><span class=p>[</span><span class=mi>1</span><span class=p>:]:</span>
+            <span class=n>values</span> <span class=o>=</span> <span class=n>line</span><span class=o>.</span><span class=n>split</span><span class=p>(</span><span class=n>CSV_SEPARATOR</span><span class=p>)</span>
+            <span class=n>current_fes</span> <span class=o>=</span> <span class=n>check_to_int_range</span><span class=p>(</span>
+                <span class=n>values</span><span class=p>[</span><span class=n>fe_col</span><span class=p>],</span> <span class=s2>"fes"</span><span class=p>,</span> <span class=n>current_fes</span><span class=p>,</span> <span class=mi>1_000_000_000_000_000</span><span class=p>)</span>
+            <span class=n>current_ms</span> <span class=o>=</span> <span class=n>check_to_int_range</span><span class=p>(</span>
+                <span class=n>values</span><span class=p>[</span><span class=n>ms_col</span><span class=p>],</span> <span class=s2>"ms"</span><span class=p>,</span> <span class=n>current_ms</span><span class=p>,</span> <span class=mi>1_000_000_000_00</span><span class=p>)</span>
+            <span class=n>f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>str_to_num</span><span class=p>(</span><span class=n>values</span><span class=p>[</span><span class=n>f_col</span><span class=p>])</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>current_fes</span> <span class=o><=</span> <span class=n>limit_fes</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>current_ms</span> <span class=o><=</span> <span class=n>l_limit_ms</span><span class=p>):</span>
+                <span class=k>if</span> <span class=n>f</span> <span class=o><</span> <span class=n>current_f</span><span class=p>:</span>  <span class=c1># can only update best within budget</span>
+                    <span class=n>current_f</span> <span class=o>=</span> <span class=n>f</span>
+                    <span class=n>current_li_fe</span> <span class=o>=</span> <span class=n>current_fes</span>
+                    <span class=n>current_li_ms</span> <span class=o>=</span> <span class=n>current_ms</span>
+                <span class=n>stop_ms</span> <span class=o>=</span> <span class=n>current_ms</span>
+                <span class=n>stop_fes</span> <span class=o>=</span> <span class=n>current_fes</span>
+                <span class=n>stop_f</span> <span class=o>=</span> <span class=n>current_f</span>
+                <span class=n>stop_li_fe</span> <span class=o>=</span> <span class=n>current_li_fe</span>
+                <span class=n>stop_li_ms</span> <span class=o>=</span> <span class=n>current_li_ms</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>current_fes</span> <span class=o>>=</span> <span class=n>limit_fes</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>current_ms</span> <span class=o>>=</span> <span class=n>l_limit_ms</span><span class=p>)</span> <span class=ow>or</span> \
+                    <span class=p>(</span><span class=n>current_f</span> <span class=o><=</span> <span class=n>limit_f</span><span class=p>):</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__hit_goal</span> <span class=o>=</span> <span class=kc>True</span>
+                <span class=k>break</span>  <span class=c1># we can stop parsing the stuff</span>
+
+        <span class=k>if</span> <span class=p>(</span><span class=n>stop_fes</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>stop_ms</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>stop_f</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> \
+                <span class=ow>or</span> <span class=p>(</span><span class=n>current_fes</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>current_f</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=s2>"Illegal state, no fitting data point found: stop_fes="</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>stop_fes</span><span class=si>}</span><span class=s2>, stop_ms=</span><span class=si>{</span><span class=n>stop_ms</span><span class=si>}</span><span class=s2>, stop_f=</span><span class=si>{</span><span class=n>stop_f</span><span class=si>}</span><span class=s2>, "</span>
+                <span class=sa>f</span><span class=s2>"current_fes=</span><span class=si>{</span><span class=n>current_fes</span><span class=si>}</span><span class=s2>, current_ms=</span><span class=si>{</span><span class=n>current_ms</span><span class=si>}</span><span class=s2>, "</span>
+                <span class=sa>f</span><span class=s2>"current_f=</span><span class=si>{</span><span class=n>current_f</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>current_fes</span> <span class=o>>=</span> <span class=n>limit_fes</span><span class=p>:</span>
+            <span class=n>stop_fes</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>stop_fes</span><span class=p>,</span> <span class=nb>min</span><span class=p>(</span>
+                <span class=n>cast</span><span class=p>(</span><span class=s2>"int"</span><span class=p>,</span> <span class=n>limit_fes</span><span class=p>),</span> <span class=n>current_fes</span><span class=p>))</span>
+        <span class=k>elif</span> <span class=n>current_ms</span> <span class=o>></span> <span class=n>l_limit_ms</span><span class=p>:</span>
+            <span class=n>stop_fes</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>stop_fes</span><span class=p>,</span> <span class=n>current_fes</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>stop_fes</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>stop_fes</span><span class=p>,</span> <span class=n>current_fes</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>current_ms</span> <span class=o>>=</span> <span class=n>l_limit_ms</span><span class=p>:</span>
+            <span class=n>stop_ms</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>stop_ms</span><span class=p>,</span> <span class=nb>min</span><span class=p>(</span><span class=n>cast</span><span class=p>(</span><span class=s2>"int"</span><span class=p>,</span> <span class=n>l_limit_ms</span><span class=p>),</span> <span class=n>current_ms</span><span class=p>))</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>stop_ms</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>stop_ms</span><span class=p>,</span> <span class=n>current_ms</span><span class=p>)</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>__stop_fes</span> <span class=o>=</span> <span class=n>stop_fes</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__stop_ms</span> <span class=o>=</span> <span class=n>stop_ms</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__stop_f</span> <span class=o>=</span> <span class=n>stop_f</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__stop_li_fe</span> <span class=o>=</span> <span class=n>stop_li_fe</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__stop_li_ms</span> <span class=o>=</span> <span class=n>stop_li_ms</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>_needs_more_lines</span><span class=p>()</span>
+
+
+<div class=viewcode-block id=from_logs>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.end_results.from_logs>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>from_logs</span><span class=p>(</span>
+        <span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>max_time_millis</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>goal_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>path_filter</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Path</span><span class=p>],</span> <span class=nb>bool</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=n>Generator</span><span class=p>[</span><span class=n>EndResult</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Parse a given path and yield all end results found.</span>
+
+<span class=sd>    If `path` identifies a file with suffix `.txt`, then this file is</span>
+<span class=sd>    parsed. The appropriate :class:`EndResult` is created and yielded.</span>
+<span class=sd>    If `path` identifies a directory, then this directory is parsed</span>
+<span class=sd>    recursively for each log file found, one record is yielded.</span>
+
+<span class=sd>    Via the parameters `max_fes`, `max_time_millis`, and `goal_f`, you can</span>
+<span class=sd>    set virtual limits for the objective function evaluations, the maximum</span>
+<span class=sd>    runtime, and the objective value. The :class:`EndResult` records will</span>
+<span class=sd>    then not represent the actual final state of the runs but be</span>
+<span class=sd>    synthesized from the logged progress information. This, of course,</span>
+<span class=sd>    requires such information to be present. It will also raise a</span>
+<span class=sd>    `ValueError` if the goals are invalid, e.g., if a runtime limit is</span>
+<span class=sd>    specified that is before the first logged points.</span>
+
+<span class=sd>    There is one caveat when specifying `max_time_millis`: Let's say that</span>
+<span class=sd>    the log files only log improvements. Then you might have a log point</span>
+<span class=sd>    for 7000 FEs, 1000ms, and f=100. The next log point could be 8000 FEs,</span>
+<span class=sd>    1200ms, and f=90. Now if your time limit specified is 1100ms, we know</span>
+<span class=sd>    that the end result is f=100 (because f=90 was reached too late) and</span>
+<span class=sd>    that the total runtime is 1100ms, as this is the limit you specified</span>
+<span class=sd>    and it was also reached. But we do not know the number of consumed</span>
+<span class=sd>    FEs. We know you consumed at least 7000 FEs, but you did not consume</span>
+<span class=sd>    8000 FEs. It would be wrong to claim that 7000 FEs were consumed,</span>
+<span class=sd>    since it could have been more. We therefore set a virtual end point at</span>
+<span class=sd>    7999 FEs. In terms of performance metrics such as the</span>
+<span class=sd>    :mod:`~moptipy.evaluation.ert`, this would be the most conservative</span>
+<span class=sd>    choice in that it does not over-estimate the speed of the algorithm.</span>
+<span class=sd>    It can, however, lead to very big deviations from the actual values.</span>
+<span class=sd>    For example, if your algorithm quickly converged to a local optimum</span>
+<span class=sd>    and there simply is no log point that exceeds the virtual time limit</span>
+<span class=sd>    but the original run had a huge FE-based budget while your virtual</span>
+<span class=sd>    time limit was small, this could lead to an estimate of millions of</span>
+<span class=sd>    FEs taking part within seconds...</span>
+
+<span class=sd>    :param path: the path to parse</span>
+<span class=sd>    :param max_fes: the maximum FEs, a callable to compute the maximum</span>
+<span class=sd>        FEs from the algorithm and instance name, or `None` if unspecified</span>
+<span class=sd>    :param max_time_millis: the maximum runtime in milliseconds, a</span>
+<span class=sd>        callable to compute the maximum runtime from the algorithm and</span>
+<span class=sd>        instance name, or `None` if unspecified</span>
+<span class=sd>    :param goal_f: the goal objective value, a callable to compute the</span>
+<span class=sd>        goal objective value from the algorithm and instance name, or</span>
+<span class=sd>        `None` if unspecified</span>
+<span class=sd>    :param path_filter: a filter allowing us to skip paths or files. If</span>
+<span class=sd>        this :class:`Callable` returns `True`, the file or directory is</span>
+<span class=sd>        considered for parsing. If it returns `False`, it is skipped.</span>
+<span class=sd>    """</span>
+    <span class=n>need_goals</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+    <span class=k>if</span> <span class=n>max_fes</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>max_fes</span><span class=p>):</span>
+            <span class=n>max_fes</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+                <span class=n>max_fes</span><span class=p>,</span> <span class=s2>"max_fes"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000_000_000</span><span class=p>)</span>
+        <span class=n>need_goals</span> <span class=o>=</span> <span class=kc>True</span>
+    <span class=k>if</span> <span class=n>max_time_millis</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>max_time_millis</span><span class=p>):</span>
+            <span class=n>max_time_millis</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+                <span class=n>max_time_millis</span><span class=p>,</span> <span class=s2>"max_time_millis"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000_000</span><span class=p>)</span>
+        <span class=n>need_goals</span> <span class=o>=</span> <span class=kc>True</span>
+    <span class=k>if</span> <span class=n>goal_f</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>goal_f</span><span class=p>):</span>
+            <span class=n>need_goals</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>goal_f</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>goal_f</span><span class=p>,</span> <span class=s2>"goal_f"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=kc>None</span><span class=p>))</span>
+            <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>goal_f</span><span class=p>):</span>
+                <span class=n>need_goals</span> <span class=o>=</span> <span class=kc>True</span>
+            <span class=k>elif</span> <span class=n>goal_f</span> <span class=o><=</span> <span class=o>-</span><span class=n>inf</span><span class=p>:</span>
+                <span class=n>goal_f</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"goal_f=</span><span class=si>{</span><span class=n>goal_f</span><span class=si>}</span><span class=s2> is not permissible."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>need_goals</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>__EndResultProgressLogParser</span><span class=p>(</span>
+            <span class=n>max_fes</span><span class=p>,</span> <span class=n>max_time_millis</span><span class=p>,</span> <span class=n>goal_f</span><span class=p>,</span> <span class=n>path_filter</span><span class=p>)</span><span class=o>.</span><span class=n>parse</span><span class=p>(</span><span class=n>path</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>EndResultLogParser</span><span class=p>(</span><span class=n>path_filter</span><span class=p>)</span><span class=o>.</span><span class=n>parse</span><span class=p>(</span><span class=n>path</span><span class=p>)</span></div>
+
+
+
+<span class=c1># Run log files to end results if executed as script</span>
+<span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s2>"__main__"</span><span class=p>:</span>
+    <span class=n>parser</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>argparse</span><span class=o>.</span><span class=n>ArgumentParser</span><span class=p>]</span> <span class=o>=</span> <span class=n>moptipy_argparser</span><span class=p>(</span>
+        <span class=vm>__file__</span><span class=p>,</span>
+        <span class=s2>"Convert log files obtained with moptipy to the end results CSV "</span>
+        <span class=s2>"format that can be post-processed or exported to other tools."</span><span class=p>,</span>
+        <span class=s2>"This program recursively parses a folder hierarchy created by"</span>
+        <span class=s2>" the moptipy experiment execution facility. This folder "</span>
+        <span class=s2>"structure follows the scheme of algorithm/instance/log_file "</span>
+        <span class=s2>"and has one log file per run. As result of the parsing, one "</span>
+        <span class=s2>"CSV file (where columns are separated by ';') is created with"</span>
+        <span class=s2>" one row per log file. This row contains the end-of-run state"</span>
+        <span class=s2>" loaded from the log file. Whereas the log files may store "</span>
+        <span class=s2>"the complete progress of one run of one algorithm on one "</span>
+        <span class=s2>"problem instance as well as the algorithm configuration "</span>
+        <span class=s2>"parameters, instance features, system settings, and the final"</span>
+        <span class=s2>" results, the end results CSV file will only represent the "</span>
+        <span class=s2>"final result quality, when it was obtained, how long the runs"</span>
+        <span class=s2>" took, etc. This information is much denser and smaller and "</span>
+        <span class=s2>"suitable for importing into other tools such as Excel or for "</span>
+        <span class=s2>"postprocessing."</span><span class=p>)</span>
+    <span class=n>parser</span><span class=o>.</span><span class=n>add_argument</span><span class=p>(</span>
+        <span class=s2>"source"</span><span class=p>,</span> <span class=n>nargs</span><span class=o>=</span><span class=s2>"?"</span><span class=p>,</span> <span class=n>default</span><span class=o>=</span><span class=s2>"./results"</span><span class=p>,</span>
+        <span class=n>help</span><span class=o>=</span><span class=s2>"the location of the experimental results, i.e., the root folder "</span>
+             <span class=s2>"under which to search for log files"</span><span class=p>,</span> <span class=nb>type</span><span class=o>=</span><span class=n>Path</span><span class=p>)</span>
+    <span class=n>parser</span><span class=o>.</span><span class=n>add_argument</span><span class=p>(</span>
+        <span class=s2>"dest"</span><span class=p>,</span> <span class=n>help</span><span class=o>=</span><span class=s2>"the path to the end results CSV file to be created"</span><span class=p>,</span>
+        <span class=nb>type</span><span class=o>=</span><span class=n>Path</span><span class=p>,</span> <span class=n>nargs</span><span class=o>=</span><span class=s2>"?"</span><span class=p>,</span> <span class=n>default</span><span class=o>=</span><span class=s2>"./evaluation/end_results.txt"</span><span class=p>)</span>
+    <span class=n>parser</span><span class=o>.</span><span class=n>add_argument</span><span class=p>(</span>
+        <span class=s2>"--maxFEs"</span><span class=p>,</span> <span class=n>help</span><span class=o>=</span><span class=s2>"the maximum permitted FEs"</span><span class=p>,</span>
+        <span class=nb>type</span><span class=o>=</span><span class=nb>int</span><span class=p>,</span> <span class=n>nargs</span><span class=o>=</span><span class=s2>"?"</span><span class=p>,</span> <span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span>
+    <span class=n>parser</span><span class=o>.</span><span class=n>add_argument</span><span class=p>(</span>
+        <span class=s2>"--maxTime"</span><span class=p>,</span> <span class=n>help</span><span class=o>=</span><span class=s2>"the maximum permitted time in milliseconds"</span><span class=p>,</span>
+        <span class=nb>type</span><span class=o>=</span><span class=nb>int</span><span class=p>,</span> <span class=n>nargs</span><span class=o>=</span><span class=s2>"?"</span><span class=p>,</span> <span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span>
+    <span class=n>parser</span><span class=o>.</span><span class=n>add_argument</span><span class=p>(</span>
+        <span class=s2>"--goalF"</span><span class=p>,</span> <span class=n>help</span><span class=o>=</span><span class=s2>"the goal objective value"</span><span class=p>,</span>
+        <span class=nb>type</span><span class=o>=</span><span class=n>str_to_num</span><span class=p>,</span> <span class=n>nargs</span><span class=o>=</span><span class=s2>"?"</span><span class=p>,</span> <span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span>
+    <span class=n>args</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>argparse</span><span class=o>.</span><span class=n>Namespace</span><span class=p>]</span> <span class=o>=</span> <span class=n>parser</span><span class=o>.</span><span class=n>parse_args</span><span class=p>()</span>
+
+    <span class=n>to_csv</span><span class=p>(</span><span class=n>from_logs</span><span class=p>(</span><span class=n>args</span><span class=o>.</span><span class=n>source</span><span class=p>,</span> <span class=n>args</span><span class=o>.</span><span class=n>maxFEs</span><span class=p>,</span> <span class=n>args</span><span class=o>.</span><span class=n>maxTime</span><span class=p>,</span> <span class=n>args</span><span class=o>.</span><span class=n>goalF</span><span class=p>),</span>
+           <span class=n>args</span><span class=o>.</span><span class=n>dest</span><span class=p>)</span>
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.end_results</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

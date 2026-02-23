@@ -1,0 +1,590 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.utils.table — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/utils/table.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.table</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.utils.table</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Classes for printing tables in a text format."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>contextlib</span><span class=w> </span><span class=kn>import</span> <span class=n>AbstractContextManager</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>io</span><span class=w> </span><span class=kn>import</span> <span class=n>TextIOBase</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>Self</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.formatted_string</span><span class=w> </span><span class=kn>import</span> <span class=n>TEXT</span><span class=p>,</span> <span class=n>FormattedStr</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.text_format</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>MODE_NORMAL</span><span class=p>,</span>
+    <span class=n>MODE_SECTION_HEADER</span><span class=p>,</span>
+    <span class=n>MODE_TABLE_HEADER</span><span class=p>,</span>
+    <span class=n>TextFormatDriver</span><span class=p>,</span>
+<span class=p>)</span>
+
+
+<div class=viewcode-block id=Table>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.table.Table>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Table</span><span class=p>(</span><span class=n>AbstractContextManager</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The table context.</span>
+
+<span class=sd>    This class provides a simple and hierarchically structured way to write</span>
+<span class=sd>    tables in different formats. It only supports the most rudimentary</span>
+<span class=sd>    formatting and nothing fancy (such as references, etc.). However, it may</span>
+<span class=sd>    be totally enough to quickly produce tables with results of experiments.</span>
+
+<span class=sd>    Every table must have a table header (see :meth:`header`).</span>
+<span class=sd>    Every table then consists of a sequence of one or multiple sections</span>
+<span class=sd>    (see :meth:`section` and :class:`Section`).</span>
+<span class=sd>    Each table section itself may or may not have a header</span>
+<span class=sd>    (see :meth:`Section.header`) and must have at least one row (see</span>
+<span class=sd>    :meth:`Rows.row` and :class:`Row`).</span>
+<span class=sd>    Each row must have the exact right number of cells (see :meth:`Row.cell`).</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>stream</span><span class=p>:</span> <span class=n>TextIOBase</span><span class=p>,</span> <span class=n>cols</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>driver</span><span class=p>:</span> <span class=n>TextFormatDriver</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the table context.</span>
+
+<span class=sd>        :param stream: the stream to which all output is written</span>
+<span class=sd>        :param cols: the columns of the table</span>
+<span class=sd>        :param driver: the table driver</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>stream</span><span class=p>,</span> <span class=n>TextIOBase</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>stream</span><span class=p>,</span> <span class=s2>"stream"</span><span class=p>,</span> <span class=n>TextIOBase</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>cols</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>cols</span><span class=p>,</span> <span class=s2>"cols"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>driver</span><span class=p>,</span> <span class=n>TextFormatDriver</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>driver</span><span class=p>,</span> <span class=s2>"driver"</span><span class=p>,</span> <span class=n>TextFormatDriver</span><span class=p>)</span>
+
+        <span class=n>cols</span> <span class=o>=</span> <span class=n>cols</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>cols</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=s2>"cols must not be empty to just composed of white space, "</span>
+                <span class=sa>f</span><span class=s2>"but is </span><span class=si>{</span><span class=n>cols</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>c</span> <span class=ow>in</span> <span class=n>cols</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>c</span> <span class=ow>not</span> <span class=ow>in</span> <span class=p>{</span><span class=s2>"c"</span><span class=p>,</span> <span class=s2>"l"</span><span class=p>,</span> <span class=s2>"r"</span><span class=p>}:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"each col must be c, l, or r, but "</span>
+                                 <span class=sa>f</span><span class=s2>"encountered </span><span class=si>{</span><span class=n>c</span><span class=si>}</span><span class=s2> in </span><span class=si>{</span><span class=n>cols</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=c1>#: the internal stream</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>:</span> <span class=n>TextIOBase</span> <span class=o>=</span> <span class=n>stream</span>
+        <span class=c1>#: the internal column definition</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>cols</span>
+        <span class=c1>#: the internal table driver</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__driver</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>TextFormatDriver</span><span class=p>]</span> <span class=o>=</span> <span class=n>driver</span>
+        <span class=c1>#: the header state: 0=no header, 1=in header, 2=after header</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__header_state</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=c1>#: the section index</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__section_index</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=c1>#: the row index</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__row_index</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=c1>#: the column index</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__col_index</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=c1>#: the section state: 0 outside of section, 1 inside of section,</span>
+        <span class=c1>#: 2 after section</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__section_state</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=c1>#: the section header state: 0=no header, 1=in header, 2=after header</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__section_header_state</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=c1>#: the row state: 0=before row, 1=in row, 2=after row</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__row_state</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_begin_rows</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>mode</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Start a set of rows.</span>
+
+<span class=sd>        :param mode: the mode of the rows, will be one of `MODE_NORMAL`,</span>
+<span class=sd>            `MODE_TABLE_HEADER`, or `MODE_SECTION_HEADER`</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"table already closed, cannot start section."</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>mode</span> <span class=o>==</span> <span class=n>MODE_NORMAL</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__header_state</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot start section before table body."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot start section inside section."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_header_state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"cannot start section inside or after section header."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__row_state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot start section inside row."</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__section_state</span> <span class=o>=</span> <span class=mi>1</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__section_header_state</span> <span class=o>=</span> <span class=mi>0</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__driver</span><span class=o>.</span><span class=n>begin_table_section</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=p>,</span>
+                                              <span class=bp>self</span><span class=o>.</span><span class=n>__section_index</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__section_index</span> <span class=o>+=</span> <span class=mi>1</span>
+
+        <span class=k>elif</span> <span class=n>mode</span> <span class=o>==</span> <span class=n>MODE_TABLE_HEADER</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__header_state</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"cannot start table header inside or after table header."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_state</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"cannot start table header inside or after section."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_header_state</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot start table header inside or "</span>
+                                 <span class=s2>"after section header."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__row_state</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot start table header inside row."</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__header_state</span> <span class=o>=</span> <span class=mi>1</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__driver</span><span class=o>.</span><span class=n>begin_table_header</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=p>)</span>
+
+        <span class=k>elif</span> <span class=n>mode</span> <span class=o>==</span> <span class=n>MODE_SECTION_HEADER</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__header_state</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"cannot start section header before or in table header."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_state</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"cannot start section header outside section."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_header_state</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"cannot start section header after section header."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__row_state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"cannot start section header inside row."</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__section_header_state</span> <span class=o>=</span> <span class=mi>1</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__driver</span><span class=o>.</span><span class=n>begin_table_section_header</span><span class=p>(</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_index</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid row group mode: </span><span class=si>{</span><span class=n>mode</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>__row_index</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__row_state</span> <span class=o>=</span> <span class=mi>0</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_end_rows</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>mode</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        End a set of rows.</span>
+
+<span class=sd>        :param mode: the mode of the rows, will be one of `MODE_NORMAL`,</span>
+<span class=sd>            `MODE_TABLE_HEADER`, or `MODE_SECTION_HEADER`</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"table already closed, cannot end section."</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>mode</span> <span class=o>==</span> <span class=n>MODE_NORMAL</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__header_state</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"cannot end section before end of table header."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_state</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot end section outside section."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_header_state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot end section inside section header."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__row_state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot end section inside of row."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__row_index</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__row_state</span> <span class=o><</span> <span class=mi>2</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot end section before writing any row."</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__section_state</span> <span class=o>=</span> <span class=mi>2</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__driver</span><span class=o>.</span><span class=n>end_table_section</span><span class=p>(</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_index</span><span class=p>,</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__row_index</span><span class=p>)</span>
+
+        <span class=k>elif</span> <span class=n>mode</span> <span class=o>==</span> <span class=n>MODE_TABLE_HEADER</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__header_state</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"cannot end table header outside table header."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_state</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"cannot end table header inside or after section."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_header_state</span> <span class=o>>=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"cannot end table header inside or after section header."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__row_state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot end table header inside row."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__row_state</span> <span class=o><</span> <span class=mi>2</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__row_index</span> <span class=o><=</span> <span class=mi>0</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot end table header before header row."</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__header_state</span> <span class=o>=</span> <span class=mi>2</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__driver</span><span class=o>.</span><span class=n>end_table_header</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=p>)</span>
+
+        <span class=k>elif</span> <span class=n>mode</span> <span class=o>==</span> <span class=n>MODE_SECTION_HEADER</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__header_state</span> <span class=o><</span> <span class=mi>2</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"cannot end section header before table body."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_state</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"cannot start section header outside section."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_header_state</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"cannot end section header only inside section header."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__row_state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot end section header inside row."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__row_state</span> <span class=o><</span> <span class=mi>2</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__row_index</span> <span class=o><=</span> <span class=mi>0</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"cannot end section header before section header row."</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__section_header_state</span> <span class=o>=</span> <span class=mi>2</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__driver</span><span class=o>.</span><span class=n>end_table_section_header</span><span class=p>(</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_index</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid row group mode: </span><span class=si>{</span><span class=n>mode</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>__row_index</span> <span class=o>=</span> <span class=mi>0</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_begin_row</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>mode</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Start a row.</span>
+
+<span class=sd>        :param mode: the mode of the row, will be one of `MODE_NORMAL`,</span>
+<span class=sd>            `MODE_TABLE_HEADER`, or `MODE_SECTION_HEADER`</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"table already closed, cannot start row."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__row_state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot start row inside row."</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>mode</span> <span class=o>==</span> <span class=n>MODE_NORMAL</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_state</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"can only start section row in section."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_header_state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__section_header_state</span> <span class=o>=</span> <span class=mi>2</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__row_index</span> <span class=o>=</span> <span class=mi>0</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__driver</span><span class=o>.</span><span class=n>end_table_section_header</span><span class=p>(</span>
+                    <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_index</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=n>mode</span> <span class=o>==</span> <span class=n>MODE_TABLE_HEADER</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__header_state</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"can only start header row in table header."</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=n>mode</span> <span class=o>==</span> <span class=n>MODE_SECTION_HEADER</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_state</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"can only start section header row in section."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_header_state</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"cannot start section header row after section header."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_header_state</span> <span class=o><</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__row_index</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=s2>"cannot start section header after section row."</span><span class=p>)</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__section_header_state</span> <span class=o>=</span> <span class=mi>1</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__driver</span><span class=o>.</span><span class=n>begin_table_section_header</span><span class=p>(</span>
+                    <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_index</span><span class=p>)</span>
+
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid row mode: </span><span class=si>{</span><span class=n>mode</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>__driver</span><span class=o>.</span><span class=n>begin_table_row</span><span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_index</span><span class=p>,</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__row_index</span><span class=p>,</span> <span class=n>mode</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__row_index</span> <span class=o>+=</span> <span class=mi>1</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__row_state</span> <span class=o>=</span> <span class=mi>1</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__col_index</span> <span class=o>=</span> <span class=mi>0</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_end_row</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>mode</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        End a row.</span>
+
+<span class=sd>        :param mode: the mode of the row, will be one of `MODE_NORMAL`,</span>
+<span class=sd>            `MODE_TABLE_HEADER`, or `MODE_SECTION_HEADER`</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"table already closed, cannot start row."</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>MODE_NORMAL</span> <span class=o><=</span> <span class=n>mode</span> <span class=o><=</span> <span class=n>MODE_SECTION_HEADER</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid row mode </span><span class=si>{</span><span class=n>mode</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__header_state</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=s2>"cannot end row before table header."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_state</span> <span class=o>>=</span> <span class=mi>2</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot end row after section."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__row_state</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"can end row only inside row."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__col_index</span> <span class=o>!=</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"cannot end row after </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__col_index</span><span class=si>}</span><span class=s2> columns for table "</span>
+                <span class=sa>f</span><span class=s2>"with column definition </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__driver</span><span class=o>.</span><span class=n>end_table_row</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=p>,</span>
+                                    <span class=bp>self</span><span class=o>.</span><span class=n>__section_index</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__row_index</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__row_state</span> <span class=o>=</span> <span class=mi>2</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_cell</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>text</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Render a cell.</span>
+
+<span class=sd>        :param text: the text to write</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"table already closed, cannot start row."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__header_state</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=s2>"cannot have a cell before the table header starts."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_state</span> <span class=o>>=</span> <span class=mi>2</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=s2>"cannot have cell after section end."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__row_state</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=s2>"cells only permitted inside rows."</span><span class=p>)</span>
+        <span class=n>col_index</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__col_index</span>
+        <span class=k>if</span> <span class=n>col_index</span> <span class=o>>=</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"cannot add cell after </span><span class=si>{</span><span class=n>col_index</span><span class=si>}</span><span class=s2> columns for table "</span>
+                <span class=sa>f</span><span class=s2>"with column definition </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=n>mode</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>MODE_TABLE_HEADER</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__header_state</span> <span class=o>==</span> <span class=mi>1</span> \
+            <span class=k>else</span> <span class=p>(</span><span class=n>MODE_SECTION_HEADER</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_header_state</span> <span class=o>==</span> <span class=mi>1</span>
+                  <span class=k>else</span> <span class=n>MODE_NORMAL</span><span class=p>)</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>__driver</span><span class=o>.</span><span class=n>begin_table_cell</span><span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_index</span><span class=p>,</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__row_index</span><span class=p>,</span> <span class=n>col_index</span><span class=p>,</span> <span class=n>mode</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__col_index</span> <span class=o>=</span> <span class=n>col_index</span> <span class=o>+</span> <span class=mi>1</span>
+
+        <span class=k>def</span><span class=w> </span><span class=nf>__printit</span><span class=p>(</span><span class=n>st</span><span class=p>,</span> <span class=n>strm</span><span class=p>:</span> <span class=n>TextIOBase</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>,</span>
+                      <span class=n>wrt</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>TextIOBase</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>bool</span><span class=p>,</span> <span class=nb>bool</span><span class=p>,</span> <span class=nb>bool</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span>
+                                    <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__driver</span><span class=o>.</span><span class=n>text</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>st</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=k>return</span>
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>st</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+                <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>st</span><span class=p>,</span> <span class=n>FormattedStr</span><span class=p>):</span>
+                    <span class=n>wrt</span><span class=p>(</span><span class=n>strm</span><span class=p>,</span> <span class=n>st</span><span class=p>,</span> <span class=n>st</span><span class=o>.</span><span class=n>bold</span><span class=p>,</span> <span class=n>st</span><span class=o>.</span><span class=n>italic</span><span class=p>,</span> <span class=n>st</span><span class=o>.</span><span class=n>code</span><span class=p>,</span> <span class=n>st</span><span class=o>.</span><span class=n>mode</span><span class=p>)</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>wrt</span><span class=p>(</span><span class=n>strm</span><span class=p>,</span> <span class=n>st</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=n>TEXT</span><span class=p>)</span>
+            <span class=k>elif</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>st</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+                <span class=k>for</span> <span class=n>ss</span> <span class=ow>in</span> <span class=n>st</span><span class=p>:</span>
+                    <span class=n>__printit</span><span class=p>(</span><span class=n>ss</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>st</span><span class=p>,</span> <span class=s2>"text"</span><span class=p>,</span> <span class=p>(</span><span class=n>Iterable</span><span class=p>,</span> <span class=nb>str</span><span class=p>))</span>
+
+        <span class=n>__printit</span><span class=p>(</span><span class=n>text</span><span class=p>)</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>__driver</span><span class=o>.</span><span class=n>end_table_cell</span><span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_index</span><span class=p>,</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__row_index</span><span class=p>,</span> <span class=n>col_index</span><span class=p>,</span> <span class=n>mode</span><span class=p>)</span>
+
+<div class=viewcode-block id=Table.header>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.table.Table.header>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>header</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"Rows"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Construct the header of the table.</span>
+
+<span class=sd>        :returns: a new managed header row</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>Rows</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>MODE_TABLE_HEADER</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=Table.section>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.table.Table.section>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>section</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"Section"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a new section of rows.</span>
+
+<span class=sd>        :returns: a new managed row section</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>Section</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__enter__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Enter the table in a `with` statement.</span>
+
+<span class=sd>        :return: `self`</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Table writing already finished!"</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__driver</span><span class=o>.</span><span class=n>begin_table_body</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__exit__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>exception_type</span><span class=p>,</span> <span class=n>exception_value</span><span class=p>,</span> <span class=n>traceback</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Close the table after leaving the `with` statement.</span>
+
+<span class=sd>        :param exception_type: ignored</span>
+<span class=sd>        :param exception_value: ignored</span>
+<span class=sd>        :param traceback: ignored</span>
+<span class=sd>        :returns: `True` to suppress an exception, `False` to rethrow it</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__driver</span><span class=o>.</span><span class=n>end_table_body</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__stream</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>columns</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__stream</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_state</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot end table before any section"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_state</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot end table inside a section"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__header_state</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot end table before table header"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__header_state</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot end table inside table header"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__section_header_state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"cannot end table inside section header"</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>exception_type</span> <span class=ow>is</span> <span class=kc>None</span></div>
+
+
+
+<div class=viewcode-block id=Rows>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.table.Rows>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Rows</span><span class=p>(</span><span class=n>AbstractContextManager</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A set of table rows."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>owner</span><span class=p>:</span> <span class=n>Table</span><span class=p>,</span> <span class=n>mode</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the row section.</span>
+
+<span class=sd>        :param owner: the owning table</span>
+<span class=sd>        :param mode: the mode of the row group</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>owner</span><span class=p>,</span> <span class=n>Table</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>owner</span><span class=p>,</span> <span class=s2>"owner"</span><span class=p>,</span> <span class=n>Table</span><span class=p>)</span>
+        <span class=c1>#: the owner</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_owner</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Table</span><span class=p>]</span> <span class=o>=</span> <span class=n>owner</span>
+        <span class=c1>#: the rows mode</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_mode</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>mode</span><span class=p>,</span> <span class=s2>"mode"</span><span class=p>,</span> <span class=n>MODE_NORMAL</span><span class=p>,</span> <span class=n>MODE_SECTION_HEADER</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__enter__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>  <span class=c1># noqa</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Enter the row section in a `with` statement.</span>
+
+<span class=sd>        :return: `self`</span>
+<span class=sd>        """</span>
+        <span class=c1># noinspection PyProtectedMember</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_owner</span><span class=o>.</span><span class=n>_begin_rows</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_mode</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__exit__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>exception_type</span><span class=p>,</span> <span class=n>exception_value</span><span class=p>,</span> <span class=n>traceback</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Close the row section after leaving the `with` statement.</span>
+
+<span class=sd>        :param exception_type: ignored</span>
+<span class=sd>        :param exception_value: ignored</span>
+<span class=sd>        :param traceback: ignored</span>
+<span class=sd>        :returns: `True` to suppress an exception, `False` to rethrow it</span>
+<span class=sd>        """</span>
+        <span class=c1># noinspection PyProtectedMember</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_owner</span><span class=o>.</span><span class=n>_end_rows</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_mode</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>exception_type</span> <span class=ow>is</span> <span class=kc>None</span>
+
+<div class=viewcode-block id=Rows.row>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.table.Rows.row>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>row</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"Row"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a row.</span>
+
+<span class=sd>        :return: the new row</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>Row</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_owner</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>_mode</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=Rows.full_row>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.table.Rows.full_row>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>full_row</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>cells</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Print a complete row with a single call.</span>
+
+<span class=sd>        :param cells: the iterable of strings for the cells.</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>cells</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>cells</span><span class=p>,</span> <span class=s2>"cells"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+        <span class=k>with</span> <span class=bp>self</span><span class=o>.</span><span class=n>row</span><span class=p>()</span> <span class=k>as</span> <span class=n>row</span><span class=p>:</span>
+            <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>cell</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>cells</span><span class=p>):</span>
+                <span class=k>if</span> <span class=p>(</span><span class=n>cell</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>cell</span><span class=p>,</span> <span class=nb>str</span><span class=p>)):</span>
+                    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>cell</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"cell[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>]"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+                <span class=n>row</span><span class=o>.</span><span class=n>cell</span><span class=p>(</span><span class=n>cell</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=Rows.cols>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.table.Rows.cols>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>cols</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>cols</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Print cells and rows column-by-column.</span>
+
+<span class=sd>        :param cols: an array which contains one list per column of the table.</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>cols</span><span class=p>,</span> <span class=nb>list</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>cols</span><span class=p>,</span> <span class=s2>"cols"</span><span class=p>,</span> <span class=nb>list</span><span class=p>)</span>
+
+        <span class=n>columns</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_owner</span><span class=o>.</span><span class=n>columns</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>cols</span><span class=p>)</span> <span class=o>!=</span> <span class=nb>len</span><span class=p>(</span><span class=n>columns</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"expected </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>columns</span><span class=p>)</span><span class=si>}</span><span class=s2> columns (</span><span class=si>{</span><span class=n>columns</span><span class=si>}</span><span class=s2>), "</span>
+                <span class=sa>f</span><span class=s2>"but cols has length </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>cols</span><span class=p>)</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>max_rows</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>col</span><span class=p>)</span> <span class=k>for</span> <span class=n>col</span> <span class=ow>in</span> <span class=n>cols</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>max_rows</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"There are no rows in the cols array?"</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>rowi</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>max_rows</span><span class=p>):</span>
+            <span class=k>with</span> <span class=bp>self</span><span class=o>.</span><span class=n>row</span><span class=p>()</span> <span class=k>as</span> <span class=n>row</span><span class=p>:</span>
+                <span class=k>for</span> <span class=n>col</span> <span class=ow>in</span> <span class=n>cols</span><span class=p>:</span>
+                    <span class=n>row</span><span class=o>.</span><span class=n>cell</span><span class=p>(</span><span class=kc>None</span> <span class=k>if</span> <span class=n>rowi</span> <span class=o>>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>col</span><span class=p>)</span> <span class=k>else</span> <span class=n>col</span><span class=p>[</span><span class=n>rowi</span><span class=p>])</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=Section>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.table.Section>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Section</span><span class=p>(</span><span class=n>Rows</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A table section is a group of rows, potentially with a header."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>owner</span><span class=p>:</span> <span class=n>Table</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the row section.</span>
+
+<span class=sd>        :param owner: the owning table</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>owner</span><span class=p>,</span> <span class=n>MODE_NORMAL</span><span class=p>)</span>
+
+<div class=viewcode-block id=Section.header>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.table.Section.header>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>header</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"Rows"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Print the section header.</span>
+
+<span class=sd>        :return: the header row</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>Rows</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_owner</span><span class=p>,</span> <span class=n>MODE_SECTION_HEADER</span><span class=p>)</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=Row>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.table.Row>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Row</span><span class=p>(</span><span class=n>AbstractContextManager</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A row class."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>owner</span><span class=p>:</span> <span class=n>Table</span><span class=p>,</span> <span class=n>mode</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the row.</span>
+
+<span class=sd>        :param owner: the owning table</span>
+<span class=sd>        :param mode: the header mode</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>owner</span><span class=p>,</span> <span class=n>Table</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>owner</span><span class=p>,</span> <span class=s2>"owner"</span><span class=p>,</span> <span class=n>Table</span><span class=p>)</span>
+        <span class=c1>#: the rows mode</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_mode</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>mode</span><span class=p>,</span> <span class=s2>"mode"</span><span class=p>,</span> <span class=n>MODE_NORMAL</span><span class=p>,</span> <span class=n>MODE_SECTION_HEADER</span><span class=p>)</span>
+        <span class=c1>#: the owner</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__owner</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Table</span><span class=p>]</span> <span class=o>=</span> <span class=n>owner</span>
+
+<div class=viewcode-block id=Row.cell>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.table.Row.cell>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>cell</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>text</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Render the text of a cell.</span>
+
+<span class=sd>        As parameter `text`, you can provide either a string or a sequence of</span>
+<span class=sd>        strings. You can also provide an instance of</span>
+<span class=sd>        :class:`moptipy.utils.formatted_string.FormattedStr` or a sequence</span>
+<span class=sd>        thereof. This allows you to render formatted text in a natural</span>
+<span class=sd>        fashion.</span>
+
+<span class=sd>        :param text: the text to write</span>
+<span class=sd>        """</span>
+        <span class=c1># noinspection PyProtectedMember</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__owner</span><span class=o>.</span><span class=n>_cell</span><span class=p>(</span><span class=n>text</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__enter__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Enter the row in a `with` statement.</span>
+
+<span class=sd>        :return: `self`</span>
+<span class=sd>        """</span>
+        <span class=c1># noinspection PyProtectedMember</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__owner</span><span class=o>.</span><span class=n>_begin_row</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_mode</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__exit__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>exception_type</span><span class=p>,</span> <span class=n>exception_value</span><span class=p>,</span> <span class=n>traceback</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Close the row after leaving the `with` statement.</span>
+
+<span class=sd>        :param exception_type: ignored</span>
+<span class=sd>        :param exception_value: ignored</span>
+<span class=sd>        :param traceback: ignored</span>
+<span class=sd>        :returns: `True` to suppress an exception, `False` to rethrow it</span>
+<span class=sd>        """</span>
+        <span class=c1># noinspection PyProtectedMember</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__owner</span><span class=o>.</span><span class=n>_end_row</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_mode</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>exception_type</span> <span class=ow>is</span> <span class=kc>None</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.table</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

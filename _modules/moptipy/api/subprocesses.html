@@ -1,0 +1,632 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.api.subprocesses — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/api/subprocesses.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.subprocesses</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.api.subprocesses</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Different ways to transform and slice processes.</span>
+
+<span class=sd>In this module, we provide some routines that can be used to slice of</span>
+<span class=sd>computational budgets of a given process for running algorithms.</span>
+<span class=sd>The following functions are included:</span>
+
+<span class=sd>1. :func:`for_fes` allows for creating a sub-process that forwards all method</span>
+<span class=sd>   calls to the original process but will perform at most a given number of</span>
+<span class=sd>   objective function evaluations.</span>
+<span class=sd>2. :func:`from_starting_point` creates a sub-process that has the current-best</span>
+<span class=sd>   solution pre-set to a given point in the search space and its quality. If</span>
+<span class=sd>   the best solution is improved upon, the provided point will be overwritten</span>
+<span class=sd>   in place.</span>
+<span class=sd>3. :func:`without_should_terminate` wraps a process in such a way that the</span>
+<span class=sd>   termination criterion :meth:`~moptipy.api.process.Process.should_terminate`</span>
+<span class=sd>   does not need to be checked anymore. Instead, once the optimization must</span>
+<span class=sd>   stop, it will throw an internal exception and catch it again. This makes it</span>
+<span class=sd>   possible to pass :meth:`~moptipy.api.process.Process.evaluate` to</span>
+<span class=sd>   externally implemented algorithms that do not care about the `moptipy` API.</span>
+
+<span class=sd>The utility function :func:`get_remaining_fes` returns a number representing</span>
+<span class=sd>the remaining objective function evaluations of a given</span>
+<span class=sd>:class:`~moptipy.api.process.Process`. If that process does not have an</span>
+<span class=sd>FE-based termination criterion, it will instead return a very big number.</span>
+<span class=sd>"""</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>contextlib</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>TypeVar</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_process</span><span class=w> </span><span class=kn>import</span> <span class=n>MOProcess</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span><span class=p>,</span> <span class=n>check_max_fes</span>
+
+<span class=c1>#: the type variable for single- and multi-objective processes.</span>
+<span class=n>T</span> <span class=o>=</span> <span class=n>TypeVar</span><span class=p>(</span><span class=s2>"T"</span><span class=p>,</span> <span class=n>Process</span><span class=p>,</span> <span class=n>MOProcess</span><span class=p>)</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__ForFEs</span><span class=p>(</span><span class=n>Process</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A process searching for a fixed amount of FEs."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>owner</span><span class=p>:</span> <span class=n>Process</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span><span class=p>):</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>owner</span><span class=p>,</span> <span class=n>Process</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>owner</span><span class=p>,</span> <span class=s2>"owner"</span><span class=p>,</span> <span class=n>Process</span><span class=p>)</span>
+        <span class=c1>#: the owning process</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__owner</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Process</span><span class=p>]</span> <span class=o>=</span> <span class=n>owner</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_random</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_random</span>  <span class=c1># type: ignore</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_consumed_time_millis</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_consumed_time_millis</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># type: ignore</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_max_time_millis</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_max_time_millis</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># type: ignore</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_last_improvement_time_millis</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_last_improvement_time_millis</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>has_log</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>has_log</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>add_log_section</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>add_log_section</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>lower_bound</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>lower_bound</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>upper_bound</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>upper_bound</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>create</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>create</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>copy</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>copy</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>to_str</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>to_str</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>is_equal</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>is_equal</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>from_str</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>from_str</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>validate</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>validate</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>n_points</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>n_points</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>has_best</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>has_best</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_copy_of_best_x</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_copy_of_best_x</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_best_f</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_best_f</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_log_basename</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_log_basename</span>  <span class=c1># type: ignore</span>
+        <span class=c1>#: the maximum FEs</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_max_fes</span><span class=p>(</span><span class=n>max_fes</span><span class=p>)</span>
+        <span class=c1>#: the FEs that we still have left</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__fes_left</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>max_fes</span>
+        <span class=c1>#: did we terminate?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__terminated</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=c1>#: the fast call to the owner's should_terminate method</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=nb>bool</span><span class=p>]]</span> \
+            <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>should_terminate</span>
+        <span class=c1>#: the fast call to the owner's evaluate method</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> \
+            <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>evaluate</span>
+        <span class=c1>#: the fast call to the owner's register method</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__register</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> \
+            <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>register</span>
+        <span class=c1>#: the start fe</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__start_fe</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_consumed_fes</span><span class=p>()</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>should_terminate</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__terminated</span> <span class=ow>or</span> <span class=bp>self</span><span class=o>.</span><span class=n>__should_terminate</span><span class=p>()</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>terminate</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__terminated</span> <span class=o>=</span> <span class=kc>True</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>:</span>
+        <span class=n>f</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+        <span class=n>fel</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__fes_left</span> <span class=o>-</span> <span class=mi>1</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__fes_left</span> <span class=o>=</span> <span class=n>fel</span>
+        <span class=k>if</span> <span class=n>fel</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__terminated</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=k>return</span> <span class=n>f</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>register</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__register</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>)</span>
+        <span class=n>fel</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__fes_left</span> <span class=o>-</span> <span class=mi>1</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__fes_left</span> <span class=o>=</span> <span class=n>fel</span>
+        <span class=k>if</span> <span class=n>fel</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__terminated</span> <span class=o>=</span> <span class=kc>True</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>get_consumed_fes</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>__fes_left</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>get_last_improvement_fe</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+        <span class=k>return</span> <span class=nb>max</span><span class=p>(</span><span class=mi>1</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__fes_left</span> <span class=o><</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span> <span class=k>else</span> <span class=mi>0</span><span class=p>,</span>
+                   <span class=bp>self</span><span class=o>.</span><span class=n>__owner</span><span class=o>.</span><span class=n>get_last_improvement_fe</span><span class=p>()</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>__start_fe</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>get_max_fes</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"forFEs_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span><span class=si>}</span><span class=s2>_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__owner</span><span class=si>}</span><span class=s2>"</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__ForFEsMO</span><span class=p>(</span><span class=n>MOProcess</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A process searching for a fixed amount of FEs."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>owner</span><span class=p>:</span> <span class=n>MOProcess</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span><span class=p>):</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>owner</span><span class=p>,</span> <span class=n>MOProcess</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>owner</span><span class=p>,</span> <span class=s2>"owner"</span><span class=p>,</span> <span class=n>MOProcess</span><span class=p>)</span>
+        <span class=c1>#: the owning process</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__owner</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>MOProcess</span><span class=p>]</span> <span class=o>=</span> <span class=n>owner</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_random</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_random</span>  <span class=c1># type: ignore</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_consumed_time_millis</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_consumed_time_millis</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># type: ignore</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_max_time_millis</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_max_time_millis</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># type: ignore</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_last_improvement_time_millis</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_last_improvement_time_millis</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>has_log</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>has_log</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>add_log_section</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>add_log_section</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>lower_bound</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>lower_bound</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>upper_bound</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>upper_bound</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>create</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>create</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>copy</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>copy</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>to_str</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>to_str</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>is_equal</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>is_equal</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>from_str</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>from_str</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>validate</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>validate</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>n_points</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>n_points</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>has_best</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>has_best</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_copy_of_best_x</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_copy_of_best_x</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_best_f</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_best_f</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_archive</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_archive</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>check_in</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>check_in</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>f_create</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>f_create</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>f_validate</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>f_validate</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>f_dtype</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>f_dtype</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>f_dominates</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>f_dominates</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>f_dimension</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>f_dimension</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_log_basename</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_log_basename</span>  <span class=c1># type: ignore</span>
+        <span class=c1>#: the maximum FEs</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_max_fes</span><span class=p>(</span><span class=n>max_fes</span><span class=p>)</span>
+        <span class=c1>#: the FEs that we still have left</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__fes_left</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>max_fes</span>
+        <span class=c1>#: did we terminate?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__terminated</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=c1>#: the fast call to the owner's should_terminate method</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=nb>bool</span><span class=p>]]</span> \
+            <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>should_terminate</span>
+        <span class=c1>#: the fast call to the owner's evaluate method</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> \
+            <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>evaluate</span>
+        <span class=c1>#: the fast call to the owner's register method</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__register</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> \
+            <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>register</span>
+        <span class=c1>#: the evaluation wrapper</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__f_evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=n>Any</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>f_evaluate</span>
+        <span class=c1>#: the start fe</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__start_fe</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_consumed_fes</span><span class=p>()</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>should_terminate</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__terminated</span> <span class=ow>or</span> <span class=bp>self</span><span class=o>.</span><span class=n>__should_terminate</span><span class=p>()</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>terminate</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__terminated</span> <span class=o>=</span> <span class=kc>True</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>:</span>
+        <span class=n>f</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+        <span class=n>fel</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__fes_left</span> <span class=o>-</span> <span class=mi>1</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__fes_left</span> <span class=o>=</span> <span class=n>fel</span>
+        <span class=k>if</span> <span class=n>fel</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__terminated</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=k>return</span> <span class=n>f</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>register</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__register</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>)</span>
+        <span class=n>fel</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__fes_left</span> <span class=o>-</span> <span class=mi>1</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__fes_left</span> <span class=o>=</span> <span class=n>fel</span>
+        <span class=k>if</span> <span class=n>fel</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__terminated</span> <span class=o>=</span> <span class=kc>True</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>f_evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>fs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>:</span>
+        <span class=n>f</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__f_evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>fs</span><span class=p>)</span>
+        <span class=n>fel</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__fes_left</span> <span class=o>-</span> <span class=mi>1</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__fes_left</span> <span class=o>=</span> <span class=n>fel</span>
+        <span class=k>if</span> <span class=n>fel</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__terminated</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=k>return</span> <span class=n>f</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>get_consumed_fes</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>__fes_left</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>get_last_improvement_fe</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+        <span class=k>return</span> <span class=nb>max</span><span class=p>(</span><span class=mi>1</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__fes_left</span> <span class=o><</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span> <span class=k>else</span> <span class=mi>0</span><span class=p>,</span>
+                   <span class=bp>self</span><span class=o>.</span><span class=n>__owner</span><span class=o>.</span><span class=n>get_last_improvement_fe</span><span class=p>()</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>__start_fe</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>get_max_fes</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"forFEsMO_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span><span class=si>}</span><span class=s2>_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__owner</span><span class=si>}</span><span class=s2>"</span>
+
+
+<div class=viewcode-block id=for_fes>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.subprocesses.for_fes>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>for_fes</span><span class=p>(</span><span class=n>process</span><span class=p>:</span> <span class=n>T</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=n>T</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create a sub-process that can run for the given number of FEs.</span>
+
+<span class=sd>    :param process: the original process</span>
+<span class=sd>    :param max_fes: the maximum number of objective function evaluations</span>
+<span class=sd>    :returns: the sub-process that will terminate after `max_fes` FEs and that</span>
+<span class=sd>        forwards all other calls the `process`.</span>
+<span class=sd>    """</span>
+    <span class=n>max_fes</span> <span class=o>=</span> <span class=n>check_max_fes</span><span class=p>(</span><span class=n>max_fes</span><span class=p>,</span> <span class=kc>False</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>__ForFEsMO</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>)</span> <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=n>MOProcess</span><span class=p>)</span> \
+        <span class=k>else</span> <span class=n>__ForFEs</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>)</span></div>
+
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__FromStartingPoint</span><span class=p>(</span><span class=n>Process</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A process searching from a given point."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>owner</span><span class=p>:</span> <span class=n>Process</span><span class=p>,</span> <span class=n>in_and_out_x</span><span class=p>:</span> <span class=n>Any</span><span class=p>,</span>
+                 <span class=n>f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a sub-process searching from one starting point.</span>
+
+<span class=sd>        :param owner: the owning process</span>
+<span class=sd>        :param in_and_out_x: the input solution record, which will be</span>
+<span class=sd>            overwritten with the best encountered solution</span>
+<span class=sd>        :param f: the objective value corresponding to `in_and_out`</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>owner</span><span class=p>,</span> <span class=n>Process</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>owner</span><span class=p>,</span> <span class=s2>"owner"</span><span class=p>,</span> <span class=n>Process</span><span class=p>)</span>
+        <span class=c1>#: the owning process</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__owner</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Process</span><span class=p>]</span> <span class=o>=</span> <span class=n>owner</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_random</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_random</span>  <span class=c1># type: ignore</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_consumed_time_millis</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_consumed_time_millis</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># type: ignore</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_max_time_millis</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_max_time_millis</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># type: ignore</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_last_improvement_time_millis</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_last_improvement_time_millis</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>has_log</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>has_log</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>add_log_section</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>add_log_section</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>lower_bound</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>lower_bound</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>upper_bound</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>upper_bound</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>create</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>create</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>copy</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>copy</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>to_str</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>to_str</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>is_equal</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>is_equal</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>from_str</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>from_str</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>validate</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>validate</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>n_points</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>n_points</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>should_terminate</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>should_terminate</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>terminate</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>terminate</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_log_basename</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_log_basename</span>  <span class=c1># type: ignore</span>
+        <span class=c1>#: the best solution</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__best_x</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=n>in_and_out_x</span>
+        <span class=c1>#: the best-so-far solution</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__best_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>f</span>
+        <span class=c1>#: the last improvement fe</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__last_improvement_fe</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=c1>#: the consumed FEs</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=n>mfes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_max_fes</span><span class=p>()</span>
+        <span class=k>if</span> <span class=n>mfes</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>mfes</span> <span class=o>-=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_consumed_fes</span><span class=p>()</span>
+        <span class=c1>#: the maximum permitted FEs</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__max_fes</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>mfes</span>
+        <span class=c1>#: the fast call to the owner's evaluate method</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> \
+            <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>evaluate</span>
+        <span class=c1>#: the fast call to the owner's register method</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__register</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> \
+            <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>register</span>
+        <span class=c1>#: True as long as only the seed has been used</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__only_seed_used</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>has_best</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+        <span class=k>return</span> <span class=kc>True</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>get_copy_of_best_x</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>copy</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__best_x</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>get_best_f</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__best_f</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>:</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__only_seed_used</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>is_equal</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__best_x</span><span class=p>):</span>
+                <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__best_f</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__only_seed_used</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__fes</span> <span class=o>=</span> <span class=n>fe</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__fes</span> <span class=o>+</span> <span class=mi>1</span>
+        <span class=n>f</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>f</span> <span class=o><=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__best_f</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>copy</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__best_x</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>f</span> <span class=o><</span> <span class=bp>self</span><span class=o>.</span><span class=n>__best_f</span><span class=p>:</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__best_f</span> <span class=o>=</span> <span class=n>f</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__last_improvement_fe</span> <span class=o>=</span> <span class=n>fe</span>
+        <span class=k>return</span> <span class=n>f</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>register</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__only_seed_used</span><span class=p>:</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>is_equal</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__best_x</span><span class=p>):</span>
+                <span class=k>return</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__only_seed_used</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__fes</span> <span class=o>=</span> <span class=n>fe</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__fes</span> <span class=o>+</span> <span class=mi>1</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__register</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>f</span> <span class=o><</span> <span class=bp>self</span><span class=o>.</span><span class=n>__best_f</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>copy</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__best_x</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>f</span> <span class=o><</span> <span class=bp>self</span><span class=o>.</span><span class=n>__best_f</span><span class=p>:</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__best_f</span> <span class=o>=</span> <span class=n>f</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__last_improvement_fe</span> <span class=o>=</span> <span class=n>fe</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>get_consumed_fes</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+        <span class=k>return</span> <span class=nb>max</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__fes</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>get_last_improvement_fe</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__last_improvement_fe</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>get_max_fes</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__max_fes</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"fromStart_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__owner</span><span class=si>}</span><span class=s2>"</span>
+
+
+<div class=viewcode-block id=from_starting_point>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.subprocesses.from_starting_point>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>from_starting_point</span><span class=p>(</span><span class=n>owner</span><span class=p>:</span> <span class=n>Process</span><span class=p>,</span> <span class=n>in_and_out_x</span><span class=p>:</span> <span class=n>Any</span><span class=p>,</span>
+                        <span class=n>f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=n>Process</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create a sub-process searching from one starting point.</span>
+
+<span class=sd>    This process is especially useful in conjunction with class</span>
+<span class=sd>    :class:`~moptipy.operators.op0_forward.Op0Forward`. This class</span>
+<span class=sd>    allows forwarding the nullary search operator to the function</span>
+<span class=sd>    :meth:`~moptipy.api.process.Process.get_copy_of_best_x`. This way, the</span>
+<span class=sd>    first point that it sampled by a local search can be the point specified</span>
+<span class=sd>    as `in_and_out_x`, which effectively seeds the local search.</span>
+
+<span class=sd>    To dovetail with chance of seeding, no FEs are counted at the beginning of</span>
+<span class=sd>    the process as long as all points to be evaluated equal to the</span>
+<span class=sd>    `in_and_out_x`. As soon as the first point different from `in_and_out_x`</span>
+<span class=sd>    is evaluated, FE counting starts.</span>
+
+<span class=sd>    Equally-good solutions will also be accepted, i.e., stored into</span>
+<span class=sd>    `in_and_out_x`. This costs a little bit of runtime, but would normally be</span>
+<span class=sd>    the preferred behavior: On many problems, making neutral moves (i.e.,</span>
+<span class=sd>    drifting) will be beneficial over only accepting strict improvements. This</span>
+<span class=sd>    is why :mod:`~moptipy.algorithms.so.rls` outperforms the normal</span>
+<span class=sd>    :mod:`~moptipy.algorithms.so.hill_climber` on the</span>
+<span class=sd>    :mod:`~moptipy.examples.jssp`.</span>
+
+<span class=sd>    :param owner: the owning process</span>
+<span class=sd>    :param in_and_out_x: the input solution record, which will be</span>
+<span class=sd>        overwritten with the best encountered solution</span>
+<span class=sd>    :param f: the objective value corresponding to `in_and_out`</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>__FromStartingPoint</span><span class=p>(</span><span class=n>owner</span><span class=p>,</span> <span class=n>in_and_out_x</span><span class=p>,</span> <span class=n>f</span><span class=p>)</span></div>
+
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>_InternalTerminationError</span><span class=p>(</span><span class=ne>Exception</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A protected internal termination error."""</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__WithoutShouldTerminate</span><span class=p>(</span><span class=n>Process</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A process allowing algorithm execution ignoring `should_terminate`."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>owner</span><span class=p>:</span> <span class=n>Process</span><span class=p>):</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>owner</span><span class=p>,</span> <span class=n>Process</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>owner</span><span class=p>,</span> <span class=s2>"owner"</span><span class=p>,</span> <span class=n>Process</span><span class=p>)</span>
+        <span class=c1>#: the owning process</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_owner</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Process</span><span class=p>]</span> <span class=o>=</span> <span class=n>owner</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_random</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_random</span>  <span class=c1># type: ignore</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_consumed_time_millis</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_consumed_time_millis</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># type: ignore</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_max_time_millis</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_max_time_millis</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># type: ignore</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_last_improvement_time_millis</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_last_improvement_time_millis</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># type: ignore</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_last_improvement_fe</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_last_improvement_fe</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>has_log</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>has_log</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>add_log_section</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>add_log_section</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>lower_bound</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>lower_bound</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>upper_bound</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>upper_bound</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>create</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>create</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>copy</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>copy</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>to_str</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>to_str</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>is_equal</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>is_equal</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>from_str</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>from_str</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>validate</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>validate</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>n_points</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>n_points</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>has_best</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>has_best</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_copy_of_best_x</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_copy_of_best_x</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_best_f</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_best_f</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>should_terminate</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>should_terminate</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>terminate</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>terminate</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_max_fes</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_max_fes</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_consumed_fes</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_consumed_fes</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_log_basename</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_log_basename</span>  <span class=c1># type: ignore</span>
+        <span class=c1>#: the fast call to the owner's evaluate method</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> \
+            <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>evaluate</span>
+        <span class=c1>#: the fast call to the owner's register method</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__register</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> \
+            <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>register</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>:</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>should_terminate</span><span class=p>():</span>
+            <span class=k>raise</span> <span class=n>_InternalTerminationError</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>register</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>should_terminate</span><span class=p>():</span>
+            <span class=k>raise</span> <span class=n>_InternalTerminationError</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__register</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"protect_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>_owner</span><span class=si>}</span><span class=s2>"</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__exit__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>exception_type</span><span class=p>,</span> <span class=n>exception_value</span><span class=p>,</span> <span class=n>traceback</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+        <span class=k>return</span> <span class=kc>True</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__WithoutShouldTerminateMO</span><span class=p>(</span><span class=n>MOProcess</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A process allowing algorithm execution ignoring `should_terminate`."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>owner</span><span class=p>:</span> <span class=n>Process</span><span class=p>):</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>owner</span><span class=p>,</span> <span class=n>MOProcess</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>owner</span><span class=p>,</span> <span class=s2>"owner"</span><span class=p>,</span> <span class=n>MOProcess</span><span class=p>)</span>
+        <span class=c1>#: the owning process</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_owner</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>MOProcess</span><span class=p>]</span> <span class=o>=</span> <span class=n>owner</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_random</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_random</span>  <span class=c1># type: ignore</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_consumed_time_millis</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_consumed_time_millis</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># type: ignore</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_max_time_millis</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_max_time_millis</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># type: ignore</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_last_improvement_time_millis</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_last_improvement_time_millis</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># type: ignore</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_last_improvement_fe</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_last_improvement_fe</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>has_log</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>has_log</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>add_log_section</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>add_log_section</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>lower_bound</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>lower_bound</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>upper_bound</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>upper_bound</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>create</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>create</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>copy</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>copy</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>to_str</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>to_str</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>is_equal</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>is_equal</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>from_str</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>from_str</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>validate</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>validate</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>n_points</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>n_points</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>has_best</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>has_best</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_copy_of_best_x</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_copy_of_best_x</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_best_f</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_best_f</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>should_terminate</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>should_terminate</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>terminate</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>terminate</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_max_fes</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_max_fes</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_consumed_fes</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_consumed_fes</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>f_create</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>f_create</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>f_validate</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>f_validate</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>f_dtype</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>f_dtype</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>f_dominates</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>f_dominates</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>f_dimension</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>f_dimension</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_archive</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_archive</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>check_in</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>check_in</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>get_log_basename</span> <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>get_log_basename</span>  <span class=c1># type: ignore</span>
+        <span class=c1>#: the fast call to the owner's evaluate method</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> \
+            <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>evaluate</span>
+        <span class=c1>#: the fast call to the owner's register method</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__register</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> \
+            <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>register</span>
+        <span class=c1>#: the fast call to the owner's f_evaluate method</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__f_evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[</span>
+            <span class=p>[</span><span class=n>Any</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> \
+            <span class=o>=</span> <span class=n>owner</span><span class=o>.</span><span class=n>f_evaluate</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>:</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>should_terminate</span><span class=p>():</span>
+            <span class=k>raise</span> <span class=n>_InternalTerminationError</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>register</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>should_terminate</span><span class=p>():</span>
+            <span class=k>raise</span> <span class=n>_InternalTerminationError</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__register</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>f_evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>fs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>should_terminate</span><span class=p>():</span>
+            <span class=k>raise</span> <span class=n>_InternalTerminationError</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__f_evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>fs</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"protectMO_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>_owner</span><span class=si>}</span><span class=s2>"</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__exit__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>exception_type</span><span class=p>,</span> <span class=n>exception_value</span><span class=p>,</span> <span class=n>traceback</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+        <span class=k>return</span> <span class=kc>True</span>
+
+
+<div class=viewcode-block id=get_remaining_fes>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.subprocesses.get_remaining_fes>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>get_remaining_fes</span><span class=p>(</span><span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get a finite number representing the remaining FEs of a process.</span>
+
+<span class=sd>    If the process has the maximum objective function evaluations (FEs) set</span>
+<span class=sd>    (see :meth:`~moptipy.api.process.Process.get_max_fes`), then this method</span>
+<span class=sd>    returns the maximum FEs minus the consumed FEs (see</span>
+<span class=sd>    :meth:`~moptipy.api.process.Process.get_consumed_fes`).</span>
+<span class=sd>    Otherwise, i.e., if :meth:`~moptipy.api.process.Process.get_max_fes`</span>
+<span class=sd>    returns `None`, this function returns a very large number, namely</span>
+<span class=sd>    `9223372036854775807`, i.e., `(2 ** 63) - 1`. This number is so high that</span>
+<span class=sd>    it will always be impossible to consume it in terms of FEs. But it is</span>
+<span class=sd>    also finite in any case. When trying to slice of budgets or computing</span>
+<span class=sd>    things based on the remaining budget, this makes it unnecessary for us to</span>
+<span class=sd>    deal with special cases.</span>
+
+<span class=sd>    :param process: the process</span>
+<span class=sd>    :returns: an integer representing the remaining FEs of the process. If</span>
+<span class=sd>        no FE limit is imposed by `process`, a very large number will be</span>
+<span class=sd>        returned.</span>
+
+<span class=sd>    >>> from moptipy.api.process import Process as Proc</span>
+<span class=sd>    >>> class X(Proc):</span>
+<span class=sd>    ...     def get_max_fes(self):</span>
+<span class=sd>    ...         return None</span>
+<span class=sd>    ...     def get_consumed_fes(self):</span>
+<span class=sd>    ...         return 123</span>
+<span class=sd>    >>> get_remaining_fes(X())</span>
+<span class=sd>    9223372036854775807</span>
+<span class=sd>    >>> class Y(X):</span>
+<span class=sd>    ...     def get_max_fes(self):</span>
+<span class=sd>    ...         return 456</span>
+<span class=sd>    >>> get_remaining_fes(Y())</span>
+<span class=sd>    333</span>
+<span class=sd>    """</span>
+    <span class=n>mf</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>get_max_fes</span><span class=p>()</span>  <span class=c1># get the number of available FEs</span>
+    <span class=k>if</span> <span class=n>mf</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># if a no FE limit is specified, then return a large value</span>
+        <span class=k>return</span> <span class=mi>9_223_372_036_854_775_807</span>  <span class=c1># (2 ** 63) - 1</span>
+    <span class=k>return</span> <span class=n>mf</span> <span class=o>-</span> <span class=n>process</span><span class=o>.</span><span class=n>get_consumed_fes</span><span class=p>()</span>  <span class=c1># else, subtract the consumed FEs</span></div>
+
+
+
+<div class=viewcode-block id=without_should_terminate>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.subprocesses.without_should_terminate>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>without_should_terminate</span><span class=p>(</span><span class=n>algorithm</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>T</span><span class=p>],</span> <span class=n>Any</span><span class=p>],</span> <span class=n>process</span><span class=p>:</span> <span class=n>T</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Apply an algorithm that does not call `should_terminate` to a process.</span>
+
+<span class=sd>    If we use an algorithm from an external library, this algorithm may ignore</span>
+<span class=sd>    the proper usage of our API. With this method, we try to find a way to</span>
+<span class=sd>    make sure that these calls are consistent with the termination criterion</span>
+<span class=sd>    of the `moptipy` API.</span>
+
+<span class=sd>    Before calling :meth:`~moptipy.api.process.Process.evaluate`,</span>
+<span class=sd>    :meth:`~moptipy.api.process.Process.register`, or</span>
+<span class=sd>    :meth:`~moptipy.api.mo_problem.MOProblem.f_evaluate`, an optimization</span>
+<span class=sd>    algorithm must check if it should instead stop via</span>
+<span class=sd>    :meth:`~moptipy.api.process.Process.should_terminate`. If the process</span>
+<span class=sd>    called :meth:`~moptipy.api.process.Process.should_terminate` and was</span>
+<span class=sd>    told to stop but did invoke the evaluation routines anyway, an</span>
+<span class=sd>    exception will be thrown and the process force-terminates. If the</span>
+<span class=sd>    process did not call</span>
+<span class=sd>    :meth:`~moptipy.api.process.Process.should_terminate` but was</span>
+<span class=sd>    supposed to stop, the results of</span>
+<span class=sd>    :meth:`~moptipy.api.process.Process.evaluate` may be arbitrary (or</span>
+<span class=sd>    positive infinity).</span>
+
+<span class=sd>    This function here can be used to deal with processes that do not invoke</span>
+<span class=sd>    :meth:`~moptipy.api.process.Process.should_terminate`. It will invoke</span>
+<span class=sd>    this method by itself before</span>
+<span class=sd>    :meth:`~moptipy.api.process.Process.evaluate`,</span>
+<span class=sd>    :meth:`~moptipy.api.process.Process.register`, and</span>
+<span class=sd>    :meth:`~moptipy.api.mo_problem.MOProblem.f_evaluate` and terminate the</span>
+<span class=sd>    algorithm with an exception if necessary. It will then catch the</span>
+<span class=sd>    exception and bury it.</span>
+
+<span class=sd>    Thus, we can now use algorithms that ignore our termination criteria and</span>
+<span class=sd>    still force them to terminate when they should.</span>
+
+<span class=sd>    Some algorithms using this system are implemented in</span>
+<span class=sd>    :mod:`~moptipy.algorithms.so.vector.scipy`. These modules import external</span>
+<span class=sd>    algorithms from other libraries which, of course, know nothing about how</span>
+<span class=sd>    our `moptipy` works. They only accept the objective function and cannot</span>
+<span class=sd>    handle the beautiful</span>
+<span class=sd>    :meth:`~moptipy.api.process.Process.should_terminate`-based termination</span>
+<span class=sd>    criteria. By using :func:`without_should_terminate`, however, we can still</span>
+<span class=sd>    safely use them within `moptipy` compliant scenarios.</span>
+
+<span class=sd>    :param algorithm: the algorithm</span>
+<span class=sd>    :param process: the optimization process</span>
+<span class=sd>    """</span>
+    <span class=k>with</span> <span class=n>contextlib</span><span class=o>.</span><span class=n>suppress</span><span class=p>(</span><span class=n>_InternalTerminationError</span><span class=p>),</span> \
+            <span class=n>__WithoutShouldTerminateMO</span><span class=p>(</span><span class=n>process</span><span class=p>)</span> \
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=n>MOProcess</span><span class=p>)</span> \
+            <span class=k>else</span> <span class=n>__WithoutShouldTerminate</span><span class=p>(</span><span class=n>process</span><span class=p>)</span> <span class=k>as</span> <span class=n>proc</span><span class=p>:</span>
+        <span class=n>algorithm</span><span class=p>(</span><span class=n>proc</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.subprocesses</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

@@ -1,0 +1,86 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.api.mo_utils — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/api/mo_utils.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.mo_utils</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.api.mo_utils</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Utilities for multi-objective optimization."""</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+
+
+<div class=viewcode-block id=dominates>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_utils.dominates>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>dominates</span><span class=p>(</span><span class=n>a</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>b</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check if one objective vector dominates or is dominated by another one.</span>
+
+<span class=sd>    :param a: the first objective vector</span>
+<span class=sd>    :param b: the second objective value</span>
+<span class=sd>    :returns: an integer value indicating the domination relationship</span>
+<span class=sd>    :retval -1: if `a` dominates `b`</span>
+<span class=sd>    :retval 1: if `b` dominates `a`</span>
+<span class=sd>    :retval 2: if `b` equals `a`</span>
+<span class=sd>    :retval 0: if `a` and `b` are mutually non-dominated, i.e., if neither `a`</span>
+<span class=sd>        dominates `b` not `b` dominates `a` and `b` is also different from `a`</span>
+
+<span class=sd>    >>> from numpy import array</span>
+<span class=sd>    >>> dominates(array([1, 1, 1]), array([2, 2, 2]))</span>
+<span class=sd>    -1</span>
+<span class=sd>    >>> dominates(array([1.0, 1.0, 2.0]), array([2.0, 2.0, 1.0]))</span>
+<span class=sd>    0</span>
+<span class=sd>    >>> dominates(array([2, 2, 2]), array([1, 1, 1]))</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> dominates(array([2, 2, 2]), array([2, 2, 2]))</span>
+<span class=sd>    2</span>
+<span class=sd>    """</span>
+    <span class=n>res</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>av</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>a</span><span class=p>):</span>
+        <span class=n>bv</span> <span class=o>=</span> <span class=n>b</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+        <span class=k>if</span> <span class=n>av</span> <span class=o><</span> <span class=n>bv</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>res</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=n>res</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+            <span class=k>elif</span> <span class=n>res</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>return</span> <span class=mi>0</span>
+        <span class=k>elif</span> <span class=n>bv</span> <span class=o><</span> <span class=n>av</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>res</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=n>res</span> <span class=o>=</span> <span class=mi>1</span>
+            <span class=k>elif</span> <span class=n>res</span> <span class=o>==</span> <span class=o>-</span><span class=mi>1</span><span class=p>:</span>
+                <span class=k>return</span> <span class=mi>0</span>
+    <span class=k>return</span> <span class=mi>2</span> <span class=k>if</span> <span class=n>res</span> <span class=o>==</span> <span class=mi>0</span> <span class=k>else</span> <span class=n>res</span></div>
+
+
+
+<div class=viewcode-block id=lexicographic>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_utils.lexicographic>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>lexicographic</span><span class=p>(</span><span class=n>a</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>b</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compare two arrays lexicographically.</span>
+
+<span class=sd>    :param a: the first objective vector</span>
+<span class=sd>    :param b: the second objective value</span>
+<span class=sd>    :returns: `-1` if `a` is lexicographically less than `b`, `1` if `b` is</span>
+<span class=sd>        less than `a`, `0` otherwise</span>
+<span class=sd>    :retval -1: if `a` is lexicographically less than `b`</span>
+<span class=sd>    :retval 1: if `b` is lexicographically less than `a`</span>
+<span class=sd>    :retval 2: if `b` equals `a`</span>
+
+<span class=sd>    >>> from numpy import array</span>
+<span class=sd>    >>> lexicographic(array([1, 1, 1]), array([2, 2, 2]))</span>
+<span class=sd>    -1</span>
+<span class=sd>    >>> lexicographic(array([1, 1, 1]), array([1, 1, 2]))</span>
+<span class=sd>    -1</span>
+<span class=sd>    >>> lexicographic(array([2, 2, 2]), array([1, 1, 1]))</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> lexicographic(array([2, 2, 2]), array([2, 2, 1]))</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> lexicographic(array([2, 2, 2]), array([2, 2, 2]))</span>
+<span class=sd>    0</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>f</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>a</span><span class=p>):</span>
+        <span class=n>k</span> <span class=o>=</span> <span class=n>b</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+        <span class=k>if</span> <span class=n>f</span> <span class=o><</span> <span class=n>k</span><span class=p>:</span>
+            <span class=k>return</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=k>if</span> <span class=n>f</span> <span class=o>></span> <span class=n>k</span><span class=p>:</span>
+            <span class=k>return</span> <span class=mi>1</span>
+    <span class=k>return</span> <span class=mi>0</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.mo_utils</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

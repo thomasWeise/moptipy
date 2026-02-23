@@ -1,0 +1,333 @@
+<!doctype html><html data-content_root=../../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.modules.selections.fitness_proportionate_sus — moptipy 0.9.172 documentation</title><link href="../../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/modules/selections/fitness_proportionate_sus.html rel=canonical><link href=../../../../../genindex.html rel=index title=Index><link href=../../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.modules.selections.fitness_proportionate_sus</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.modules.selections.fitness_proportionate_sus</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Fitness Proportionate Selection with Stochastic Uniform Sampling.</span>
+
+<span class=sd>In Fitness Proportionate Selection, the chance of a solution for being</span>
+<span class=sd>selected is proportional to its fitness. This selection scheme is designed for</span>
+<span class=sd>*maximization*, whereas all optimization in `moptipy` is done as</span>
+<span class=sd>*minimization*. Therefore, some adjustments are necessary. We will discuss</span>
+<span class=sd>them later. Let us first introduce the idea of fitness proportionate selection</span>
+<span class=sd>for maximization.</span>
+
+<span class=sd>This idea goes back to the original Genetic Algorithm by Holland. Let us say</span>
+<span class=sd>that there are `N` elements and the element at index `i` has fitness `v(i)`.</span>
+<span class=sd>The probability to select this element is then</span>
+<span class=sd>`P(i) = v(i) / [sum_j=0^N v(j)]`, i.e., the fitness of the element divided by</span>
+<span class=sd>the overall fitness sum. Let's say we have a population with the fitnesses</span>
+<span class=sd>`1, 2, 3, 4`. The probability of each element of being selected is then the</span>
+<span class=sd>fitness divided by the overall fitness sum (here `1+2+3+4=10`), i.e., we get</span>
+<span class=sd>the probabilities `1/10=0.1, 0.2, 0.3, 0.4`. These nicely add up to `1`.</span>
+
+<span class=sd>This can be implemented as follows: First, we copy the fitness values of the</span>
+<span class=sd>individuals to an array `a` and get, in the above example, `a = [1, 2, 3, 4]`.</span>
+<span class=sd>Then, we turn this array into a cumulative sum, i.e., add to each element the</span>
+<span class=sd>sum of all previous elements. We get `a = [1, 3, 6, 10]`. `10`, the last</span>
+<span class=sd>value, is the overall sum `S` of all fitnesses. Whenever we want to select an</span>
+<span class=sd>element, we draw a random number `r` uniformly distributed in `[0, S)`. We</span>
+<span class=sd>perform a binary search to get the right-most insertion index `i` of `r` in</span>
+<span class=sd>`a`, i.e., the index `i` with `a[i - 1] <= r < a[i]`. Let's say you draw</span>
+<span class=sd>`0.5`, then `i=0`, for `r=1` you get `i=1`, and for `r=9`, you get `i=3`. `i`</span>
+<span class=sd>is then the element that has been selected.</span>
+
+<span class=sd>In the classical Roulette Wheel Selection as used in Holland's original</span>
+<span class=sd>Genetic Algorithm, we perform this sampling procedure (draw a random number</span>
+<span class=sd>`r`, find the index `i` where it belongs, and return the corresponding</span>
+<span class=sd>element) for each of the `n` offspring we want to sample. An alternative to</span>
+<span class=sd>this is to perform Stochastic Universal Sampling (SUS) by Baker. Here, the</span>
+<span class=sd>idea is that we only generate a single random number `r(0)` from within</span>
+<span class=sd>`[0, S)`. The next number `r(1)` will not be random, but</span>
+<span class=sd>`r(1)=(r(0) + S/n) mod S` and `r(i) = (r(i-1) + S/n) mod S` where `mod` be</span>
+<span class=sd>the modulo division. In other words, after drawing the initial random sample,</span>
+<span class=sd>we take steps of equal length along the Roulette Wheel, or, alternatively,</span>
+<span class=sd>we have a Roulette Wheel not with a single choice point that we spin `n`</span>
+<span class=sd>times but a wheel with `n` choice points that we spin a single time. This</span>
+<span class=sd>avoids random jitter and also requires us to only draw a single random number.</span>
+<span class=sd>We implement the fitness proportionate selection with stochastic uniform</span>
+<span class=sd>sampling here.</span>
+
+<span class=sd>But this is for *maximization*  of fitness, while we conduct *minimization*.</span>
+
+<span class=sd>At first glance, we can turn a maximization problem into a minimization</span>
+<span class=sd>problem by simply subtracting each fitness value from the maximum fitness</span>
+<span class=sd>value `max_{all i} v(i)`. However, this has *two* big downsides.</span>
+
+<span class=sd>Let us take the same example as before, the fitnesses `1, 2, 3, 4`. Under</span>
+<span class=sd>maximization, the fitness `4` was best but now it is worst. It is also the</span>
+<span class=sd>maximum fitness. So let us emulate fitness proportionate selection for</span>
+<span class=sd>minimization by simply subtracting each fitness from the maximum (here: `4`).</span>
+<span class=sd>We would get the adjusted fitnesses `3, 2, 1, 0`, the fitness sum `6`, and</span>
+<span class=sd>probabilities `1/2, 1/3, 1/6, 0`, which still add up to `1` nicely. However,</span>
+<span class=sd>now we have one element with 0% chance of being selected, namely the one with</span>
+<span class=sd>the worst original fitness `4`. This is strange, because under maximization,</span>
+<span class=sd>the worst element was `1` and it still had non-zero probability of being</span>
+<span class=sd>selected. Furthermore, a second problem occurs if all elements are the same,</span>
+<span class=sd>say, `1, 1, 1, 1`. We would then adjust them to all zeros, have a zero sum,</span>
+<span class=sd>and getting `0/0` as selection probabilities. So that is not permissible.</span>
+
+<span class=sd>The second problem can easily be solved by simply defining that, if all `N`</span>
+<span class=sd>elements are identical, they should all get the same probability `1/N` of</span>
+<span class=sd>being selected.</span>
+
+<span class=sd>The first problem becomes clearer when we realize that under "normal" fitness</span>
+<span class=sd>proportionate selection for maximization, the reference point "`0`" is</span>
+<span class=sd>actually arbitrarily chosen and hard coded. If we have `1, 2, 3, 4, 10` as</span>
+<span class=sd>fitnesses and transform them to the probabilities `0.05, 0.1, 0.15, 0.2, 0.5`,</span>
+<span class=sd>we do so implicitly based on their "distance" to `0`. If we would add</span>
+<span class=sd>some offset to them, say, `1`, i.e., calculate wit `2, 3, 4, 5, 11`, we would</span>
+<span class=sd>get the fitness sum `25` and compute probabilities `0.08`, `0.12`, `0.16`,</span>
+<span class=sd>`0.2`, and `0.44` instead. In other words, if we choose different reference</span>
+<span class=sd>points, e.g., `-1` instead of `0`, we get different probabilities. And while</span>
+<span class=sd>`0` seems a natural choice as reference point, it is actually just arbitrary.</span>
+<span class=sd>The only actual condition of a reference point for maximization is that it</span>
+<span class=sd>must be less or equal than/to the smallest occurring fitness.</span>
+
+<span class=sd>If we do minimization instead of maximization, we do not have a "natural"</span>
+<span class=sd>reference point. The only condition for the reference point is that it must be</span>
+<span class=sd>larger or equal than/to the largest occurring fitness. Choosing the maximum</span>
+<span class=sd>fitness value is just an arbitrary choice and it results in the solution of</span>
+<span class=sd>this fitness getting `0` chance to reproduce.</span>
+
+<span class=sd>If we can choose an arbitrary reference point for minimization, how do we</span>
+<span class=sd>choose it? Our :class:`~moptipy.algorithms.modules.selections.\</span>
+<span class=sd>fitness_proportionate_sus.FitnessProportionateSUS` has a parameter</span>
+<span class=sd>`min_prob`, which corresponds to the minimal selection probability that *any*</span>
+<span class=sd>element should have (of course, if we have `N` elements in the population, it</span>
+<span class=sd>must hold that `0 <= min_prob < 1/N`). Based on this probability, we compute</span>
+<span class=sd>the offset of the fitness values. We do it as follows:</span>
+
+<span class=sd>The idea is that, in maximization, we got</span>
+<span class=sd>`P(i) = v(i) / [sum_j=0^(N-1) v(j)]`. Now if `v(i) = 0`, we would get</span>
+<span class=sd>`P(i) = 0` as well. But we want `P(i) = min_prob`, so we need to add an</span>
+<span class=sd>`offset` to each `v(i)`. So this then becomes</span>
+<span class=sd>`P(i) = min_prob = offset / [sum_j=0^(N-1) (v(j) + offset)]`, which</span>
+<span class=sd>becomes `min_prob = offset / [N * offset + sum_j=0^N v(j)]`. Let's set</span>
+<span class=sd>`S = sum_j=0^N v(j)` to make this easier to read and we get</span>
+<span class=sd>`min_prob = offset / (N * offset + S)`. Solving for `offset` gives us</span>
+<span class=sd>`offset = S * (min_prob / (1.0 - (min_prob * N)))`. In other words, for any</span>
+<span class=sd>allowable minimum selection probability `0<=min_prob&LT1/N`, we can compute an</span>
+<span class=sd>offset to add to each fitness value that will result in the worst solution</span>
+<span class=sd>having exactly this selection probability. The probabilities of the other</span>
+<span class=sd>solutions will be larger, rather proportional to their fitness.</span>
+
+<span class=sd>For minimization, first, we compute the maximum (i.e., worst) fitness</span>
+<span class=sd>`max_fitness` and negate each fitness by subtracting it from `max_fitness`.</span>
+<span class=sd>For an input array `1, 2, 3, 4` we now get `3, 2, 1, 0`. `S` be the sum of</span>
+<span class=sd>the negated fitnesses, so in the above example, `S = 3 + 2 + 1 + 0 = 6`. We</span>
+<span class=sd>can now compute the `offset` to be added to each negated fitness to achieve</span>
+<span class=sd>the goal probability distribution as follows:</span>
+<span class=sd>`offset = S * (min_prob / (1.0 - (min_prob * N)))`. If we had chosen</span>
+<span class=sd>`min_prob = 0`, then `offset = 0` and the probability for the worst element</span>
+<span class=sd>to be selected remains `0`. If we choose `min_prob = 0.01`, then we would</span>
+<span class=sd>get `offset = 0.0625`. The selection probability of the worst element with</span>
+<span class=sd>original fitness `4` and adjusted fitness `0` would be</span>
+<span class=sd>`(0 + 0.0625) / (6 + (4 * 0.0625)) = 0.0625 / 6.25 = 0.01`.</span>
+
+<span class=sd>As a side-effect of this choice of dynamic offsetting, our fitness</span>
+<span class=sd>proportionate selection scheme becomes invariant under all translations of the</span>
+<span class=sd>objective function value. The original fitness proportionate selection</span>
+<span class=sd>schemes, regardless of being of the Roulette Wheel or Stochastic Universal</span>
+<span class=sd>Sampling variant, do not have this property (see, for instance, de la Maza and</span>
+<span class=sd>Tidor).</span>
+
+<span class=sd>1. John Henry Holland. *Adaptation in Natural and Artificial Systems: An</span>
+<span class=sd>   Introductory Analysis with Applications to Biology, Control, and Artificial</span>
+<span class=sd>   Intelligence.* Ann Arbor, MI, USA: University of Michigan Press. 1975.</span>
+<span class=sd>   ISBN: 0-472-08460-7</span>
+<span class=sd>2. David Edward Goldberg. *Genetic Algorithms in Search, Optimization, and</span>
+<span class=sd>   Machine Learning.* Boston, MA, USA: Addison-Wesley Longman Publishing Co.,</span>
+<span class=sd>   Inc. 1989. ISBN: 0-201-15767-5</span>
+<span class=sd>3. James E. Baker. Reducing Bias and Inefficiency in the Selection Algorithm.</span>
+<span class=sd>   In John J. Grefenstette, editor, *Proceedings of the Second International</span>
+<span class=sd>   Conference on Genetic Algorithms on Genetic Algorithms and their</span>
+<span class=sd>   Application (ICGA'87),* July 1987, Cambridge, MA, USA, pages 14-21.</span>
+<span class=sd>   Hillsdale, NJ, USA: Lawrence Erlbaum Associates. ISBN: 0-8058-0158-8</span>
+<span class=sd>4. Peter J. B. Hancock. An Empirical Comparison of Selection Methods in</span>
+<span class=sd>   Evolutionary Algorithms. In Terence Claus Fogarty, editor, *Selected Papers</span>
+<span class=sd>   from the AISB Workshop on Evolutionary Computing (AISB EC'94),* April</span>
+<span class=sd>   11-13, 1994, Leeds, UK, volume 865 of Lecture Notes in Computer Science,</span>
+<span class=sd>   pages 80-94, Berlin/Heidelberg, Germany: Springer, ISBN: 978-3-540-58483-4.</span>
+<span class=sd>   https://dx.doi.org/10.1007/3-540-58483-8_7. Conference organized by the</span>
+<span class=sd>   Society for the Study of Artificial Intelligence and Simulation of</span>
+<span class=sd>   Behaviour (AISB).</span>
+<span class=sd>5. Tobias Blickle and Lothar Thiele. A Comparison of Selection Schemes used in</span>
+<span class=sd>   Genetic Algorithms. Second edition, December 1995. TIK-Report 11 from the</span>
+<span class=sd>   Eidgenössische Technische Hochschule (ETH) Zürich, Department of Electrical</span>
+<span class=sd>   Engineering, Computer Engineering and Networks Laboratory (TIK), Zürich,</span>
+<span class=sd>   Switzerland. ftp://ftp.tik.ee.ethz.ch/pub/publications/TIK-Report11.ps</span>
+<span class=sd>6. Uday Kumar Chakraborty and Kalyanmoy Deb and Mandira Chakraborty. Analysis</span>
+<span class=sd>   of Selection Algorithms: A Markov Chain Approach. *Evolutionary</span>
+<span class=sd>   Computation,* 4(2):133-167. Summer 1996. Cambridge, MA, USA: MIT Press.</span>
+<span class=sd>   doi:10.1162/evco.1996.4.2.133.</span>
+<span class=sd>   https://dl.acm.org/doi/pdf/10.1162/evco.1996.4.2.133</span>
+<span class=sd>7. Michael de la Maza and Bruce Tidor. An Analysis of Selection Procedures</span>
+<span class=sd>   with Particular Attention Paid to Proportional and Bolzmann Selection. In</span>
+<span class=sd>   Stephanie Forrest, editor, *Proceedings of the Fifth International</span>
+<span class=sd>   Conference on Genetic Algorithms (ICGA'93),* July 17-21, 1993,</span>
+<span class=sd>   Urbana-Champaign, IL, USA, pages 124-131. San Francisco, CA, USA:</span>
+<span class=sd>   Morgan Kaufmann Publishers Inc. ISBN: 1-55860-299-2</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.modules.selection</span><span class=w> </span><span class=kn>import</span> <span class=n>FitnessRecord</span><span class=p>,</span> <span class=n>Selection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>DEFAULT_FLOAT</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=n>num_to_str_for_name</span>
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=c1># start book</span>
+<span class=k>def</span><span class=w> </span><span class=nf>_make_cum_sum</span><span class=p>(</span><span class=n>a</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>offset_mul</span><span class=p>:</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the roulette wheel based on a given offset multiplier.</span>
+
+<span class=sd>    The roulette wheel is basically an array of increasing values which</span>
+<span class=sd>    corresponds to the cumulative sums of *"maximum - a[i] adjusted with</span>
+<span class=sd>    the probability offset"*.</span>
+
+<span class=sd>    :param a: the array with the fitness values</span>
+<span class=sd>    :param offset_mul: the offset multiplier</span>
+
+<span class=sd>    >>> import numpy as nn</span>
+<span class=sd>    >>> ar = nn.array([1, 2, 3, 4], float)</span>
+<span class=sd>    >>> _make_cum_sum(ar, 0)</span>
+<span class=sd>    >>> list(map(str, map(float, ar)))</span>
+<span class=sd>    ['3.0', '5.0', '6.0', '6.0']</span>
+<span class=sd>    >>> ar = nn.array([1, 2, 3, 4], float)</span>
+<span class=sd>    >>> min_prob = 0.01</span>
+<span class=sd>    >>> offset_mult = (min_prob / (1.0 - (min_prob * len(ar))))</span>
+<span class=sd>    >>> _make_cum_sum(ar, offset_mult)</span>
+<span class=sd>    >>> list(map(str, ar))</span>
+<span class=sd>    ['3.0625', '5.125', '6.1875', '6.25']</span>
+<span class=sd>    >>> float((ar[-1] - ar[-2]) / ar[-1])  # compute prob of 4 being selected</span>
+<span class=sd>    0.01</span>
+<span class=sd>    >>> ar.fill(12)</span>
+<span class=sd>    >>> _make_cum_sum(ar, 0.01)</span>
+<span class=sd>    >>> list(map(str, map(float, ar)))</span>
+<span class=sd>    ['1.0', '2.0', '3.0', '4.0']</span>
+<span class=sd>    """</span>
+    <span class=n>max_fitness</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=n>np</span><span class=o>.</span><span class=n>inf</span>  <span class=c1># initialize maximum to -infinity</span>
+    <span class=n>min_fitness</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>inf</span>  <span class=c1># initialize minimum to infinity</span>
+    <span class=k>for</span> <span class=n>v</span> <span class=ow>in</span> <span class=n>a</span><span class=p>:</span>  <span class=c1># get minimum and maximum fitness</span>
+        <span class=n>max_fitness</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>max_fitness</span><span class=p>,</span> <span class=n>v</span><span class=p>)</span>
+        <span class=n>min_fitness</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>min_fitness</span><span class=p>,</span> <span class=n>v</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>min_fitness</span> <span class=o>>=</span> <span class=n>max_fitness</span><span class=p>:</span>  <span class=c1># all elements are the same</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>a</span><span class=p>)):</span>  <span class=c1># pylint: disable=C0200</span>
+            <span class=n>a</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>i</span> <span class=o>+</span> <span class=mi>1</span>  <span class=c1># assign equal probabilities to all elements</span>
+        <span class=k>return</span>  <span class=c1># finished: a=[1, 2, 3, 4, ...] -> each range = 1</span>
+
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>v</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>a</span><span class=p>):</span>  <span class=c1># since we do minimization, we now negate</span>
+        <span class=n>a</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>max_fitness</span> <span class=o>-</span> <span class=n>v</span>  <span class=c1># the array by subtracting from maximum</span>
+
+    <span class=n>fitness_sum</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>a</span><span class=o>.</span><span class=n>sum</span><span class=p>()</span>  <span class=c1># get the new fitness sum</span>
+
+    <span class=c1># compute the offset to accommodate the probability adjustment</span>
+    <span class=n>offset</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>fitness_sum</span> <span class=o>*</span> <span class=n>offset_mul</span>
+
+    <span class=n>cum_sum</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.0</span>  <span class=c1># the cumulative sum accumulator starts at 0</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>v</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>a</span><span class=p>):</span>  <span class=c1># iterate over array and build the sum</span>
+        <span class=n>a</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>cum_sum</span> <span class=o>=</span> <span class=n>cum_sum</span> <span class=o>+</span> <span class=n>offset</span> <span class=o>+</span> <span class=n>v</span>  <span class=c1># store cum sum + offset</span>
+<span class=c1># end book</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=FitnessProportionateSUS>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.modules.selections.html#moptipy.algorithms.modules.selections.fitness_proportionate_sus.FitnessProportionateSUS>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>FitnessProportionateSUS</span><span class=p>(</span><span class=n>Selection</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""Fitness Proportionate Selection with Stochastic Universal Sampling."""</span>
+
+<span class=c1># end book</span>
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>min_prob</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.0</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the stochastic universal sampling method.</span>
+
+<span class=sd>        :param min_prob: the minimal selection probability of any element</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>min_prob</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>min_prob</span><span class=p>,</span> <span class=s2>"min_prob"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=mf>0.0</span> <span class=o><=</span> <span class=n>min_prob</span> <span class=o><</span> <span class=mf>0.2</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"min_prob=</span><span class=si>{</span><span class=n>min_prob</span><span class=si>}</span><span class=s2>, but must be 0<=min_prob&LT0.2"</span><span class=p>)</span>
+        <span class=c1>#: the minimum selection probability of any element</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>min_prob</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>min_prob</span>
+        <span class=c1>#: the array to store the cumulative sum</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__cumsum</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>DEFAULT_FLOAT</span><span class=p>)</span>
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=FitnessProportionateSUS.select>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.modules.selections.html#moptipy.algorithms.modules.selections.fitness_proportionate_sus.FitnessProportionateSUS.select>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>select</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>source</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>FitnessRecord</span><span class=p>],</span>
+               <span class=n>dest</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>FitnessRecord</span><span class=p>],</span> <span class=n>Any</span><span class=p>],</span>
+               <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Perform deterministic best selection without replacement.</span>
+
+<span class=sd>        :param source: the list with the records to select from</span>
+<span class=sd>        :param dest: the destination collector to invoke for each selected</span>
+<span class=sd>            record</span>
+<span class=sd>        :param n: the number of records to select</span>
+<span class=sd>        :param random: the random number generator</span>
+<span class=sd>        """</span>
+        <span class=n>m</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>source</span><span class=p>)</span>  <span class=c1># number of elements to select from</span>
+        <span class=c1># compute the offset multiplier from the minimum probability</span>
+        <span class=c1># for this, min_prob must be < 1 / m</span>
+        <span class=n>min_prob</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>min_prob</span>
+        <span class=k>if</span> <span class=n>min_prob</span> <span class=o>>=</span> <span class=p>(</span><span class=mf>1.0</span> <span class=o>/</span> <span class=n>m</span><span class=p>):</span>  <span class=c1># -book</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"min_prob=</span><span class=si>{</span><span class=n>min_prob</span><span class=si>}</span><span class=s2> >= </span><span class=si>{</span><span class=mi>1</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=n>m</span><span class=si>}</span><span class=s2>!"</span><span class=p>)</span>  <span class=c1># -book</span>
+        <span class=n>offset_mul</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=n>min_prob</span> <span class=o>/</span> <span class=p>(</span><span class=mf>1.0</span> <span class=o>-</span> <span class=p>(</span><span class=n>min_prob</span> <span class=o>*</span> <span class=n>m</span><span class=p>)))</span>
+        <span class=c1># end book</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>offset_mul</span> <span class=o><</span> <span class=mf>0.0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>offset_mul</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"min_prob=</span><span class=si>{</span><span class=n>min_prob</span><span class=si>}</span><span class=s2>, len=</span><span class=si>{</span><span class=n>m</span><span class=si>}</span><span class=s2> => offset_mul=</span><span class=si>{</span><span class=n>offset_mul</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+        <span class=c1># start book</span>
+        <span class=n>a</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__cumsum</span>  <span class=c1># get array for cumulative sum</span>
+        <span class=c1># end book</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>a</span><span class=p>)</span> <span class=o>!=</span> <span class=n>m</span><span class=p>:</span>  <span class=c1># re-allocate only if lengths don't match</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__cumsum</span> <span class=o>=</span> <span class=n>a</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=n>m</span><span class=p>,</span> <span class=n>DEFAULT_FLOAT</span><span class=p>)</span>
+        <span class=c1># start book</span>
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>rec</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>source</span><span class=p>):</span>  <span class=c1># fill the array with fitnesses</span>
+            <span class=n>a</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rec</span><span class=o>.</span><span class=n>fitness</span>  <span class=c1># store the fitnesses in the numpy array</span>
+
+        <span class=n>_make_cum_sum</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=n>offset_mul</span><span class=p>)</span>  <span class=c1># construct cumulative sum array</span>
+        <span class=n>total_sum</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>a</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>  <span class=c1># total sum = last element</span>
+        <span class=c1># now perform the stochastic uniform sampling</span>
+        <span class=n>current</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>total_sum</span><span class=p>)</span>  <span class=c1># starting point</span>
+        <span class=n>step_width</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>total_sum</span> <span class=o>/</span> <span class=n>n</span>  <span class=c1># step width</span>
+        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>):</span>  <span class=c1># select the `n` solutions</span>
+            <span class=n>dest</span><span class=p>(</span><span class=n>source</span><span class=p>[</span><span class=n>a</span><span class=o>.</span><span class=n>searchsorted</span><span class=p>(</span><span class=n>current</span><span class=p>,</span> <span class=s2>"right"</span><span class=p>)])</span>  <span class=c1># select</span>
+            <span class=n>current</span> <span class=o>=</span> <span class=p>(</span><span class=n>current</span> <span class=o>+</span> <span class=n>step_width</span><span class=p>)</span> <span class=o>%</span> <span class=n>total_sum</span>  <span class=c1># get next</span></div>
+
+<span class=c1># end book</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the stochastic uniform sampling selection algorithm.</span>
+
+<span class=sd>        :return: the name of the stochastic uniform sampling selection</span>
+<span class=sd>            algorithm</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"fpsus"</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>min_prob</span> <span class=o><=</span> <span class=mf>0.0</span> \
+            <span class=k>else</span> <span class=sa>f</span><span class=s2>"fpsus</span><span class=si>{</span><span class=n>num_to_str_for_name</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>min_prob</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span>
+
+<div class=viewcode-block id=FitnessProportionateSUS.log_parameters_to>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.modules.selections.html#moptipy.algorithms.modules.selections.fitness_proportionate_sus.FitnessProportionateSUS.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of the algorithm to a logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"minprob"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>min_prob</span><span class=p>,</span> <span class=n>also_hex</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.modules.selections.fitness_proportionate_sus</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

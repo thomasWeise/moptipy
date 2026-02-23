@@ -1,0 +1,284 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.api.space — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/api/space.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.space</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.api.space</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Provide the functionality to access search and solution spaces.</span>
+
+<span class=sd>A :class:`Space` is the abstraction of the data structures for solutions and</span>
+<span class=sd>points in the search space that need to be generated, copied, and stored</span>
+<span class=sd>during the optimization process. This allows us to develop black-box</span>
+<span class=sd>algorithms while still being able to properly remember the best solutions,</span>
+<span class=sd>storing them as text strings in log files, and to validate whether they are</span>
+<span class=sd>correct.</span>
+
+<span class=sd>All search or solution spaces in `moptipy` inherit from :class:`Space`. If</span>
+<span class=sd>you implement a new space, you should test it with the pre-defined unit test</span>
+<span class=sd>routine :func:`~moptipy.tests.space.validate_space`.</span>
+
+<span class=sd>The following pre-defined spaces are currently available:</span>
+
+<span class=sd>- :class:`~moptipy.spaces.bitstrings.BitStrings`, the space of `n`-dimensional</span>
+<span class=sd>  bit strings</span>
+<span class=sd>- :class:`~moptipy.spaces.intspace.IntSpace`, a space of `n`-dimensional</span>
+<span class=sd>  integer strings, where each element is between predefined inclusive bounds</span>
+<span class=sd>  `min_value...max_value`.</span>
+<span class=sd>- :class:`~moptipy.spaces.permutations.Permutations` is a special version of</span>
+<span class=sd>  the :class:`~moptipy.spaces.intspace.IntSpace` where all elements are</span>
+<span class=sd>  permutations of a base string</span>
+<span class=sd>  :attr:`~moptipy.spaces.permutations.Permutations.blueprint`. This means that</span>
+<span class=sd>  it can represent permutations both with and without repetitions. Depending</span>
+<span class=sd>  on the base string, each element may occur an element-specific number of</span>
+<span class=sd>  times. For the base string `(-1, -1, 2, 7, 7, 7)`, for example, `-1` may</span>
+<span class=sd>  occur twice, `2` can occur once, and `7` three times.</span>
+<span class=sd>- :class:`~moptipy.spaces.vectorspace.VectorSpace` is the space of</span>
+<span class=sd>  `n`-dimensional floating point number vectors.</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.component</span><span class=w> </span><span class=kn>import</span> <span class=n>Component</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=Space>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.space.Space>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Space</span><span class=p>(</span><span class=n>Component</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A class to represent both search and solution spaces.</span>
+
+<span class=sd>    The space basically defines a container data structure and basic</span>
+<span class=sd>    operations that we can apply to them. For example, a solution</span>
+<span class=sd>    space contains all the possible solutions to an optimization</span>
+<span class=sd>    problem. All of them are instances of one data structure. An</span>
+<span class=sd>    optimization as well as a black-box process needs to be able to</span>
+<span class=sd>    create and copy such objects. In order to store the solutions we</span>
+<span class=sd>    found in a text file, we must further be able to translate them to</span>
+<span class=sd>    strings. We should also be able to parse such strings. It is also</span>
+<span class=sd>    important to detect whether two objects are the same and whether</span>
+<span class=sd>    the contents of an object are valid. All of this functionality is</span>
+<span class=sd>    offered by the `Space` class.</span>
+<span class=sd>    """</span>
+
+<div class=viewcode-block id=Space.create>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.space.Space.create>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>Any</span><span class=p>:</span>
+        <span class=c1># end book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Generate an instance of the data structure managed by the space.</span>
+
+<span class=sd>        The state/contents of this data structure are undefined. It may</span>
+<span class=sd>        not pass the :meth:`validate` method.</span>
+
+<span class=sd>        :return: the new instance</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Space.copy>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.space.Space.copy>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>copy</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>dest</span><span class=p>,</span> <span class=n>source</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Copy one instance of the data structure to another one.</span>
+
+<span class=sd>        Notice that the first parameter of this method is the destination,</span>
+<span class=sd>        which will be overwritten by copying the contents of the second</span>
+<span class=sd>        parameter over it.</span>
+
+<span class=sd>        :param dest: the destination data structure,</span>
+<span class=sd>            whose contents will be overwritten with those from `source`</span>
+<span class=sd>        :param source: the source data structure, which remains</span>
+<span class=sd>            unchanged and whose contents will be copied to `dest`</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Space.to_str>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.space.Space.to_str>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>to_str</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Obtain a textual representation of an instance of the data structure.</span>
+
+<span class=sd>        This method should convert an element of the space to a string</span>
+<span class=sd>        representation that is parseable by :meth:from_str: and should ideally</span>
+<span class=sd>        not be too verbose. For example, when converting a list or array `x`</span>
+<span class=sd>        of integers to a string, one could simply do</span>
+<span class=sd>        `";".join([str(xx) for xx in x])`, which would convert it to a</span>
+<span class=sd>        semicolon-separated list without any wasted space.</span>
+
+<span class=sd>        Notice that this method is used by the</span>
+<span class=sd>        :class:`~moptipy.utils.logger.Logger` when storing the final</span>
+<span class=sd>        optimization results in the log files in form of a</span>
+<span class=sd>        :class:`~moptipy.utils.logger.TextLogSection` created via</span>
+<span class=sd>        :meth:`~moptipy.utils.logger.Logger.text`. By implementing</span>
+<span class=sd>        :meth:from_str: and :meth:to_str: as exact inverse of each other, you</span>
+<span class=sd>        can thus ensure that you can always automatically load the results of</span>
+<span class=sd>        your optimization runs from the log files created via</span>
+<span class=sd>        :meth:`~moptipy.api.execution.Execution.set_log_file` of the</span>
+<span class=sd>        :class:`~moptipy.api.execution.Execution` class.</span>
+
+<span class=sd>        :param x: the instance</span>
+<span class=sd>        :return: the string representation of x</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Space.from_str>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.space.Space.from_str>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>from_str</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>text</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=n>Any</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Transform a string `text` to one element of the space.</span>
+
+<span class=sd>        This method should be implemented as inverse to :meth:to_str:.</span>
+<span class=sd>        It should check the validity of the result before returning it.</span>
+<span class=sd>        It may not always be possible to implement this method, but you</span>
+<span class=sd>        should try.</span>
+
+<span class=sd>        :param text: the input string</span>
+<span class=sd>        :return: the element in the space corresponding to `text`</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Space.is_equal>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.space.Space.is_equal>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>is_equal</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x1</span><span class=p>,</span> <span class=n>x2</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Check if the contents of two instances of the data structure are equal.</span>
+
+<span class=sd>        :param x1: the first instance</span>
+<span class=sd>        :param x2: the second instance</span>
+<span class=sd>        :return: `True` if the contents are equal, `False` otherwise</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Space.validate>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.space.Space.validate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>validate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Check whether a given point in the space is valid.</span>
+
+<span class=sd>        This function should be implemented such that it very carefully checks</span>
+<span class=sd>        whether the argument `x` is a valid element of this space. It should</span>
+<span class=sd>        check the Python data type of `x` and the type of its components and</span>
+<span class=sd>        raise a `TypeError` if it does not match the exact requirements. It</span>
+<span class=sd>        should also check the value of each element of `x` whether it is</span>
+<span class=sd>        permitted. Once this function returns without throwing an exception,</span>
+<span class=sd>        the user can rely on that the data structure `x` is correct.</span>
+
+<span class=sd>        For example, if we have a space of</span>
+<span class=sd>        :mod:`~moptipy.spaces.permutations` of the values from `1` to `n`,</span>
+<span class=sd>        where the elements are represented as :class:`numpy.ndarray` objects,</span>
+<span class=sd>        then this function should first check whether `x` is indeed an</span>
+<span class=sd>        instance of :class:`numpy.ndarray`. If not, it should raise a</span>
+<span class=sd>        `TypeError`. Then it could check whether the length of `x` is indeed</span>
+<span class=sd>        `n` and raise a `ValueError` otherwise. It could then check whether</span>
+<span class=sd>        each element of `x` is from `1..n` *and* occurs exactly one time (and</span>
+<span class=sd>        otherwise raise a `ValueError`). Moreover, it should also check</span>
+<span class=sd>        whether the numpy `dtype` of `x` is an appropriate integer data type</span>
+<span class=sd>        and raise a `ValueError` otherwise. Hence, if this function checks an</span>
+<span class=sd>        element `x` and does not raise any error, the user can rely on that</span>
+<span class=sd>        this element `x` is, indeed, a fully valid permutation.</span>
+
+<span class=sd>        In our system, we use this method for example at the end of</span>
+<span class=sd>        optimization processes. Every solution that is written to a log file</span>
+<span class=sd>        must pass through this method. In other words, we ensure that only</span>
+<span class=sd>        valid solutions are stored. If the optimization algorithm or a search</span>
+<span class=sd>        operator has a bug and sometimes may produce invalid data structures,</span>
+<span class=sd>        this a) helps us in finding the bug and b) prevents us from storing</span>
+<span class=sd>        invalid solutions. It is also strongly encouraged that the</span>
+<span class=sd>        :meth:`from_str` method of any :class:`Space` implementation should</span>
+<span class=sd>        run its results through :meth:`validate`. Since :meth:`from_str` can</span>
+<span class=sd>        be used to, e.g., parse the data from the result sections of log</span>
+<span class=sd>        files, this ensures that no corrupted or otherwise invalid data is</span>
+<span class=sd>        parsed into an application.</span>
+<span class=sd>        See https://thomasweise.github.io/moptipy/#data-formats for more</span>
+<span class=sd>        information on log files.</span>
+
+<span class=sd>        :param x: the point</span>
+<span class=sd>        :raises TypeError: if the point `x` (or one of its elements, if</span>
+<span class=sd>            applicable) has the wrong data type</span>
+<span class=sd>        :raises ValueError: if the point `x` is invalid and/or simply is not</span>
+<span class=sd>            an element of this space</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Space.n_points>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.space.Space.n_points>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>n_points</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the approximate number of different elements in the space.</span>
+
+<span class=sd>        This operation can help us when doing tests of the space API</span>
+<span class=sd>        implementations. If we know how many points exist in the space,</span>
+<span class=sd>        then we can judge whether a method that randomly generates</span>
+<span class=sd>        points is sufficiently random, for instance.</span>
+
+<span class=sd>        By default, this method simply returns `2`. If you have a better</span>
+<span class=sd>        approximation of the size of the space, then you should override it.</span>
+
+<span class=sd>        :return: the approximate scale of the space</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=mi>2</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=check_space>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.space.check_space>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>check_space</span><span class=p>(</span><span class=n>space</span><span class=p>:</span> <span class=n>Any</span><span class=p>,</span> <span class=n>none_is_ok</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=n>Space</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether an object is a valid instance of :class:`Space`.</span>
+
+<span class=sd>    :param space: the object</span>
+<span class=sd>    :param none_is_ok: is it ok if `None` is passed in?</span>
+<span class=sd>    :return: the object</span>
+<span class=sd>    :raises TypeError: if `space` is not an instance of</span>
+<span class=sd>        :class:`~moptipy.api.space.Space`</span>
+
+<span class=sd>    >>> check_space(Space())</span>
+<span class=sd>    Space</span>
+<span class=sd>    >>> check_space(Space(), True)</span>
+<span class=sd>    Space</span>
+<span class=sd>    >>> check_space(Space(), False)</span>
+<span class=sd>    Space</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_space('A')</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    space should be an instance of moptipy.api.space.\</span>
+<span class=sd>Space but is str, namely 'A'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_space('A', True)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    space should be an instance of moptipy.api.space.\</span>
+<span class=sd>Space but is str, namely 'A'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_space('A', False)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    space should be an instance of moptipy.api.space.\</span>
+<span class=sd>Space but is str, namely 'A'.</span>
+
+<span class=sd>    >>></span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_space(None)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    space should be an instance of moptipy.api.space.\</span>
+<span class=sd>Space but is None.</span>
+
+<span class=sd>    >>> print(check_space(None, True))</span>
+<span class=sd>    None</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_space(None, False)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    space should be an instance of moptipy.api.space.\</span>
+<span class=sd>Space but is None.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>space</span><span class=p>,</span> <span class=n>Space</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>space</span>
+    <span class=k>if</span> <span class=n>none_is_ok</span> <span class=ow>and</span> <span class=p>(</span><span class=n>space</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>):</span>
+        <span class=k>return</span> <span class=kc>None</span>
+    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>space</span><span class=p>,</span> <span class=s2>"space"</span><span class=p>,</span> <span class=n>Space</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.space</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

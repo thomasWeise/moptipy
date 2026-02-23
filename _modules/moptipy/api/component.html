@@ -1,0 +1,82 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.api.component — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/api/component.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.component</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.api.component</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Provides the base class for all components of the moptipy API.</span>
+
+<span class=sd>All elements of the `moptipy` API inherit from</span>
+<span class=sd>:class:`~moptipy.api.component.Component`. If you implement a new such</span>
+<span class=sd>component, you can test it using the pre-defined unit test routine</span>
+<span class=sd>:func:`~moptipy.tests.component.validate_component`.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_name_of</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api</span><span class=w> </span><span class=kn>import</span> <span class=n>logging</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+
+
+<div class=viewcode-block id=Component>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.component.Component>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Component</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""The base class for all components of the moptipy API."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__repr__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the string representation of this object.</span>
+
+<span class=sd>        :return: the value returned by :meth:`__str__`</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=nb>str</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the default to-string implementation returns the class name.</span>
+
+<span class=sd>        :returns: the class name of this component</span>
+
+<span class=sd>        >>> print(Component())</span>
+<span class=sd>        Component</span>
+<span class=sd>        """</span>
+        <span class=n>s</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>type_name_of</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span>
+        <span class=n>i</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>s</span><span class=o>.</span><span class=n>rfind</span><span class=p>(</span><span class=s2>"."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>i</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>s</span><span class=p>[</span><span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>:]</span>
+        <span class=k>return</span> <span class=n>s</span>
+
+<div class=viewcode-block id=Component.initialize>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.component.Component.initialize>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>initialize</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize this component before a new run.</span>
+
+<span class=sd>        Before every run of the optimization algorithm, its `initialize`</span>
+<span class=sd>        method is called. The algorithm in turn must call all the `initialize`</span>
+<span class=sd>        methods of all of its components.</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Component.log_parameters_to>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.component.Component.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log all parameters of this component as key-value pairs.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.key_values("C") as kv:</span>
+<span class=sd>        ...         Component().log_parameters_to(kv)</span>
+<span class=sd>        ...     text = l.get_log()</span>
+<span class=sd>        >>> text[-2]</span>
+<span class=sd>        'class: moptipy.api.component.Component'</span>
+<span class=sd>        >>> text[-3]</span>
+<span class=sd>        'name: Component'</span>
+<span class=sd>        >>> len(text)</span>
+<span class=sd>        4</span>
+<span class=sd>        """</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>logging</span><span class=o>.</span><span class=n>KEY_NAME</span><span class=p>,</span> <span class=nb>str</span><span class=p>(</span><span class=bp>self</span><span class=p>))</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>logging</span><span class=o>.</span><span class=n>KEY_CLASS</span><span class=p>,</span> <span class=n>type_name_of</span><span class=p>(</span><span class=bp>self</span><span class=p>))</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.component</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

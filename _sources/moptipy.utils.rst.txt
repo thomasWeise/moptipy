@@ -1,0 +1,138 @@
+moptipy.utils package
+=====================
+
+.. automodule:: moptipy.utils
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+moptipy.utils.formatted\_string module
+--------------------------------------
+
+.. automodule:: moptipy.utils.formatted_string
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.utils.help module
+-------------------------
+
+.. automodule:: moptipy.utils.help
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.utils.html module
+-------------------------
+
+.. automodule:: moptipy.utils.html
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.utils.lang module
+-------------------------
+
+.. automodule:: moptipy.utils.lang
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.utils.latex module
+--------------------------
+
+.. automodule:: moptipy.utils.latex
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.utils.logger module
+---------------------------
+
+.. automodule:: moptipy.utils.logger
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.utils.markdown module
+-----------------------------
+
+.. automodule:: moptipy.utils.markdown
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.utils.math module
+-------------------------
+
+.. automodule:: moptipy.utils.math
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.utils.nputils module
+----------------------------
+
+.. automodule:: moptipy.utils.nputils
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.utils.number\_renderer module
+-------------------------------------
+
+.. automodule:: moptipy.utils.number_renderer
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.utils.plot\_defaults module
+-----------------------------------
+
+.. automodule:: moptipy.utils.plot_defaults
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.utils.plot\_utils module
+--------------------------------
+
+.. automodule:: moptipy.utils.plot_utils
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.utils.strings module
+----------------------------
+
+.. automodule:: moptipy.utils.strings
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.utils.sys\_info module
+------------------------------
+
+.. automodule:: moptipy.utils.sys_info
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.utils.table module
+--------------------------
+
+.. automodule:: moptipy.utils.table
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.utils.text\_format module
+---------------------------------
+
+.. automodule:: moptipy.utils.text_format
+   :members:
+   :show-inheritance:
+   :undoc-members:

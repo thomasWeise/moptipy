@@ -1,0 +1,775 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.bitstrings.onemax — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/bitstrings/onemax.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a accesskey=U href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.onemax</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.bitstrings.onemax</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>An objective function counting the number of ones in a bit string.</span>
+
+<span class=sd>This function tries to maximize the number of `True` bits in a bit string.</span>
+<span class=sd>Therefore, it returns the lowest possible value 0 if all bits are `True`.</span>
+<span class=sd>This is the global optimum.</span>
+<span class=sd>It returns the highest possible value `n` if all bits are `False`. This is</span>
+<span class=sd>the worst possible value.</span>
+
+<span class=sd>1. Heinz Mühlenbein. How Genetic Algorithms Really Work: Mutation and</span>
+<span class=sd>   Hillclimbing. In Reinhard Männer and Bernard Manderick, editors,</span>
+<span class=sd>   *Proceedings of Parallel Problem Solving from Nature 2 (PPSN-II),*</span>
+<span class=sd>   September 28-30, 1992, Brussels, Belgium, pages 15-26. Elsevier.</span>
+<span class=sd>   https://www.researchgate.net/publication/220702092</span>
+<span class=sd>2. Stefan Droste, Thomas Jansen, and Ingo Wegener. Upper and Lower Bounds for</span>
+<span class=sd>   Randomized Search Heuristics in Black-Box Optimization. *Theory of</span>
+<span class=sd>   Computing Systems.* 39(4):525-544. July 2006.</span>
+<span class=sd>   doi: https://doi.org/10.1007/s00224-004-1177-z</span>
+<span class=sd>3. Thomas Weise, Zhize Wu, Xinlu Li, and Yan Chen. Frequency Fitness</span>
+<span class=sd>   Assignment: Making Optimization Algorithms Invariant under Bijective</span>
+<span class=sd>   Transformations of the Objective Function Value. *IEEE Transactions on</span>
+<span class=sd>   Evolutionary Computation* 25(2):307-319. April 2021. Preprint available at</span>
+<span class=sd>   arXiv:2001.01416v5 [cs.NE] 15 Oct 2020.</span>
+<span class=sd>   https://dx.doi.org/10.1109/TEVC.2020.3032090</span>
+<span class=sd>4. v</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Iterator</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.bitstring_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>BitStringProblem</span>
+
+
+<div class=viewcode-block id=onemax>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.onemax.onemax>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>onemax</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the length of a string minus the number of ones in it.</span>
+
+<span class=sd>    :param x: the np array</span>
+<span class=sd>    :return: the length of the string minus the number of ones, i.e., the</span>
+<span class=sd>        number of zeros</span>
+
+<span class=sd>    >>> onemax(np.array([True, True, False, False, False]))</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> onemax(np.array([True, False, True, False, False]))</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> onemax(np.array([False, True,  True, False, False]))</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> onemax(np.array([True, True, True, True, True]))</span>
+<span class=sd>    0</span>
+<span class=sd>    >>> onemax(np.array([False, True, True, True, True]))</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> onemax(np.array([False, False, False, False, False]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 1 and 0 true bits</span>
+<span class=sd>    >>> onemax(np.array([0]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 1 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 2 and 0 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 2 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 2 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([1, 0]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 2 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 2 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 3 and 0 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 3 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 3 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 3 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 3 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 0]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 3 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 3 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 0]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 3 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 4 and 0 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 4 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 0, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 4 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 4 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 4 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 4 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 1, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 4 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 0]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 4 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 1, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 4 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 5 and 0 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 5 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 5 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 0, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 5 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 0, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 5 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 0, 0, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 5 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 1, 0, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 5 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 5 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 1, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 5 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 0, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 5 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 1, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 5 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 1, 1, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 5 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 0, 1, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 5 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 1, 1, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 5 and 5 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 6 and 0 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 6 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 6 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 6 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 6 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 0, 1, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 6 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 6 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 6 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 0, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 6 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 0, 1, 0, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 6 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 6 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 0, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 0, 0, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 0, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 6 and 5 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 6 and 5 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 0, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 6 and 5 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 0, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 6 and 6 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 7 and 0 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 7 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 7 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 1, 0, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 7 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 7 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 0, 0, 1, 0, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 7 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 0, 1, 0, 0, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 7 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 7 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 1, 1, 0, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 7 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 7 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 1, 0, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 7 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 0, 1, 1, 1, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 7 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 0, 1, 0, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 7 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 1, 1, 0, 1, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 7 and 5 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 1, 0, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 5 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 0, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 5 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 1, 1, 1, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 7 and 6 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 0, 1, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 7 and 6 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 7 and 6 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 7 and 7 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 8 and 0 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 8 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 0, 1, 0, 0]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 8 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 8 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 8 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 0, 0, 1, 1]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 8 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 0, 0, 1, 0, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 8 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 0, 1, 1, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 8 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 0, 0, 1, 1, 0, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 8 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 0, 1, 1, 0, 0, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 8 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 1, 1, 1, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 8 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 1, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 8 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 0, 0, 1, 1, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 8 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 0, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 8 and 5 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 1, 0, 0, 1, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 8 and 5 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 0, 0, 1, 0, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 8 and 5 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 0, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 8 and 6 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 0, 1, 1, 1, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 6 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 0, 1, 1, 0, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 6 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 8 and 7 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 1, 1, 0, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 8 and 7 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 1, 1, 1, 0]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 8 and 7 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 1, 0, 1, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 8 and 8 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 9 and 0 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 9 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 9 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 9 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 1, 0, 0, 0, 0]))</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 9 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 0, 0, 0, 0, 0, 1, 0]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 9 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 0, 0, 0, 0, 1, 0, 0]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 9 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 0, 1, 0, 0, 0, 0]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 9 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 0, 0, 1, 0, 0, 1]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 9 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 0, 0, 0, 0, 0, 1, 1]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 9 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 0, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 9 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 1, 1, 0, 1, 1]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 9 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 1, 0, 0, 1, 1, 1]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 9 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 1, 1, 0, 0, 0, 1]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 9 and 5 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 1, 0, 1, 0, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 5 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 1, 0, 1, 0, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 5 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 0, 0, 1, 0, 0, 1, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 9 and 6 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 1, 1, 1, 1, 0, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 9 and 6 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 0, 0, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 9 and 6 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 1, 1, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 9 and 7 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 1, 0, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 9 and 7 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 0, 1, 1, 1, 1, 0, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 9 and 7 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 0, 1, 1, 0, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 9 and 8 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 0, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 9 and 8 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 9 and 8 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 0, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 9 and 9 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # n = 10 and 0 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # n = 10 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 10 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 10 and 1 true bit</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1]))</span>
+<span class=sd>    9</span>
+
+<span class=sd>    # n = 10 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 0, 0, 0, 0, 0, 1, 0, 0]))</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 10 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 0, 0, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 10 and 2 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 0, 1, 0, 0, 0, 0, 0, 0]))</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # n = 10 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 0, 1, 0, 0, 1, 1, 0, 0]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 10 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 0, 0, 0, 0, 0, 1, 0, 1, 0]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 10 and 3 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 0, 0, 0, 0, 1, 1, 0, 0]))</span>
+<span class=sd>    7</span>
+
+<span class=sd>    # n = 10 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 1, 1, 0, 0, 1, 0, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 10 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 1, 0, 0, 1, 0, 0, 0, 1]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 10 and 4 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 1, 0, 1, 0, 0, 1, 0]))</span>
+<span class=sd>    6</span>
+
+<span class=sd>    # n = 10 and 5 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 0, 0, 1, 0, 1, 0, 0]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 10 and 5 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 1, 0, 1, 1, 0, 0, 0, 1]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 10 and 5 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    5</span>
+
+<span class=sd>    # n = 10 and 6 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 0, 1, 0, 1, 1, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 6 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 1, 0, 1, 0, 0, 0]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 6 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 1, 1, 1, 0, 1, 0, 1]))</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # n = 10 and 7 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 0, 0, 1, 1, 0, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 10 and 7 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 0, 1, 1, 1, 0, 1, 1, 0]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 10 and 7 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 0, 1, 1, 1, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    3</span>
+
+<span class=sd>    # n = 10 and 8 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 1, 1, 0, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 8 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 1, 0, 1, 1, 1, 0]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 8 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 0, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    2</span>
+
+<span class=sd>    # n = 10 and 9 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 10 and 9 true bits</span>
+<span class=sd>    >>> onemax(np.array([0, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 10 and 9 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 1, 1, 0, 1, 1, 1]))</span>
+<span class=sd>    1</span>
+
+<span class=sd>    # n = 10 and 10 true bits</span>
+<span class=sd>    >>> onemax(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))</span>
+<span class=sd>    0</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=p>)</span> <span class=o>-</span> <span class=nb>int</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>sum</span><span class=p>())</span></div>
+
+
+
+<div class=viewcode-block id=OneMax>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.onemax.OneMax>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>OneMax</span><span class=p>(</span><span class=n>BitStringProblem</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""Maximize the number of ones in a bit string."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the onemax objective function.</span>
+
+<span class=sd>        :param n: the dimension of the problem</span>
+
+<span class=sd>        >>> print(OneMax(2).n)</span>
+<span class=sd>        2</span>
+<span class=sd>        >>> print(OneMax(4).evaluate(np.array([True, True, False, True])))</span>
+<span class=sd>        1</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>n</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>evaluate</span> <span class=o>=</span> <span class=n>onemax</span>  <span class=c1># type: ignore</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the onemax objective function.</span>
+
+<span class=sd>        :return: `onemax_` + length of string</span>
+
+<span class=sd>        >>> OneMax(13)</span>
+<span class=sd>        onemax_13</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"onemax_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=si>}</span><span class=s2>"</span>
+
+<div class=viewcode-block id=OneMax.default_instances>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.onemax.OneMax.default_instances>[docs]</a>
+    <span class=nd>@classmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>default_instances</span><span class=p>(</span>
+            <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>,</span> <span class=n>scale_min</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>2</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>8192</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=n>Iterator</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=s2>"OneMax"</span><span class=p>]]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the 202 default instances of the :class:`OneMax` problem.</span>
+
+<span class=sd>        :param scale_min: the minimum permitted scale, by default `2`</span>
+<span class=sd>        :param scale_max: the maximum permitted scale, by default `8192`</span>
+<span class=sd>        :returns: a sequence of default :class:`OneMax` instances</span>
+
+<span class=sd>        >>> len(list(OneMax.default_instances()))</span>
+<span class=sd>        202</span>
+
+<span class=sd>        >>> [x() for x in OneMax.default_instances()]</span>
+<span class=sd>        [onemax_2, onemax_3, onemax_4, onemax_5, onemax_6, onemax_7, \</span>
+<span class=sd>onemax_8, onemax_9, onemax_10, onemax_11, onemax_12, onemax_13, onemax_14, \</span>
+<span class=sd>onemax_15, onemax_16, onemax_17, onemax_18, onemax_19, onemax_20, onemax_21, \</span>
+<span class=sd>onemax_22, onemax_23, onemax_24, onemax_25, onemax_26, onemax_27, onemax_28, \</span>
+<span class=sd>onemax_29, onemax_30, onemax_31, onemax_32, onemax_33, onemax_36, onemax_40, \</span>
+<span class=sd>onemax_41, onemax_42, onemax_44, onemax_48, onemax_49, onemax_50, onemax_55, \</span>
+<span class=sd>onemax_59, onemax_60, onemax_64, onemax_66, onemax_70, onemax_77, onemax_79, \</span>
+<span class=sd>onemax_80, onemax_81, onemax_85, onemax_88, onemax_90, onemax_96, onemax_99, \</span>
+<span class=sd>onemax_100, onemax_107, onemax_111, onemax_121, onemax_125, onemax_128, \</span>
+<span class=sd>onemax_144, onemax_149, onemax_169, onemax_170, onemax_192, onemax_196, \</span>
+<span class=sd>onemax_199, onemax_200, onemax_222, onemax_225, onemax_243, onemax_256, \</span>
+<span class=sd>onemax_269, onemax_289, onemax_300, onemax_324, onemax_333, onemax_341, \</span>
+<span class=sd>onemax_343, onemax_359, onemax_361, onemax_384, onemax_400, onemax_441, \</span>
+<span class=sd>onemax_444, onemax_479, onemax_484, onemax_500, onemax_512, onemax_529, \</span>
+<span class=sd>onemax_555, onemax_576, onemax_600, onemax_625, onemax_641, onemax_666, \</span>
+<span class=sd>onemax_676, onemax_682, onemax_700, onemax_729, onemax_768, onemax_777, \</span>
+<span class=sd>onemax_784, onemax_800, onemax_841, onemax_857, onemax_888, onemax_900, \</span>
+<span class=sd>onemax_961, onemax_999, onemax_1000, onemax_1024, onemax_1089, onemax_1111, \</span>
+<span class=sd>onemax_1151, onemax_1156, onemax_1225, onemax_1296, onemax_1365, \</span>
+<span class=sd>onemax_1369, onemax_1444, onemax_1521, onemax_1536, onemax_1543, \</span>
+<span class=sd>onemax_1600, onemax_1681, onemax_1764, onemax_1849, onemax_1936, \</span>
+<span class=sd>onemax_2000, onemax_2025, onemax_2048, onemax_2063, onemax_2116, \</span>
+<span class=sd>onemax_2187, onemax_2209, onemax_2222, onemax_2304, onemax_2401, \</span>
+<span class=sd>onemax_2500, onemax_2601, onemax_2704, onemax_2730, onemax_2753, \</span>
+<span class=sd>onemax_2809, onemax_2916, onemax_3000, onemax_3025, onemax_3072, \</span>
+<span class=sd>onemax_3125, onemax_3136, onemax_3249, onemax_3333, onemax_3364, \</span>
+<span class=sd>onemax_3481, onemax_3600, onemax_3671, onemax_3721, onemax_3844, \</span>
+<span class=sd>onemax_3969, onemax_4000, onemax_4096, onemax_4225, onemax_4356, \</span>
+<span class=sd>onemax_4444, onemax_4489, onemax_4624, onemax_4761, onemax_4900, \</span>
+<span class=sd>onemax_4903, onemax_5000, onemax_5041, onemax_5184, onemax_5329, \</span>
+<span class=sd>onemax_5461, onemax_5476, onemax_5555, onemax_5625, onemax_5776, \</span>
+<span class=sd>onemax_5929, onemax_6000, onemax_6084, onemax_6144, onemax_6241, \</span>
+<span class=sd>onemax_6400, onemax_6547, onemax_6561, onemax_6666, onemax_6724, \</span>
+<span class=sd>onemax_6889, onemax_7000, onemax_7056, onemax_7225, onemax_7396, \</span>
+<span class=sd>onemax_7569, onemax_7744, onemax_7777, onemax_7921, onemax_8000, \</span>
+<span class=sd>onemax_8100, onemax_8192]</span>
+
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Iterator[Callable[[], OneMax]]"</span><span class=p>,</span>
+                    <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span>  <span class=c1># type: ignore</span>
+                        <span class=n>scale_min</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>))</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.onemax</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

@@ -1,0 +1,109 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.operators.bitstrings.op2_uniform — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/operators/bitstrings/op2_uniform.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.bitstrings.op2_uniform</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.operators.bitstrings.op2_uniform</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>A binary operator copying each bit from either source string.</span>
+
+<span class=sd>Uniform crossover copies the value of every bit with the same probability</span>
+<span class=sd>from either of the two parent strings. This means that all bits where both</span>
+<span class=sd>parent strings have the same value remain unchanged and are copied directly</span>
+<span class=sd>to the offspring. The bits where the parent strings have different values</span>
+<span class=sd>are effectively randomized. This is easy to see from the fact that, if both</span>
+<span class=sd>parents have different values for one bit, then one of them must have the</span>
+<span class=sd>bit set to `1` and the other one set to `0`. This means that the value in the</span>
+<span class=sd>offspring is set to `0` with probability `0.5` and set to `1` with probability</span>
+<span class=sd>`0.5`. This corresponds to drawing it uniformly at random, i.e., randomizing</span>
+<span class=sd>it.</span>
+
+<span class=sd>1. Gilbert Syswerda. Uniform Crossover in Genetic Algorithms. In J. David</span>
+<span class=sd>   Schaffer, editor, *Proceedings of the 3rd International Conference on</span>
+<span class=sd>   Genetic Algorithms* (ICGA'89), June 4-7, 1989, Fairfax, VA, USA, pages 2-9.</span>
+<span class=sd>   San Francisco, CA, USA: Morgan Kaufmann Publishers Inc.</span>
+<span class=sd>   ISBN: 1-55860-066-3. https://www.researchgate.net/publication/201976488.</span>
+<span class=sd>2. Hans-Georg Beyer and Hans-Paul Schwefel. Evolution Strategies - A</span>
+<span class=sd>   Comprehensive Introduction. *Natural Computing: An International</span>
+<span class=sd>   Journal* 1(1):3-52, March 2002, http://doi.org/10.1023/A:1015059928466.</span>
+<span class=sd>   https://www.researchgate.net/publication/220132816.</span>
+<span class=sd>3. Hans-Georg Beyer. An Alternative Explanation for the Manner in which</span>
+<span class=sd>   Genetic Algorithms Operate. *Biosystems* 41(1):1-15, January 1997,</span>
+<span class=sd>   https://doi.org/10.1016/S0303-2647(96)01657-7.</span>
+<span class=sd>4. William M. Spears and Kenneth Alan De Jong. On the Virtues of Parameterized</span>
+<span class=sd>   Uniform Crossover. In Richard K. Belew and Lashon Bernard Booker, editors,</span>
+<span class=sd>   *Proceedings of the Fourth International Conference on Genetic Algorithms*</span>
+<span class=sd>   (ICGA'91), July 13-16, 1991, San Diego, CA, USA, pages 230-236.</span>
+<span class=sd>   San Francisco, CA, USA: Morgan Kaufmann Publishers Inc.</span>
+<span class=sd>   ISBN: 1-55860-208-9. https://www.mli.gmu.edu/papers/91-95/91-18.pdf.</span>
+<span class=sd>"""</span>
+
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op2</span>
+
+
+<div class=viewcode-block id=uniform>
+<a class=viewcode-back href=../../../../moptipy.operators.bitstrings.html#moptipy.operators.bitstrings.op2_uniform.uniform>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>uniform</span><span class=p>(</span><span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>dest</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>x0</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+            <span class=n>x1</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Perform the actual work of the uniform crossover.</span>
+
+<span class=sd>    :param random: the random number generator</span>
+<span class=sd>    :param dest: the destination array</span>
+<span class=sd>    :param x0: the first source array</span>
+<span class=sd>    :param x1: the second source array</span>
+
+<span class=sd>    >>> a = np.full(10, True)</span>
+<span class=sd>    >>> b = np.full(len(a), False)</span>
+<span class=sd>    >>> r = np.random.default_rng(10)</span>
+<span class=sd>    >>> out = np.empty(len(a), bool)</span>
+<span class=sd>    >>> uniform(r, out, a, b)</span>
+<span class=sd>    >>> print(out)</span>
+<span class=sd>    [ True  True False False  True  True  True False  True  True]</span>
+<span class=sd>    >>> uniform(r, out, a, b)</span>
+<span class=sd>    >>> print(out)</span>
+<span class=sd>    [False False False  True False  True False False  True  True]</span>
+<span class=sd>    >>> uniform(r, out, a, b)</span>
+<span class=sd>    >>> print(out)</span>
+<span class=sd>    [False  True False False  True  True  True  True  True  True]</span>
+<span class=sd>    >>> uniform(r, out, a, b)</span>
+<span class=sd>    >>> print(out)</span>
+<span class=sd>    [False  True  True False  True  True False False False  True]</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>dest</span><span class=p>)):</span>  <span class=c1># pylint: disable=C0200</span>
+        <span class=n>v</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>2</span><span class=p>)</span>  <span class=c1># create boolean value</span>
+        <span class=c1># copy from x0 with p=0.5 and from x1 with p=0.5</span>
+        <span class=n>dest</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>x1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=k>if</span> <span class=n>v</span> <span class=o>==</span> <span class=mi>0</span> <span class=k>else</span> <span class=n>x0</span><span class=p>[</span><span class=n>i</span><span class=p>]</span></div>
+
+
+
+<div class=viewcode-block id=Op2Uniform>
+<a class=viewcode-back href=../../../../moptipy.operators.intspace.html#moptipy.operators.bitstrings.op2_uniform.Op2Uniform>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Op2Uniform</span><span class=p>(</span><span class=n>Op2</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A binary search operation that copies each bit from either source.</span>
+
+<span class=sd>    For each index `i` in the destination array `dest`, uniform</span>
+<span class=sd>    crossover copies the value from the first source string `x0`with</span>
+<span class=sd>    probability 0.5 and otherwise the value from the second source</span>
+<span class=sd>    string `x1`. All bits that have the same value in `x0` and `x1`</span>
+<span class=sd>    will retain this value in `dest`, all bits where `x0` and `x1`</span>
+<span class=sd>    differ will effectively be randomized (be `0` with probability 0.5</span>
+<span class=sd>    and `1` with probability 0.5).</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""Initialize the uniform crossover operator."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>op2</span> <span class=o>=</span> <span class=n>uniform</span>  <span class=c1># type: ignore</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this binary operator.</span>
+
+<span class=sd>        :return: "uniform"</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"uniform"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.bitstrings.op2_uniform</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

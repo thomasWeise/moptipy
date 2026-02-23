@@ -1,0 +1,57 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.api.mo_algorithm — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/api/mo_algorithm.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.mo_algorithm</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.api.mo_algorithm</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The base classes for multi-objective optimization algorithms.</span>
+
+<span class=sd>A multi-objective optimization algorithm is an optimization algorithm that can</span>
+<span class=sd>optimize multiple, possibly conflicting, objective functions at once. All such</span>
+<span class=sd>algorithms inherit from :class:`~moptipy.api.mo_algorithm.MOAlgorithm`. When</span>
+<span class=sd>developing or implementing new algorithms, you would still follow the concepts</span>
+<span class=sd>discussed in module :mod:`~moptipy.api.algorithm`.</span>
+
+<span class=sd>If you implement a new multi-objective algorithm, you can test it via the</span>
+<span class=sd>pre-defined unit test routine</span>
+<span class=sd>:func:`~moptipy.tests.mo_algorithm.validate_mo_algorithm`.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_process</span><span class=w> </span><span class=kn>import</span> <span class=n>MOProcess</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+
+
+<div class=viewcode-block id=MOAlgorithm>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_algorithm.MOAlgorithm>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>MOAlgorithm</span><span class=p>(</span><span class=n>Algorithm</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A base class for multi-objective optimization algorithms."""</span>
+
+<div class=viewcode-block id=MOAlgorithm.solve>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_algorithm.MOAlgorithm.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Forward to :meth:`solve_mo` and cast `process` to `MOProcess`.</span>
+
+<span class=sd>        :param process: the process to solve. Must be an instance of</span>
+<span class=sd>            :class:`~moptipy.api.mo_process.MOProcess`.</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=n>MOProcess</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=s2>"process"</span><span class=p>,</span> <span class=n>MOProcess</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>solve_mo</span><span class=p>(</span><span class=n>cast</span><span class=p>(</span><span class=s2>"MOProcess"</span><span class=p>,</span> <span class=n>process</span><span class=p>))</span></div>
+
+
+<div class=viewcode-block id=MOAlgorithm.solve_mo>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_algorithm.MOAlgorithm.solve_mo>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve_mo</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>MOProcess</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the multi-objective optimization algorithm to the given process.</span>
+
+<span class=sd>        :param process: the multi-objective process which provides methods to</span>
+<span class=sd>            access the search space, the termination criterion, and a source</span>
+<span class=sd>            of randomness. It also wraps the objective function, remembers the</span>
+<span class=sd>            best-so-far solution, and takes care of creating log files (if</span>
+<span class=sd>            this is wanted).</span>
+<span class=sd>        """</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.mo_algorithm</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

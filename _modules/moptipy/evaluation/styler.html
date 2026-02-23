@@ -1,0 +1,280 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.styler — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/styler.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.styler</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.styler</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Styler allows to discover groups of data and associate styles with them."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib.artist</span><span class=w> </span><span class=kn>import</span> <span class=n>Artist</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib.lines</span><span class=w> </span><span class=kn>import</span> <span class=n>Line2D</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.plot_defaults</span><span class=w> </span><span class=kn>import</span> <span class=n>create_line_style</span>
+
+
+<div class=viewcode-block id=Styler>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.styler.Styler>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Styler</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""A class for determining groups of elements and styling them."""</span>
+
+    <span class=c1>#: The tuple with the names becomes valid after compilation.</span>
+    <span class=n>names</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span>
+    <span class=c1>#: The tuple with the keys becomes valid after compilation.</span>
+    <span class=n>keys</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>Any</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span>
+    <span class=c1>#: The dictionary mapping keys to indices; only valid after compilation.</span>
+    <span class=n>__indexes</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=n>Any</span><span class=p>,</span> <span class=nb>int</span><span class=p>]</span>
+    <span class=c1>#: Is there a None key? Valid after compilation.</span>
+    <span class=n>has_none</span><span class=p>:</span> <span class=nb>bool</span>
+    <span class=c1>#: The number of registered keys.</span>
+    <span class=n>count</span><span class=p>:</span> <span class=nb>int</span>
+    <span class=c1>#: Does this styler have any style associated with it?</span>
+    <span class=n>has_style</span><span class=p>:</span> <span class=nb>bool</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                 <span class=n>key_func</span><span class=p>:</span> <span class=n>Callable</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>,</span>
+                 <span class=n>namer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>none_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"None"</span><span class=p>,</span>
+                 <span class=n>priority</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span>
+                 <span class=n>name_sort_function</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span>
+                 <span class=k>lambda</span> <span class=n>s</span><span class=p>:</span> <span class=n>s</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the style grouper.</span>
+
+<span class=sd>        :param key_func: the key function, obtaining keys from objects</span>
+<span class=sd>        :param namer: the name function, turning keys into names</span>
+<span class=sd>        :param none_name: the name for the none-key</span>
+<span class=sd>        :param priority: the base priority of this grouper</span>
+<span class=sd>        :param name_sort_function: the function for sorting names, or `None`</span>
+<span class=sd>            if no name-based sorting shall be performed</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>key_func</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>key_func</span><span class=p>,</span> <span class=s2>"key function"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>namer</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>namer</span><span class=p>,</span> <span class=s2>"namer function"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>none_name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>none_name</span><span class=p>,</span> <span class=s2>"none_name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>priority</span><span class=p>,</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>priority</span><span class=p>,</span> <span class=s2>"priority"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>name_sort_function</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> \
+                <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>name_sort_function</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>name_sort_function</span><span class=p>,</span> <span class=s2>"name_sort_function"</span><span class=p>,</span>
+                             <span class=nb>type</span><span class=p>(</span><span class=kc>None</span><span class=p>),</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+        <span class=k>def</span><span class=w> </span><span class=nf>__namer</span><span class=p>(</span><span class=n>key</span><span class=p>,</span>
+                    <span class=n>__namer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>namer</span><span class=p>,</span>
+                    <span class=n>__none_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>none_name</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+            <span class=n>rv</span> <span class=o>=</span> <span class=n>__none_name</span> <span class=k>if</span> <span class=n>key</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>__namer</span><span class=p>(</span><span class=n>key</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>rv</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>rv</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"name for key </span><span class=si>{</span><span class=n>key</span><span class=si>!r}</span><span class=s2>"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+            <span class=n>rv</span> <span class=o>=</span> <span class=n>rv</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>rv</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"name cannot be empty or just consist of white space"</span><span class=p>)</span>
+            <span class=k>return</span> <span class=n>rv</span>
+
+        <span class=c1>#: the name sort function</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__name_sort_function</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> \
+            <span class=n>name_sort_function</span>
+        <span class=c1>#: The key function of the grouper</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>key_func</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>key_func</span>
+        <span class=c1>#: The name function of the grouper</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>name_func</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>],</span> <span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[Any], str]"</span><span class=p>,</span> <span class=n>__namer</span><span class=p>)</span>
+        <span class=c1>#: The base priority of this grouper</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>priority</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>priority</span><span class=p>)</span>
+        <span class=c1>#: The internal collection.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__collection</span><span class=p>:</span> <span class=nb>set</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+        <span class=c1>#: the line colors</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__line_colors</span><span class=p>:</span> <span class=nb>tuple</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: the line dashes</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__line_dashes</span><span class=p>:</span> <span class=nb>tuple</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: the line widths</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__line_widths</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: the optional line alpha</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__line_alphas</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+
+<div class=viewcode-block id=Styler.add>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.styler.Styler.add>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>add</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>obj</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Add an object to the style collection.</span>
+
+<span class=sd>        :param obj: the object</span>
+<span class=sd>        """</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__collection</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>key_func</span><span class=p>(</span><span class=n>obj</span><span class=p>))</span></div>
+
+
+<div class=viewcode-block id=Styler.finalize>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.styler.Styler.finalize>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>finalize</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Compile the styler collection."""</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>has_none</span> <span class=o>=</span> <span class=p>(</span><span class=kc>None</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>__collection</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>has_none</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__collection</span><span class=o>.</span><span class=n>remove</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span>
+
+        <span class=n>nsf</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__name_sort_function</span>
+        <span class=k>if</span> <span class=n>nsf</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>data</span> <span class=o>=</span> <span class=p>[(</span><span class=n>k</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>name_func</span><span class=p>(</span><span class=n>k</span><span class=p>))</span> <span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>__collection</span><span class=p>]</span>
+            <span class=n>data</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>has_none</span><span class=p>:</span>
+                <span class=n>data</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=p>(</span><span class=kc>None</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>name_func</span><span class=p>(</span><span class=kc>None</span><span class=p>)))</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>keys</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>x</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>data</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>names</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>x</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>data</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>data</span> <span class=o>=</span> <span class=p>[(</span><span class=bp>self</span><span class=o>.</span><span class=n>name_func</span><span class=p>(</span><span class=n>k</span><span class=p>),</span> <span class=n>k</span><span class=p>)</span> <span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>__collection</span><span class=p>]</span>
+            <span class=n>data</span><span class=o>.</span><span class=n>sort</span><span class=p>(</span><span class=n>key</span><span class=o>=</span><span class=n>cast</span><span class=p>(</span><span class=s2>"Callable"</span><span class=p>,</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>,</span> <span class=n>nsf2</span><span class=o>=</span><span class=n>nsf</span><span class=p>:</span> <span class=n>nsf2</span><span class=p>(</span><span class=n>x</span><span class=p>[</span><span class=mi>0</span><span class=p>])))</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>has_none</span><span class=p>:</span>
+                <span class=n>data</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>name_func</span><span class=p>(</span><span class=kc>None</span><span class=p>),</span> <span class=kc>None</span><span class=p>))</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>names</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>x</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>data</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>keys</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>x</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>data</span><span class=p>)</span>
+
+        <span class=k>del</span> <span class=bp>self</span><span class=o>.</span><span class=n>__collection</span>
+        <span class=k>del</span> <span class=n>data</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__indexes</span> <span class=o>=</span> <span class=p>{</span><span class=n>k</span><span class=p>:</span> <span class=n>i</span> <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>k</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>keys</span><span class=p>)}</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>count</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>names</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>priority</span> <span class=o>+=</span> <span class=bp>self</span><span class=o>.</span><span class=n>count</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>has_style</span> <span class=o>=</span> <span class=kc>False</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__lt__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>other</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Check whether this styler is more important than another one.</span>
+
+<span class=sd>        :param other: the other styler</span>
+<span class=sd>        :return: `True` if it is, `False` if it is not.</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>priority</span> <span class=o>></span> <span class=n>other</span><span class=o>.</span><span class=n>priority</span><span class=p>:</span>
+            <span class=k>return</span> <span class=kc>True</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>priority</span> <span class=o><</span> <span class=n>other</span><span class=o>.</span><span class=n>priority</span><span class=p>:</span>
+            <span class=k>return</span> <span class=kc>False</span>
+        <span class=n>c1</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>count</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>has_none</span><span class=p>:</span>
+            <span class=n>c1</span> <span class=o>-=</span> <span class=mi>1</span>
+        <span class=n>c2</span> <span class=o>=</span> <span class=n>other</span><span class=o>.</span><span class=n>count</span>
+        <span class=k>if</span> <span class=n>other</span><span class=o>.</span><span class=n>has_none</span><span class=p>:</span>
+            <span class=n>c2</span> <span class=o>-=</span> <span class=mi>1</span>
+        <span class=k>return</span> <span class=n>c1</span> <span class=o>></span> <span class=n>c2</span>
+
+<div class=viewcode-block id=Styler.set_line_color>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.styler.Styler.set_line_color>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_line_color</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>line_color_func</span><span class=p>:</span> <span class=n>Callable</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set that this styler should apply line colors.</span>
+
+<span class=sd>        :param line_color_func: a function returning the palette</span>
+<span class=sd>        """</span>
+        <span class=n>tmp</span> <span class=o>=</span> <span class=n>line_color_func</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>count</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>tmp</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>tmp</span><span class=p>,</span> <span class=s2>"result of line color func"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__line_colors</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>tmp</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__line_colors</span><span class=p>)</span> <span class=o>!=</span> <span class=bp>self</span><span class=o>.</span><span class=n>count</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"There must be </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>count</span><span class=si>}</span><span class=s2> line colors,"</span>
+                             <span class=sa>f</span><span class=s2>"but found only </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__line_colors</span><span class=p>)</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>has_style</span> <span class=o>=</span> <span class=kc>True</span></div>
+
+
+<div class=viewcode-block id=Styler.set_line_dash>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.styler.Styler.set_line_dash>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_line_dash</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>line_dash_func</span><span class=p>:</span> <span class=n>Callable</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set that this styler should apply line dashes.</span>
+
+<span class=sd>        :param line_dash_func: a function returning the dashes</span>
+<span class=sd>        """</span>
+        <span class=n>tmp</span> <span class=o>=</span> <span class=n>line_dash_func</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>count</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>tmp</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>tmp</span><span class=p>,</span> <span class=s2>"result of line dash func"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__line_dashes</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>tmp</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__line_dashes</span><span class=p>)</span> <span class=o>!=</span> <span class=bp>self</span><span class=o>.</span><span class=n>count</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"There must be </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>count</span><span class=si>}</span><span class=s2> line dashes,"</span>
+                             <span class=sa>f</span><span class=s2>"but found only </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__line_dashes</span><span class=p>)</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>has_style</span> <span class=o>=</span> <span class=kc>True</span></div>
+
+
+<div class=viewcode-block id=Styler.set_line_width>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.styler.Styler.set_line_width>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_line_width</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>line_width_func</span><span class=p>:</span> <span class=n>Callable</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set that this styler should apply a line width.</span>
+
+<span class=sd>        :param line_width_func: the line width function</span>
+<span class=sd>        """</span>
+        <span class=n>tmp</span> <span class=o>=</span> <span class=n>line_width_func</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>count</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>tmp</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>tmp</span><span class=p>,</span> <span class=s2>"result of line width func"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__line_widths</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>tmp</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__line_widths</span><span class=p>)</span> <span class=o>!=</span> <span class=bp>self</span><span class=o>.</span><span class=n>count</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"There must be </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>count</span><span class=si>}</span><span class=s2> line widths,"</span>
+                             <span class=sa>f</span><span class=s2>"but found only </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__line_widths</span><span class=p>)</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>has_style</span> <span class=o>=</span> <span class=kc>True</span></div>
+
+
+<div class=viewcode-block id=Styler.set_line_alpha>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.styler.Styler.set_line_alpha>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_line_alpha</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>line_alpha_func</span><span class=p>:</span> <span class=n>Callable</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set that this styler should apply a line alpha.</span>
+
+<span class=sd>        :param line_alpha_func: the line alpha function</span>
+<span class=sd>        """</span>
+        <span class=n>tmp</span> <span class=o>=</span> <span class=n>line_alpha_func</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>count</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>tmp</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>tmp</span><span class=p>,</span> <span class=s2>"result of line alpha func"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__line_alphas</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>tmp</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__line_alphas</span><span class=p>)</span> <span class=o>!=</span> <span class=bp>self</span><span class=o>.</span><span class=n>count</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"There must be </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>count</span><span class=si>}</span><span class=s2> line alphas,"</span>
+                             <span class=sa>f</span><span class=s2>"but found only </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__line_alphas</span><span class=p>)</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>has_style</span> <span class=o>=</span> <span class=kc>True</span></div>
+
+
+<div class=viewcode-block id=Styler.add_line_style>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.styler.Styler.add_line_style>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>add_line_style</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>obj</span><span class=p>,</span>
+                       <span class=n>style</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>object</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply this styler's contents based on the given object.</span>
+
+<span class=sd>        :param obj: the object for which the style should be created</span>
+<span class=sd>        :param style: the decode to which the styles should be added</span>
+<span class=sd>        """</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>key_func</span><span class=p>(</span><span class=n>obj</span><span class=p>)</span>
+        <span class=n>index</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__indexes</span><span class=o>.</span><span class=n>setdefault</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>index</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__add_line_style</span><span class=p>(</span><span class=n>index</span><span class=p>,</span> <span class=n>style</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=nf>__add_line_style</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>index</span><span class=p>,</span>
+                         <span class=n>style</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>object</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply this styler's contents based on the given object.</span>
+
+<span class=sd>        :param index: the index to be processed</span>
+<span class=sd>        :param style: the decode to which the styles should be added</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__line_colors</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>style</span><span class=p>[</span><span class=s2>"color"</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__line_colors</span><span class=p>[</span><span class=n>index</span><span class=p>]</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__line_dashes</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>style</span><span class=p>[</span><span class=s2>"linestyle"</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__line_dashes</span><span class=p>[</span><span class=n>index</span><span class=p>]</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__line_widths</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>style</span><span class=p>[</span><span class=s2>"linewidth"</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__line_widths</span><span class=p>[</span><span class=n>index</span><span class=p>]</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__line_alphas</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>style</span><span class=p>[</span><span class=s2>"alpha"</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__line_alphas</span><span class=p>[</span><span class=n>index</span><span class=p>]</span>
+
+<div class=viewcode-block id=Styler.add_to_legend>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.styler.Styler.add_to_legend>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>add_to_legend</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>consumer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Artist</span><span class=p>],</span> <span class=n>Any</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Add this styler to the legend.</span>
+
+<span class=sd>        :param consumer: the consumer to add to</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>consumer</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>consumer</span><span class=p>,</span> <span class=s2>"consumer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>name</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>names</span><span class=p>):</span>
+            <span class=n>style</span> <span class=o>=</span> <span class=n>create_line_style</span><span class=p>()</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__add_line_style</span><span class=p>(</span><span class=n>i</span><span class=p>,</span> <span class=n>style</span><span class=p>)</span>
+            <span class=n>style</span><span class=p>[</span><span class=s2>"label"</span><span class=p>]</span> <span class=o>=</span> <span class=n>name</span>
+            <span class=n>style</span><span class=p>[</span><span class=s2>"xdata"</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+            <span class=n>style</span><span class=p>[</span><span class=s2>"ydata"</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+            <span class=n>consumer</span><span class=p>(</span><span class=n>Line2D</span><span class=p>(</span><span class=o>**</span><span class=n>style</span><span class=p>))</span>  <span class=c1># type: ignore</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.styler</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

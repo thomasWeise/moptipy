@@ -1,0 +1,251 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.tabulate_end_stats — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/tabulate_end_stats.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.tabulate_end_stats</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.tabulate_end_stats</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Make an LaTeX end-statistics table with column wrapping."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>io</span><span class=w> </span><span class=kn>import</span> <span class=n>TextIOBase</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>TextIO</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.console</span><span class=w> </span><span class=kn>import</span> <span class=n>logger</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>line_writer</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_statistics</span><span class=w> </span><span class=kn>import</span> <span class=n>EndStatistics</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_statistics</span><span class=w> </span><span class=kn>import</span> <span class=n>getter</span> <span class=k>as</span> <span class=n>es_getter</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.number_renderer</span><span class=w> </span><span class=kn>import</span> <span class=n>default_get_int_renderer</span>
+
+<span class=c1>#: the integer number renderer</span>
+<span class=n>__INT_2_STR</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>],</span> <span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=n>default_get_int_renderer</span><span class=p>()</span>
+
+
+<div class=viewcode-block id=tabulate_end_stats>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.tabulate_end_stats.tabulate_end_stats>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>tabulate_end_stats</span><span class=p>(</span>
+        <span class=n>data</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>EndStatistics</span><span class=p>],</span>
+        <span class=n>dest</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>],</span> <span class=n>TextIO</span> <span class=o>|</span> <span class=n>TextIOBase</span><span class=p>],</span>
+        <span class=n>n_wrap</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>3</span><span class=p>,</span>
+        <span class=n>max_rows</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>50</span><span class=p>,</span>
+        <span class=n>stats</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span>
+            <span class=n>EndStatistics</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>],</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>bool</span><span class=p>,</span>
+        <span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span> <span class=nb>str</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>((</span>
+        <span class=n>es_getter</span><span class=p>(</span><span class=s2>"bestF.mean"</span><span class=p>),</span>
+        <span class=sa>r</span><span class=s2>"\bestFmean"</span><span class=p>,</span> <span class=kc>True</span><span class=p>,</span>
+        <span class=k>lambda</span> <span class=n>v</span><span class=p>:</span> <span class=n>__INT_2_STR</span><span class=p>(</span><span class=nb>round</span><span class=p>(</span><span class=n>v</span><span class=p>))),</span> <span class=p>),</span>
+        <span class=n>instance_get</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>EndStatistics</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span>
+        <span class=k>lambda</span> <span class=n>es</span><span class=p>:</span> <span class=n>es</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span>
+        <span class=n>instance_sort_key</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>,</span>
+        <span class=n>instance_name</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span>
+        <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=sa>f</span><span class=s2>"</span><span class=se>{{\\</span><span class=s2>instStyle</span><span class=se>{{</span><span class=si>{</span><span class=n>x</span><span class=si>}</span><span class=se>}}}}</span><span class=s2>"</span><span class=p>,</span>
+        <span class=n>algorithm_get</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>EndStatistics</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span>
+        <span class=n>algorithm_sort_key</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>,</span>
+        <span class=n>algorithm_name</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>,</span>
+        <span class=n>instance_cols</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>str</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>(),</span>
+        <span class=n>best_format</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span>
+        <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=sa>f</span><span class=s2>"</span><span class=se>{{\\</span><span class=s2>textbf</span><span class=se>{{</span><span class=si>{</span><span class=n>x</span><span class=si>}</span><span class=se>}}}}</span><span class=s2>"</span><span class=p>,</span>
+        <span class=n>instance_header</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"instance"</span><span class=p>,</span>
+        <span class=n>best_count_header</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=sa>r</span><span class=s2>"\nBest"</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Make a table of end statistics that can wrap multiple pages, if need be.</span>
+
+<span class=sd>    :param data: the source data</span>
+<span class=sd>    :param dest: the destination generator</span>
+<span class=sd>    :param n_wrap: the number of times we can wrap a table</span>
+<span class=sd>    :param max_rows: the maximum rows per destination</span>
+<span class=sd>    :param stats: the set of statistics: tuples of statistic, title, whether</span>
+<span class=sd>        minimization or maximization, and a to-string converter</span>
+<span class=sd>    :param instance_get: get the instance identifier</span>
+<span class=sd>    :param instance_name: get the instance name, as it should be printed</span>
+<span class=sd>    :param instance_sort_key: get the sort key for the instance</span>
+<span class=sd>    :param algorithm_get: get the algorithm identifier</span>
+<span class=sd>    :param algorithm_name: get the algorithm name, as it should be printed</span>
+<span class=sd>    :param algorithm_sort_key: get the sort key for the algorithm</span>
+<span class=sd>    :param instance_cols: the fixed instance columns</span>
+<span class=sd>    :param best_format: format the best value</span>
+<span class=sd>    :param instance_header: the header for the instance</span>
+<span class=sd>    :param best_count_header: the header for the best count</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=nb>list</span><span class=p>):</span>
+        <span class=n>data</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>data</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>data</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Empty data?"</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>stats</span><span class=p>,</span> <span class=nb>list</span><span class=p>):</span>
+        <span class=n>stats</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>stats</span><span class=p>)</span>
+    <span class=n>n_stats</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>stats</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>n_stats</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"No statistics data?"</span><span class=p>)</span>
+
+    <span class=c1># We create a map of data</span>
+    <span class=n>datamap</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>EndStatistics</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>{}</span>
+    <span class=k>for</span> <span class=n>es</span> <span class=ow>in</span> <span class=n>data</span><span class=p>:</span>
+        <span class=n>algorithm</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>algorithm_get</span><span class=p>(</span><span class=n>es</span><span class=p>)</span>
+        <span class=n>instance</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>instance_get</span><span class=p>(</span><span class=n>es</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>instance</span> <span class=ow>in</span> <span class=n>datamap</span><span class=p>:</span>
+            <span class=n>datamap</span><span class=p>[</span><span class=n>instance</span><span class=p>][</span><span class=n>algorithm</span><span class=p>]</span> <span class=o>=</span> <span class=n>es</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>datamap</span><span class=p>[</span><span class=n>instance</span><span class=p>]</span> <span class=o>=</span> <span class=p>{</span><span class=n>algorithm</span><span class=p>:</span> <span class=n>es</span><span class=p>}</span>
+
+    <span class=n>instances</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span>
+        <span class=p>{</span><span class=n>es</span><span class=o>.</span><span class=n>instance</span> <span class=k>for</span> <span class=n>es</span> <span class=ow>in</span> <span class=n>data</span><span class=p>},</span> <span class=n>key</span><span class=o>=</span><span class=n>instance_sort_key</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>instances</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"No instance!"</span><span class=p>)</span>
+
+    <span class=n>algorithms</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>({</span>
+        <span class=n>k</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>datamap</span><span class=o>.</span><span class=n>values</span><span class=p>()</span> <span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=n>x</span><span class=p>},</span> <span class=n>key</span><span class=o>=</span><span class=n>algorithm_sort_key</span><span class=p>)</span>
+    <span class=n>n_algorithms</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>algorithms</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>n_algorithms</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"No algorithms!"</span><span class=p>)</span>
+    <span class=n>n_data_cols</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>n_algorithms</span> <span class=o>*</span> <span class=n>n_stats</span>
+
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>instance_cols</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>):</span>
+        <span class=n>instance_cols</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>instance_cols</span><span class=p>)</span>
+    <span class=n>n_inst_cols</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>instance_cols</span><span class=p>)</span>
+
+    <span class=c1># Now we compute all the values</span>
+    <span class=n>output</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+
+    <span class=n>best_count</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>*</span> <span class=n>n_data_cols</span>
+    <span class=k>for</span> <span class=n>instance</span> <span class=ow>in</span> <span class=n>instances</span><span class=p>:</span>
+        <span class=n>row</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=n>instance_name</span><span class=p>(</span><span class=n>instance</span><span class=p>)]</span>
+        <span class=n>row</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>ic</span><span class=p>[</span><span class=mi>1</span><span class=p>](</span><span class=n>instance</span><span class=p>)</span> <span class=k>for</span> <span class=n>ic</span> <span class=ow>in</span> <span class=n>instance_cols</span><span class=p>)</span>
+        <span class=n>values</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=kc>None</span><span class=p>]</span> <span class=o>*</span> <span class=n>n_data_cols</span>
+        <span class=n>best</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span>
+            <span class=p>(</span><span class=n>inf</span> <span class=k>if</span> <span class=n>stat</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span> <span class=k>else</span> <span class=o>-</span><span class=n>inf</span><span class=p>)</span> <span class=k>for</span> <span class=n>stat</span> <span class=ow>in</span> <span class=n>stats</span><span class=p>]</span>
+
+        <span class=c1># get the values</span>
+        <span class=n>idx</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>for</span> <span class=n>algorithm</span> <span class=ow>in</span> <span class=n>algorithms</span><span class=p>:</span>
+            <span class=n>es</span> <span class=o>=</span> <span class=n>datamap</span><span class=p>[</span><span class=n>instance</span><span class=p>][</span><span class=n>algorithm</span><span class=p>]</span>
+            <span class=k>for</span> <span class=n>si</span><span class=p>,</span> <span class=n>stat</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>stats</span><span class=p>):</span>
+                <span class=n>values</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span> <span class=o>=</span> <span class=n>value</span> <span class=o>=</span> <span class=n>stat</span><span class=p>[</span><span class=mi>0</span><span class=p>](</span><span class=n>es</span><span class=p>)</span>
+                <span class=n>idx</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=p>(</span><span class=n>value</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>((</span><span class=n>stat</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span> <span class=ow>and</span> <span class=p>(</span>
+                        <span class=n>value</span> <span class=o><</span> <span class=n>best</span><span class=p>[</span><span class=n>si</span><span class=p>]))</span> <span class=ow>or</span> <span class=p>((</span><span class=ow>not</span> <span class=n>stat</span><span class=p>[</span><span class=mi>2</span><span class=p>])</span> <span class=ow>and</span> <span class=p>(</span>
+                        <span class=n>value</span> <span class=o>></span> <span class=n>best</span><span class=p>[</span><span class=n>si</span><span class=p>]))):</span>
+                    <span class=n>best</span><span class=p>[</span><span class=n>si</span><span class=p>]</span> <span class=o>=</span> <span class=n>value</span>
+
+        <span class=c1># format the values</span>
+        <span class=n>idx</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_algorithms</span><span class=p>):</span>
+            <span class=k>for</span> <span class=n>si</span><span class=p>,</span> <span class=n>stat</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>stats</span><span class=p>):</span>
+                <span class=n>value</span> <span class=o>=</span> <span class=n>values</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span>
+                <span class=n>idx</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=n>value</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                    <span class=n>row</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=s2>""</span><span class=p>)</span>
+                    <span class=k>continue</span>
+                <span class=n>printer</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>stat</span><span class=p>[</span><span class=mi>3</span><span class=p>](</span><span class=n>value</span><span class=p>)</span>
+                <span class=k>if</span> <span class=p>((</span><span class=n>stat</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span> <span class=ow>and</span> <span class=p>(</span><span class=n>value</span> <span class=o><=</span> <span class=n>best</span><span class=p>[</span><span class=n>si</span><span class=p>]))</span> <span class=ow>or</span> <span class=p>((</span><span class=ow>not</span> <span class=n>stat</span><span class=p>[</span><span class=mi>2</span><span class=p>])</span> <span class=ow>and</span> <span class=p>(</span>
+                        <span class=n>value</span> <span class=o>>=</span> <span class=n>best</span><span class=p>[</span><span class=n>si</span><span class=p>]))):</span>
+                    <span class=n>best_count</span><span class=p>[</span><span class=n>idx</span> <span class=o>-</span> <span class=mi>1</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>
+                    <span class=n>printer</span> <span class=o>=</span> <span class=n>best_format</span><span class=p>(</span><span class=n>printer</span><span class=p>)</span>
+                <span class=n>row</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>printer</span><span class=p>)</span>
+        <span class=n>output</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>row</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>best_count_header</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>nc</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>n_inst_cols</span> <span class=o>+</span> <span class=mi>1</span>
+        <span class=n>row</span> <span class=o>=</span> <span class=p>[</span><span class=sa>f</span><span class=s2>"</span><span class=se>\\</span><span class=s2>multicolumn</span><span class=se>{{</span><span class=si>{</span><span class=n>nc</span><span class=si>}</span><span class=se>}}{{</span><span class=s2>r</span><span class=se>}}{{</span><span class=si>{</span><span class=n>best_count_header</span><span class=si>}</span><span class=se>}}</span><span class=s2>"</span><span class=p>]</span>
+        <span class=n>best</span> <span class=o>=</span> <span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>*</span> <span class=n>n_stats</span>
+
+        <span class=c1># get the best best counts</span>
+        <span class=n>idx</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_algorithms</span><span class=p>):</span>
+            <span class=k>for</span> <span class=n>si</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_stats</span><span class=p>):</span>
+                <span class=n>value</span> <span class=o>=</span> <span class=n>best_count</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span>
+                <span class=n>best</span><span class=p>[</span><span class=n>si</span><span class=p>]</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>value</span><span class=p>,</span> <span class=n>best</span><span class=p>[</span><span class=n>si</span><span class=p>])</span>
+                <span class=n>idx</span> <span class=o>+=</span> <span class=mi>1</span>
+
+        <span class=c1># format the best count values</span>
+        <span class=n>idx</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_algorithms</span><span class=p>):</span>
+            <span class=k>for</span> <span class=n>si</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_stats</span><span class=p>):</span>
+                <span class=n>ivalue</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>best_count</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span>
+                <span class=n>idx</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=n>printer</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>ivalue</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>ivalue</span> <span class=o>>=</span> <span class=n>best</span><span class=p>[</span><span class=n>si</span><span class=p>]:</span>
+                    <span class=n>printer</span> <span class=o>=</span> <span class=n>best_format</span><span class=p>(</span><span class=n>printer</span><span class=p>)</span>
+                <span class=n>row</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>printer</span><span class=p>)</span>
+        <span class=n>output</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>row</span><span class=p>)</span>
+
+    <span class=c1># now we got all the data prepared and just need to arrange it</span>
+    <span class=n>n_output</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>output</span><span class=p>)</span>
+    <span class=n>pages</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>idx</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>keep_going</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+    <span class=k>while</span> <span class=n>keep_going</span><span class=p>:</span>
+        <span class=n>current_page</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>pages</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>current_page</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>max_rows</span><span class=p>):</span>
+            <span class=n>current_row</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+            <span class=n>current_page</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>current_row</span><span class=p>)</span>
+            <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_wrap</span><span class=p>):</span>
+                <span class=n>current_row</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>idx</span><span class=p>)</span>
+                <span class=n>idx</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=n>idx</span> <span class=o>>=</span> <span class=n>n_output</span><span class=p>:</span>
+                    <span class=n>keep_going</span> <span class=o>=</span> <span class=kc>False</span>
+                    <span class=k>break</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>keep_going</span><span class=p>:</span>
+                <span class=k>break</span>
+    <span class=c1># ok, now we know the data that we can put on each page</span>
+    <span class=c1># we now re-arrange it</span>
+    <span class=k>for</span> <span class=n>current_page</span> <span class=ow>in</span> <span class=n>pages</span><span class=p>:</span>
+        <span class=n>ids</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>x</span> <span class=k>for</span> <span class=n>y</span> <span class=ow>in</span> <span class=n>current_page</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>y</span><span class=p>)</span>
+        <span class=n>idx</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>for</span> <span class=n>col</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_wrap</span><span class=p>):</span>
+            <span class=k>for</span> <span class=n>current_row</span> <span class=ow>in</span> <span class=n>current_page</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>col</span> <span class=o><</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>current_row</span><span class=p>):</span>
+                    <span class=n>current_row</span><span class=p>[</span><span class=n>col</span><span class=p>]</span> <span class=o>=</span> <span class=n>ids</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span>
+                    <span class=n>idx</span> <span class=o>+=</span> <span class=mi>1</span>
+
+    <span class=c1># now we construct the header and footer that should go into each</span>
+    <span class=c1># partial table</span>
+    <span class=n>header</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>footer</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=sa>r</span><span class=s2>"\hline%"</span><span class=p>,</span> <span class=sa>r</span><span class=s2>"\end</span><span class=si>{tabular}</span><span class=s2>%"</span><span class=p>]</span>
+
+    <span class=n>writer</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=s2>"l"</span><span class=p>]</span>
+    <span class=n>writer</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=s2>"r"</span> <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_inst_cols</span><span class=p>))</span>
+    <span class=n>writer</span><span class=o>.</span><span class=n>extend</span><span class=p>([</span><span class=s2>"r"</span><span class=p>]</span> <span class=o>*</span> <span class=n>n_stats</span> <span class=o>*</span> <span class=n>n_algorithms</span><span class=p>)</span>
+    <span class=n>txt</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>""</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>writer</span><span class=p>)</span>
+    <span class=n>header</span><span class=o>.</span><span class=n>extend</span><span class=p>((</span><span class=sa>f</span><span class=s2>"</span><span class=se>\\</span><span class=s2>begin</span><span class=se>{{</span><span class=s2>tabular</span><span class=se>}}{{</span><span class=si>{</span><span class=s1>'|'</span><span class=o>.</span><span class=n>join</span><span class=p>([</span><span class=n>txt</span><span class=p>]</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=n>n_wrap</span><span class=p>)</span><span class=si>}</span><span class=se>}}</span><span class=s2>%"</span><span class=p>,</span>
+                   <span class=sa>r</span><span class=s2>"\hline%"</span><span class=p>))</span>
+
+    <span class=n>writer</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+    <span class=n>writer</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>instance_header</span><span class=p>)</span>
+    <span class=n>writer</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=se>\\</span><span class=s2>multicolumn</span><span class=se>{{</span><span class=s2>1</span><span class=se>}}{{</span><span class=s2>c</span><span class=se>}}{{</span><span class=si>{</span><span class=n>ic</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=si>}</span><span class=se>}}</span><span class=s2>"</span>
+                  <span class=k>for</span> <span class=n>ic</span> <span class=ow>in</span> <span class=n>instance_cols</span><span class=p>)</span>
+    <span class=n>writer</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=se>\\</span><span class=s2>multicolumn</span><span class=se>{{</span><span class=si>{</span><span class=n>n_stats</span><span class=si>}</span><span class=se>}}{{</span><span class=s2>c</span><span class=se>}}{{</span><span class=si>{</span><span class=n>algorithm_name</span><span class=p>(</span><span class=n>algo</span><span class=p>)</span><span class=si>}</span><span class=se>}}</span><span class=s2>"</span>
+                  <span class=k>for</span> <span class=n>algo</span> <span class=ow>in</span> <span class=n>algorithms</span><span class=p>)</span>
+    <span class=n>txt</span> <span class=o>=</span> <span class=s2>"&"</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>writer</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>n_wrap</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+        <span class=n>writer</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>=</span> <span class=n>writer</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>"</span><span class=si>{c}</span><span class=s2>"</span><span class=p>,</span> <span class=s2>"{c|}"</span><span class=p>)</span>
+        <span class=n>txt_inner</span> <span class=o>=</span> <span class=s2>"&"</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>writer</span><span class=p>)</span>
+        <span class=n>header</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=s1>'&'</span><span class=o>.</span><span class=n>join</span><span class=p>([</span><span class=n>txt_inner</span><span class=p>]</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=p>(</span><span class=n>n_wrap</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=mi>1</span><span class=p>))</span><span class=si>}</span><span class=s2>&</span><span class=si>{</span><span class=n>txt</span><span class=si>}</span><span class=se>\\\\</span><span class=s2>%"</span><span class=p>)</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=n>header</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>txt</span><span class=si>}</span><span class=se>\\\\</span><span class=s2>%"</span><span class=p>)</span>
+
+    <span class=n>writer</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+    <span class=k>if</span> <span class=n>n_stats</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+        <span class=n>writer</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+        <span class=n>writer</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=s2>""</span><span class=p>)</span>
+        <span class=n>writer</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=s2>""</span> <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_inst_cols</span><span class=p>))</span>
+        <span class=n>writer</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=se>\\</span><span class=s2>multicolumn</span><span class=se>{{</span><span class=s2>1</span><span class=se>}}{{</span><span class=s2>c</span><span class=se>}}{{</span><span class=si>{</span><span class=n>sss</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span><span class=si>}</span><span class=se>}}</span><span class=s2>"</span>
+                      <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_algorithms</span><span class=p>)</span> <span class=k>for</span> <span class=n>sss</span> <span class=ow>in</span> <span class=n>stats</span><span class=p>)</span>
+        <span class=n>txt</span> <span class=o>=</span> <span class=s2>"&"</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>writer</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>n_wrap</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+            <span class=n>writer</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>=</span> <span class=n>writer</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>"</span><span class=si>{c}</span><span class=s2>"</span><span class=p>,</span> <span class=s2>"{c|}"</span><span class=p>)</span>
+            <span class=n>txt_inner</span> <span class=o>=</span> <span class=s2>"&"</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>writer</span><span class=p>)</span>
+            <span class=n>header</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=s1>'&'</span><span class=o>.</span><span class=n>join</span><span class=p>([</span><span class=n>txt_inner</span><span class=p>]</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=p>(</span><span class=n>n_wrap</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=mi>1</span><span class=p>))</span><span class=si>}</span><span class=s2>&</span><span class=si>{</span><span class=n>txt</span><span class=si>}</span><span class=se>\\\\</span><span class=s2>%"</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>header</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>txt</span><span class=si>}</span><span class=se>\\\\</span><span class=s2>%"</span><span class=p>)</span>
+        <span class=n>writer</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+    <span class=n>header</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=sa>r</span><span class=s2>"\hline%"</span><span class=p>)</span>
+
+    <span class=k>for</span> <span class=n>page_idx</span><span class=p>,</span> <span class=n>current_page</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>pages</span><span class=p>):</span>
+        <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Now tacking data part </span><span class=si>{</span><span class=n>page_idx</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=mi>1</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>with</span> <span class=n>dest</span><span class=p>(</span><span class=n>page_idx</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=k>as</span> <span class=n>stream</span><span class=p>:</span>
+            <span class=n>out_stream</span> <span class=o>=</span> <span class=n>line_writer</span><span class=p>(</span><span class=n>stream</span><span class=p>)</span>
+            <span class=k>for</span> <span class=n>txt</span> <span class=ow>in</span> <span class=n>header</span><span class=p>:</span>
+                <span class=n>out_stream</span><span class=p>(</span><span class=n>txt</span><span class=p>)</span>
+            <span class=k>for</span> <span class=n>current_row</span> <span class=ow>in</span> <span class=n>current_page</span><span class=p>:</span>
+                <span class=n>line</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=n>x</span> <span class=k>for</span> <span class=n>y</span> <span class=ow>in</span> <span class=n>current_row</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>output</span><span class=p>[</span><span class=n>y</span><span class=p>]]</span>
+                <span class=n>out_stream</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=s1>'&'</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>line</span><span class=p>)</span><span class=si>}</span><span class=se>\\\\</span><span class=s2>%"</span><span class=p>)</span>
+            <span class=k>for</span> <span class=n>txt</span> <span class=ow>in</span> <span class=n>footer</span><span class=p>:</span>
+                <span class=n>out_stream</span><span class=p>(</span><span class=n>txt</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.tabulate_end_stats</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

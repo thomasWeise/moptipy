@@ -1,0 +1,362 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.mo.problem.basic_mo_problem — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/mo/problem/basic_mo_problem.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.mo.problem.basic_mo_problem</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.mo.problem.basic_mo_problem</h1><div class=highlight><pre>
+<span></span><span class=sd>"""The base class for implementing multi-objective problems."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=kn>import</span> <span class=n>empty</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=n>KEY_SPACE_NUM_VARS</span><span class=p>,</span> <span class=n>SCOPE_OBJECTIVE_FUNCTION</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>MOProblem</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_utils</span><span class=w> </span><span class=kn>import</span> <span class=n>dominates</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>Objective</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.math</span><span class=w> </span><span class=kn>import</span> <span class=n>try_int</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>KEY_NUMPY_TYPE</span><span class=p>,</span>
+    <span class=n>dtype_for_data</span><span class=p>,</span>
+    <span class=n>numpy_type_to_str</span><span class=p>,</span>
+<span class=p>)</span>
+
+
+<div class=viewcode-block id=BasicMOProblem>
+<a class=viewcode-back href=../../../../moptipy.mo.problem.html#moptipy.mo.problem.basic_mo_problem.BasicMOProblem>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>BasicMOProblem</span><span class=p>(</span><span class=n>MOProblem</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The base class for implementing multi-objective optimization problems.</span>
+
+<span class=sd>    This class allows to construct a simple python function for scalarizing</span>
+<span class=sd>    a vector of objective values in its constructor and also determines the</span>
+<span class=sd>    right datatype for the objective vectors.</span>
+
+<span class=sd>    It therefore first obtains the type (integers or floats?) of the objective</span>
+<span class=sd>    values as well as the bounds of the objective functions. This is used to</span>
+<span class=sd>    determine the right numpy `dtype` for the objective vectors. We want to</span>
+<span class=sd>    represent objective vectors as compact as possible and use an integer</span>
+<span class=sd>    vector if possible.</span>
+
+<span class=sd>    Once this information is obtained, we invoke a call-back function</span>
+<span class=sd>    `get_scalarizer` which should return a python function that computes the</span>
+<span class=sd>    scalarization result, i.e., the single scalar value representing the</span>
+<span class=sd>    vector of objective values in single-objective optimization. This function</span>
+<span class=sd>    must be monotonous. If the bounds are finite, it is applied to the vector</span>
+<span class=sd>    of lower and upper bounds to get the lower and upper bounds of the</span>
+<span class=sd>    scalarization result.</span>
+
+<span class=sd>    Examples for implementing this class are</span>
+<span class=sd>    class:`~moptipy.mo.problem.weighted_sum.WeightedSum` and</span>
+<span class=sd>    :class:`~moptipy.mo.problem.weighted_sum.Prioritize`, which represent a</span>
+<span class=sd>    multi-objective optimization problem either as weighted sum or by</span>
+<span class=sd>    priorizing the objective value (via an internal weighted sum).</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>objectives</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Objective</span><span class=p>],</span>
+                 <span class=n>get_scalarizer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>bool</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+                                           <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]],</span>
+                 <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>domination</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span>
+                 <span class=o>=</span> <span class=n>dominates</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the basic multi-objective optimization problem.</span>
+
+<span class=sd>        :param objectives: the objective functions</span>
+<span class=sd>        :param get_scalarizer: Create the function for scalarizing the</span>
+<span class=sd>            objective values. This constructor receives as parameters a `bool`</span>
+<span class=sd>            which is `True` if and only if all objective functions always</span>
+<span class=sd>            return integers and `False` otherwise, i.e., if at least one of</span>
+<span class=sd>            them may return a `float`, the length of the f-vectors, and lists</span>
+<span class=sd>            with the lower and upper bounds of the objective functions. It can</span>
+<span class=sd>            use this information to dynamically create and return the most</span>
+<span class=sd>            efficient scalarization function.</span>
+<span class=sd>        :param domination: a function reflecting the domination relationship</span>
+<span class=sd>            between two vectors of objective values. It must obey the contract</span>
+<span class=sd>            of :meth:`~moptipy.api.mo_problem.MOProblem.f_dominates`, which is</span>
+<span class=sd>            the same as :func:`moptipy.api.mo_utils.dominates`, to which it</span>
+<span class=sd>            defaults. `None` overrides nothing.</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>objectives</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>objectives</span><span class=p>,</span> <span class=s2>"objectives"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>get_scalarizer</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>get_scalarizer</span><span class=p>,</span> <span class=s2>"get_scalarizer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+        <span class=n>lower_bounds</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>upper_bounds</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>calls</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>min_lower_bound</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span>
+        <span class=n>max_upper_bound</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span>
+
+        <span class=c1># Iterate over all objective functions and see whether they are</span>
+        <span class=c1># integer-valued and have finite bounds and to collect the bounds.</span>
+        <span class=n>always_int</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=n>is_int</span><span class=p>:</span> <span class=nb>bool</span>
+        <span class=n>lb</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span>
+        <span class=n>ub</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span>
+        <span class=k>for</span> <span class=n>objective</span> <span class=ow>in</span> <span class=n>objectives</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>objective</span><span class=p>,</span> <span class=n>Objective</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>objective</span><span class=p>,</span> <span class=s2>"objective[i]"</span><span class=p>,</span> <span class=n>Objective</span><span class=p>)</span>
+            <span class=n>is_int</span> <span class=o>=</span> <span class=n>objective</span><span class=o>.</span><span class=n>is_always_integer</span><span class=p>()</span>
+            <span class=n>always_int</span> <span class=o>=</span> <span class=n>always_int</span> <span class=ow>and</span> <span class=n>is_int</span>
+            <span class=n>calls</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>objective</span><span class=o>.</span><span class=n>evaluate</span><span class=p>)</span>
+            <span class=n>lb</span> <span class=o>=</span> <span class=n>objective</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>()</span>
+            <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>lb</span><span class=p>):</span>
+                <span class=k>if</span> <span class=n>is_int</span><span class=p>:</span>
+                    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+                        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                            <span class=sa>f</span><span class=s2>"if is_always_integer() of objective </span><span class=si>{</span><span class=n>objective</span><span class=si>}</span><span class=s2>"</span>
+                            <span class=s2>" is True, then lower_bound() must be infinite or"</span>
+                            <span class=sa>f</span><span class=s2>" int, but is </span><span class=si>{</span><span class=n>lb</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>lb</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>lb</span><span class=p>)</span>
+                <span class=n>min_lower_bound</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>min_lower_bound</span><span class=p>,</span> <span class=n>lb</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>min_lower_bound</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span>
+            <span class=n>lower_bounds</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>lb</span><span class=p>)</span>
+            <span class=n>ub</span> <span class=o>=</span> <span class=n>objective</span><span class=o>.</span><span class=n>upper_bound</span><span class=p>()</span>
+            <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>ub</span><span class=p>):</span>
+                <span class=k>if</span> <span class=n>is_int</span><span class=p>:</span>
+                    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ub</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+                        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                            <span class=sa>f</span><span class=s2>"if is_always_integer() of objective </span><span class=si>{</span><span class=n>objective</span><span class=si>}</span><span class=s2>"</span>
+                            <span class=s2>" is True, then upper_bound() must be infinite "</span>
+                            <span class=sa>f</span><span class=s2>"or int, but is </span><span class=si>{</span><span class=n>ub</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>ub</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>ub</span><span class=p>)</span>
+                <span class=n>max_upper_bound</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>max_upper_bound</span><span class=p>,</span> <span class=n>ub</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>max_upper_bound</span> <span class=o>=</span> <span class=n>inf</span>
+            <span class=k>if</span> <span class=n>lb</span> <span class=o>>=</span> <span class=n>ub</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"lower_bound()=</span><span class=si>{</span><span class=n>lb</span><span class=si>}</span><span class=s2> of objective </span><span class=si>{</span><span class=n>objective</span><span class=si>}</span><span class=s2> must "</span>
+                    <span class=sa>f</span><span class=s2>"be < than upper_bound()=</span><span class=si>{</span><span class=n>ub</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>upper_bounds</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>ub</span><span class=p>)</span>
+
+        <span class=n>n</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>calls</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>n</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"No objective function found!"</span><span class=p>)</span>
+
+        <span class=n>use_lb</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>min_lower_bound</span>
+        <span class=n>use_ub</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>max_upper_bound</span>
+        <span class=k>if</span> <span class=n>always_int</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>min_lower_bound</span><span class=p>)</span> <span class=ow>and</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>max_upper_bound</span><span class=p>):</span>
+                <span class=n>use_lb</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>min_lower_bound</span><span class=p>,</span>
+                             <span class=n>min_lower_bound</span> <span class=o>-</span> <span class=n>max_upper_bound</span><span class=p>)</span>
+                <span class=n>use_ub</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>max_upper_bound</span><span class=p>,</span>
+                             <span class=n>max_upper_bound</span> <span class=o>-</span> <span class=n>min_lower_bound</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>use_lb</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span>
+                <span class=n>use_ub</span> <span class=o>=</span> <span class=n>inf</span>
+
+        <span class=c1># Based on the above findings, determine the data type:</span>
+        <span class=c1>#: The data type of the objective vectors.</span>
+        <span class=c1>#: If the objectives all always are integers and have known and finite</span>
+        <span class=c1>#: bounds, then we can use the smallest possible integer type.</span>
+        <span class=c1>#: This type will be large enough to allow computing "a - b" of any two</span>
+        <span class=c1>#: objective values "a" and "b" without overflow.</span>
+        <span class=c1>#: If they are at least integer-valued, we can use the largest integer</span>
+        <span class=c1>#: type.</span>
+        <span class=c1>#: If also this is not True, then we just use floating points.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__dtype</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>]</span> <span class=o>=</span> <span class=n>dtype_for_data</span><span class=p>(</span>
+            <span class=n>always_int</span><span class=p>,</span> <span class=n>use_lb</span><span class=p>,</span> <span class=n>use_ub</span><span class=p>)</span>
+        <span class=c1>#: The dimension of the objective space.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__dimension</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>n</span>
+
+        <span class=c1>#: the creator function for objective vectors</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>f_create</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>nn</span><span class=o>=</span><span class=n>n</span><span class=p>,</span> <span class=n>dt</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>__dtype</span><span class=p>:</span> <span class=n>empty</span><span class=p>(</span>  <span class=c1># type: ignore</span>
+            <span class=n>nn</span><span class=p>,</span> <span class=n>dt</span><span class=p>)</span>  <span class=c1># type: ignore</span>
+
+        <span class=c1>#: the holder for lower bounds</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__lower_bounds</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=nb>tuple</span><span class=p>(</span><span class=n>lower_bounds</span><span class=p>)</span>
+        <span class=c1>#: the holder for upper bounds</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__upper_bounds</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=nb>tuple</span><span class=p>(</span><span class=n>upper_bounds</span><span class=p>)</span>
+
+        <span class=c1># set up the scalarizer</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_scalarize</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> \
+            <span class=o>=</span> <span class=n>get_scalarizer</span><span class=p>(</span><span class=n>always_int</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=n>lower_bounds</span><span class=p>,</span> <span class=n>upper_bounds</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_scalarize</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_scalarize</span><span class=p>,</span> <span class=s2>"result of get_scalarizer"</span><span class=p>,</span>
+                             <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+        <span class=c1># compute the scalarized bounds</span>
+        <span class=n>temp</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>lb</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span>
+        <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>min_lower_bound</span><span class=p>):</span>
+            <span class=n>temp</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>lower_bounds</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>__dtype</span><span class=p>)</span>
+            <span class=n>lb</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_scalarize</span><span class=p>(</span><span class=n>temp</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=s2>"computed lower bound"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+            <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>lb</span><span class=p>))</span> <span class=ow>and</span> <span class=p>(</span><span class=n>lb</span> <span class=o>></span> <span class=o>-</span><span class=n>inf</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"non-finite computed lower bound "</span>
+                                 <span class=sa>f</span><span class=s2>"can only be -inf, but is </span><span class=si>{</span><span class=n>lb</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>lb</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>lb</span><span class=p>)</span>
+        <span class=c1>#: the lower bound of this scalarization</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__lower_bound</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>lb</span>
+
+        <span class=n>ub</span> <span class=o>=</span> <span class=n>inf</span>
+        <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>max_upper_bound</span><span class=p>):</span>
+            <span class=n>temp</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>upper_bounds</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>__dtype</span><span class=p>)</span>
+            <span class=n>ub</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_scalarize</span><span class=p>(</span><span class=n>temp</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ub</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>ub</span><span class=p>,</span> <span class=s2>"computed upper bound"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+            <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>ub</span><span class=p>))</span> <span class=ow>and</span> <span class=p>(</span><span class=n>ub</span> <span class=o><</span> <span class=n>inf</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"non-finite computed upper bound "</span>
+                                 <span class=sa>f</span><span class=s2>"can only be inf, but is </span><span class=si>{</span><span class=n>ub</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>ub</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>ub</span><span class=p>)</span>
+        <span class=c1>#: the upper bound of this scalarization</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__upper_bound</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>ub</span>
+
+        <span class=c1>#: the internal objectives</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__calls</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span>
+            <span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>calls</span><span class=p>)</span>
+        <span class=c1>#: the objective functions</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_objectives</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>objectives</span><span class=p>)</span>
+
+        <span class=c1>#: the internal temporary array</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_temp</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>f_create</span><span class=p>()</span> \
+            <span class=k>if</span> <span class=n>temp</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>temp</span>
+
+        <span class=k>if</span> <span class=n>domination</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>domination</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>domination</span><span class=p>,</span> <span class=s2>"domination"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>f_dominates</span> <span class=o>=</span> <span class=n>domination</span>  <span class=c1># type: ignore</span>
+
+<div class=viewcode-block id=BasicMOProblem.initialize>
+<a class=viewcode-back href=../../../../moptipy.mo.problem.html#moptipy.mo.problem.basic_mo_problem.BasicMOProblem.initialize>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>initialize</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize the multi-objective problem."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+        <span class=k>for</span> <span class=n>ff</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>_objectives</span><span class=p>:</span>
+            <span class=n>ff</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span></div>
+
+
+<div class=viewcode-block id=BasicMOProblem.f_dimension>
+<a class=viewcode-back href=../../../../moptipy.mo.problem.html#moptipy.mo.problem.basic_mo_problem.BasicMOProblem.f_dimension>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>f_dimension</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Obtain the number of objective functions.</span>
+
+<span class=sd>        :returns: the number of objective functions</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__dimension</span></div>
+
+
+<div class=viewcode-block id=BasicMOProblem.f_dtype>
+<a class=viewcode-back href=../../../../moptipy.mo.problem.html#moptipy.mo.problem.basic_mo_problem.BasicMOProblem.f_dtype>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>f_dtype</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the data type used in `f_create`.</span>
+
+<span class=sd>        :returns: the data type used by</span>
+<span class=sd>            :meth:`moptipy.api.mo_problem.MOProblem.f_create`.</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__dtype</span></div>
+
+
+<div class=viewcode-block id=BasicMOProblem.f_evaluate>
+<a class=viewcode-back href=../../../../moptipy.mo.problem.html#moptipy.mo.problem.basic_mo_problem.BasicMOProblem.f_evaluate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>f_evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>fs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Perform the multi-objective evaluation of a solution.</span>
+
+<span class=sd>        :param x: the solution to be evaluated</span>
+<span class=sd>        :param fs: the array to receive the objective values</span>
+<span class=sd>        :returns: the scalarized objective values</span>
+<span class=sd>        """</span>
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>o</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__calls</span><span class=p>):</span>
+            <span class=n>fs</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>o</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>_scalarize</span><span class=p>(</span><span class=n>fs</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=BasicMOProblem.lower_bound>
+<a class=viewcode-back href=../../../../moptipy.mo.problem.html#moptipy.mo.problem.basic_mo_problem.BasicMOProblem.lower_bound>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>lower_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the lower bound of the scalarization result.</span>
+
+<span class=sd>        This function returns a theoretical limit for how good a solution</span>
+<span class=sd>        could be at best. If no real limit is known, the function returns</span>
+<span class=sd>        `-inf`.</span>
+
+<span class=sd>        :return: the lower bound of the scalarization result</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__lower_bound</span></div>
+
+
+<div class=viewcode-block id=BasicMOProblem.upper_bound>
+<a class=viewcode-back href=../../../../moptipy.mo.problem.html#moptipy.mo.problem.basic_mo_problem.BasicMOProblem.upper_bound>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>upper_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the upper bound of the scalarization result.</span>
+
+<span class=sd>        This function returns a theoretical limit for how bad a solution could</span>
+<span class=sd>        be at worst. If no real limit is known, the function returns `inf`.</span>
+
+<span class=sd>        :return: the upper bound of the scalarization result</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__upper_bound</span></div>
+
+
+<div class=viewcode-block id=BasicMOProblem.evaluate>
+<a class=viewcode-back href=../../../../moptipy.mo.problem.html#moptipy.mo.problem.basic_mo_problem.BasicMOProblem.evaluate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Convert the multi-objective problem into a single-objective one.</span>
+
+<span class=sd>        This function first evaluates all encapsulated objectives and then</span>
+<span class=sd>        scalarizes the result.</span>
+
+<span class=sd>        :param x: the candidate solution</span>
+<span class=sd>        :returns: the scalarized objective value</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>f_evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>_temp</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Get the string representation of this basic scalarization."""</span>
+        <span class=k>return</span> <span class=s2>"basicMoProblem"</span>
+
+<div class=viewcode-block id=BasicMOProblem.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.mo.problem.html#moptipy.mo.problem.basic_mo_problem.BasicMOProblem.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of this function to the provided destination.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_SPACE_NUM_VARS</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__dimension</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_NUMPY_TYPE</span><span class=p>,</span> <span class=n>numpy_type_to_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__dtype</span><span class=p>))</span>
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>o</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_objectives</span><span class=p>):</span>
+            <span class=k>with</span> <span class=n>logger</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SCOPE_OBJECTIVE_FUNCTION</span><span class=si>}{</span><span class=n>i</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span> <span class=k>as</span> <span class=n>scope</span><span class=p>:</span>
+                <span class=n>o</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>scope</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=BasicMOProblem.validate>
+<a class=viewcode-back href=../../../../moptipy.mo.problem.html#moptipy.mo.problem.basic_mo_problem.BasicMOProblem.validate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>validate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Validate an objective vector.</span>
+
+<span class=sd>        :param x: the objective vector</span>
+<span class=sd>        :raises TypeError: if the string is not an element of this space.</span>
+<span class=sd>        :raises ValueError: if the shape of the vector is wrong or any of its</span>
+<span class=sd>            element is not finite.</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>f_validate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+
+        <span class=n>lb</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__lower_bounds</span>
+        <span class=n>ub</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__upper_bounds</span>
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>v</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>x</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>v</span> <span class=o><</span> <span class=n>lb</span><span class=p>[</span><span class=n>i</span><span class=p>]:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"encountered </span><span class=si>{</span><span class=n>v</span><span class=si>}</span><span class=s2> at index </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2> of </span><span class=si>{</span><span class=n>x</span><span class=si>}</span><span class=s2>, which is below the "</span>
+                    <span class=sa>f</span><span class=s2>"lower bound </span><span class=si>{</span><span class=n>lb</span><span class=p>[</span><span class=n>i</span><span class=p>]</span><span class=si>}</span><span class=s2> for that position."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>v</span> <span class=o>></span> <span class=n>ub</span><span class=p>[</span><span class=n>i</span><span class=p>]:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"encountered </span><span class=si>{</span><span class=n>v</span><span class=si>}</span><span class=s2> at index </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2> of </span><span class=si>{</span><span class=n>x</span><span class=si>}</span><span class=s2>, which is above the "</span>
+                    <span class=sa>f</span><span class=s2>"upper bound </span><span class=si>{</span><span class=n>ub</span><span class=p>[</span><span class=n>i</span><span class=p>]</span><span class=si>}</span><span class=s2> for that position."</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.mo.problem.basic_mo_problem</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

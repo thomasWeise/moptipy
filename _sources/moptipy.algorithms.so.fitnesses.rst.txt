@@ -1,0 +1,34 @@
+moptipy.algorithms.so.fitnesses package
+=======================================
+
+.. automodule:: moptipy.algorithms.so.fitnesses
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+moptipy.algorithms.so.fitnesses.direct module
+---------------------------------------------
+
+.. automodule:: moptipy.algorithms.so.fitnesses.direct
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.so.fitnesses.rank module
+-------------------------------------------
+
+.. automodule:: moptipy.algorithms.so.fitnesses.rank
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.so.fitnesses.rank\_and\_iteration module
+-----------------------------------------------------------
+
+.. automodule:: moptipy.algorithms.so.fitnesses.rank_and_iteration
+   :members:
+   :show-inheritance:
+   :undoc-members:

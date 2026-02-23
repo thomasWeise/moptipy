@@ -1,0 +1,132 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.operators.permutations.op1_swap2 — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/operators/permutations/op1_swap2.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.permutations.op1_swap2</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.operators.permutations.op1_swap2</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>An operator swapping two elements in a permutation.</span>
+
+<span class=sd>This is a unary search operator which first copies the source string `x` to</span>
+<span class=sd>the destination string `dest`. Then it draws an index `i1` randomly.</span>
+<span class=sd>It keeps drawing a second random index `i2` until `dest[i1] != dest[i2]`,</span>
+<span class=sd>i.e., until the elements at the two indices are different. This will always</span>
+<span class=sd>be true for actual permutations if `i1 != i2`, but for permutations with</span>
+<span class=sd>repetitions, even if `i1 != i2`, sometimes `dest[i1] == dest[i2]`. Anyway,</span>
+<span class=sd>as soon as the elements at `i1` and `i2` are different, they will be swapped.</span>
+
+<span class=sd>This operator is very well-known for permutations and has been used by many</span>
+<span class=sd>researchers, e.g., for the Traveling Salesperson Problem (TSP). In the papers</span>
+<span class=sd>by Larrañaga et al. (1999) and Banzhaf (1990), it is called "Exchange</span>
+<span class=sd>Mutation." It is also referred to as the "swap mutation" (Oliver et al. 1987),</span>
+<span class=sd>point mutation operator (Ambati et al. 1991), the reciprocal exchange mutation</span>
+<span class=sd>operator (Michalewicz 1992), or the order based mutation operator by Syswerda</span>
+<span class=sd>(1991).</span>
+
+<span class=sd>1. Pedro Larrañaga, Cindy M. H. Kuijpers, Roberto H. Murga, I. Inza, and</span>
+<span class=sd>   S. Dizdarevic. Genetic Algorithms for the Travelling Salesman Problem: A</span>
+<span class=sd>   Review of Representations and Operators. *Artificial Intelligence Review,*</span>
+<span class=sd>   13(2):129-170, April 1999. Kluwer Academic Publishers, The Netherlands.</span>
+<span class=sd>   https://doi.org/10.1023/A:1006529012972</span>
+<span class=sd>2. Wolfgang Banzhaf. The "Molecular" Traveling Salesman. *Biological</span>
+<span class=sd>   Cybernetics*, 64(1):7-14, November 1990, https://doi.org/10.1007/BF00203625</span>
+<span class=sd>3. I.M. Oliver, D.J. Smith, and J.R.C. Holland. A Study of Permutation</span>
+<span class=sd>   Crossover Operators on the Traveling Salesman Problem. In *Proceedings of</span>
+<span class=sd>   the Second International Conference on Genetic Algorithms and their</span>
+<span class=sd>   Application* (ICGA'87), October 1987, pages 224-230,</span>
+<span class=sd>   https://dl.acm.org/doi/10.5555/42512.42542</span>
+<span class=sd>4. Balamurali Krishna Ambati, Jayakrishna Ambati, and Mazen Moein Mokhtar.</span>
+<span class=sd>   Heuristic Combinatorial Optimization by Simulated Darwinian Evolution: A</span>
+<span class=sd>   Polynomial Time Algorithm for the Traveling Salesman Problem. *Biological</span>
+<span class=sd>   Cybernetics,* 65(1):31-35, May 1991, https://doi.org/10.1007/BF00197287</span>
+<span class=sd>5. Zbigniew Michalewicz. *Genetic Algorithms + Data Structures = Evolution</span>
+<span class=sd>   Programs,* Berlin, Germany: Springer-Verlag GmbH. 1996. ISBN:3-540-58090-5.</span>
+<span class=sd>   https://doi.org/10.1007/978-3-662-03315-9</span>
+<span class=sd>6. Gilbert Syswerda. Schedule Optimization Using Genetic Algorithms. In</span>
+<span class=sd>   Lawrence Davis, (ed.), *Handbook of Genetic Algorithms,* pages 332-349.</span>
+<span class=sd>   1991. New York, NY, USA: Van Nostrand Reinhold.</span>
+<span class=sd>7. Thomas Weise. *Optimization Algorithms.* 2021. Hefei, Anhui, China:</span>
+<span class=sd>   Institute of Applied Optimization (IAO), School of Artificial Intelligence</span>
+<span class=sd>   and Big Data, Hefei University. http://thomasweise.github.io/oa/</span>
+
+<span class=sd>This operator performs one swap. It is similar to :class:`~moptipy.operators.\</span>
+<span class=sd>permutations.op1_swapn.Op1SwapN`, which performs a random number of swaps.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op1</span>
+
+
+<div class=viewcode-block id=swap_2>
+<a class=viewcode-back href=../../../../moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swap2.swap_2>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>,</span> <span class=n>fastmath</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>boundscheck</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>swap_2</span><span class=p>(</span><span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>dest</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+           <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Copy `x` into `dest` and swap two different values in `dest`.</span>
+
+<span class=sd>    :param random: the random number generator</span>
+<span class=sd>    :param dest: the array to receive the modified copy of `x`</span>
+<span class=sd>    :param x: the existing point in the search space</span>
+
+<span class=sd>    >>> rand = np.random.default_rng(10)</span>
+<span class=sd>    >>> xx = np.array(range(10), int)</span>
+<span class=sd>    >>> out = np.empty(len(xx), int)</span>
+<span class=sd>    >>> swap_2(rand, out, xx)</span>
+<span class=sd>    >>> print(out)</span>
+<span class=sd>    [0 1 2 3 4 5 6 9 8 7]</span>
+<span class=sd>    >>> int(sum(out != xx))</span>
+<span class=sd>    2</span>
+<span class=sd>    >>> swap_2(rand, out, xx)</span>
+<span class=sd>    >>> print(out)</span>
+<span class=sd>    [0 1 7 3 4 5 6 2 8 9]</span>
+<span class=sd>    >>> int(sum(out != xx))</span>
+<span class=sd>    2</span>
+<span class=sd>    >>> swap_2(rand, out, xx)</span>
+<span class=sd>    >>> print(out)</span>
+<span class=sd>    [0 1 2 3 4 8 6 7 5 9]</span>
+<span class=sd>    >>> int(sum(out != xx))</span>
+<span class=sd>    2</span>
+<span class=sd>    """</span>
+    <span class=c1># start book</span>
+    <span class=n>dest</span><span class=p>[:]</span> <span class=o>=</span> <span class=n>x</span><span class=p>[:]</span>  <span class=c1># First, we copy `x` to `dest`.</span>
+    <span class=n>length</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>dest</span><span class=p>)</span>  <span class=c1># Get the length of `dest`.</span>
+
+    <span class=n>i1</span><span class=p>:</span> <span class=n>Final</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>length</span><span class=p>)</span>  <span class=c1># first random index</span>
+    <span class=n>v1</span><span class=p>:</span> <span class=n>Final</span> <span class=o>=</span> <span class=n>dest</span><span class=p>[</span><span class=n>i1</span><span class=p>]</span>  <span class=c1># Get the value at the first index.</span>
+    <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>  <span class=c1># Repeat until we find a different value.</span>
+        <span class=n>i2</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>length</span><span class=p>)</span>  <span class=c1># second random index</span>
+        <span class=n>v2</span> <span class=o>=</span> <span class=n>dest</span><span class=p>[</span><span class=n>i2</span><span class=p>]</span>  <span class=c1># Get the value at the second index.</span>
+        <span class=k>if</span> <span class=n>v1</span> <span class=o>!=</span> <span class=n>v2</span><span class=p>:</span>  <span class=c1># If both values different...</span>
+            <span class=n>dest</span><span class=p>[</span><span class=n>i2</span><span class=p>]</span> <span class=o>=</span> <span class=n>v1</span>  <span class=c1># store v1 where v2 was</span>
+            <span class=n>dest</span><span class=p>[</span><span class=n>i1</span><span class=p>]</span> <span class=o>=</span> <span class=n>v2</span>  <span class=c1># store v2 where v1 was</span>
+            <span class=k>return</span>  <span class=c1># Exit function: we are finished.</span></div>
+
+
+
+<div class=viewcode-block id=Op1Swap2>
+<a class=viewcode-back href=../../../../moptipy.operators.permutations.html#moptipy.operators.permutations.op1_swap2.Op1Swap2>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Op1Swap2</span><span class=p>(</span><span class=n>Op1</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A unary search operation that swaps two (different) elements.</span>
+
+<span class=sd>    In other words, it performs exactly one swap on a permutation.</span>
+<span class=sd>    It spans a neighborhood of a rather limited size but is easy</span>
+<span class=sd>    and fast.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize the object."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>  <span class=c1># -book</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>op1</span> <span class=o>=</span> <span class=n>swap_2</span>  <span class=c1># type: ignore  # use function directly</span>
+    <span class=c1># end book</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this unary operator.</span>
+
+<span class=sd>        :returns: "swap2", the name of this operator</span>
+<span class=sd>        :retval "swap2": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"swap2"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.permutations.op1_swap2</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

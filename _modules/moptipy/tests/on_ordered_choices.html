@@ -1,0 +1,141 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.tests.on_ordered_choices — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/tests/on_ordered_choices.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.on_ordered_choices</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.tests.on_ordered_choices</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Test stuff on ordered choices-based spaces."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>default_rng</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.ordered_choices</span><span class=w> </span><span class=kn>import</span> <span class=n>OrderedChoices</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.op0</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_op0</span>
+
+
+<div class=viewcode-block id=choices_for_tests>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_ordered_choices.choices_for_tests>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>choices_for_tests</span><span class=p>(</span>
+        <span class=n>choice_filter</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>OrderedChoices</span><span class=p>],</span> <span class=nb>bool</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=n>OrderedChoices</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get a sequence of ordered choices for tests.</span>
+
+<span class=sd>    :param choice_filter: an optional filter to sort out ordered choices we</span>
+<span class=sd>        cannot use for testing</span>
+<span class=sd>    :returns: the sequence of ordered choices</span>
+<span class=sd>    """</span>
+    <span class=n>r</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>()</span>
+    <span class=n>pwrs</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>OrderedChoices</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span>
+        <span class=n>OrderedChoices</span><span class=p>([[</span><span class=mi>1</span><span class=p>],</span> <span class=p>[</span><span class=mi>2</span><span class=p>]]),</span>
+        <span class=n>OrderedChoices</span><span class=p>([[</span><span class=mi>1</span><span class=p>],</span> <span class=p>[</span><span class=mi>2</span><span class=p>],</span> <span class=p>[</span><span class=mi>3</span><span class=p>]]),</span>
+        <span class=n>OrderedChoices</span><span class=p>([[</span><span class=mi>1</span><span class=p>],</span> <span class=p>[</span><span class=mi>2</span><span class=p>,</span> <span class=mi>4</span><span class=p>],</span> <span class=p>[</span><span class=mi>3</span><span class=p>]]),</span>
+        <span class=n>OrderedChoices</span><span class=o>.</span><span class=n>signed_permutations</span><span class=p>(</span><span class=mi>1</span><span class=p>),</span>
+        <span class=n>OrderedChoices</span><span class=o>.</span><span class=n>signed_permutations</span><span class=p>(</span><span class=mi>2</span><span class=p>),</span>
+        <span class=n>OrderedChoices</span><span class=o>.</span><span class=n>signed_permutations</span><span class=p>(</span><span class=mi>10</span><span class=p>)]</span>
+
+    <span class=k>for</span> <span class=n>_i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>4</span><span class=p>):</span>
+        <span class=n>done</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+        <span class=n>created</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>choices</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=k>while</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>choices</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>done</span><span class=p>)</span> <span class=o><</span> <span class=mi>2</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>r</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>6</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>r</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span> <span class=o><</span> <span class=nb>len</span><span class=p>(</span><span class=n>created</span><span class=p>):</span>
+                <span class=n>choices</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>created</span><span class=p>[</span><span class=nb>int</span><span class=p>(</span><span class=n>r</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>created</span><span class=p>)))])</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>picked</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+                <span class=k>while</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>picked</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>r</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>6</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>):</span>
+                    <span class=n>cc</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>r</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=o>-</span><span class=mi>100</span><span class=p>,</span> <span class=mi>100</span><span class=p>))</span>
+                    <span class=k>while</span> <span class=n>cc</span> <span class=ow>in</span> <span class=n>done</span><span class=p>:</span>
+                        <span class=n>cc</span> <span class=o>+=</span> <span class=mi>1</span>
+                    <span class=n>done</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>cc</span><span class=p>)</span>
+                    <span class=n>picked</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>cc</span><span class=p>)</span>
+                <span class=n>choices</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>picked</span><span class=p>)</span>
+                <span class=n>created</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>picked</span><span class=p>)</span>
+        <span class=n>pwrs</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>OrderedChoices</span><span class=p>(</span><span class=n>choices</span><span class=p>))</span>
+
+    <span class=k>if</span> <span class=n>choice_filter</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>choice_filter</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>choice_filter</span><span class=p>,</span> <span class=s2>"choice_filter"</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=n>pwrs</span> <span class=o>=</span> <span class=p>[</span><span class=n>p</span> <span class=k>for</span> <span class=n>p</span> <span class=ow>in</span> <span class=n>pwrs</span> <span class=k>if</span> <span class=n>choice_filter</span><span class=p>(</span><span class=n>p</span><span class=p>)]</span>
+    <span class=n>r</span><span class=o>.</span><span class=n>shuffle</span><span class=p>(</span><span class=n>cast</span><span class=p>(</span><span class=s2>"list"</span><span class=p>,</span> <span class=n>pwrs</span><span class=p>))</span>
+    <span class=k>return</span> <span class=n>pwrs</span></div>
+
+
+
+<div class=viewcode-block id=make_choices_valid>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_ordered_choices.make_choices_valid>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>make_choices_valid</span><span class=p>(</span><span class=n>choices</span><span class=p>:</span> <span class=n>OrderedChoices</span><span class=p>)</span> <span class=o>-></span> \
+        <span class=n>Callable</span><span class=p>[[</span><span class=n>Generator</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create a function that can make ordered choices valid.</span>
+
+<span class=sd>    :param choices: the ordered choices</span>
+<span class=sd>    :returns: the function</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>__make_valid</span><span class=p>(</span><span class=n>prnd</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span>
+                     <span class=n>bb</span><span class=o>=</span><span class=n>choices</span><span class=o>.</span><span class=n>blueprint</span><span class=p>,</span>
+                     <span class=n>cc</span><span class=o>=</span><span class=n>choices</span><span class=o>.</span><span class=n>choices</span><span class=o>.</span><span class=fm>__getitem__</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+        <span class=n>np</span><span class=o>.</span><span class=n>copyto</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>bb</span><span class=p>)</span>
+        <span class=n>prnd</span><span class=o>.</span><span class=n>shuffle</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>e</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>x</span><span class=p>):</span>
+            <span class=n>ff</span> <span class=o>=</span> <span class=n>cc</span><span class=p>(</span><span class=n>e</span><span class=p>)</span>
+            <span class=n>x</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>ff</span><span class=p>[</span><span class=n>prnd</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>ff</span><span class=p>))]</span>
+        <span class=k>return</span> <span class=n>x</span>
+
+    <span class=k>return</span> <span class=n>__make_valid</span></div>
+
+
+
+<div class=viewcode-block id=validate_op0_on_1_choices>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_ordered_choices.validate_op0_on_1_choices>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_op0_on_1_choices</span><span class=p>(</span>
+        <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>OrderedChoices</span><span class=p>],</span> <span class=n>Op0</span><span class=p>],</span>
+        <span class=n>search_space</span><span class=p>:</span> <span class=n>OrderedChoices</span><span class=p>,</span>
+        <span class=n>number_of_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>min_unique_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span>
+            <span class=nb>int</span><span class=p>,</span> <span class=n>OrderedChoices</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Validate the nullary operator on one `OrderedChoices` instance.</span>
+
+<span class=sd>    :param op0: the operator or operator factory</span>
+<span class=sd>    :param search_space: the search space</span>
+<span class=sd>    :param number_of_samples: the optional number of samples</span>
+<span class=sd>    :param min_unique_samples: the optional unique samples</span>
+<span class=sd>    """</span>
+    <span class=n>args</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=p>{</span>
+        <span class=s2>"op0"</span><span class=p>:</span> <span class=n>op0</span><span class=p>(</span><span class=n>search_space</span><span class=p>)</span> <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>op0</span><span class=p>)</span> <span class=k>else</span> <span class=n>op0</span><span class=p>,</span>
+        <span class=s2>"search_space"</span><span class=p>:</span> <span class=n>search_space</span><span class=p>,</span>
+        <span class=s2>"make_search_space_element_valid"</span><span class=p>:</span>
+            <span class=n>make_choices_valid</span><span class=p>(</span><span class=n>search_space</span><span class=p>),</span>
+    <span class=p>}</span>
+    <span class=k>if</span> <span class=n>number_of_samples</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>args</span><span class=p>[</span><span class=s2>"number_of_samples"</span><span class=p>]</span> <span class=o>=</span> <span class=n>number_of_samples</span>
+    <span class=k>if</span> <span class=n>min_unique_samples</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>args</span><span class=p>[</span><span class=s2>"min_unique_samples"</span><span class=p>]</span> <span class=o>=</span> <span class=n>min_unique_samples</span>
+    <span class=n>validate_op0</span><span class=p>(</span><span class=o>**</span><span class=n>args</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=validate_op0_on_choices>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.on_ordered_choices.validate_op0_on_choices>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_op0_on_choices</span><span class=p>(</span>
+        <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>OrderedChoices</span><span class=p>],</span> <span class=n>Op0</span><span class=p>],</span>
+        <span class=n>number_of_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>min_unique_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span>
+            <span class=nb>int</span><span class=p>,</span> <span class=n>OrderedChoices</span><span class=p>],</span> <span class=nb>int</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>choice_filter</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>OrderedChoices</span><span class=p>],</span> <span class=nb>bool</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Validate the nullary operator on several `OrderedChoices` instances.</span>
+
+<span class=sd>    :param op0: the operator or operator factory</span>
+<span class=sd>    :param number_of_samples: the optional number of samples</span>
+<span class=sd>    :param min_unique_samples: the optional unique samples</span>
+<span class=sd>    :param choice_filter: an optional filter to sort out ordered choices we</span>
+<span class=sd>        cannot use for testing</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>choices</span> <span class=ow>in</span> <span class=n>choices_for_tests</span><span class=p>(</span><span class=n>choice_filter</span><span class=p>):</span>
+        <span class=n>validate_op0_on_1_choices</span><span class=p>(</span><span class=n>op0</span><span class=p>,</span> <span class=n>choices</span><span class=p>,</span> <span class=n>number_of_samples</span><span class=p>,</span>
+                                  <span class=n>min_unique_samples</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.on_ordered_choices</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

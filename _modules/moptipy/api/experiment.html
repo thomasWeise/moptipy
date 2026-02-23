@@ -1,0 +1,274 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.api.experiment — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/api/experiment.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.experiment</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.api.experiment</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The experiment execution API.</span>
+
+<span class=sd>Via the function :func:`run_experiment`, you can execute a complex experiment</span>
+<span class=sd>where multiple optimization algorithms are applied to multiple problem</span>
+<span class=sd>instances, where log files with the results and progress information about the</span>
+<span class=sd>runs are collected, and where multiprocessing is used to parallelize the</span>
+<span class=sd>experiment execution.</span>
+<span class=sd>Experiments are replicable, as random seeds are automatically generated based</span>
+<span class=sd>on problem instance names in a replicable fashion.</span>
+
+<span class=sd>The log files are structured according to the documentation in</span>
+<span class=sd>https://thomasweise.github.io/moptipy/#file-names-and-folder-structure</span>
+<span class=sd>and their contents follow the specification given in</span>
+<span class=sd>https://thomasweise.github.io/moptipy/#log-file-sections.</span>
+<span class=sd>"""</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>copy</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>gc</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>os.path</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>os</span><span class=w> </span><span class=kn>import</span> <span class=n>getpid</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>  <span class=c1># pylint: disable=W0611</span>
+    <span class=n>Any</span><span class=p>,</span>
+    <span class=n>Callable</span><span class=p>,</span>
+    <span class=n>Final</span><span class=p>,</span>
+    <span class=n>Iterable</span><span class=p>,</span>
+    <span class=n>cast</span><span class=p>,</span>
+<span class=p>)</span>  <span class=c1># pylint: disable=W0611</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>default_rng</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.console</span><span class=w> </span><span class=kn>import</span> <span class=n>logger</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.execution</span><span class=w> </span><span class=kn>import</span> <span class=n>Execution</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=n>FILE_SUFFIX</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>rand_seeds_from_str</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=n>sanitize_name</span><span class=p>,</span> <span class=n>sanitize_names</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.sys_info</span><span class=w> </span><span class=kn>import</span> <span class=n>get_sys_info</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__run_experiment</span><span class=p>(</span><span class=n>base_dir</span><span class=p>:</span> <span class=n>Path</span><span class=p>,</span>
+                     <span class=n>experiments</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>Callable</span><span class=p>]],</span>
+                     <span class=n>n_runs</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>],</span>
+                     <span class=n>thread_id</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                     <span class=n>perform_warmup</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span>
+                     <span class=n>warmup_fes</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                     <span class=n>perform_pre_warmup</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span>
+                     <span class=n>pre_warmup_fes</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                     <span class=n>on_completion</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span>
+                         <span class=n>Any</span><span class=p>,</span> <span class=n>Path</span><span class=p>,</span> <span class=n>Process</span><span class=p>],</span> <span class=kc>None</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Execute a single thread of experiments.</span>
+
+<span class=sd>    :param base_dir: the base directory</span>
+<span class=sd>    :param experiments: the stream of experiment setups</span>
+<span class=sd>    :param n_runs: the list of runs</span>
+<span class=sd>    :param thread_id: the thread id</span>
+<span class=sd>    :param perform_warmup: should we perform a warm-up per instance?</span>
+<span class=sd>    :param warmup_fes: the number of the FEs for the warm-up runs</span>
+<span class=sd>    :param perform_pre_warmup: should we do one warmup run for each</span>
+<span class=sd>        instance before we begin with the actual experiments?</span>
+<span class=sd>    :param pre_warmup_fes: the FEs for the pre-warmup runs</span>
+<span class=sd>    :param on_completion: a function to be called for every completed run,</span>
+<span class=sd>        receiving the instance, the path to the log file (before it is</span>
+<span class=sd>        created) and the :class:`~moptipy.api.process.Process` of the run</span>
+<span class=sd>        as parameters</span>
+<span class=sd>    """</span>
+    <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>()</span>
+    <span class=k>for</span> <span class=n>warmup</span> <span class=ow>in</span> <span class=p>((</span><span class=kc>True</span><span class=p>,</span> <span class=kc>False</span><span class=p>)</span> <span class=k>if</span> <span class=n>perform_pre_warmup</span> <span class=k>else</span> <span class=p>(</span><span class=kc>False</span><span class=p>,</span> <span class=p>)):</span>
+        <span class=n>wss</span><span class=p>:</span> <span class=nb>str</span>
+        <span class=k>if</span> <span class=n>warmup</span><span class=p>:</span>
+            <span class=n>wss</span> <span class=o>=</span> <span class=s2>"pre-warmup"</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>wss</span> <span class=o>=</span> <span class=s2>"warmup"</span>
+            <span class=k>if</span> <span class=n>perform_pre_warmup</span><span class=p>:</span>
+                <span class=n>gc</span><span class=o>.</span><span class=n>collect</span><span class=p>()</span>  <span class=c1># do full garbage collection after pre-warmups</span>
+                <span class=n>gc</span><span class=o>.</span><span class=n>collect</span><span class=p>()</span>  <span class=c1># one more, to be double-safe</span>
+                <span class=n>gc</span><span class=o>.</span><span class=n>freeze</span><span class=p>()</span>  <span class=c1># whatever survived now, keep it permanently</span>
+
+        <span class=k>for</span> <span class=n>runs</span> <span class=ow>in</span> <span class=p>((</span><span class=mi>1</span><span class=p>,</span> <span class=p>)</span> <span class=k>if</span> <span class=n>warmup</span> <span class=k>else</span> <span class=n>n_runs</span><span class=p>):</span>  <span class=c1># for each number of runs</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>warmup</span><span class=p>:</span>
+                <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"now doing </span><span class=si>{</span><span class=n>runs</span><span class=si>}</span><span class=s2> runs."</span><span class=p>,</span> <span class=n>thread_id</span><span class=p>)</span>
+            <span class=n>random</span><span class=o>.</span><span class=n>shuffle</span><span class=p>(</span><span class=n>cast</span><span class=p>(</span><span class=s2>"list"</span><span class=p>,</span> <span class=n>experiments</span><span class=p>))</span>  <span class=c1># shuffle</span>
+
+            <span class=k>for</span> <span class=n>setup</span> <span class=ow>in</span> <span class=n>experiments</span><span class=p>:</span>  <span class=c1># for each setup</span>
+                <span class=n>instance</span> <span class=o>=</span> <span class=n>setup</span><span class=p>[</span><span class=mi>0</span><span class=p>]()</span>  <span class=c1># load instance</span>
+                <span class=k>if</span> <span class=n>instance</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>TypeError</span><span class=p>(</span><span class=s2>"None is not an instance."</span><span class=p>)</span>
+                <span class=n>inst_name</span> <span class=o>=</span> <span class=n>sanitize_name</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>instance</span><span class=p>))</span>
+
+                <span class=n>exp</span> <span class=o>=</span> <span class=n>setup</span><span class=p>[</span><span class=mi>1</span><span class=p>](</span><span class=n>instance</span><span class=p>)</span>  <span class=c1># setup algorithm for instance</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>exp</span><span class=p>,</span> <span class=n>Execution</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>exp</span><span class=p>,</span> <span class=s2>"result of setup callable"</span><span class=p>,</span>
+                                     <span class=n>Execution</span><span class=p>)</span>
+                <span class=c1># noinspection PyProtectedMember</span>
+                <span class=n>algo_name</span> <span class=o>=</span> <span class=n>sanitize_name</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>exp</span><span class=o>.</span><span class=n>_algorithm</span><span class=p>))</span>
+
+                <span class=n>cd</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>os</span><span class=o>.</span><span class=n>path</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>base_dir</span><span class=p>,</span> <span class=n>algo_name</span><span class=p>,</span> <span class=n>inst_name</span><span class=p>))</span>
+                <span class=n>cd</span><span class=o>.</span><span class=n>ensure_dir_exists</span><span class=p>()</span>
+
+                <span class=c1># generate sequence of seeds</span>
+                <span class=n>seeds</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=k>if</span> <span class=n>warmup</span> <span class=k>else</span> \
+                    <span class=n>rand_seeds_from_str</span><span class=p>(</span><span class=n>string</span><span class=o>=</span><span class=n>inst_name</span><span class=p>,</span> <span class=n>n_seeds</span><span class=o>=</span><span class=n>runs</span><span class=p>)</span>
+                <span class=n>random</span><span class=o>.</span><span class=n>shuffle</span><span class=p>(</span><span class=n>seeds</span><span class=p>)</span>
+                <span class=n>needs_warmup</span> <span class=o>=</span> <span class=n>warmup</span> <span class=ow>or</span> <span class=n>perform_warmup</span>
+                <span class=k>for</span> <span class=n>seed</span> <span class=ow>in</span> <span class=n>seeds</span><span class=p>:</span>  <span class=c1># for every run</span>
+
+                    <span class=n>filename</span> <span class=o>=</span> <span class=n>sanitize_names</span><span class=p>(</span>
+                        <span class=p>[</span><span class=n>algo_name</span><span class=p>,</span> <span class=n>inst_name</span><span class=p>,</span> <span class=nb>hex</span><span class=p>(</span><span class=n>seed</span><span class=p>)])</span>
+                    <span class=k>if</span> <span class=n>warmup</span><span class=p>:</span>
+                        <span class=n>log_file</span> <span class=o>=</span> <span class=n>filename</span>
+                    <span class=k>else</span><span class=p>:</span>
+                        <span class=n>log_file</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span>
+                            <span class=n>os</span><span class=o>.</span><span class=n>path</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>cd</span><span class=p>,</span> <span class=n>filename</span> <span class=o>+</span> <span class=n>FILE_SUFFIX</span><span class=p>))</span>
+                        <span class=k>if</span> <span class=n>log_file</span><span class=o>.</span><span class=n>ensure_file_exists</span><span class=p>():</span>
+                            <span class=k>continue</span>  <span class=c1># run already done</span>
+
+                    <span class=n>exp</span><span class=o>.</span><span class=n>set_rand_seed</span><span class=p>(</span><span class=n>seed</span><span class=p>)</span>
+
+                    <span class=k>if</span> <span class=n>needs_warmup</span><span class=p>:</span>  <span class=c1># perform warmup run</span>
+                        <span class=n>needs_warmup</span> <span class=o>=</span> <span class=kc>False</span>
+                        <span class=n>cpy</span><span class=p>:</span> <span class=n>Execution</span> <span class=o>=</span> <span class=n>copy</span><span class=o>.</span><span class=n>copy</span><span class=p>(</span><span class=n>exp</span><span class=p>)</span>
+                        <span class=n>cpy</span><span class=o>.</span><span class=n>set_max_fes</span><span class=p>(</span>
+                            <span class=n>pre_warmup_fes</span> <span class=k>if</span> <span class=n>warmup</span> <span class=k>else</span> <span class=n>warmup_fes</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+                        <span class=n>cpy</span><span class=o>.</span><span class=n>set_max_time_millis</span><span class=p>(</span><span class=mi>3600000</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+                        <span class=n>cpy</span><span class=o>.</span><span class=n>set_log_file</span><span class=p>(</span><span class=kc>None</span><span class=p>)</span>
+                        <span class=n>cpy</span><span class=o>.</span><span class=n>set_log_improvements</span><span class=p>(</span><span class=kc>False</span><span class=p>)</span>
+                        <span class=n>cpy</span><span class=o>.</span><span class=n>set_log_all_fes</span><span class=p>(</span><span class=kc>False</span><span class=p>)</span>
+                        <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>wss</span><span class=si>}</span><span class=s2> for </span><span class=si>{</span><span class=n>filename</span><span class=si>!r}</span><span class=s2>."</span><span class=p>,</span> <span class=n>thread_id</span><span class=p>)</span>
+                        <span class=k>with</span> <span class=n>cpy</span><span class=o>.</span><span class=n>execute</span><span class=p>():</span>
+                            <span class=k>pass</span>
+                        <span class=k>del</span> <span class=n>cpy</span>
+
+                    <span class=k>if</span> <span class=n>warmup</span><span class=p>:</span>
+                        <span class=k>continue</span>
+
+                    <span class=n>exp</span><span class=o>.</span><span class=n>set_log_file</span><span class=p>(</span><span class=n>log_file</span><span class=p>)</span>
+                    <span class=n>logger</span><span class=p>(</span><span class=n>filename</span><span class=p>,</span> <span class=n>thread_id</span><span class=p>)</span>
+                    <span class=k>with</span> <span class=n>exp</span><span class=o>.</span><span class=n>execute</span><span class=p>()</span> <span class=k>as</span> <span class=n>process</span><span class=p>:</span>  <span class=c1># run the experiment</span>
+                        <span class=n>on_completion</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=n>cast</span><span class=p>(</span>
+                            <span class=s2>"Path"</span><span class=p>,</span> <span class=n>log_file</span><span class=p>),</span> <span class=n>process</span><span class=p>)</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__no_complete</span><span class=p>(</span><span class=n>_</span><span class=p>:</span> <span class=n>Any</span><span class=p>,</span> <span class=n>__</span><span class=p>:</span> <span class=n>Path</span><span class=p>,</span> <span class=n>___</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""Do nothing."""</span>
+
+
+<div class=viewcode-block id=run_experiment>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.experiment.run_experiment>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>run_experiment</span><span class=p>(</span>
+        <span class=n>base_dir</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>instances</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=n>Any</span><span class=p>]],</span>
+        <span class=n>setups</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>],</span> <span class=n>Execution</span><span class=p>]],</span>
+        <span class=n>n_runs</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>11</span><span class=p>,</span>
+        <span class=n>perform_warmup</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span> <span class=n>warmup_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>20</span><span class=p>,</span>
+        <span class=n>perform_pre_warmup</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span> <span class=n>pre_warmup_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>20</span><span class=p>,</span>
+        <span class=n>on_completion</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>,</span> <span class=n>Path</span><span class=p>,</span> <span class=n>Process</span><span class=p>],</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>__no_complete</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=n>Path</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Run an experiment and store the log files into the given folder.</span>
+
+<span class=sd>    This function will automatically run an experiment, i.e., apply a set</span>
+<span class=sd>    `setups` of algorithm setups to a set `instances` of problem instances for</span>
+<span class=sd>    `n_runs` each. It will collect log files and store them into an</span>
+<span class=sd>    appropriate folder structure under the path `base_dir`. It will</span>
+<span class=sd>    automatically draw random seeds for all algorithm runs using</span>
+<span class=sd>    :func:`moptipy.utils.nputils.rand_seeds_from_str` based on the names of</span>
+<span class=sd>    the problem instances to solve. This yields replicable experiments, i.e.,</span>
+<span class=sd>    running the experiment program twice will yield exactly the same runs in</span>
+<span class=sd>    exactly the same file structure (give and take clock-time dependent</span>
+<span class=sd>    issues, which obviously cannot be controlled in a deterministic fashion).</span>
+
+<span class=sd>    :param base_dir: the base directory where to store the results</span>
+<span class=sd>    :param instances: an iterable of callables, each of which should return an</span>
+<span class=sd>        object representing a problem instance, whose `__str__` representation</span>
+<span class=sd>        is a valid name</span>
+<span class=sd>    :param setups: an iterable of callables, each receiving an instance (as</span>
+<span class=sd>        returned by instances) as input and producing an</span>
+<span class=sd>        :class:`moptipy.api.execution.Execution` as output</span>
+<span class=sd>    :param n_runs: the number of runs per algorithm-instance combination</span>
+<span class=sd>    :param perform_warmup: should we perform a warm-up for each instance?</span>
+<span class=sd>        If this parameter is `True`, then before the very first run of a</span>
+<span class=sd>        thread on an instance, we will execute the algorithm for just a few</span>
+<span class=sd>        function evaluations without logging and discard the results. The</span>
+<span class=sd>        idea is that during this warm-up, things such as JIT compilation or</span>
+<span class=sd>        complicated parsing can take place. While this cannot mitigate time</span>
+<span class=sd>        measurement problems for JIT compilations taking place late in runs,</span>
+<span class=sd>        it can at least somewhat solve the problem of delayed first FEs caused</span>
+<span class=sd>        by compilation and parsing.</span>
+<span class=sd>    :param warmup_fes: the number of the FEs for the warm-up runs</span>
+<span class=sd>    :param perform_pre_warmup: should we do one warmup run for each</span>
+<span class=sd>        instance before we begin with the actual experiments? This complements</span>
+<span class=sd>        the warmups defined by `perform_warmup`. It could be that, for some</span>
+<span class=sd>        reason, JIT or other activities may lead to stalls between multiple</span>
+<span class=sd>        processes when code is encountered for the first time. This may or may</span>
+<span class=sd>        not still cause strange timing issues even if `perform_warmup=True`.</span>
+<span class=sd>        We therefore can do one complete round of warmups before starting the</span>
+<span class=sd>        actual experiment. After that, we perform one garbage collection run</span>
+<span class=sd>        and then freeze all objects surviving it to prevent them from future</span>
+<span class=sd>        garbage collection runs. All processes that execute the experiment in</span>
+<span class=sd>        parallel will complete their pre-warmup and only after all of them have</span>
+<span class=sd>        completed it, the actual experiment will begin. I am not sure whether</span>
+<span class=sd>        this makes sense or not, but it also would not hurt.</span>
+<span class=sd>    :param pre_warmup_fes: the FEs for the pre-warmup runs</span>
+<span class=sd>    :param on_completion: a function to be called for every completed run,</span>
+<span class=sd>        receiving the instance, the path to the log file (before it is</span>
+<span class=sd>        created) and the :class:`~moptipy.api.process.Process` of the run</span>
+<span class=sd>        as parameters</span>
+
+<span class=sd>    :returns: the canonicalized path to `base_dir`</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>instances</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instances</span><span class=p>,</span> <span class=s2>"instances"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>setups</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>setups</span><span class=p>,</span> <span class=s2>"setups"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>perform_warmup</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>perform_warmup</span><span class=p>,</span> <span class=s2>"perform_warmup"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>perform_pre_warmup</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>perform_pre_warmup</span><span class=p>,</span> <span class=s2>"perform_pre_warmup"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>warmup_fes</span><span class=p>,</span> <span class=s2>"warmup_fes"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>pre_warmup_fes</span><span class=p>,</span> <span class=s2>"pre_warmup_fes"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+
+    <span class=n>instances</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>instances</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>instances</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Instance enumeration is empty."</span><span class=p>)</span>
+    <span class=k>for</span> <span class=n>instance</span> <span class=ow>in</span> <span class=n>instances</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>instance</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=s2>"all instances"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>get_sys_info</span><span class=p>())</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"empty system info?"</span><span class=p>)</span>
+
+    <span class=n>setups</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>setups</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>setups</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Setup enumeration is empty."</span><span class=p>)</span>
+    <span class=k>for</span> <span class=n>setup</span> <span class=ow>in</span> <span class=n>setups</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>setup</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>setup</span><span class=p>,</span> <span class=s2>"all setups"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=n>experiments</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>Callable</span><span class=p>]]]</span> <span class=o>=</span> \
+        <span class=p>[[</span><span class=n>ii</span><span class=p>,</span> <span class=n>ss</span><span class=p>]</span> <span class=k>for</span> <span class=n>ii</span> <span class=ow>in</span> <span class=n>instances</span> <span class=k>for</span> <span class=n>ss</span> <span class=ow>in</span> <span class=n>setups</span><span class=p>]</span>
+
+    <span class=k>del</span> <span class=n>instances</span>
+    <span class=k>del</span> <span class=n>setups</span>
+
+    <span class=k>if</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>experiments</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"No experiments found?"</span><span class=p>)</span>
+
+    <span class=n>n_runs</span> <span class=o>=</span> <span class=p>[</span><span class=n>n_runs</span><span class=p>]</span> <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>n_runs</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span> <span class=k>else</span> <span class=nb>list</span><span class=p>(</span><span class=n>n_runs</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>n_runs</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"No number of runs provided?"</span><span class=p>)</span>
+    <span class=n>last</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=k>for</span> <span class=n>run</span> <span class=ow>in</span> <span class=n>n_runs</span><span class=p>:</span>
+        <span class=n>last</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>run</span><span class=p>,</span> <span class=s2>"n_runs"</span><span class=p>,</span> <span class=n>last</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span>
+
+    <span class=n>use_dir</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>base_dir</span><span class=p>)</span>
+    <span class=n>use_dir</span><span class=o>.</span><span class=n>ensure_dir_exists</span><span class=p>()</span>
+
+    <span class=n>thread_id</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"@</span><span class=si>{</span><span class=n>getpid</span><span class=p>()</span><span class=si>:</span><span class=s2>x</span><span class=si>}</span><span class=s2>"</span>
+    <span class=n>logger</span><span class=p>(</span><span class=s2>"beginning experiment execution."</span><span class=p>,</span> <span class=n>thread_id</span><span class=p>)</span>
+    <span class=n>__run_experiment</span><span class=p>(</span><span class=n>base_dir</span><span class=o>=</span><span class=n>use_dir</span><span class=p>,</span>
+                     <span class=n>experiments</span><span class=o>=</span><span class=n>experiments</span><span class=p>,</span>
+                     <span class=n>n_runs</span><span class=o>=</span><span class=n>n_runs</span><span class=p>,</span>
+                     <span class=n>thread_id</span><span class=o>=</span><span class=n>thread_id</span><span class=p>,</span>
+                     <span class=n>perform_warmup</span><span class=o>=</span><span class=n>perform_warmup</span><span class=p>,</span>
+                     <span class=n>warmup_fes</span><span class=o>=</span><span class=n>warmup_fes</span><span class=p>,</span>
+                     <span class=n>perform_pre_warmup</span><span class=o>=</span><span class=n>perform_pre_warmup</span><span class=p>,</span>
+                     <span class=n>pre_warmup_fes</span><span class=o>=</span><span class=n>pre_warmup_fes</span><span class=p>,</span>
+                     <span class=n>on_completion</span><span class=o>=</span><span class=n>on_completion</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=s2>"finished experiment execution."</span><span class=p>,</span> <span class=n>thread_id</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>use_dir</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.experiment</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

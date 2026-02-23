@@ -1,0 +1,64 @@
+<!doctype html><html data-content_root=../../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.fitnesses.direct — moptipy 0.9.172 documentation</title><link href="../../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/fitnesses/direct.html rel=canonical><link href=../../../../../genindex.html rel=index title=Index><link href=../../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.fitnesses.direct</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.fitnesses.direct</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Direct fitness assignment uses the objective values directly as fitness.</span>
+
+<span class=sd>Together with fitness proportionate selection (:class:`~moptipy.algorithms.\</span>
+<span class=sd>modules.selections.fitness_proportionate_sus.FitnessProportionateSUS`), it</span>
+<span class=sd>turns an EA (:class:`~moptipy.algorithms.so.general_ea.GeneralEA`) to a</span>
+<span class=sd>minimization variant of the traditional Genetic Algorithms.</span>
+
+<span class=sd>1. John Henry Holland. *Adaptation in Natural and Artificial Systems: An</span>
+<span class=sd>   Introductory Analysis with Applications to Biology, Control, and Artificial</span>
+<span class=sd>   Intelligence.* Ann Arbor, MI, USA: University of Michigan Press. 1975.</span>
+<span class=sd>   ISBN: 0-472-08460-7</span>
+<span class=sd>2. David Edward Goldberg. *Genetic Algorithms in Search, Optimization, and</span>
+<span class=sd>   Machine Learning.* Boston, MA, USA: Addison-Wesley Longman Publishing Co.,</span>
+<span class=sd>   Inc. 1989. ISBN: 0-201-15767-5</span>
+<span class=sd>"""</span>
+
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.fitness</span><span class=w> </span><span class=kn>import</span> <span class=n>Fitness</span><span class=p>,</span> <span class=n>FRecord</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=Direct>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.fitnesses.html#moptipy.algorithms.so.fitnesses.direct.Direct>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Direct</span><span class=p>(</span><span class=n>Fitness</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Objective values are used as fitness directly.</span>
+
+<span class=sd>    This is the most primitive and basic fitness assignment strategy.</span>
+<span class=sd>    It does not give preference to new solutions over old solutions if both</span>
+<span class=sd>    have the same objective value. In this, it is different from</span>
+<span class=sd>    :class:`~moptipy.algorithms.so.fitnesses.rank_and_iteration\</span>
+<span class=sd>.RankAndIteration`, which is the default fitness assignment strategy.</span>
+<span class=sd>    It is therefore also not compatible to our basic (mu+lambda) Evolutionary</span>
+<span class=sd>    Algorithm implementation (:class:`~moptipy.algorithms.so.ea.EA`).</span>
+<span class=sd>    """</span>
+
+<div class=viewcode-block id=Direct.assign_fitness>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.fitnesses.html#moptipy.algorithms.so.fitnesses.direct.Direct.assign_fitness>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>assign_fitness</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>p</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>FRecord</span><span class=p>],</span> <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Assign the objective value as fitness.</span>
+
+<span class=sd>        :param p: the list of records</span>
+<span class=sd>        :param random: ignored</span>
+<span class=sd>        """</span>
+        <span class=k>for</span> <span class=n>rec</span> <span class=ow>in</span> <span class=n>p</span><span class=p>:</span>  <span class=c1># iterate over all records in the population</span>
+            <span class=n>rec</span><span class=o>.</span><span class=n>fitness</span> <span class=o>=</span> <span class=n>rec</span><span class=o>.</span><span class=n>f</span>  <span class=c1># store objective value f as fitness</span></div>
+
+<span class=c1># end book</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the direct fitness assignment.</span>
+
+<span class=sd>        :return: the name of this fitness assignment strategy</span>
+<span class=sd>        :retval "direct": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"direct"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.fitnesses.direct</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

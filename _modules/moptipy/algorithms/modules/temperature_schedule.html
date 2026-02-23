@@ -1,0 +1,553 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.modules.temperature_schedule — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/modules/temperature_schedule.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.modules.temperature_schedule</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.modules.temperature_schedule</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>A temperature schedule as needed by Simulated Annealing.</span>
+
+<span class=sd>The Simulated Annealing algorithm implemented in</span>
+<span class=sd>:mod:`~moptipy.algorithms.so.simulated_annealing` performs a local search that</span>
+<span class=sd>always accepts a non-worsening move, i.e., a solution which is not worse than</span>
+<span class=sd>the currently maintained one. However, it will also *sometimes* accept one</span>
+<span class=sd>that is worse. The probability of doing so depends on how much worse that</span>
+<span class=sd>solution is and on the current *temperature* of the algorithm. The higher the</span>
+<span class=sd>temperature, the higher the acceptance probability. The temperature changes</span>
+<span class=sd>over time according to the</span>
+<span class=sd>:class:`~moptipy.algorithms.modules.temperature_schedule.TemperatureSchedule`.</span>
+
+<span class=sd>The temperature schedule receives an iteration index `tau` as input and</span>
+<span class=sd>returns the current temperature via :meth:`~moptipy.algorithms.modules.\</span>
+<span class=sd>temperature_schedule.TemperatureSchedule.temperature`. Notice that `tau` is</span>
+<span class=sd>zero-based for simplicity reason, meanings that the first objective function</span>
+<span class=sd>evaluation is at index `0`.</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>e</span><span class=p>,</span> <span class=n>isfinite</span><span class=p>,</span> <span class=n>log</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.math.int_math</span><span class=w> </span><span class=kn>import</span> <span class=n>try_int</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.strings.enforce</span><span class=w> </span><span class=kn>import</span> <span class=n>enforce_non_empty_str_without_ws</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.component</span><span class=w> </span><span class=kn>import</span> <span class=n>Component</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>Objective</span><span class=p>,</span> <span class=n>check_objective</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=n>num_to_str_for_name</span>
+
+
+<span class=c1># start schedule</span>
+<div class=viewcode-block id=TemperatureSchedule>
+<a class=viewcode-back href=../../../../moptipy.algorithms.modules.html#moptipy.algorithms.modules.temperature_schedule.TemperatureSchedule>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>TemperatureSchedule</span><span class=p>(</span><span class=n>Component</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The base class for temperature schedules."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>t0</span><span class=p>:</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+        <span class=c1># end schedule</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the temperature schedule.</span>
+
+<span class=sd>        :param t0: the starting temperature, must be > 0</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>t0</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>t0</span><span class=p>,</span> <span class=s2>"t0"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>t0</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=n>t0</span> <span class=o><=</span> <span class=mf>0.0</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"t0 must be >0, cannot be </span><span class=si>{</span><span class=n>t0</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+<span class=c1># start schedule</span>
+        <span class=c1>#: the starting temperature</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>t0</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>t0</span>
+
+<div class=viewcode-block id=TemperatureSchedule.temperature>
+<a class=viewcode-back href=../../../../moptipy.algorithms.modules.html#moptipy.algorithms.modules.temperature_schedule.TemperatureSchedule.temperature>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>temperature</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>tau</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compute the temperature at iteration `tau`.</span>
+
+<span class=sd>        :param tau: the iteration index, starting with `0` at the first</span>
+<span class=sd>            comparison of two solutions, at which point the starting</span>
+<span class=sd>            temperature :attr:`~TemperatureSchedule.t0` should be returned</span>
+<span class=sd>        :returns: the temperature</span>
+<span class=sd>        """</span></div>
+
+<span class=c1># end schedule</span>
+
+<div class=viewcode-block id=TemperatureSchedule.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.algorithms.modules.html#moptipy.algorithms.modules.temperature_schedule.TemperatureSchedule.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log all parameters of this temperature schedule as key-value pairs.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.key_values("C") as kv:</span>
+<span class=sd>        ...         TemperatureSchedule(0.1).log_parameters_to(kv)</span>
+<span class=sd>        ...     text = l.get_log()</span>
+<span class=sd>        >>> text[1]</span>
+<span class=sd>        'name: TemperatureSchedule'</span>
+<span class=sd>        >>> text[3]</span>
+<span class=sd>        'T0: 0.1'</span>
+<span class=sd>        >>> len(text)</span>
+<span class=sd>        6</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"T0"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>t0</span><span class=p>)</span></div>
+</div>
+
+
+
+<span class=c1># start exponential</span>
+<div class=viewcode-block id=ExponentialSchedule>
+<a class=viewcode-back href=../../../../moptipy.algorithms.modules.html#moptipy.algorithms.modules.temperature_schedule.ExponentialSchedule>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>ExponentialSchedule</span><span class=p>(</span><span class=n>TemperatureSchedule</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The exponential temperature schedule.</span>
+
+<span class=sd>    The current temperature is computed as `t0 * (1 - epsilon) ** tau`.</span>
+
+<span class=sd>    >>> ex = ExponentialSchedule(10.0, 0.05)</span>
+<span class=sd>    >>> print(f"{ex.t0} - {ex.epsilon}")</span>
+<span class=sd>    10.0 - 0.05</span>
+<span class=sd>    >>> ex.temperature(0)</span>
+<span class=sd>    10.0</span>
+<span class=sd>    >>> ex.temperature(1)</span>
+<span class=sd>    9.5</span>
+<span class=sd>    >>> ex.temperature(2)</span>
+<span class=sd>    9.025</span>
+<span class=sd>    >>> ex.temperature(1_000_000_000_000_000_000)</span>
+<span class=sd>    0.0</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>t0</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>epsilon</span><span class=p>:</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the exponential temperature schedule.</span>
+
+<span class=sd>        :param t0: the starting temperature, must be > 0</span>
+<span class=sd>        :param epsilon: the epsilon parameter of the schedule, in (0, 1)</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>t0</span><span class=p>)</span>
+<span class=c1># end exponential</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>epsilon</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>epsilon</span><span class=p>,</span> <span class=s2>"epsilon"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>epsilon</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=ow>not</span> <span class=p>(</span><span class=mf>0.0</span> <span class=o><</span> <span class=n>epsilon</span> <span class=o><</span> <span class=mf>1.0</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"epsilon cannot be </span><span class=si>{</span><span class=n>epsilon</span><span class=si>}</span><span class=s2>, must be in (0,1)."</span><span class=p>)</span>
+<span class=c1># start exponential</span>
+        <span class=c1>#: the epsilon parameter of the exponential schedule</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>epsilon</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>epsilon</span>
+        <span class=c1>#: the value used as basis for the exponent</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__one_minus_epsilon</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=mf>1.0</span> <span class=o>-</span> <span class=n>epsilon</span>
+<span class=c1># end exponential</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=mf>0.0</span> <span class=o><</span> <span class=bp>self</span><span class=o>.</span><span class=n>__one_minus_epsilon</span> <span class=o><</span> <span class=mf>1.0</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"epsilon cannot be </span><span class=si>{</span><span class=n>epsilon</span><span class=si>}</span><span class=s2>, because 1-epsilon must be in "</span>
+                <span class=sa>f</span><span class=s2>"(0, 1) but is </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__one_minus_epsilon</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+<span class=c1># start exponential</span>
+
+<div class=viewcode-block id=ExponentialSchedule.temperature>
+<a class=viewcode-back href=../../../../moptipy.algorithms.modules.html#moptipy.algorithms.modules.temperature_schedule.ExponentialSchedule.temperature>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>temperature</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>tau</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compute the temperature at iteration `tau`.</span>
+
+<span class=sd>        :param tau: the iteration index, starting with `0` at the first</span>
+<span class=sd>            comparison of two solutions, at which point the starting</span>
+<span class=sd>            temperature :attr:`~TemperatureSchedule.t0` should be returned</span>
+<span class=sd>        :returns: the temperature</span>
+
+<span class=sd>        >>> s = ExponentialSchedule(100.0, 0.5)</span>
+<span class=sd>        >>> s.temperature(0)</span>
+<span class=sd>        100.0</span>
+<span class=sd>        >>> s.temperature(1)</span>
+<span class=sd>        50.0</span>
+<span class=sd>        >>> s.temperature(10)</span>
+<span class=sd>        0.09765625</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>t0</span> <span class=o>*</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__one_minus_epsilon</span> <span class=o>**</span> <span class=n>tau</span><span class=p>)</span></div>
+
+<span class=c1># end exponential</span>
+
+<div class=viewcode-block id=ExponentialSchedule.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.algorithms.modules.html#moptipy.algorithms.modules.temperature_schedule.ExponentialSchedule.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log all parameters of the exponential temperature schedule.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.key_values("C") as kv:</span>
+<span class=sd>        ...         ExponentialSchedule(0.2, 0.6).log_parameters_to(kv)</span>
+<span class=sd>        ...     text = l.get_log()</span>
+<span class=sd>        >>> text[1]</span>
+<span class=sd>        'name: exp0d2_0d6'</span>
+<span class=sd>        >>> text[3]</span>
+<span class=sd>        'T0: 0.2'</span>
+<span class=sd>        >>> text[5]</span>
+<span class=sd>        'e: 0.6'</span>
+<span class=sd>        >>> len(text)</span>
+<span class=sd>        8</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"e"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>epsilon</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the string representation of the exponential temperature schedule.</span>
+
+<span class=sd>        :returns: the name of this schedule</span>
+
+<span class=sd>        >>> ExponentialSchedule(100.5, 0.3)</span>
+<span class=sd>        exp100d5_0d3</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=sa>f</span><span class=s2>"exp</span><span class=si>{</span><span class=n>num_to_str_for_name</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>t0</span><span class=p>)</span><span class=si>}</span><span class=s2>_"</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>num_to_str_for_name</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>epsilon</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span></div>
+
+
+
+<span class=c1># start logarithmic</span>
+<div class=viewcode-block id=LogarithmicSchedule>
+<a class=viewcode-back href=../../../../moptipy.algorithms.modules.html#moptipy.algorithms.modules.temperature_schedule.LogarithmicSchedule>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>LogarithmicSchedule</span><span class=p>(</span><span class=n>TemperatureSchedule</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The logarithmic temperature schedule.</span>
+
+<span class=sd>    The temperature is computed as `t0 / log(e + (tau * epsilon))`.</span>
+
+<span class=sd>    >>> lg = LogarithmicSchedule(10.0, 0.1)</span>
+<span class=sd>    >>> print(f"{lg.t0} - {lg.epsilon}")</span>
+<span class=sd>    10.0 - 0.1</span>
+<span class=sd>    >>> lg.temperature(0)</span>
+<span class=sd>    10.0</span>
+<span class=sd>    >>> lg.temperature(1)</span>
+<span class=sd>    9.651322627630812</span>
+<span class=sd>    >>> lg.temperature(1_000_000_000_000_000_000_000_000_000_000_000_000_000)</span>
+<span class=sd>    0.11428802155348732</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>t0</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>epsilon</span><span class=p>:</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the logarithmic temperature schedule.</span>
+
+<span class=sd>        :param t0: the starting temperature, must be > 0</span>
+<span class=sd>        :param epsilon: the epsilon parameter of the schedule, is > 0</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>t0</span><span class=p>)</span>
+<span class=c1># end logarithmic</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>epsilon</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>epsilon</span><span class=p>,</span> <span class=s2>"epsilon"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>epsilon</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=n>epsilon</span> <span class=o><=</span> <span class=mf>0.0</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"epsilon cannot be </span><span class=si>{</span><span class=n>epsilon</span><span class=si>}</span><span class=s2>, must be > 0."</span><span class=p>)</span>
+<span class=c1># start logarithmic</span>
+        <span class=c1>#: the epsilon parameter of the logarithmic schedule</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>epsilon</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>epsilon</span>
+
+<div class=viewcode-block id=LogarithmicSchedule.temperature>
+<a class=viewcode-back href=../../../../moptipy.algorithms.modules.html#moptipy.algorithms.modules.temperature_schedule.LogarithmicSchedule.temperature>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>temperature</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>tau</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compute the temperature at iteration `tau`.</span>
+
+<span class=sd>        :param tau: the iteration index, starting with `0` at the first</span>
+<span class=sd>            comparison of two solutions, at which point the starting</span>
+<span class=sd>            temperature :attr:`~TemperatureSchedule.t0` should be returned</span>
+<span class=sd>        :returns: the temperature</span>
+
+<span class=sd>        >>> s = LogarithmicSchedule(100.0, 0.5)</span>
+<span class=sd>        >>> s.temperature(0)</span>
+<span class=sd>        100.0</span>
+<span class=sd>        >>> s.temperature(1)</span>
+<span class=sd>        85.55435113150568</span>
+<span class=sd>        >>> s.temperature(10)</span>
+<span class=sd>        48.93345190925178</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>t0</span> <span class=o>/</span> <span class=n>log</span><span class=p>(</span><span class=n>e</span> <span class=o>+</span> <span class=p>(</span><span class=n>tau</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>epsilon</span><span class=p>))</span></div>
+
+<span class=c1># end logarithmic</span>
+
+<div class=viewcode-block id=LogarithmicSchedule.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.algorithms.modules.html#moptipy.algorithms.modules.temperature_schedule.LogarithmicSchedule.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log all parameters of the logarithmic temperature schedule.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.key_values("C") as kv:</span>
+<span class=sd>        ...         LogarithmicSchedule(0.2, 0.6).log_parameters_to(kv)</span>
+<span class=sd>        ...     text = l.get_log()</span>
+<span class=sd>        >>> text[1]</span>
+<span class=sd>        'name: ln0d2_0d6'</span>
+<span class=sd>        >>> text[3]</span>
+<span class=sd>        'T0: 0.2'</span>
+<span class=sd>        >>> text[5]</span>
+<span class=sd>        'e: 0.6'</span>
+<span class=sd>        >>> len(text)</span>
+<span class=sd>        8</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"e"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>epsilon</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the string representation of the logarithmic temperature schedule.</span>
+
+<span class=sd>        :returns: the name of this schedule</span>
+
+<span class=sd>        >>> LogarithmicSchedule(100.5, 0.3)</span>
+<span class=sd>        ln100d5_0d3</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=sa>f</span><span class=s2>"ln</span><span class=si>{</span><span class=n>num_to_str_for_name</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>t0</span><span class=p>)</span><span class=si>}</span><span class=s2>_"</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>num_to_str_for_name</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>epsilon</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=ExponentialScheduleBasedOnBounds>
+<a class=viewcode-back href=../../../../moptipy.algorithms.modules.html#moptipy.algorithms.modules.temperature_schedule.ExponentialScheduleBasedOnBounds>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>ExponentialScheduleBasedOnBounds</span><span class=p>(</span><span class=n>ExponentialSchedule</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    An exponential schedule configured based on the objective's range.</span>
+
+<span class=sd>    This exponential schedule takes an objective function as parameter.</span>
+<span class=sd>    It uses the lower and the upper bound of this function, `LB` and `UB`,</span>
+<span class=sd>    to select a start and end temperature based on the provided fractions.</span>
+<span class=sd>    Here, we set `W = lb_sum_weight * LB + ub_sum_weight * UB`.</span>
+<span class=sd>    If we set `lb_sum_weight = -1` and `ub_sum_weight = 1`, then `W` will be</span>
+<span class=sd>    the range of the objective function.</span>
+<span class=sd>    If we set `lb_sum_weight = 1` and `ub_sum_weight = 0`, then we base the</span>
+<span class=sd>    temperature setup entirely on the lower bound.</span>
+<span class=sd>    If we set `lb_sum_weight = 0` and `ub_sum_weight = 1`, then we base the</span>
+<span class=sd>    temperature setup entirely on the upper bound.</span>
+<span class=sd>    Roughly, the start temperature will be `W * start_range_frac` and</span>
+<span class=sd>    the end temperature, to be reached after `n_steps` FEs, will be</span>
+<span class=sd>    `W * end_range_frac`.</span>
+<span class=sd>    Since sometimes the upper and lower bound may be excessivly large, we</span>
+<span class=sd>    can provide limits for `W` in form of `min_bound_sum` and `max_bound_sum`.</span>
+<span class=sd>    This will then override any other computation.</span>
+<span class=sd>    Notice that it is expected that `tau == 0` when the temperature function</span>
+<span class=sd>    is first called. It is expected that `tau == n_range - 1` when it is</span>
+<span class=sd>    called for the last time.</span>
+
+<span class=sd>    >>> from moptipy.examples.bitstrings.onemax import OneMax</span>
+<span class=sd>    >>> es = ExponentialScheduleBasedOnBounds(</span>
+<span class=sd>    ...     OneMax(10), -1, 1, 0.01, 0.0001, 10**8)</span>
+<span class=sd>    >>> es.temperature(0)</span>
+<span class=sd>    0.1</span>
+<span class=sd>    >>> es.temperature(1)</span>
+<span class=sd>    0.09999999539482989</span>
+<span class=sd>    >>> es.temperature(10**8 - 1)</span>
+<span class=sd>    0.0010000000029841878</span>
+<span class=sd>    >>> es.temperature(10**8)</span>
+<span class=sd>    0.0009999999569324865</span>
+
+<span class=sd>    >>> es = ExponentialScheduleBasedOnBounds(</span>
+<span class=sd>    ...         OneMax(10), -1, 1, 0.01, 0.0001, 10**8, max_bound_sum=5)</span>
+<span class=sd>    >>> es.temperature(0)</span>
+<span class=sd>    0.05</span>
+<span class=sd>    >>> es.temperature(1)</span>
+<span class=sd>    0.04999999769741494</span>
+<span class=sd>    >>> es.temperature(10**8 - 1)</span>
+<span class=sd>    0.0005000000014920939</span>
+<span class=sd>    >>> es.temperature(10**8)</span>
+<span class=sd>    0.0004999999784662432</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     ExponentialScheduleBasedOnBounds(1, 0.01, 0.0001, 10**8)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    objective function should be an instance of moptipy.api.objective.\</span>
+<span class=sd>Objective but is int, namely 1.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     ExponentialScheduleBasedOnBounds(</span>
+<span class=sd>    ...         OneMax(10), -1, 1, -1.0, 0.0001, 10**8)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    Invalid bound sum factors [-1.0, 0.0001].</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     ExponentialScheduleBasedOnBounds(</span>
+<span class=sd>    ...         OneMax(10), -1, 1, 0.9, 0.0001, 1)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    n_steps=1 is invalid, must be in 2..1000000000000000.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>f</span><span class=p>:</span> <span class=n>Objective</span><span class=p>,</span>
+                 <span class=n>lb_sum_weight</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span>
+                 <span class=n>ub_sum_weight</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=mi>1</span><span class=p>,</span>
+                 <span class=n>start_factor</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>1e-3</span><span class=p>,</span>
+                 <span class=n>end_factor</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>1e-7</span><span class=p>,</span>
+                 <span class=n>n_steps</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1_000_000</span><span class=p>,</span>
+                 <span class=n>min_bound_sum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>1e-20</span><span class=p>,</span>
+                 <span class=n>max_bound_sum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>1e20</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the range-based exponential schedule.</span>
+
+<span class=sd>        :param f: the objective function whose range we will use</span>
+<span class=sd>        :param lb_sum_weight: the weight of the lower bound in the bound sum</span>
+<span class=sd>        :param ub_sum_weight: the weight of the upper bound in the bound sum</span>
+<span class=sd>        :parma start_factor: the factor multiplied with the bound sum to get</span>
+<span class=sd>            the starting temperature</span>
+<span class=sd>        :parm end_factor: the factor multiplied with the bound sum to get</span>
+<span class=sd>            the end temperature</span>
+<span class=sd>        :param n_steps: the number of steps until the end range should be</span>
+<span class=sd>            reached</span>
+<span class=sd>        :param min_bound_sum: a lower limit for the weighted sum of the bounds</span>
+<span class=sd>        :param max_bound_sum: an upper limit for the weighted sum of the bounds</span>
+<span class=sd>        """</span>
+        <span class=n>f</span> <span class=o>=</span> <span class=n>check_objective</span><span class=p>(</span><span class=n>f</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lb_sum_weight</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>lb_sum_weight</span><span class=p>,</span> <span class=s2>"lb_sum_weight"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ub_sum_weight</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>ub_sum_weight</span><span class=p>,</span> <span class=s2>"ub_sum_weight"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>start_factor</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>start_factor</span><span class=p>,</span> <span class=s2>"start_factor"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>end_factor</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>end_factor</span><span class=p>,</span> <span class=s2>"end_factor"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>min_bound_sum</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>min_bound_sum</span><span class=p>,</span> <span class=s2>"min_bound_sum"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>max_bound_sum</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>max_bound_sum</span><span class=p>,</span> <span class=s2>"max_bound_sum"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>isfinite</span><span class=p>(</span><span class=n>min_bound_sum</span><span class=p>)</span> <span class=ow>and</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>max_bound_sum</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span>
+                <span class=mi>0</span> <span class=o><</span> <span class=n>min_bound_sum</span> <span class=o><</span> <span class=n>max_bound_sum</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid bound sum limits [</span><span class=si>{</span><span class=n>min_bound_sum</span><span class=si>}</span><span class=s2>"</span>
+                             <span class=sa>f</span><span class=s2>", </span><span class=si>{</span><span class=n>max_bound_sum</span><span class=si>}</span><span class=s2>]."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>isfinite</span><span class=p>(</span><span class=n>start_factor</span><span class=p>)</span> <span class=ow>and</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>end_factor</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span>
+                <span class=mf>0.0</span> <span class=o><</span> <span class=n>end_factor</span> <span class=o><</span> <span class=n>start_factor</span> <span class=o><</span> <span class=mf>1e50</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid bound sum factors [</span><span class=si>{</span><span class=n>start_factor</span><span class=si>}</span><span class=s2>"</span>
+                             <span class=sa>f</span><span class=s2>", </span><span class=si>{</span><span class=n>end_factor</span><span class=si>}</span><span class=s2>]."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>isfinite</span><span class=p>(</span><span class=n>lb_sum_weight</span><span class=p>)</span> <span class=ow>and</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>ub_sum_weight</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid bound sum weights [</span><span class=si>{</span><span class=n>lb_sum_weight</span><span class=si>}</span><span class=s2>"</span>
+                             <span class=sa>f</span><span class=s2>", </span><span class=si>{</span><span class=n>ub_sum_weight</span><span class=si>}</span><span class=s2>]."</span><span class=p>)</span>
+        <span class=c1>#: the number of steps that we will perform until reaching the end</span>
+        <span class=c1>#: range fraction temperature</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__n_steps</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>n_steps</span><span class=p>,</span> <span class=s2>"n_steps"</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>1_000_000_000_000_000</span><span class=p>)</span>
+
+        <span class=n>lb_sum_weight</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>lb_sum_weight</span><span class=p>)</span>
+        <span class=c1>#: the sum weight for the lower bound</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__lb_sum_weight</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>lb_sum_weight</span>
+        <span class=n>ub_sum_weight</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>ub_sum_weight</span><span class=p>)</span>
+        <span class=c1>#: the sum weight for the upper bound</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__ub_sum_weight</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>ub_sum_weight</span>
+        <span class=c1>#: the start temperature bound sum factor</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__start_factor</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>start_factor</span>
+        <span class=c1>#: the end temperature bound sum factor</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__end_factor</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>end_factor</span>
+        <span class=n>min_bound_sum</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>min_bound_sum</span><span class=p>)</span>
+        <span class=c1>#: the minimum value for the bound sum</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__min_bound_sum</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>min_bound_sum</span>
+        <span class=n>max_bound_sum</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>max_bound_sum</span><span class=p>)</span>
+        <span class=c1>#: the maximum value for the bound sum</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__max_bound_sum</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>max_bound_sum</span>
+
+        <span class=c1>#: the name of the objective function used</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__used_objective</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>enforce_non_empty_str_without_ws</span><span class=p>(</span>
+            <span class=nb>str</span><span class=p>(</span><span class=n>f</span><span class=p>))</span>
+        <span class=n>flb</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>()</span>
+        <span class=n>fub</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>upper_bound</span><span class=p>()</span>
+        <span class=k>if</span> <span class=n>flb</span> <span class=o>></span> <span class=n>fub</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"Objective function lower bound </span><span class=si>{</span><span class=n>flb</span><span class=si>}</span><span class=s2> > upper bound </span><span class=si>{</span><span class=n>fub</span><span class=si>}</span><span class=s2>?"</span><span class=p>)</span>
+
+        <span class=c1>#: the lower bound of the objective value</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__f_lower_bound</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>flb</span>
+        <span class=c1>#: the upper bound for the objective value</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__f_upper_bound</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>fub</span>
+
+        <span class=n>bound_sum</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=nb>max</span><span class=p>(</span><span class=n>min_bound_sum</span><span class=p>,</span> <span class=nb>min</span><span class=p>(</span>
+            <span class=n>max_bound_sum</span><span class=p>,</span>
+            <span class=p>(</span><span class=n>flb</span> <span class=o>*</span> <span class=n>lb_sum_weight</span> <span class=k>if</span> <span class=n>lb_sum_weight</span> <span class=o>!=</span> <span class=mi>0</span> <span class=k>else</span> <span class=mi>0</span><span class=p>)</span> <span class=o>+</span> <span class=p>(</span>
+                <span class=n>fub</span> <span class=o>*</span> <span class=n>ub_sum_weight</span> <span class=k>if</span> <span class=n>ub_sum_weight</span> <span class=o>!=</span> <span class=mi>0</span> <span class=k>else</span> <span class=mi>0</span><span class=p>))))</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>isfinite</span><span class=p>(</span><span class=n>bound_sum</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span>
+                <span class=n>min_bound_sum</span> <span class=o><=</span> <span class=n>bound_sum</span> <span class=o><=</span> <span class=n>max_bound_sum</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"Invalid bound sum </span><span class=si>{</span><span class=n>bound_sum</span><span class=si>}</span><span class=s2> resulting from bounds [</span><span class=si>{</span><span class=n>flb</span><span class=si>}</span><span class=s2>"</span>
+                <span class=sa>f</span><span class=s2>", </span><span class=si>{</span><span class=n>fub</span><span class=si>}</span><span class=s2>] and weights </span><span class=si>{</span><span class=n>lb_sum_weight</span><span class=si>}</span><span class=s2>, </span><span class=si>{</span><span class=n>ub_sum_weight</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=c1>#: the bound sum</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__f_bound_sum</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>bound_sum</span>
+
+        <span class=n>t0</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>start_factor</span> <span class=o>*</span> <span class=n>bound_sum</span>
+        <span class=n>te</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>end_factor</span> <span class=o>*</span> <span class=n>bound_sum</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>isfinite</span><span class=p>(</span><span class=n>t0</span><span class=p>)</span> <span class=ow>and</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>te</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=mi>0</span> <span class=o><</span> <span class=n>te</span> <span class=o><</span> <span class=n>t0</span> <span class=o><</span> <span class=mf>1e100</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"Invalid setup </span><span class=si>{</span><span class=n>start_factor</span><span class=si>}</span><span class=s2>, </span><span class=si>{</span><span class=n>end_factor</span><span class=si>}</span><span class=s2>, "</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>bound_sum</span><span class=si>}</span><span class=s2> leading to temperatures </span><span class=si>{</span><span class=n>t0</span><span class=si>}</span><span class=s2>, </span><span class=si>{</span><span class=n>te</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=c1>#: the end temperature</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__te</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>te</span>
+
+        <span class=n>epsilon</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=mi>1</span> <span class=o>-</span> <span class=p>(</span><span class=n>te</span> <span class=o>/</span> <span class=n>t0</span><span class=p>)</span> <span class=o>**</span> <span class=p>(</span><span class=mi>1</span> <span class=o>/</span> <span class=p>(</span><span class=n>n_steps</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>isfinite</span><span class=p>(</span><span class=n>epsilon</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=mi>0</span> <span class=o><</span> <span class=n>epsilon</span> <span class=o><</span> <span class=mi>1</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span>
+                <span class=mi>0</span> <span class=o><</span> <span class=p>(</span><span class=mi>1</span> <span class=o>-</span> <span class=n>epsilon</span><span class=p>)</span> <span class=o><</span> <span class=mi>1</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"Invalid computed epsilon </span><span class=si>{</span><span class=n>epsilon</span><span class=si>}</span><span class=s2> resulting from setup "</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>start_factor</span><span class=si>}</span><span class=s2>, </span><span class=si>{</span><span class=n>end_factor</span><span class=si>}</span><span class=s2>, </span><span class=si>{</span><span class=n>bound_sum</span><span class=si>}</span><span class=s2> leading "</span>
+                <span class=sa>f</span><span class=s2>"to temperatures </span><span class=si>{</span><span class=n>t0</span><span class=si>}</span><span class=s2>, </span><span class=si>{</span><span class=n>te</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>t0</span><span class=p>,</span> <span class=n>epsilon</span><span class=p>)</span>
+
+<div class=viewcode-block id=ExponentialScheduleBasedOnBounds.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.algorithms.modules.html#moptipy.algorithms.modules.temperature_schedule.ExponentialScheduleBasedOnBounds.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log all parameters of the configured exponential temperature schedule.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> from moptipy.examples.bitstrings.onemax import OneMax</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.key_values("C") as kv:</span>
+<span class=sd>        ...         ExponentialScheduleBasedOnBounds(</span>
+<span class=sd>        ...             OneMax(10), -1, 1, 0.01, 0.0001).log_parameters_to(kv)</span>
+<span class=sd>        ...     text = l.get_log()</span>
+<span class=sd>        >>> text[1]</span>
+<span class=sd>        'name: expRm1_1_0d01_0d0001_1em20_1e20'</span>
+<span class=sd>        >>> text[3]</span>
+<span class=sd>        'T0: 0.1'</span>
+<span class=sd>        >>> text[5]</span>
+<span class=sd>        'e: 4.6051641873212645e-6'</span>
+<span class=sd>        >>> text[7]</span>
+<span class=sd>        'nSteps: 1000000'</span>
+<span class=sd>        >>> text[8]</span>
+<span class=sd>        'lbSumWeight: -1'</span>
+<span class=sd>        >>> text[9]</span>
+<span class=sd>        'ubSumWeight: 1'</span>
+<span class=sd>        >>> len(text)</span>
+<span class=sd>        25</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"nSteps"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__n_steps</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"lbSumWeight"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__lb_sum_weight</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"ubSumWeight"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__ub_sum_weight</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"startFactor"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__start_factor</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"endFactor"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__end_factor</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"minBoundSum"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__min_bound_sum</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"maxBoundSum"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__max_bound_sum</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"f"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__used_objective</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"fLB"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__f_lower_bound</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"fUB"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__f_upper_bound</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"boundSum"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__f_bound_sum</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"Tend"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__te</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the string representation of the configured exponential schedule.</span>
+
+<span class=sd>        :returns: the name of this schedule</span>
+
+<span class=sd>        >>> from moptipy.examples.bitstrings.onemax import OneMax</span>
+<span class=sd>        >>> ExponentialScheduleBasedOnBounds(OneMax(10), -1, 1, 0.01, 0.0001)</span>
+<span class=sd>        expRm1_1_0d01_0d0001_1em20_1e20</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"expR"</span> <span class=o>+</span> <span class=s2>"_"</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=nb>map</span><span class=p>(</span><span class=n>num_to_str_for_name</span><span class=p>,</span> <span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__lb_sum_weight</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__ub_sum_weight</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__start_factor</span><span class=p>,</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__end_factor</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__min_bound_sum</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__max_bound_sum</span><span class=p>)))</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.modules.temperature_schedule</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

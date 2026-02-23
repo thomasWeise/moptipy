@@ -1,0 +1,181 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.utils.html — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/utils/html.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.html</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.utils.html</h1><div class=highlight><pre>
+<span></span><span class=sd>"""The HTML text format driver."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>io</span><span class=w> </span><span class=kn>import</span> <span class=n>TextIOBase</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.formatted_string</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>NAN</span><span class=p>,</span>
+    <span class=n>NEGATIVE_INFINITY</span><span class=p>,</span>
+    <span class=n>NUMBER</span><span class=p>,</span>
+    <span class=n>POSITIVE_INFINITY</span><span class=p>,</span>
+    <span class=n>SPECIAL</span><span class=p>,</span>
+    <span class=n>TEXT</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.text_format</span><span class=w> </span><span class=kn>import</span> <span class=n>MODE_TABLE_HEADER</span><span class=p>,</span> <span class=n>TextFormatDriver</span>
+
+<span class=c1>#: the default border style</span>
+<span class=n>_BORDER</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"1pt solid black"</span>
+
+<span class=c1>#: special characters in HTML</span>
+<span class=n>SPECIAL_CHARS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{</span>
+    <span class=s2>"</span><span class=se>\u2205</span><span class=s2>"</span><span class=p>:</span> <span class=s2>"&amp#x2205;"</span><span class=p>,</span>
+    <span class=s2>"</span><span class=se>\u221E</span><span class=s2>"</span><span class=p>:</span> <span class=s2>"&amp#x221e;"</span><span class=p>,</span>
+    <span class=s2>"-</span><span class=se>\u221E</span><span class=s2>"</span><span class=p>:</span> <span class=s2>"-&amp#x221e;"</span><span class=p>,</span>
+    <span class=s2>"inf"</span><span class=p>:</span> <span class=s2>"&amp#x221E;"</span><span class=p>,</span>
+    <span class=s2>"-inf"</span><span class=p>:</span> <span class=s2>"-&amp#x221E;"</span><span class=p>,</span>
+    <span class=s2>"nan"</span><span class=p>:</span> <span class=s2>"&amp#x2205;"</span><span class=p>,</span>
+    <span class=s2>"</span><span class=se>\u03b1</span><span class=s2>"</span><span class=p>:</span> <span class=s2>"&amp#x3b1;"</span><span class=p>,</span>
+    <span class=s2>"</span><span class=se>\u2014</span><span class=s2>"</span><span class=p>:</span> <span class=s2>"&ampmdash;"</span><span class=p>,</span>
+<span class=p>}</span>
+
+
+<div class=viewcode-block id=HTML>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.html.HTML>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>HTML</span><span class=p>(</span><span class=n>TextFormatDriver</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The HTML text driver."""</span>
+
+<div class=viewcode-block id=HTML.begin_table_body>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.html.HTML.begin_table_body>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>begin_table_body</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>stream</span><span class=p>:</span> <span class=n>TextIOBase</span><span class=p>,</span> <span class=n>cols</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Write the beginning of the table body."""</span>
+        <span class=n>stream</span><span class=o>.</span><span class=n>write</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s1>'&LTtable style="border:</span><span class=si>{</span><span class=n>_BORDER</span><span class=si>}</span><span class=s1>;border-collapse:collapse">'</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=HTML.end_table_body>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.html.HTML.end_table_body>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>end_table_body</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>stream</span><span class=p>:</span> <span class=n>TextIOBase</span><span class=p>,</span> <span class=n>cols</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Write the ending of the table body."""</span>
+        <span class=n>stream</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=s2>"&LT/tbody>&LT/table>"</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=HTML.begin_table_header>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.html.HTML.begin_table_header>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>begin_table_header</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>stream</span><span class=p>:</span> <span class=n>TextIOBase</span><span class=p>,</span> <span class=n>cols</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Begin the header of an HTML table."""</span>
+        <span class=n>stream</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=s2>"&LTthead>"</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=HTML.end_table_header>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.html.HTML.end_table_header>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>end_table_header</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>stream</span><span class=p>:</span> <span class=n>TextIOBase</span><span class=p>,</span> <span class=n>cols</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""End the header of an HTML table."""</span>
+        <span class=n>stream</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=s2>"&LT/thead>&LTtbody>"</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=HTML.begin_table_row>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.html.HTML.begin_table_row>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>begin_table_row</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>stream</span><span class=p>:</span> <span class=n>TextIOBase</span><span class=p>,</span> <span class=n>cols</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                        <span class=n>section_index</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>row_index</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                        <span class=n>row_mode</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Begin a row in an HTML table."""</span>
+        <span class=n>stream</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=s2>"&LTtr>"</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=HTML.end_table_row>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.html.HTML.end_table_row>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>end_table_row</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>stream</span><span class=p>:</span> <span class=n>TextIOBase</span><span class=p>,</span> <span class=n>cols</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                      <span class=n>section_index</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>row_index</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""End a row in a HTML table."""</span>
+        <span class=n>stream</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=s2>"&LT/tr>"</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=HTML.begin_table_cell>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.html.HTML.begin_table_cell>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>begin_table_cell</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>stream</span><span class=p>:</span> <span class=n>TextIOBase</span><span class=p>,</span> <span class=n>cols</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                         <span class=n>section_index</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>row_index</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                         <span class=n>col_index</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>cell_mode</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Begin an HTML table cell."""</span>
+        <span class=n>style</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>cols</span><span class=p>[</span><span class=n>col_index</span><span class=p>]</span>
+        <span class=n>style</span> <span class=o>=</span> <span class=s2>"center"</span> <span class=k>if</span> <span class=n>style</span> <span class=o>==</span> <span class=s2>"c"</span> \
+            <span class=k>else</span> <span class=s2>"left"</span> <span class=k>if</span> <span class=n>style</span> <span class=o>==</span> <span class=s2>"l"</span> <span class=k>else</span> <span class=s2>"right"</span>
+        <span class=n>style</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"padding:3pt;text-align:</span><span class=si>{</span><span class=n>style</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>if</span> <span class=n>col_index</span> <span class=o><</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>cols</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=n>style</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>style</span><span class=si>}</span><span class=s2>;border-right:</span><span class=si>{</span><span class=n>_BORDER</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>if</span> <span class=n>row_index</span> <span class=o><=</span> <span class=mi>0</span> <span class=o><=</span> <span class=n>section_index</span><span class=p>:</span>
+            <span class=n>style</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>style</span><span class=si>}</span><span class=s2>;border-top:</span><span class=si>{</span><span class=n>_BORDER</span><span class=si>}</span><span class=s2>"</span>
+        <span class=n>cell</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"th"</span> <span class=k>if</span> <span class=p>(</span><span class=n>cell_mode</span> <span class=o>==</span> <span class=n>MODE_TABLE_HEADER</span><span class=p>)</span> <span class=k>else</span> <span class=s2>"td"</span>
+        <span class=n>stream</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s1>'<</span><span class=si>{</span><span class=n>cell</span><span class=si>}</span><span class=s1> style="</span><span class=si>{</span><span class=n>style</span><span class=si>}</span><span class=s1>">'</span><span class=p>)</span>  <span class=c1># noqa: B028</span></div>
+
+
+<div class=viewcode-block id=HTML.end_table_cell>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.html.HTML.end_table_cell>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>end_table_cell</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>stream</span><span class=p>:</span> <span class=n>TextIOBase</span><span class=p>,</span> <span class=n>cols</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                       <span class=n>section_index</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>row_index</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                       <span class=n>col_index</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>cell_mode</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""End an HTML table cell."""</span>
+        <span class=n>stream</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=s2>"&LT/th>"</span> <span class=k>if</span> <span class=p>(</span><span class=n>cell_mode</span> <span class=o>==</span> <span class=n>MODE_TABLE_HEADER</span><span class=p>)</span> <span class=k>else</span> <span class=s2>"&LT/td>"</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=HTML.text>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.html.HTML.text>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>text</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>stream</span><span class=p>:</span> <span class=n>TextIOBase</span><span class=p>,</span> <span class=n>text</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>bold</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span> <span class=n>italic</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span>
+             <span class=n>code</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span> <span class=n>mode</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Print a text string."""</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>text</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>return</span>
+        <span class=n>styles</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>""</span>
+        <span class=k>if</span> <span class=n>bold</span><span class=p>:</span>
+            <span class=n>styles</span> <span class=o>=</span> <span class=s2>"font-weight:bold;"</span>
+        <span class=k>if</span> <span class=n>italic</span><span class=p>:</span>
+            <span class=n>styles</span> <span class=o>+=</span> <span class=s2>"font-style:italic;"</span>
+        <span class=k>if</span> <span class=n>code</span><span class=p>:</span>
+            <span class=n>styles</span> <span class=o>+=</span> <span class=s2>"font-family:monospace;"</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>styles</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>stream</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s1>'&LTspan style="</span><span class=si>{</span><span class=n>styles</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span><span class=si>}</span><span class=s1>">'</span><span class=p>)</span>  <span class=c1># noqa: B028</span>
+
+        <span class=k>if</span> <span class=n>mode</span> <span class=o>==</span> <span class=n>TEXT</span><span class=p>:</span>
+            <span class=n>stream</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=n>text</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=n>mode</span> <span class=o>==</span> <span class=n>NUMBER</span><span class=p>:</span>
+            <span class=n>i</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>text</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>"e"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>i</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=n>i</span> <span class=o>=</span> <span class=n>text</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>"E"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>i</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                <span class=n>stream</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>text</span><span class=p>[:</span><span class=n>i</span><span class=p>]</span><span class=si>}</span><span class=s2>&amp#xD7;10&LTsup></span><span class=si>{</span><span class=n>text</span><span class=p>[</span><span class=n>i</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=mi>1</span><span class=p>:]</span><span class=si>}</span><span class=s2>&LT/sup>"</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>stream</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=n>text</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=n>mode</span> <span class=o>==</span> <span class=n>NAN</span><span class=p>:</span>
+            <span class=n>stream</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=s2>"&amp#x2205;"</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=n>mode</span> <span class=o>==</span> <span class=n>POSITIVE_INFINITY</span><span class=p>:</span>
+            <span class=n>stream</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=s2>"&amp#x221E;"</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=n>mode</span> <span class=o>==</span> <span class=n>NEGATIVE_INFINITY</span><span class=p>:</span>
+            <span class=n>stream</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=s2>"-&amp#x221E;"</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=n>mode</span> <span class=o>==</span> <span class=n>SPECIAL</span><span class=p>:</span>
+            <span class=n>s</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>text</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>s</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>SPECIAL_CHARS</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid special character: </span><span class=si>{</span><span class=n>s</span><span class=si>!r}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>stream</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=n>SPECIAL_CHARS</span><span class=p>[</span><span class=n>s</span><span class=p>])</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid mode </span><span class=si>{</span><span class=n>mode</span><span class=si>}</span><span class=s2> for text </span><span class=si>{</span><span class=n>text</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>styles</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>stream</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=s2>"&LT/span>"</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the appropriate file suffix.</span>
+
+<span class=sd>        :returns: the file suffix</span>
+<span class=sd>        :retval 'html': always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"html"</span>
+
+<div class=viewcode-block id=HTML.instance>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.html.HTML.instance>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>instance</span><span class=p>()</span> <span class=o>-></span> <span class=s2>"HTML"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the HTML format singleton instance.</span>
+
+<span class=sd>        :returns: the singleton instance of the HTML format</span>
+<span class=sd>        """</span>
+        <span class=n>attr</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"_instance"</span>
+        <span class=n>func</span><span class=p>:</span> <span class=n>Final</span> <span class=o>=</span> <span class=n>HTML</span><span class=o>.</span><span class=n>instance</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>attr</span><span class=p>):</span>
+            <span class=nb>setattr</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>attr</span><span class=p>,</span> <span class=n>HTML</span><span class=p>())</span>
+        <span class=k>return</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>func</span><span class=p>,</span> <span class=n>attr</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.html</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

@@ -1,0 +1,385 @@
+<!doctype html><html data-content_root=../../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.vector.cmaes_lib — moptipy 0.9.172 documentation</title><link href="../../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/vector/cmaes_lib.html rel=canonical><link href=../../../../../genindex.html rel=index title=Index><link href=../../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.vector.cmaes_lib</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.vector.cmaes_lib</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Provides the CMA-ES Family Algorithms from the Library `cmaes`.</span>
+
+<span class=sd>The Covariance Matrix Adaptation Evolutionary Strategy, CMA-ES for short, is a</span>
+<span class=sd>very efficient optimization algorithm for small- and mid-scale and numerical/</span>
+<span class=sd>continuous optimization problems.</span>
+
+<span class=sd>Here, we wrap our `moptipy` API around the beautiful library `cmaes` by</span>
+<span class=sd>Masashi Shibata and Masahiro Nomura at https://pypi.org/project/cmaes/. They</span>
+<span class=sd>provide a CMA-ES implementation based on the ask-tell interface. In this</span>
+<span class=sd>interface, you repeatedly query sample points in the search space from the</span>
+<span class=sd>model and evaluate them. Then you feed back the points and their corresponding</span>
+<span class=sd>objective values to the CMA-ES algorithm so that it can update its model. Then</span>
+<span class=sd>the cycle is repeated.</span>
+
+<span class=sd>1. Nikolaus Hansen and Andreas Ostermeier. A Completely Derandomized</span>
+<span class=sd>   Self-Adaptation in Evolution Strategies. *Evolutionary Computation.*</span>
+<span class=sd>   9(2):159-195. Summer 2001. https://dx.doi.org/10.1162/106365601750190398</span>
+<span class=sd>2. Nikolaus Hansen. *The CMA Evolution Strategy: A Tutorial.*</span>
+<span class=sd>   arXiv:1604.00772, 2016. https://arxiv.org/abs/1604.00772</span>
+<span class=sd>3. Raymond Ros and Nikolaus Hansen. A Simple Modification in CMA-ES Achieving</span>
+<span class=sd>   Linear Time and Space Complexity. In Günter Rudolph, Thomas Jansen, Nicola</span>
+<span class=sd>   Beume, Simon Lucas, and Carlo Poloni, eds., Proceedings of the 10th</span>
+<span class=sd>   International Conference on Parallel Problem Solving From Nature (PPSN X),</span>
+<span class=sd>   September 13-17, 2008, Dortmund, Germany, pages 296-305. Volume 5199 of</span>
+<span class=sd>   Lecture Notes in Computer Science. Berlin/Heidelberg, Germany: Springer.</span>
+<span class=sd>   http://dx.doi.org/10.1007/978-3-540-87700-4_30</span>
+<span class=sd>   https://hal.inria.fr/inria-00287367/document</span>
+<span class=sd>4. Nikolaus Hansen. Benchmarking a BI-Population CMA-ES on the BBOB-2009</span>
+<span class=sd>   Function Testbed. In Proceedings of the 11th Annual Conference Companion</span>
+<span class=sd>   on Genetic and Evolutionary Computation Conference: Late Breaking Papers,</span>
+<span class=sd>   July 8-12, 2009, Montreal, Québec, Canada, pages 2389-2396.</span>
+<span class=sd>   New York, USA: ACM. http://dx.doi.org/10.1145/1570256.1570333</span>
+<span class=sd>   https://hal.inria.fr/inria-00382093/document</span>
+
+<span class=sd>- https://pypi.org/project/cmaes/</span>
+<span class=sd>- https://github.com/CyberAgent/cmaes</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>cmaes</span><span class=w> </span><span class=kn>import</span> <span class=n>CMA</span><span class=p>,</span> <span class=n>SepCMA</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.strings.string_conv</span><span class=w> </span><span class=kn>import</span> <span class=n>bool_or_num_to_str</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.vectorspace</span><span class=w> </span><span class=kn>import</span> <span class=n>VectorSpace</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>CSV_SEPARATOR</span><span class=p>,</span> <span class=n>KeyValueLogSection</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_run_cma</span><span class=p>(</span><span class=n>cma</span><span class=p>:</span> <span class=n>SepCMA</span> <span class=o>|</span> <span class=n>CMA</span><span class=p>,</span>
+             <span class=n>f</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+             <span class=n>should_terminate</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[],</span> <span class=nb>bool</span><span class=p>],</span>
+             <span class=n>solutions</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]],</span>
+             <span class=n>run_criterion</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[],</span> <span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span><span class=p>:</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Run a CMA implementation from the `cmaes` library.</span>
+
+<span class=sd>    This is an internal core routine that translates the ask-tell interface</span>
+<span class=sd>    of the algorithm implementations in the `cmaes` library into a simple</span>
+<span class=sd>    loop.</span>
+
+<span class=sd>    :param cma: the algorithm instance</span>
+<span class=sd>    :param f: the objective function</span>
+<span class=sd>    :param should_terminate: the termination criterion</span>
+<span class=sd>    :param solutions: the internal list to store the solutions</span>
+<span class=sd>    :param run_criterion: the stopper for a run</span>
+<span class=sd>    :returns: the number of consumed FEs if the run was terminated by</span>
+<span class=sd>        `run_criterion`, `-1` otherwise</span>
+<span class=sd>    """</span>
+    <span class=n>fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>pop_size</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>cma</span><span class=o>.</span><span class=n>population_size</span>
+
+    <span class=c1># now we load a lot of fast call function pointers</span>
+    <span class=n>ask</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]]</span> <span class=o>=</span> <span class=n>cma</span><span class=o>.</span><span class=n>ask</span>
+    <span class=n>append</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span>
+        <span class=nb>tuple</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=n>solutions</span><span class=o>.</span><span class=n>append</span>
+    <span class=n>tell</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[</span>
+        <span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=nb>float</span><span class=p>]]],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=n>cma</span><span class=o>.</span><span class=n>tell</span>
+    <span class=n>clear</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=n>solutions</span><span class=o>.</span><span class=n>clear</span>
+
+    <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>  <span class=c1># the main loop</span>
+        <span class=n>clear</span><span class=p>()</span>  <span class=c1># clear the ask/tell records</span>
+        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>pop_size</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># budget over?</span>
+                <span class=k>return</span> <span class=o>-</span><span class=mi>1</span>  <span class=c1># exit</span>
+            <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>=</span> <span class=n>ask</span><span class=p>()</span>  <span class=c1># sample a point from CMA-ES</span>
+            <span class=n>value</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>f</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>  <span class=c1># compute its objective value</span>
+            <span class=n>append</span><span class=p>((</span><span class=n>x</span><span class=p>,</span> <span class=n>value</span><span class=p>))</span>  <span class=c1># store the point</span>
+            <span class=n>fes</span> <span class=o>+=</span> <span class=mi>1</span>
+        <span class=n>tell</span><span class=p>(</span><span class=n>solutions</span><span class=p>)</span>  <span class=c1># feed all results back to the CMA</span>
+        <span class=k>if</span> <span class=n>run_criterion</span><span class=p>():</span>
+            <span class=k>return</span> <span class=n>fes</span>
+
+
+<div class=viewcode-block id=CMAES>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.CMAES>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>CMAES</span><span class=p>(</span><span class=n>Algorithm</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A wrapper for the `CMA` algorithm from `cmaes`.</span>
+
+<span class=sd>    1. Nikolaus Hansen and Andreas Ostermeier. A Completely Derandomized</span>
+<span class=sd>       Self-Adaptation in Evolution Strategies. *Evolutionary Computation.*</span>
+<span class=sd>       9(2):159-195. Summer 2001.</span>
+<span class=sd>       https://dx.doi.org/10.1162/106365601750190398</span>
+<span class=sd>    2. Nikolaus Hansen. *The CMA Evolution Strategy: A Tutorial.*</span>
+<span class=sd>       arXiv:1604.00772, 2016. https://arxiv.org/abs/1604.00772</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>space</span><span class=p>:</span> <span class=n>VectorSpace</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the CMAES algorithm.</span>
+
+<span class=sd>        :param space: the vector space</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>space</span><span class=p>,</span> <span class=n>VectorSpace</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>space</span><span class=p>,</span> <span class=s2>"space"</span><span class=p>,</span> <span class=n>VectorSpace</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>space</span><span class=o>.</span><span class=n>dimension</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"CMA-ES only works on at least two dimensions."</span><span class=p>)</span>
+        <span class=c1>#: the vector space defining the dimensions and bounds</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>space</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>VectorSpace</span><span class=p>]</span> <span class=o>=</span> <span class=n>space</span>
+
+<div class=viewcode-block id=CMAES.solve>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.CMAES.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the bi-population CMA-ES to an optimization problem.</span>
+
+<span class=sd>        :param process: the black-box process object</span>
+<span class=sd>        """</span>
+        <span class=n>f</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=bp>self</span><span class=o>.</span><span class=n>space</span><span class=o>.</span><span class=n>clipped</span><span class=p>(</span><span class=n>process</span><span class=o>.</span><span class=n>evaluate</span><span class=p>)</span>  <span class=c1># the clipped objective</span>
+        <span class=n>should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=nb>bool</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>  <span class=c1># the termination criterion</span>
+
+        <span class=n>lb</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>space</span><span class=o>.</span><span class=n>lower_bound</span>  <span class=c1># the upper bound</span>
+        <span class=n>ub</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>space</span><span class=o>.</span><span class=n>upper_bound</span>  <span class=c1># the lower bound</span>
+        <span class=n>mean</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=n>lb</span> <span class=o>+</span> <span class=n>ub</span><span class=p>)</span>  <span class=c1># use center as mean value</span>
+        <span class=n>sigma</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=mf>0.2</span> <span class=o>*</span> <span class=nb>max</span><span class=p>(</span><span class=n>ub</span> <span class=o>-</span> <span class=n>lb</span><span class=p>)</span>  <span class=c1># use a large initial sigma</span>
+        <span class=n>bounds</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> \
+            <span class=n>np</span><span class=o>.</span><span class=n>stack</span><span class=p>((</span><span class=n>lb</span><span class=p>,</span> <span class=n>ub</span><span class=p>))</span><span class=o>.</span><span class=n>transpose</span><span class=p>()</span>  <span class=c1># construct bounds</span>
+
+        <span class=c1># we create and directly run the CMA-ES algorithm</span>
+        <span class=n>_run_cma</span><span class=p>(</span><span class=n>CMA</span><span class=p>(</span><span class=n>mean</span><span class=o>=</span><span class=n>mean</span><span class=p>,</span> <span class=n>sigma</span><span class=o>=</span><span class=n>sigma</span><span class=p>,</span> <span class=n>bounds</span><span class=o>=</span><span class=n>bounds</span><span class=p>,</span>
+                     <span class=n>seed</span><span class=o>=</span><span class=nb>int</span><span class=p>(</span><span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>()</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>4294967296</span><span class=p>))),</span>
+                 <span class=n>f</span><span class=p>,</span> <span class=n>should_terminate</span><span class=p>,</span> <span class=p>[])</span></div>
+
+
+<div class=viewcode-block id=CMAES.log_parameters_to>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.CMAES.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of the algorithm to a logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>  <span class=c1># log algorithm/operator</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>space</span><span class=o>.</span><span class=n>log_bounds</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>  <span class=c1># log bounds</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this optimization algorithm.</span>
+
+<span class=sd>        :retval "cmaes_cmaes": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"cmaes_cmaes"</span></div>
+
+
+
+<div class=viewcode-block id=SepCMAES>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.SepCMAES>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>SepCMAES</span><span class=p>(</span><span class=n>CMAES</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The Separable CMA-ES based on Class `SepCMA` from Library `cmaes`.</span>
+
+<span class=sd>    This is a variant of the CMA-ES where the covariance matrix is</span>
+<span class=sd>    constrained to be diagonal. This means that there are fewer parameters to</span>
+<span class=sd>    learn, so the learning rate for the covariance matrix can be increased.</span>
+<span class=sd>    This algorithm is suitable if the problem is of larger scale, i.e., has</span>
+<span class=sd>    a high dimension, in which case the pure CMA-ES may become rather slow in</span>
+<span class=sd>    terms of its runtime consumption. Then, the loss of solution quality</span>
+<span class=sd>    resulting from the underlying assumption that the objective function is</span>
+<span class=sd>    separable is acceptable versus the gain in speed. By learning only the</span>
+<span class=sd>    diagonals of the covariance matrix, the implicit assumption is that there</span>
+<span class=sd>    are no mutual influences between the different decision variables. Of</span>
+<span class=sd>    course, if the optimization problem is already of that nature, i.e.,</span>
+<span class=sd>    separable, the algorithm will be faster than the normal CMA-ES at the same</span>
+<span class=sd>    solution quality.</span>
+
+<span class=sd>    1. Raymond Ros and Nikolaus Hansen. A Simple Modification in CMA-ES</span>
+<span class=sd>       Achieving Linear Time and Space Complexity. In Günter Rudolph,</span>
+<span class=sd>       Thomas Jansen, Nicola Beume, Simon Lucas, and Carlo Poloni, eds.,</span>
+<span class=sd>       Proceedings of the 10th International Conference on Parallel</span>
+<span class=sd>       Problem Solving From Nature (PPSN X), September 13-17, 2008,</span>
+<span class=sd>       Dortmund, Germany, pages 296-305. Volume 5199 of Lecture Notes in</span>
+<span class=sd>       Computer Science. Berlin/Heidelberg, Germany: Springer.</span>
+<span class=sd>       http://dx.doi.org/10.1007/978-3-540-87700-4_30</span>
+<span class=sd>       https://hal.inria.fr/inria-00287367/document</span>
+<span class=sd>    """</span>
+
+<div class=viewcode-block id=SepCMAES.solve>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.SepCMAES.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the separable CMA-ES version to an optimization problem.</span>
+
+<span class=sd>        :param process: the optimization problem to solve</span>
+<span class=sd>        """</span>
+        <span class=n>f</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=bp>self</span><span class=o>.</span><span class=n>space</span><span class=o>.</span><span class=n>clipped</span><span class=p>(</span><span class=n>process</span><span class=o>.</span><span class=n>evaluate</span><span class=p>)</span>  <span class=c1># the clipped objective</span>
+        <span class=n>should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=nb>bool</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>  <span class=c1># the termination criterion</span>
+
+        <span class=n>lb</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>space</span><span class=o>.</span><span class=n>lower_bound</span>  <span class=c1># the upper bound</span>
+        <span class=n>ub</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>space</span><span class=o>.</span><span class=n>upper_bound</span>  <span class=c1># the lower bound</span>
+        <span class=n>mean</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=n>lb</span> <span class=o>+</span> <span class=n>ub</span><span class=p>)</span>  <span class=c1># use center as mean value</span>
+        <span class=n>sigma</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=mf>0.2</span> <span class=o>*</span> <span class=nb>max</span><span class=p>(</span><span class=n>ub</span> <span class=o>-</span> <span class=n>lb</span><span class=p>)</span>  <span class=c1># use a large initial sigma</span>
+        <span class=n>bounds</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> \
+            <span class=n>np</span><span class=o>.</span><span class=n>stack</span><span class=p>((</span><span class=n>lb</span><span class=p>,</span> <span class=n>ub</span><span class=p>))</span><span class=o>.</span><span class=n>transpose</span><span class=p>()</span>  <span class=c1># construct bounds</span>
+
+        <span class=c1># we create and directly run the CMA-ES algorithm</span>
+        <span class=n>_run_cma</span><span class=p>(</span><span class=n>SepCMA</span><span class=p>(</span><span class=n>mean</span><span class=o>=</span><span class=n>mean</span><span class=p>,</span> <span class=n>sigma</span><span class=o>=</span><span class=n>sigma</span><span class=p>,</span> <span class=n>bounds</span><span class=o>=</span><span class=n>bounds</span><span class=p>,</span>
+                        <span class=n>seed</span><span class=o>=</span><span class=nb>int</span><span class=p>(</span><span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>()</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span>
+                            <span class=mi>0</span><span class=p>,</span> <span class=mi>4294967296</span><span class=p>))),</span>
+                 <span class=n>f</span><span class=p>,</span> <span class=n>should_terminate</span><span class=p>,</span> <span class=p>[])</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this optimization algorithm.</span>
+
+<span class=sd>        :retval "sepCmaes_cmaes": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"sepCmaes_cmaes"</span></div>
+
+
+
+<div class=viewcode-block id=BiPopCMAES>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.BiPopCMAES>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>BiPopCMAES</span><span class=p>(</span><span class=n>CMAES</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The bi-population CMA-ES based on Class `CMA` from Library `cmaes`.</span>
+
+<span class=sd>    This algorithm combines two restart strategies for the normal CMA-ES under</span>
+<span class=sd>    its hood. One where the population size increases exponentially and one</span>
+<span class=sd>    where varying small population sizes are used.</span>
+
+<span class=sd>    We here implement the bi-population CMA-ES algorithm in exactly the same</span>
+<span class=sd>    way as the authors of the `cmaes` library do on</span>
+<span class=sd>    https://pypi.org/project/cmaes/.</span>
+
+<span class=sd>    1. Nikolaus Hansen. Benchmarking a BI-Population CMA-ES on the BBOB-2009</span>
+<span class=sd>       Function Testbed. In Proceedings of the 11th Annual Conference</span>
+<span class=sd>       Companion on Genetic and Evolutionary Computation Conference: Late</span>
+<span class=sd>       Breaking Papers, July 8-12, 2009, Montreal, Québec, Canada,</span>
+<span class=sd>       pages 2389-2396. New York, USA: ACM.</span>
+<span class=sd>       http://dx.doi.org/10.1145/1570256.1570333</span>
+<span class=sd>       https://hal.inria.fr/inria-00382093/document</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>space</span><span class=p>:</span> <span class=n>VectorSpace</span><span class=p>,</span>
+                 <span class=n>log_restarts</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the CMAES algorithm.</span>
+
+<span class=sd>        :param space: the vector space</span>
+<span class=sd>        :param log_restarts: log the restart counters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>space</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>log_restarts</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>log_restarts</span><span class=p>,</span> <span class=s2>"log_restarts"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=c1>#: should we log the FEs when the restarts happen or not?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>log_restarts</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>log_restarts</span>
+
+<div class=viewcode-block id=BiPopCMAES.log_parameters_to>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.BiPopCMAES.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of the algorithm to a logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>  <span class=c1># log algorithm/operator</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"logRestarts"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>log_restarts</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=BiPopCMAES.solve>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.vector.html#moptipy.algorithms.so.vector.cmaes_lib.BiPopCMAES.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the external `cmaes` implementation to an optimization problem.</span>
+
+<span class=sd>        :param process: the black-box process object</span>
+<span class=sd>        """</span>
+        <span class=n>f</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=bp>self</span><span class=o>.</span><span class=n>space</span><span class=o>.</span><span class=n>clipped</span><span class=p>(</span><span class=n>process</span><span class=o>.</span><span class=n>evaluate</span><span class=p>)</span>  <span class=c1># the clipped objective</span>
+        <span class=n>should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=nb>bool</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>  <span class=c1># the termination criterion</span>
+        <span class=c1># should we log the CMA-ES restart settings?</span>
+        <span class=n>restarts</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>bool</span><span class=p>]]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> \
+            <span class=p>[]</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>log_restarts</span> <span class=ow>and</span> <span class=n>process</span><span class=o>.</span><span class=n>has_log</span><span class=p>()</span> <span class=k>else</span> <span class=kc>None</span>
+
+        <span class=n>lb</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>space</span><span class=o>.</span><span class=n>lower_bound</span>  <span class=c1># the upper bound</span>
+        <span class=n>ub</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>space</span><span class=o>.</span><span class=n>upper_bound</span>  <span class=c1># the lower bound</span>
+        <span class=n>mean</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=mf>0.5</span> <span class=o>*</span> <span class=p>(</span><span class=n>lb</span> <span class=o>+</span> <span class=n>ub</span><span class=p>)</span>  <span class=c1># use center as mean value</span>
+        <span class=n>sigma</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=mf>0.2</span> <span class=o>*</span> <span class=nb>max</span><span class=p>(</span><span class=n>ub</span> <span class=o>-</span> <span class=n>lb</span><span class=p>)</span>  <span class=c1># use a large initial sigma</span>
+        <span class=n>bounds</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> \
+            <span class=n>np</span><span class=o>.</span><span class=n>stack</span><span class=p>((</span><span class=n>lb</span><span class=p>,</span> <span class=n>ub</span><span class=p>))</span><span class=o>.</span><span class=n>transpose</span><span class=p>()</span>  <span class=c1># construct bounds</span>
+
+        <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>()</span>
+
+        <span class=c1># create the initial CMA-ES setup</span>
+        <span class=n>seed</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>4294967296</span><span class=p>))</span>
+        <span class=n>cma</span> <span class=o>=</span> <span class=n>CMA</span><span class=p>(</span><span class=n>mean</span><span class=o>=</span><span class=n>mean</span><span class=p>,</span> <span class=n>sigma</span><span class=o>=</span><span class=n>sigma</span><span class=p>,</span> <span class=n>bounds</span><span class=o>=</span><span class=n>bounds</span><span class=p>,</span> <span class=n>seed</span><span class=o>=</span><span class=n>seed</span><span class=p>)</span>
+
+        <span class=n>solutions</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>large_pop_restarts</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># the restarts with big population</span>
+        <span class=n>small_pop_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># the FEs spent in the small population</span>
+        <span class=n>large_pop_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># the FEs spent in the large population</span>
+        <span class=n>initial_pop_size</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>cma</span><span class=o>.</span><span class=n>population_size</span>
+        <span class=n>is_small_pop</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>  <span class=c1># are we in a small-population run?</span>
+
+        <span class=c1># The first run is with the "normal" population size. This is</span>
+        <span class=c1># the large population before the first doubling, but its FEs</span>
+        <span class=c1># count for the small population.</span>
+        <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>  <span class=c1># the main loop</span>
+            <span class=k>if</span> <span class=n>restarts</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>restarts</span><span class=o>.</span><span class=n>append</span><span class=p>((</span><span class=n>process</span><span class=o>.</span><span class=n>get_consumed_fes</span><span class=p>(),</span>
+                                 <span class=n>process</span><span class=o>.</span><span class=n>get_consumed_time_millis</span><span class=p>(),</span>
+                                 <span class=nb>int</span><span class=p>(</span><span class=n>cma</span><span class=o>.</span><span class=n>population_size</span><span class=p>),</span> <span class=n>seed</span><span class=p>,</span>
+                                 <span class=n>is_small_pop</span><span class=p>))</span>
+            <span class=n>fes</span> <span class=o>=</span> <span class=n>_run_cma</span><span class=p>(</span><span class=n>cma</span><span class=p>,</span> <span class=n>f</span><span class=p>,</span> <span class=n>should_terminate</span><span class=p>,</span> <span class=n>solutions</span><span class=p>,</span>
+                           <span class=n>cma</span><span class=o>.</span><span class=n>should_stop</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>fes</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>  <span class=c1># this means that should_terminate became True</span>
+                <span class=k>break</span>   <span class=c1># so we quit</span>
+            <span class=k>if</span> <span class=n>is_small_pop</span><span class=p>:</span>  <span class=c1># it was a small population so increment</span>
+                <span class=n>small_pop_fes</span> <span class=o>+=</span> <span class=n>fes</span>  <span class=c1># the small-population-FEs</span>
+            <span class=k>else</span><span class=p>:</span>  <span class=c1># it was a large population, so increment the</span>
+                <span class=n>large_pop_fes</span> <span class=o>+=</span> <span class=n>fes</span>  <span class=c1># the large-population-FEs</span>
+
+            <span class=c1># We try to spend the same number FEs in small as in the large</span>
+            <span class=c1># population.</span>
+            <span class=n>is_small_pop</span> <span class=o>=</span> <span class=n>small_pop_fes</span> <span class=o><</span> <span class=n>large_pop_fes</span>
+
+            <span class=k>if</span> <span class=n>is_small_pop</span><span class=p>:</span>  <span class=c1># create the small population</span>
+                <span class=n>pop_size_multiplier</span> <span class=o>=</span> <span class=mi>2</span> <span class=o>**</span> <span class=n>large_pop_restarts</span>
+                <span class=n>pop_size</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=nb>int</span><span class=p>(</span>
+                    <span class=n>initial_pop_size</span> <span class=o>*</span> <span class=n>pop_size_multiplier</span> <span class=o>**</span> <span class=p>(</span>
+                        <span class=n>random</span><span class=o>.</span><span class=n>uniform</span><span class=p>()</span> <span class=o>**</span> <span class=mi>2</span><span class=p>)))</span>
+            <span class=k>else</span><span class=p>:</span>  <span class=c1># else: create the large population</span>
+                <span class=n>large_pop_restarts</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=n>pop_size</span> <span class=o>=</span> <span class=n>initial_pop_size</span> <span class=o>*</span> <span class=p>(</span><span class=mi>2</span> <span class=o>**</span> <span class=n>large_pop_restarts</span><span class=p>)</span>
+
+            <span class=c1># Create the new CMA-ES instance.</span>
+            <span class=n>seed</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>4294967296</span><span class=p>))</span>
+            <span class=n>cma</span> <span class=o>=</span> <span class=n>CMA</span><span class=p>(</span><span class=n>mean</span><span class=o>=</span><span class=n>mean</span><span class=p>,</span> <span class=n>sigma</span><span class=o>=</span><span class=n>sigma</span><span class=p>,</span> <span class=n>bounds</span><span class=o>=</span><span class=n>bounds</span><span class=p>,</span>
+                      <span class=n>population_size</span><span class=o>=</span><span class=n>pop_size</span><span class=p>,</span>
+                      <span class=n>seed</span><span class=o>=</span><span class=n>seed</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>restarts</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># write the log section</span>
+            <span class=n>log</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[</span>
+                <span class=p>(</span><span class=sa>f</span><span class=s2>"fes</span><span class=si>{</span><span class=n>CSV_SEPARATOR</span><span class=si>}</span><span class=s2>timeMillis</span><span class=si>{</span><span class=n>CSV_SEPARATOR</span><span class=si>}</span><span class=s2>popSize"</span>
+                 <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>CSV_SEPARATOR</span><span class=si>}</span><span class=s2>seed</span><span class=si>{</span><span class=n>CSV_SEPARATOR</span><span class=si>}</span><span class=s2>isSmall"</span><span class=p>)]</span>
+            <span class=n>log</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>CSV_SEPARATOR</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=nb>map</span><span class=p>(</span>
+                <span class=n>bool_or_num_to_str</span><span class=p>,</span> <span class=n>row</span><span class=p>))</span> <span class=k>for</span> <span class=n>row</span> <span class=ow>in</span> <span class=n>restarts</span><span class=p>)</span>
+            <span class=k>del</span> <span class=n>restarts</span>
+            <span class=n>process</span><span class=o>.</span><span class=n>add_log_section</span><span class=p>(</span><span class=s2>"CMA_RESTARTS"</span><span class=p>,</span> <span class=s2>"</span><span class=se>\n</span><span class=s2>"</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>log</span><span class=p>))</span>
+            <span class=k>del</span> <span class=n>log</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this optimization algorithm.</span>
+
+<span class=sd>        :retval "biPopCmaes_cmaes": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"biPopCmaes_cmaes"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.vector.cmaes_lib</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

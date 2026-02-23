@@ -1,0 +1,354 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.jssp.gantt_space — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/jssp/gantt_space.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.gantt_space</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.jssp.gantt_space</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Here we provide a :class:`~moptipy.api.space.Space` of `Gantt` charts."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>factorial</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.space</span><span class=w> </span><span class=kn>import</span> <span class=n>Space</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.gantt</span><span class=w> </span><span class=kn>import</span> <span class=n>Gantt</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.instance</span><span class=w> </span><span class=kn>import</span> <span class=n>SCOPE_INSTANCE</span><span class=p>,</span> <span class=n>Instance</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>CSV_SEPARATOR</span><span class=p>,</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>KEY_NUMPY_TYPE</span><span class=p>,</span>
+    <span class=n>int_range_to_dtype</span><span class=p>,</span>
+    <span class=n>numpy_type_to_str</span><span class=p>,</span>
+<span class=p>)</span>
+
+<span class=c1>#: the array shape</span>
+<span class=n>KEY_SHAPE</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"shape"</span>
+
+
+<div class=viewcode-block id=gantt_space_size>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.gantt_space.gantt_space_size>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>gantt_space_size</span><span class=p>(</span><span class=n>jobs</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>machines</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the size of the Gantt space.</span>
+
+<span class=sd>    :param jobs: the number of jobs</span>
+<span class=sd>    :param machines: the number of machines</span>
+<span class=sd>    :return: the size of the search</span>
+
+<span class=sd>    >>> print(gantt_space_size(8, 5))</span>
+<span class=sd>    106562062388507443200000</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>factorial</span><span class=p>(</span><span class=n>check_int_range</span><span class=p>(</span><span class=n>jobs</span><span class=p>,</span> <span class=s2>"jobs"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>))</span> <span class=o>**</span>\
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>machines</span><span class=p>,</span> <span class=s2>"machines"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span></div>
+
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=GanttSpace>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.gantt_space.GanttSpace>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>GanttSpace</span><span class=p>(</span><span class=n>Space</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""An implementation of the `Space` API of for `Gantt` charts."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>instance</span><span class=p>:</span> <span class=n>Instance</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+        <span class=c1># end book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a Gantt chart space.</span>
+
+<span class=sd>        :param instance: the JSSP instance</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=n>Instance</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instance</span><span class=p>,</span> <span class=s2>"instance"</span><span class=p>,</span> <span class=n>Instance</span><span class=p>)</span>
+        <span class=c1>#: The JSSP Instance to which the Gantt record apply.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Instance</span><span class=p>]</span> <span class=o>=</span> <span class=n>instance</span>  <span class=c1># +book</span>
+        <span class=c1>#: The shape for the Gantt chart arrays.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>shape</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span>  <span class=c1># +book</span>
+            <span class=n>instance</span><span class=o>.</span><span class=n>machines</span><span class=p>,</span> <span class=n>instance</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span> <span class=mi>3</span><span class=p>)</span>  <span class=c1># +book</span>
+        <span class=c1>#: the data to be used for Gantt charts</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>]</span> <span class=o>=</span> <span class=n>int_range_to_dtype</span><span class=p>(</span>
+            <span class=n>min_value</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>max_value</span><span class=o>=</span><span class=n>instance</span><span class=o>.</span><span class=n>makespan_upper_bound</span><span class=p>)</span>
+        <span class=c1>#: fast call function forward</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>copy</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>copyto</span>  <span class=c1># type: ignore # +book</span>
+
+<div class=viewcode-block id=GanttSpace.create>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.gantt_space.GanttSpace.create>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>Gantt</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a Gantt chart object without assigning jobs to machines.</span>
+
+<span class=sd>        :return: the Gantt chart</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>Gantt</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span>  <span class=c1># +book</span></div>
+
+
+<div class=viewcode-block id=GanttSpace.to_str>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.gantt_space.GanttSpace.to_str>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>to_str</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>Gantt</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Convert a Gantt chart to a string.</span>
+
+<span class=sd>        :param x: the Gantt chart</span>
+<span class=sd>        :return: a string corresponding to the flattened `Gantt` array</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>CSV_SEPARATOR</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=nb>map</span><span class=p>(</span><span class=nb>str</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>nditer</span><span class=p>(</span><span class=n>x</span><span class=p>)))</span>  <span class=c1># +book</span></div>
+
+
+<div class=viewcode-block id=GanttSpace.is_equal>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.gantt_space.GanttSpace.is_equal>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>is_equal</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x1</span><span class=p>:</span> <span class=n>Gantt</span><span class=p>,</span> <span class=n>x2</span><span class=p>:</span> <span class=n>Gantt</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Check if two Gantt charts have the same contents.</span>
+
+<span class=sd>        :param x1: the first chart</span>
+<span class=sd>        :param x2: the second chart</span>
+<span class=sd>        :return: `True` if both charts are for the same instance and have the</span>
+<span class=sd>            same structure</span>
+<span class=sd>        """</span>
+        <span class=c1># start book</span>
+        <span class=k>return</span> <span class=p>(</span><span class=n>x1</span><span class=o>.</span><span class=n>instance</span> <span class=ow>is</span> <span class=n>x2</span><span class=o>.</span><span class=n>instance</span><span class=p>)</span> <span class=ow>and</span> <span class=n>np</span><span class=o>.</span><span class=n>array_equal</span><span class=p>(</span><span class=n>x1</span><span class=p>,</span> <span class=n>x2</span><span class=p>)</span></div>
+
+        <span class=c1># end book</span>
+
+<div class=viewcode-block id=GanttSpace.from_str>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.gantt_space.GanttSpace.from_str>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>from_str</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>text</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=n>Gantt</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Convert a string to a Gantt chart.</span>
+
+<span class=sd>        :param text: the string</span>
+<span class=sd>        :return: the Gantt chart</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=s2>"Gannt text"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=c1># start book</span>
+        <span class=n>x</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Gantt</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>
+        <span class=n>np</span><span class=o>.</span><span class=n>copyto</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>fromstring</span><span class=p>(</span>
+            <span class=n>text</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=p>,</span> <span class=n>sep</span><span class=o>=</span><span class=n>CSV_SEPARATOR</span><span class=p>)</span>
+            <span class=o>.</span><span class=n>reshape</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>shape</span><span class=p>))</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>  <span class=c1># -book</span>
+        <span class=k>return</span> <span class=n>x</span></div>
+
+        <span class=c1># end book</span>
+
+<div class=viewcode-block id=GanttSpace.validate>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.gantt_space.GanttSpace.validate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>validate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>Gantt</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Check if a Gantt chart is valid and feasible.</span>
+
+<span class=sd>        This means that the operations of the jobs must appear in the right</span>
+<span class=sd>        sequences and must not intersect in any way.</span>
+<span class=sd>        The only exception are operations that need 0 time units. They are</span>
+<span class=sd>        permitted to appear wherever.</span>
+
+<span class=sd>        :param x: the Gantt chart</span>
+<span class=sd>        :raises TypeError: if any component of the chart is of the wrong type</span>
+<span class=sd>        :raises ValueError: if the Gantt chart is not feasible or the makespan</span>
+<span class=sd>            is wrong</span>
+<span class=sd>        """</span>
+        <span class=c1># start book</span>
+        <span class=c1># Checks if a Gantt chart if valid and feasible.</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>Gantt</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=s2>"x"</span><span class=p>,</span> <span class=n>Gantt</span><span class=p>)</span>
+        <span class=c1># the rest of the checks is not printed for brevity reasons...</span>
+        <span class=c1># end book</span>
+        <span class=n>inst</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Instance</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>instance</span>
+        <span class=k>if</span> <span class=n>inst</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>x</span><span class=o>.</span><span class=n>instance</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"x.instance must be </span><span class=si>{</span><span class=n>inst</span><span class=si>}</span><span class=s2> but is </span><span class=si>{</span><span class=n>x</span><span class=o>.</span><span class=n>instance</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>jobs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>inst</span><span class=o>.</span><span class=n>jobs</span>
+        <span class=n>machines</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>inst</span><span class=o>.</span><span class=n>machines</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>3</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"x must be three-dimensional, "</span>
+                             <span class=sa>f</span><span class=s2>"but is </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span><span class=si>}</span><span class=s2>-dimensional."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>!=</span> <span class=n>machines</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"x must have </span><span class=si>{</span><span class=n>machines</span><span class=si>}</span><span class=s2> rows for instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>, "</span>
+                <span class=sa>f</span><span class=s2>"but has </span><span class=si>{</span><span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o>!=</span> <span class=n>jobs</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"x must have </span><span class=si>{</span><span class=n>jobs</span><span class=si>}</span><span class=s2> columns for instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>, "</span>
+                <span class=sa>f</span><span class=s2>"but has </span><span class=si>{</span><span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span> <span class=o>!=</span> <span class=mi>3</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"x must have three values per cell, "</span>
+                             <span class=sa>f</span><span class=s2>"but has </span><span class=si>{</span><span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>x</span><span class=o>.</span><span class=n>dtype</span> <span class=o>!=</span> <span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"x.dtype should be </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=si>}</span><span class=s2> for instance "</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2> but is </span><span class=si>{</span><span class=n>x</span><span class=o>.</span><span class=n>dtype</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=c1># now check the sequence on operations per machine</span>
+        <span class=c1># we check for overlaps and incorrect operation times</span>
+        <span class=n>jobs_done</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+        <span class=k>for</span> <span class=n>machinei</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>machines</span><span class=p>):</span>
+            <span class=n>jobs_done</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+            <span class=n>last_end</span> <span class=o>=</span> <span class=mi>0</span>
+            <span class=n>last_name</span> <span class=o>=</span> <span class=s2>"[start]"</span>
+            <span class=k>for</span> <span class=n>jobi</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>jobs</span><span class=p>):</span>
+                <span class=n>job</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>x</span><span class=p>[</span><span class=n>machinei</span><span class=p>,</span> <span class=n>jobi</span><span class=p>,</span> <span class=mi>0</span><span class=p>])</span>
+                <span class=n>start</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>x</span><span class=p>[</span><span class=n>machinei</span><span class=p>,</span> <span class=n>jobi</span><span class=p>,</span> <span class=mi>1</span><span class=p>])</span>
+                <span class=n>end</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>x</span><span class=p>[</span><span class=n>machinei</span><span class=p>,</span> <span class=n>jobi</span><span class=p>,</span> <span class=mi>2</span><span class=p>])</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=mi>0</span> <span class=o><=</span> <span class=n>job</span> <span class=o><</span> <span class=n>jobs</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"job </span><span class=si>{</span><span class=n>job</span><span class=si>}</span><span class=s2> invalid for machine </span><span class=si>{</span><span class=n>machinei</span><span class=si>}</span><span class=s2> on "</span>
+                        <span class=sa>f</span><span class=s2>"instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2> with </span><span class=si>{</span><span class=n>jobs</span><span class=si>}</span><span class=s2> jobs: "</span>
+                        <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>x</span><span class=p>[</span><span class=n>machinei</span><span class=p>]</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>job</span> <span class=ow>in</span> <span class=n>jobs_done</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"job </span><span class=si>{</span><span class=n>job</span><span class=si>}</span><span class=s2> appears twice on machine </span><span class=si>{</span><span class=n>machinei</span><span class=si>}</span><span class=s2> "</span>
+                        <span class=sa>f</span><span class=s2>"for instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>x</span><span class=p>[</span><span class=n>machinei</span><span class=p>]</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+                <span class=n>jobs_done</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>job</span><span class=p>)</span>
+                <span class=n>time</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+                <span class=k>for</span> <span class=n>z</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>machines</span><span class=p>):</span>
+                    <span class=k>if</span> <span class=n>inst</span><span class=p>[</span><span class=n>job</span><span class=p>,</span> <span class=n>z</span><span class=p>,</span> <span class=mi>0</span><span class=p>]</span> <span class=o>==</span> <span class=n>machinei</span><span class=p>:</span>
+                        <span class=n>time</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>inst</span><span class=p>[</span><span class=n>job</span><span class=p>,</span> <span class=n>z</span><span class=p>,</span> <span class=mi>1</span><span class=p>])</span>
+                        <span class=k>break</span>
+                <span class=k>if</span> <span class=n>time</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"Did not find machine </span><span class=si>{</span><span class=n>machinei</span><span class=si>}</span><span class=s2> for job </span><span class=si>{</span><span class=n>job</span><span class=si>}</span><span class=s2> in "</span>
+                        <span class=sa>f</span><span class=s2>"instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>x</span><span class=p>[</span><span class=n>machinei</span><span class=p>]</span><span class=si>}</span><span class=s2>, "</span>
+                        <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>inst</span><span class=p>[</span><span class=n>machinei</span><span class=p>]</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=k>if</span> <span class=p>(</span><span class=n>end</span> <span class=o>-</span> <span class=n>start</span><span class=p>)</span> <span class=o>!=</span> <span class=n>time</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"job </span><span class=si>{</span><span class=n>job</span><span class=si>}</span><span class=s2> should need </span><span class=si>{</span><span class=n>time</span><span class=si>}</span><span class=s2> time units on machine "</span>
+                        <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>machinei</span><span class=si>}</span><span class=s2> for instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>, but starts at "</span>
+                        <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>start</span><span class=si>}</span><span class=s2> and ends at </span><span class=si>{</span><span class=n>end</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>x</span><span class=p>[</span><span class=n>machinei</span><span class=p>]</span><span class=si>}</span><span class=s2>, "</span>
+                        <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>inst</span><span class=p>[</span><span class=n>job</span><span class=p>]</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>time</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>continue</span>  <span class=c1># job requires zero time, can skip</span>
+                <span class=k>if</span> <span class=n>start</span> <span class=o><</span> <span class=n>last_end</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"job </span><span class=si>{</span><span class=n>job</span><span class=si>}</span><span class=s2> starts at </span><span class=si>{</span><span class=n>start</span><span class=si>}</span><span class=s2> on machine </span><span class=si>{</span><span class=n>machinei</span><span class=si>}</span><span class=s2>, "</span>
+                        <span class=sa>f</span><span class=s2>"for instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2> but cannot before "</span>
+                        <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>last_name</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>x</span><span class=p>[</span><span class=n>machinei</span><span class=p>]</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=n>last_end</span> <span class=o>=</span> <span class=n>end</span>
+
+        <span class=c1># now check the single jobs</span>
+        <span class=c1># we again check for operation overlaps and incorrect timing</span>
+        <span class=k>for</span> <span class=n>jobi</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>jobs</span><span class=p>):</span>
+            <span class=n>done</span> <span class=o>=</span> <span class=p>[(</span><span class=n>start</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>machine</span><span class=p>)</span>
+                    <span class=k>for</span> <span class=n>machine</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>machines</span><span class=p>)</span>
+                    <span class=k>for</span> <span class=p>(</span><span class=n>idx</span><span class=p>,</span> <span class=n>start</span><span class=p>,</span> <span class=n>end</span><span class=p>)</span> <span class=ow>in</span> <span class=n>x</span><span class=p>[</span><span class=n>machine</span><span class=p>,</span> <span class=p>:,</span> <span class=p>:]</span> <span class=k>if</span> <span class=n>idx</span> <span class=o>==</span> <span class=n>jobi</span><span class=p>]</span>
+            <span class=n>done</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>done</span><span class=p>)</span> <span class=o>!=</span> <span class=n>machines</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Job </span><span class=si>{</span><span class=n>jobi</span><span class=si>}</span><span class=s2> appears only </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>done</span><span class=p>)</span><span class=si>}</span><span class=s2> times instead of "</span>
+                    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>machines</span><span class=si>}</span><span class=s2> times on instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+            <span class=c1># we allow operations of length 0 to appear at any position</span>
+            <span class=n>last_end</span> <span class=o>=</span> <span class=mi>0</span>
+            <span class=n>last_machine</span> <span class=o>=</span> <span class=s2>"[start]"</span>
+            <span class=n>done_i</span> <span class=o>=</span> <span class=mi>0</span>
+            <span class=n>machine_i</span> <span class=o>=</span> <span class=mi>0</span>
+            <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>machine_i</span> <span class=o><</span> <span class=n>machines</span><span class=p>:</span>
+                    <span class=n>machine</span><span class=p>,</span> <span class=n>time</span> <span class=o>=</span> <span class=n>inst</span><span class=p>[</span><span class=n>jobi</span><span class=p>,</span> <span class=n>machine_i</span><span class=p>]</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>machine</span> <span class=o>=</span> <span class=n>time</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+                <span class=k>if</span> <span class=n>done_i</span> <span class=o><</span> <span class=n>machines</span><span class=p>:</span>
+                    <span class=n>start</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>done</span><span class=p>[</span><span class=n>machine_i</span><span class=p>][</span><span class=mi>0</span><span class=p>])</span>
+                    <span class=n>end</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>done</span><span class=p>[</span><span class=n>machine_i</span><span class=p>][</span><span class=mi>1</span><span class=p>])</span>
+                    <span class=n>used_machine</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>done</span><span class=p>[</span><span class=n>machine_i</span><span class=p>][</span><span class=mi>2</span><span class=p>])</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>start</span> <span class=o>=</span> <span class=n>end</span> <span class=o>=</span> <span class=n>used_machine</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+
+                <span class=n>needed</span> <span class=o>=</span> <span class=n>end</span> <span class=o>-</span> <span class=n>start</span>
+                <span class=k>if</span> <span class=n>needed</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"Operation </span><span class=si>{</span><span class=n>machine_i</span><span class=si>}</span><span class=s2> of job </span><span class=si>{</span><span class=n>jobi</span><span class=si>}</span><span class=s2> scheduled "</span>
+                        <span class=sa>f</span><span class=s2>"from </span><span class=si>{</span><span class=n>start</span><span class=si>}</span><span class=s2> to </span><span class=si>{</span><span class=n>end</span><span class=si>}</span><span class=s2>?"</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>machine</span> <span class=o>!=</span> <span class=n>used_machine</span><span class=p>:</span>
+                    <span class=c1># This is only possible for operations that require zero</span>
+                    <span class=c1># time units. We will skip such operations in the checks.</span>
+                    <span class=k>if</span> <span class=p>(</span><span class=n>time</span> <span class=o>==</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>machine</span> <span class=o>!=</span> <span class=o>-</span><span class=mi>1</span><span class=p>):</span>
+                        <span class=n>machine_i</span> <span class=o>+=</span> <span class=mi>1</span>
+                        <span class=k>continue</span>
+                    <span class=k>if</span> <span class=p>(</span><span class=n>needed</span> <span class=o>==</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>machine</span> <span class=o>!=</span> <span class=o>-</span><span class=mi>1</span><span class=p>):</span>
+                        <span class=n>done_i</span> <span class=o>+=</span> <span class=mi>1</span>
+                        <span class=k>continue</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"Machine at index </span><span class=si>{</span><span class=n>done_i</span><span class=si>}</span><span class=s2> of job </span><span class=si>{</span><span class=n>jobi</span><span class=si>}</span><span class=s2> "</span>
+                        <span class=sa>f</span><span class=s2>"must be </span><span class=si>{</span><span class=n>machine</span><span class=si>}</span><span class=s2> for instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>, "</span>
+                        <span class=sa>f</span><span class=s2>"for </span><span class=si>{</span><span class=n>time</span><span class=si>}</span><span class=s2> time units, but is </span><span class=si>{</span><span class=n>used_machine</span><span class=si>}</span><span class=s2>"</span>
+                        <span class=sa>f</span><span class=s2>"from </span><span class=si>{</span><span class=n>start</span><span class=si>}</span><span class=s2> to </span><span class=si>{</span><span class=n>end</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>machine</span> <span class=o>==</span> <span class=o>-</span><span class=mi>1</span><span class=p>:</span>
+                    <span class=k>if</span> <span class=p>(</span><span class=n>machine_i</span> <span class=o><</span> <span class=n>machines</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>done_i</span> <span class=o><</span> <span class=n>machines</span><span class=p>):</span>
+                        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>  <span class=c1># this should never be possible</span>
+                            <span class=sa>f</span><span class=s2>"Done </span><span class=si>{</span><span class=n>machine_i</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=mi>1</span><span class=si>}</span><span class=s2> machines for job </span><span class=si>{</span><span class=n>jobi</span><span class=si>}</span><span class=s2>, "</span>
+                            <span class=sa>f</span><span class=s2>"which has </span><span class=si>{</span><span class=n>done_i</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=mi>1</span><span class=si>}</span><span class=s2> operations done??"</span><span class=p>)</span>
+                    <span class=k>break</span>  <span class=c1># we can stop</span>
+
+                <span class=c1># ok, we are at a regular operation</span>
+                <span class=k>if</span> <span class=n>needed</span> <span class=o>!=</span> <span class=n>time</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"Job </span><span class=si>{</span><span class=n>jobi</span><span class=si>}</span><span class=s2> must be processed on </span><span class=si>{</span><span class=n>machine</span><span class=si>}</span><span class=s2> for "</span>
+                        <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>time</span><span class=si>}</span><span class=s2> time units on instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>, but "</span>
+                        <span class=sa>f</span><span class=s2>"only </span><span class=si>{</span><span class=n>needed</span><span class=si>}</span><span class=s2> are used from </span><span class=si>{</span><span class=n>start</span><span class=si>}</span><span class=s2> to </span><span class=si>{</span><span class=n>end</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>needed</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"Processing time of job </span><span class=si>{</span><span class=n>jobi</span><span class=si>}</span><span class=s2> on machine </span><span class=si>{</span><span class=n>machine</span><span class=si>}</span><span class=s2> "</span>
+                        <span class=sa>f</span><span class=s2>"cannot be < 0 for instance </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>, but "</span>
+                        <span class=sa>f</span><span class=s2>"is </span><span class=si>{</span><span class=n>needed</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+                <span class=k>if</span> <span class=n>start</span> <span class=o><</span> <span class=n>last_end</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"Processing time window [</span><span class=si>{</span><span class=n>start</span><span class=si>}</span><span class=s2>,</span><span class=si>{</span><span class=n>end</span><span class=si>}</span><span class=s2>] on "</span>
+                        <span class=sa>f</span><span class=s2>"machine </span><span class=si>{</span><span class=n>machine</span><span class=si>}</span><span class=s2> for job </span><span class=si>{</span><span class=n>jobi</span><span class=si>}</span><span class=s2> on instance "</span>
+                        <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2> intersects with last operation end"</span>
+                        <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>last_end</span><span class=si>}</span><span class=s2> on machine </span><span class=si>{</span><span class=n>last_machine</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+                <span class=n>last_end</span> <span class=o>=</span> <span class=n>end</span>
+                <span class=n>last_machine</span> <span class=o>=</span> <span class=n>machine</span>
+                <span class=n>machine_i</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=n>done_i</span> <span class=o>+=</span> <span class=mi>1</span>
+
+        <span class=n>maxtime</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>x</span><span class=p>[:,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>]</span><span class=o>.</span><span class=n>max</span><span class=p>())</span>
+        <span class=k>if</span> <span class=n>maxtime</span> <span class=o><</span> <span class=n>inst</span><span class=o>.</span><span class=n>makespan_lower_bound</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"Makespan </span><span class=si>{</span><span class=n>maxtime</span><span class=si>}</span><span class=s2> computed, which is smaller than the "</span>
+                <span class=sa>f</span><span class=s2>"lower bound </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>makespan_lower_bound</span><span class=si>}</span><span class=s2> of the JSSP "</span>
+                <span class=sa>f</span><span class=s2>"instance </span><span class=si>{</span><span class=nb>str</span><span class=p>(</span><span class=n>inst</span><span class=p>)</span><span class=si>!r}</span><span class=s2>'."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>maxtime</span> <span class=o>></span> <span class=n>inst</span><span class=o>.</span><span class=n>makespan_upper_bound</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"Makespan </span><span class=si>{</span><span class=n>maxtime</span><span class=si>}</span><span class=s2> computed, which is larger than the "</span>
+                <span class=sa>f</span><span class=s2>"upper bound </span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>makespan_upper_bound</span><span class=si>}</span><span class=s2> of the JSSP "</span>
+                <span class=sa>f</span><span class=s2>"instance </span><span class=si>{</span><span class=nb>str</span><span class=p>(</span><span class=n>inst</span><span class=p>)</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=GanttSpace.n_points>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.gantt_space.GanttSpace.n_points>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>n_points</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the number of possible Gantt charts without useless delays.</span>
+
+<span class=sd>        :return: `factorial(jobs) ** machines`</span>
+
+<span class=sd>        >>> print(GanttSpace(Instance.from_resource("demo")).n_points())</span>
+<span class=sd>        7962624</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>gantt_space_size</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=o>.</span><span class=n>machines</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the Gantt space.</span>
+
+<span class=sd>        :return: the name</span>
+
+<span class=sd>        >>> space = GanttSpace(Instance.from_resource("abz7"))</span>
+<span class=sd>        >>> print(space)</span>
+<span class=sd>        gantt_abz7</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"gantt_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=si>}</span><span class=s2>"</span>
+
+<div class=viewcode-block id=GanttSpace.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.gantt_space.GanttSpace.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of the Gantt space to the given logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_SHAPE</span><span class=p>,</span> <span class=nb>repr</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>shape</span><span class=p>))</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_NUMPY_TYPE</span><span class=p>,</span> <span class=n>numpy_type_to_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=p>))</span>
+        <span class=k>with</span> <span class=n>logger</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=n>SCOPE_INSTANCE</span><span class=p>)</span> <span class=k>as</span> <span class=n>kv</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>kv</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.gantt_space</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

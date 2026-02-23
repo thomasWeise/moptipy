@@ -1,0 +1,197 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.utils.strings — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/utils/strings.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.strings</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.utils.strings</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Routines for handling strings."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>re</span><span class=w> </span><span class=kn>import</span> <span class=nb>compile</span> <span class=k>as</span> <span class=n>_compile</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>re</span><span class=w> </span><span class=kn>import</span> <span class=n>sub</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>Pattern</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.strings.chars</span><span class=w> </span><span class=kn>import</span> <span class=n>superscript</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.strings.string_conv</span><span class=w> </span><span class=kn>import</span> <span class=n>float_to_str</span><span class=p>,</span> <span class=n>num_to_str</span><span class=p>,</span> <span class=n>str_to_num</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.strings.string_tools</span><span class=w> </span><span class=kn>import</span> <span class=n>replace_str</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+
+<div class=viewcode-block id=num_to_str_for_name>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.strings.num_to_str_for_name>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>num_to_str_for_name</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Convert a float to a string for use in a component name.</span>
+
+<span class=sd>    This function can be inverted by applying :func:`name_str_to_num`.</span>
+
+<span class=sd>    :param x: the float</span>
+<span class=sd>    :returns: the string</span>
+
+<span class=sd>    >>> num_to_str_for_name(1.3)</span>
+<span class=sd>    '1d3'</span>
+<span class=sd>    >>> num_to_str_for_name(1.0)</span>
+<span class=sd>    '1'</span>
+<span class=sd>    >>> num_to_str_for_name(-7)</span>
+<span class=sd>    'm7'</span>
+<span class=sd>    >>> num_to_str_for_name(-6.32)</span>
+<span class=sd>    'm6d32'</span>
+<span class=sd>    >>> num_to_str_for_name(-1e-5)</span>
+<span class=sd>    'm1em5'</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>num_to_str</span><span class=p>(</span><span class=n>x</span><span class=p>)</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>"."</span><span class=p>,</span> <span class=n>DECIMAL_DOT_REPLACEMENT</span><span class=p>)</span> \
+        <span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>"-"</span><span class=p>,</span> <span class=n>MINUS_REPLACEMENT</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=name_str_to_num>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.strings.name_str_to_num>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>name_str_to_num</span><span class=p>(</span><span class=n>s</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Convert a string from a name to a number.</span>
+
+<span class=sd>    This function is the inverse of :func:`num_to_str_for_name`.</span>
+
+<span class=sd>    :param s: the string from the name</span>
+<span class=sd>    :returns: an integer or float, depending on the number represented by</span>
+<span class=sd>        `s`</span>
+
+<span class=sd>    >>> name_str_to_num(num_to_str_for_name(1.1))</span>
+<span class=sd>    1.1</span>
+<span class=sd>    >>> name_str_to_num(num_to_str_for_name(1))</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> name_str_to_num(num_to_str_for_name(-5e3))</span>
+<span class=sd>    -5000</span>
+<span class=sd>    >>> name_str_to_num(num_to_str_for_name(-6e-3))</span>
+<span class=sd>    -0.006</span>
+<span class=sd>    >>> name_str_to_num(num_to_str_for_name(100.0))</span>
+<span class=sd>    100</span>
+<span class=sd>    >>> name_str_to_num(num_to_str_for_name(-1e-4))</span>
+<span class=sd>    -0.0001</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>str_to_num</span><span class=p>(</span><span class=n>s</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=n>MINUS_REPLACEMENT</span><span class=p>,</span> <span class=s2>"-"</span><span class=p>)</span>
+                      <span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=n>DECIMAL_DOT_REPLACEMENT</span><span class=p>,</span> <span class=s2>"."</span><span class=p>))</span></div>
+
+
+
+<div class=viewcode-block id=beautify_float_str>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.strings.beautify_float_str>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>beautify_float_str</span><span class=p>(</span><span class=n>s</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Beautify the string representation of a float.</span>
+
+<span class=sd>    This function beautifies the string representation of a float by using</span>
+<span class=sd>    unicode superscripts for exponents.</span>
+
+<span class=sd>    :param s: either a `float` or the string representation of a `float`</span>
+<span class=sd>    :return: the beautified string representation</span>
+
+<span class=sd>    >>> beautify_float_str('0.0')</span>
+<span class=sd>    '0.0'</span>
+<span class=sd>    >>> beautify_float_str('1e12')</span>
+<span class=sd>    '1\u00d710\u00b9\u00b2'</span>
+<span class=sd>    >>> beautify_float_str('1e-3')</span>
+<span class=sd>    '1\u00d710\u207b\u00b3'</span>
+<span class=sd>    >>> beautify_float_str('inf')</span>
+<span class=sd>    '\u221e'</span>
+<span class=sd>    >>> beautify_float_str('-inf')</span>
+<span class=sd>    '-\u221e'</span>
+<span class=sd>    >>> beautify_float_str('nan')</span>
+<span class=sd>    '\u2205'</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+        <span class=n>s</span> <span class=o>=</span> <span class=n>float_to_str</span><span class=p>(</span><span class=n>s</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>s</span><span class=p>,</span> <span class=s2>"s"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=n>s</span> <span class=o>=</span> <span class=n>s</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span><span class=o>.</span><span class=n>lower</span><span class=p>()</span>
+    <span class=k>if</span> <span class=n>s</span> <span class=ow>in</span> <span class=p>{</span><span class=s2>"+inf"</span><span class=p>,</span> <span class=s2>"inf"</span><span class=p>}:</span>
+        <span class=k>return</span> <span class=s2>"</span><span class=se>\u221e</span><span class=s2>"</span>
+    <span class=k>if</span> <span class=n>s</span> <span class=o>==</span> <span class=s2>"-inf"</span><span class=p>:</span>
+        <span class=k>return</span> <span class=s2>"-</span><span class=se>\u221e</span><span class=s2>"</span>
+    <span class=k>if</span> <span class=n>s</span> <span class=o>==</span> <span class=s2>"nan"</span><span class=p>:</span>
+        <span class=k>return</span> <span class=s2>"</span><span class=se>\u2205</span><span class=s2>"</span>
+    <span class=n>eidx</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>s</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>"e"</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>eidx</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>s</span>
+    <span class=k>return</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>s</span><span class=p>[:</span><span class=n>eidx</span><span class=p>]</span><span class=si>}</span><span class=se>\u00d7</span><span class=s2>10</span><span class=si>{</span><span class=n>superscript</span><span class=p>(</span><span class=n>s</span><span class=p>[</span><span class=n>eidx</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=mi>1</span><span class=p>:])</span><span class=si>}</span><span class=s2>"</span></div>
+
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__replace_double</span><span class=p>(</span><span class=n>replace</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>src</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Replace any double-occurrence of a string with a single occurrence.</span>
+
+<span class=sd>    :param replace: the string to replace</span>
+<span class=sd>    :param src: the source string</span>
+<span class=sd>    :returns: the updated string</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>replace_str</span><span class=p>(</span><span class=n>replace</span> <span class=o>+</span> <span class=n>replace</span><span class=p>,</span> <span class=n>replace</span><span class=p>,</span> <span class=n>src</span><span class=p>)</span>
+
+
+<span class=c1>#: the separator of different filename parts</span>
+<span class=n>PART_SEPARATOR</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"_"</span>
+<span class=c1>#: the replacement for "." in a file name</span>
+<span class=n>DECIMAL_DOT_REPLACEMENT</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"d"</span>
+<span class=c1>#: the replacement for "-" in a file name</span>
+<span class=n>MINUS_REPLACEMENT</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"m"</span>
+<span class=c1>#: the replacement for "+" in a file name</span>
+<span class=n>PLUS_REPLACEMENT</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"p"</span>
+
+<span class=c1>#: a pattern used during name sanitization</span>
+<span class=n>__PATTERN_SPACE_BEFORE_MINUS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Pattern</span><span class=p>]</span> <span class=o>=</span> <span class=n>_compile</span><span class=p>(</span><span class=sa>r</span><span class=s2>"[^\w\s-]"</span><span class=p>)</span>
+<span class=c1>#: the multiple-whitespace pattern</span>
+<span class=n>__PATTERN_MULTIPLE_WHITESPACE</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Pattern</span><span class=p>]</span> <span class=o>=</span> <span class=n>_compile</span><span class=p>(</span><span class=sa>r</span><span class=s2>"\s+"</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=sanitize_name>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.strings.sanitize_name>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>sanitize_name</span><span class=p>(</span><span class=n>name</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Sanitize a name in such a way that it can be used as path component.</span>
+
+<span class=sd>    >>> sanitize_name(" hello world ")</span>
+<span class=sd>    'hello_world'</span>
+<span class=sd>    >>> sanitize_name(" 56.6-455 ")</span>
+<span class=sd>    '56d6m455'</span>
+<span class=sd>    >>> sanitize_name(" _ i _ am _ funny   --6 _ ")</span>
+<span class=sd>    'i_am_funny_m6'</span>
+
+<span class=sd>    :param name: the name that should be sanitized</span>
+<span class=sd>    :return: the sanitized name</span>
+<span class=sd>    :raises ValueError: if the name is invalid or empty</span>
+<span class=sd>    :raises TypeError: if the name is `None` or not a string</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=s2>"name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=n>orig_name</span> <span class=o>=</span> <span class=n>name</span>
+    <span class=n>name</span> <span class=o>=</span> <span class=n>name</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+    <span class=n>name</span> <span class=o>=</span> <span class=n>__replace_double</span><span class=p>(</span><span class=s2>"-"</span><span class=p>,</span> <span class=n>name</span><span class=p>)</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>"+"</span><span class=p>,</span> <span class=n>PLUS_REPLACEMENT</span><span class=p>)</span>
+    <span class=n>name</span> <span class=o>=</span> <span class=n>__replace_double</span><span class=p>(</span><span class=s2>"+"</span><span class=p>,</span> <span class=n>name</span><span class=p>)</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>"-"</span><span class=p>,</span> <span class=n>MINUS_REPLACEMENT</span><span class=p>)</span>
+    <span class=n>name</span> <span class=o>=</span> <span class=n>__replace_double</span><span class=p>(</span><span class=s2>"_"</span><span class=p>,</span> <span class=n>name</span><span class=p>)</span>
+    <span class=n>name</span> <span class=o>=</span> <span class=n>__replace_double</span><span class=p>(</span><span class=s2>"."</span><span class=p>,</span> <span class=n>name</span><span class=p>)</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>"."</span><span class=p>,</span> <span class=n>DECIMAL_DOT_REPLACEMENT</span><span class=p>)</span>
+
+    <span class=n>name</span> <span class=o>=</span> <span class=n>sub</span><span class=p>(</span><span class=n>__PATTERN_SPACE_BEFORE_MINUS</span><span class=p>,</span> <span class=s2>""</span><span class=p>,</span> <span class=n>name</span><span class=p>)</span>
+    <span class=n>name</span> <span class=o>=</span> <span class=n>sub</span><span class=p>(</span><span class=n>__PATTERN_MULTIPLE_WHITESPACE</span><span class=p>,</span> <span class=n>PART_SEPARATOR</span><span class=p>,</span> <span class=n>name</span><span class=p>)</span>
+    <span class=n>name</span> <span class=o>=</span> <span class=n>__replace_double</span><span class=p>(</span><span class=s2>"_"</span><span class=p>,</span> <span class=n>name</span><span class=p>)</span>
+
+    <span class=n>name</span> <span class=o>=</span> <span class=n>name</span><span class=o>.</span><span class=n>removeprefix</span><span class=p>(</span><span class=s2>"_"</span><span class=p>)</span><span class=o>.</span><span class=n>removesuffix</span><span class=p>(</span><span class=s2>"_"</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>name</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"Sanitized name must not become empty, but </span><span class=si>{</span><span class=n>orig_name</span><span class=si>!r}</span><span class=s2> does."</span><span class=p>)</span>
+
+    <span class=k>return</span> <span class=n>name</span></div>
+
+
+
+<div class=viewcode-block id=sanitize_names>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.strings.sanitize_names>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>sanitize_names</span><span class=p>(</span><span class=n>names</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Sanitize a set of names.</span>
+
+<span class=sd>    >>> sanitize_names(["", " sdf ", "", "5-3"])</span>
+<span class=sd>    'sdf_5m3'</span>
+<span class=sd>    >>> sanitize_names([" a ", " b", " c", "", "6", ""])</span>
+<span class=sd>    'a_b_c_6'</span>
+
+<span class=sd>    :param names: the list of names.</span>
+<span class=sd>    :return: the sanitized name</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>PART_SEPARATOR</span><span class=o>.</span><span class=n>join</span><span class=p>([</span>
+        <span class=n>sanitize_name</span><span class=p>(</span><span class=n>name</span><span class=p>)</span> <span class=k>for</span> <span class=n>name</span> <span class=ow>in</span> <span class=n>names</span> <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>name</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>])</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.strings</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

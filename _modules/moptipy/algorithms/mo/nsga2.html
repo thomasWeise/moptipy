@@ -1,0 +1,326 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.mo.nsga2 — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/mo/nsga2.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.mo.nsga2</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.mo.nsga2</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>An implementation of NSGA-II, a famous multi-objective optimization method.</span>
+
+<span class=sd>Here we implement the famous NSGA-II algorithm by Deb, Agrawal, Pratap, and</span>
+<span class=sd>Meyarivan.</span>
+
+<span class=sd>We apply the following modifications to the computation of the crowding</span>
+<span class=sd>distance:</span>
+<span class=sd>First, we normalize each dimension based on its range in the population. This</span>
+<span class=sd>may make sense because some objective functions may have huge ranges while</span>
+<span class=sd>others have very small ranges and would then basically be ignored in the</span>
+<span class=sd>crowding distance.</span>
+<span class=sd>Also, we do not assign infinite crowding distances to border elements of</span>
+<span class=sd>collapsed dimensions. In other words, if all elements have the same value of</span>
+<span class=sd>one objective function, none of them would receive infinite crowding distance</span>
+<span class=sd>for this objective. This also makes sense because in this case, sorting would</span>
+<span class=sd>be rather random.</span>
+<span class=sd>We also start by generating the 2*:attr:`NSGA2.pop_size` random solutions.</span>
+<span class=sd>When selecting parents, we apply tournament selection with replacement.</span>
+
+<span class=sd>1. Kalyanmoy Deb, Samir Agrawal, Amrit Pratap, and T. Meyarivan. A Fast</span>
+<span class=sd>   Elitist Non-Dominated Sorting Genetic Algorithm for Multi-Objective</span>
+<span class=sd>   Optimization: NSGA-II. In Proceedings of the International Conference</span>
+<span class=sd>   on Parallel Problem Solving from Nature (PPSN VI), September 18-20, 2000,</span>
+<span class=sd>   Paris, France, pages 849-858. Lecture Notes in Computer Science,</span>
+<span class=sd>   volume 1917. ISBN 978-3-540-41056-0. Berlin, Heidelberg: Springer.</span>
+<span class=sd>   https://doi.org/10.1007/3-540-45356-3_83.</span>
+<span class=sd>   Also: KanGAL Report Number 200001.</span>
+<span class=sd>   http://repository.ias.ac.in/83498/1/2-a.pdf.</span>
+
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm2</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>MOAlgorithm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_archive</span><span class=w> </span><span class=kn>import</span> <span class=n>MORecord</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_process</span><span class=w> </span><span class=kn>import</span> <span class=n>MOProcess</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>Op1</span><span class=p>,</span> <span class=n>Op2</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=n>num_to_str_for_name</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>_NSGA2Record</span><span class=p>(</span><span class=n>MORecord</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The NSGA-II specific internal record structure."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>Any</span><span class=p>,</span> <span class=n>fs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a multi-objective record.</span>
+
+<span class=sd>        :param x: the point in the search space</span>
+<span class=sd>        :param fs: the vector of objective values</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>fs</span><span class=p>)</span>
+        <span class=c1>#: the list of dominated solutions</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>dominates</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>_NSGA2Record</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=c1>#: the number of solutions this one is dominated by</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>n_dominated_by</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=c1>#: the pareto front index</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>front</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=c1>#: the crowding distance</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>crowding_distance</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.0</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__lt__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>other</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compare according to domination front and crowding distance.</span>
+
+<span class=sd>        :param other: the other element to compare with</span>
+<span class=sd>        :returns: `True` if an only if this solution has either a smaller</span>
+<span class=sd>            Pareto front index (:attr:`front`) or the same front index</span>
+<span class=sd>            and a larger crowding distance (:attr:`crowding_distance`)</span>
+<span class=sd>        """</span>
+        <span class=n>fs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>front</span>
+        <span class=n>fo</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>other</span><span class=o>.</span><span class=n>front</span>
+        <span class=k>return</span> <span class=p>(</span><span class=n>fs</span> <span class=o><</span> <span class=n>fo</span><span class=p>)</span> <span class=ow>or</span> <span class=p>((</span><span class=n>fs</span> <span class=o>==</span> <span class=n>fo</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>crowding_distance</span> <span class=o>></span> <span class=n>other</span><span class=o>.</span><span class=n>crowding_distance</span><span class=p>))</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_non_dominated_sorting</span><span class=p>(</span>
+        <span class=n>pop</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>_NSGA2Record</span><span class=p>],</span>
+        <span class=n>needed_at_least</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+        <span class=n>domination</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span><span class=p>])</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Perform the fast non-dominated sorting.</span>
+
+<span class=sd>    :param pop: the population</span>
+<span class=sd>    :param needed_at_least: the number of elements we actually need</span>
+<span class=sd>    :param domination: the domination relationship</span>
+<span class=sd>    :returns: the end of the last relevant frontier, with</span>
+<span class=sd>        `needed_at_least <= end`</span>
+<span class=sd>    """</span>
+    <span class=n>lp</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>pop</span><span class=p>)</span>
+
+    <span class=c1># clear the domination record</span>
+    <span class=k>for</span> <span class=n>rec</span> <span class=ow>in</span> <span class=n>pop</span><span class=p>:</span>
+        <span class=n>rec</span><span class=o>.</span><span class=n>n_dominated_by</span> <span class=o>=</span> <span class=mi>0</span>
+
+    <span class=c1># compute the domination</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>lp</span> <span class=o>-</span> <span class=mi>1</span><span class=p>):</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>pop</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+        <span class=c1># we only check each pair of solutions once</span>
+        <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>lp</span><span class=p>):</span>
+            <span class=n>b</span> <span class=o>=</span> <span class=n>pop</span><span class=p>[</span><span class=n>j</span><span class=p>]</span>
+            <span class=n>d</span> <span class=o>=</span> <span class=n>domination</span><span class=p>(</span><span class=n>a</span><span class=o>.</span><span class=n>fs</span><span class=p>,</span> <span class=n>b</span><span class=o>.</span><span class=n>fs</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>d</span> <span class=o>==</span> <span class=o>-</span><span class=mi>1</span><span class=p>:</span>  <span class=c1># if a dominates b</span>
+                <span class=n>a</span><span class=o>.</span><span class=n>dominates</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>b</span><span class=p>)</span>   <span class=c1># remember that it does</span>
+                <span class=n>b</span><span class=o>.</span><span class=n>n_dominated_by</span> <span class=o>+=</span> <span class=mi>1</span>   <span class=c1># increment b's domination count</span>
+            <span class=k>elif</span> <span class=n>d</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>  <span class=c1># if b dominates a</span>
+                <span class=n>b</span><span class=o>.</span><span class=n>dominates</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>a</span><span class=p>)</span>   <span class=c1># remember that it does</span>
+                <span class=n>a</span><span class=o>.</span><span class=n>n_dominated_by</span> <span class=o>+=</span> <span class=mi>1</span>   <span class=c1># increment b's domination count</span>
+    <span class=c1># now compute the fronts</span>
+    <span class=n>done</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>front_start</span><span class=p>:</span> <span class=nb>int</span>
+    <span class=n>front</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>  <span class=c1># repeat until all records are done</span>
+        <span class=n>front_start</span> <span class=o>=</span> <span class=n>done</span>  <span class=c1># remember end of old front</span>
+        <span class=n>front</span> <span class=o>+=</span> <span class=mi>1</span>          <span class=c1># step front counter</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>done</span><span class=p>,</span> <span class=n>lp</span><span class=p>):</span>  <span class=c1># process all records not yet in a front</span>
+            <span class=n>a</span> <span class=o>=</span> <span class=n>pop</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>  <span class=c1># pick record at index i</span>
+            <span class=k>if</span> <span class=n>a</span><span class=o>.</span><span class=n>n_dominated_by</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>  <span class=c1># if it belongs to the current front</span>
+                <span class=n>a</span><span class=o>.</span><span class=n>front</span> <span class=o>=</span> <span class=n>front</span>  <span class=c1># set its front counter</span>
+                <span class=n>pop</span><span class=p>[</span><span class=n>i</span><span class=p>],</span> <span class=n>pop</span><span class=p>[</span><span class=n>done</span><span class=p>]</span> <span class=o>=</span> <span class=n>pop</span><span class=p>[</span><span class=n>done</span><span class=p>],</span> <span class=n>a</span>  <span class=c1># swap it to the front end</span>
+                <span class=n>done</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># increment length of done records</span>
+        <span class=k>if</span> <span class=n>done</span> <span class=o>>=</span> <span class=n>needed_at_least</span><span class=p>:</span>  <span class=c1># are we done with sorting?</span>
+            <span class=k>break</span>  <span class=c1># yes -> break loop and return</span>
+        <span class=c1># the new front has been built, it ranges from [old_done, done)</span>
+        <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>front_start</span><span class=p>,</span> <span class=n>done</span><span class=p>):</span>
+            <span class=n>a</span> <span class=o>=</span> <span class=n>pop</span><span class=p>[</span><span class=n>j</span><span class=p>]</span>
+            <span class=k>for</span> <span class=n>b</span> <span class=ow>in</span> <span class=n>a</span><span class=o>.</span><span class=n>dominates</span><span class=p>:</span>
+                <span class=n>b</span><span class=o>.</span><span class=n>n_dominated_by</span> <span class=o>-=</span> <span class=mi>1</span>
+            <span class=n>a</span><span class=o>.</span><span class=n>dominates</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+
+    <span class=c1># clear the remaining domination records</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>front_start</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>pop</span><span class=p>)):</span>
+        <span class=n>pop</span><span class=p>[</span><span class=n>i</span><span class=p>]</span><span class=o>.</span><span class=n>dominates</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+
+    <span class=c1># return the number of elements sorted</span>
+    <span class=k>return</span> <span class=n>done</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_crowding_distances</span><span class=p>(</span><span class=n>pop</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>_NSGA2Record</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the crowding distances.</span>
+
+<span class=sd>    This method works as in the original NSGA-II, but it normalizes each</span>
+<span class=sd>    dimension based on their ranges in the population. This may make sense</span>
+<span class=sd>    because some objective functions may have huge ranges while others have</span>
+<span class=sd>    very small ranges and would then basically be ignored in the crowding</span>
+<span class=sd>    distance.</span>
+
+<span class=sd>    Also, we do not assign infinite crowding distances to border elements of</span>
+<span class=sd>    collapsed dimensions. In other words, if all elements have the same value</span>
+<span class=sd>    of one objective function, none of them would receive infinite crowding</span>
+<span class=sd>    distance for this objective. This also makes sense because in this case,</span>
+<span class=sd>    sorting would be rather random.</span>
+
+<span class=sd>    :param pop: the population</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>rec</span> <span class=ow>in</span> <span class=n>pop</span><span class=p>:</span>  <span class=c1># set all crowding distances to 0</span>
+        <span class=n>rec</span><span class=o>.</span><span class=n>crowding_distance</span> <span class=o>=</span> <span class=mf>0.0</span>
+
+    <span class=n>dimensions</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>pop</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>fs</span><span class=p>)</span>
+    <span class=k>for</span> <span class=n>dim</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>dimensions</span><span class=p>):</span>
+        <span class=n>pop</span><span class=o>.</span><span class=n>sort</span><span class=p>(</span><span class=n>key</span><span class=o>=</span><span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[_NSGA2Record], Any]"</span><span class=p>,</span>
+                          <span class=k>lambda</span> <span class=n>r</span><span class=p>,</span> <span class=n>d</span><span class=o>=</span><span class=n>dim</span><span class=p>:</span> <span class=n>r</span><span class=o>.</span><span class=n>fs</span><span class=p>[</span><span class=n>d</span><span class=p>]))</span>  <span class=c1># sort by dimension</span>
+        <span class=n>first</span> <span class=o>=</span> <span class=n>pop</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>  <span class=c1># get the record with the smallest value in the dim</span>
+        <span class=n>last</span> <span class=o>=</span> <span class=n>pop</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>  <span class=c1># get the record with the largest value in the dim</span>
+        <span class=n>a</span> <span class=o>=</span> <span class=n>first</span><span class=o>.</span><span class=n>fs</span><span class=p>[</span><span class=n>dim</span><span class=p>]</span>  <span class=c1># get smallest value of dimension</span>
+        <span class=n>b</span> <span class=o>=</span> <span class=n>last</span><span class=o>.</span><span class=n>fs</span><span class=p>[</span><span class=n>dim</span><span class=p>]</span>   <span class=c1># get largest value of dimension</span>
+        <span class=k>if</span> <span class=n>a</span> <span class=o>>=</span> <span class=n>b</span><span class=p>:</span>    <span class=c1># if smallest >= largest, all are the same!</span>
+            <span class=k>continue</span>  <span class=c1># we can ignore the dimension if it has collapsed</span>
+        <span class=n>first</span><span class=o>.</span><span class=n>crowding_distance</span> <span class=o>=</span> <span class=n>inf</span>  <span class=c1># crowding dist of smallest = inf</span>
+        <span class=n>last</span><span class=o>.</span><span class=n>crowding_distance</span> <span class=o>=</span> <span class=n>inf</span>   <span class=c1># crowding dist of largest = inf</span>
+        <span class=n>div</span> <span class=o>=</span> <span class=n>b</span> <span class=o>-</span> <span class=n>a</span>   <span class=c1># get divisor for normalization</span>
+        <span class=k>if</span> <span class=n>div</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>  <span class=c1># if the range collapses due to numerical imprecision...</span>
+            <span class=k>continue</span>  <span class=c1># then we can also skip this dimension</span>
+        <span class=c1># ok, we do have non-zero range</span>
+        <span class=n>nex</span> <span class=o>=</span> <span class=n>pop</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span>  <span class=c1># for each element, we need those to the left and right</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>pop</span><span class=p>)):</span>
+            <span class=n>rec</span> <span class=o>=</span> <span class=n>nex</span>     <span class=c1># first: rec = pop[1], second: pop[2], ....</span>
+            <span class=n>nex</span> <span class=o>=</span> <span class=n>pop</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>  <span class=c1># first: nex = pop[2], second: pop[3], ....</span>
+            <span class=n>rec</span><span class=o>.</span><span class=n>crowding_distance</span> <span class=o>+=</span> <span class=p>(</span><span class=n>nex</span><span class=o>.</span><span class=n>fs</span><span class=p>[</span><span class=n>dim</span><span class=p>]</span> <span class=o>-</span> <span class=n>first</span><span class=o>.</span><span class=n>fs</span><span class=p>[</span><span class=n>dim</span><span class=p>])</span> <span class=o>/</span> <span class=n>div</span>
+            <span class=n>first</span> <span class=o>=</span> <span class=n>rec</span>   <span class=c1># current rec now = rec to the left next</span>
+
+
+<div class=viewcode-block id=NSGA2>
+<a class=viewcode-back href=../../../../moptipy.algorithms.mo.html#moptipy.algorithms.mo.nsga2.NSGA2>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>NSGA2</span><span class=p>(</span><span class=n>Algorithm2</span><span class=p>,</span> <span class=n>MOAlgorithm</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The NSGA-II algorithm by Deb, Agrawal, Pratap, and Meyarivan."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>:</span> <span class=n>Op1</span><span class=p>,</span> <span class=n>op2</span><span class=p>:</span> <span class=n>Op2</span><span class=p>,</span>
+                 <span class=n>pop_size</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>cr</span><span class=p>:</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the NSGA-II algorithm.</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param op1: the unary search operator</span>
+<span class=sd>        :param op2: the binary search operator</span>
+<span class=sd>        :param pop_size: the population size</span>
+<span class=sd>        :param cr: the crossover rate</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"nsga2_</span><span class=si>{</span><span class=n>pop_size</span><span class=si>}</span><span class=s2>_</span><span class=si>{</span><span class=n>num_to_str_for_name</span><span class=p>(</span><span class=n>cr</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=n>op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>,</span> <span class=n>op2</span><span class=p>)</span>
+        <span class=c1>#: the population size</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>pop_size</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>pop_size</span><span class=p>,</span> <span class=s2>"pop_size"</span><span class=p>,</span> <span class=mi>3</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>cr</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>cr</span><span class=p>,</span> <span class=s2>"cr"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=mi>0</span> <span class=o><</span> <span class=n>cr</span> <span class=o><</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"cr=</span><span class=si>{</span><span class=n>cr</span><span class=si>}</span><span class=s2>, but we need 0&LTcr&LT1."</span><span class=p>)</span>
+        <span class=c1>#: the crossover rate</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>cr</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>cr</span>
+
+<div class=viewcode-block id=NSGA2.solve_mo>
+<a class=viewcode-back href=../../../../moptipy.algorithms.mo.html#moptipy.algorithms.mo.nsga2.NSGA2.solve_mo>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve_mo</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>MOProcess</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the MO-RLS to an optimization problem.</span>
+
+<span class=sd>        :param process: the black-box process object</span>
+<span class=sd>        """</span>
+        <span class=c1># initialize fast calls and local constants</span>
+        <span class=n>create_x</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=n>Any</span><span class=p>]]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span>
+        <span class=n>create_f</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>f_create</span>
+        <span class=n>domination</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> \
+            <span class=n>process</span><span class=o>.</span><span class=n>f_dominates</span>
+        <span class=n>should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=nb>bool</span><span class=p>]]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>
+        <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>()</span>
+        <span class=n>op0</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Generator</span><span class=p>,</span> <span class=n>Any</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op0</span><span class=o>.</span><span class=n>op0</span>
+        <span class=n>op1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Generator</span><span class=p>,</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Any</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op1</span><span class=o>.</span><span class=n>op1</span>
+        <span class=n>op2</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Generator</span><span class=p>,</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Any</span><span class=p>],</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op2</span><span class=o>.</span><span class=n>op2</span>
+        <span class=n>evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=n>Any</span><span class=p>]]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>f_evaluate</span>
+        <span class=n>ri</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=nb>int</span><span class=p>],</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span>
+        <span class=n>rd</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>uniform</span>
+        <span class=n>cr</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>cr</span>
+
+        <span class=c1># create first population</span>
+        <span class=n>pop_size</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>pop_size</span>
+        <span class=n>pop_size_2</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>pop_size</span> <span class=o>+</span> <span class=n>pop_size</span>
+        <span class=n>pop</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>_NSGA2Record</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+
+        <span class=c1># create the population</span>
+        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>pop_size_2</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>should_terminate</span><span class=p>():</span>
+                <span class=n>process</span><span class=o>.</span><span class=n>check_in_all</span><span class=p>(</span><span class=n>pop</span><span class=p>)</span>  <span class=c1># check in population</span>
+                <span class=k>return</span>
+            <span class=n>rec</span><span class=p>:</span> <span class=n>_NSGA2Record</span> <span class=o>=</span> <span class=n>_NSGA2Record</span><span class=p>(</span><span class=n>create_x</span><span class=p>(),</span> <span class=n>create_f</span><span class=p>())</span>
+            <span class=n>op0</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>rec</span><span class=o>.</span><span class=n>x</span><span class=p>)</span>
+            <span class=n>evaluate</span><span class=p>(</span><span class=n>rec</span><span class=o>.</span><span class=n>x</span><span class=p>,</span> <span class=n>rec</span><span class=o>.</span><span class=n>fs</span><span class=p>)</span>
+            <span class=n>pop</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>rec</span><span class=p>)</span>
+
+        <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>  <span class=c1># the main loop</span>
+            <span class=c1># Perform non-dominated sorting and get at least pop_size</span>
+            <span class=c1># elements in different fronts.</span>
+            <span class=c1># "start" marks the begin of the last front that was created.</span>
+            <span class=c1># "end" marks the total number of elements sorted.</span>
+            <span class=c1># It holds that "start < pop_size <= end".</span>
+            <span class=n>end</span> <span class=o>=</span> <span class=n>_non_dominated_sorting</span><span class=p>(</span><span class=n>pop</span><span class=p>,</span> <span class=n>pop_size</span><span class=p>,</span> <span class=n>domination</span><span class=p>)</span>
+            <span class=c1># We only perform the crowding distance computation on the first</span>
+            <span class=c1># "end" elements in the population.</span>
+            <span class=c1># We take this slice of the population (or the whole population if</span>
+            <span class=c1># all elements are non-domination) and compute the crowding</span>
+            <span class=c1># distance.</span>
+            <span class=n>candidates</span> <span class=o>=</span> <span class=n>pop</span><span class=p>[:</span><span class=n>end</span><span class=p>]</span> <span class=k>if</span> <span class=n>end</span> <span class=o><</span> <span class=n>pop_size_2</span> <span class=k>else</span> <span class=n>pop</span>
+            <span class=n>_crowding_distances</span><span class=p>(</span><span class=n>candidates</span><span class=p>)</span>
+            <span class=c1># Careful: crowding distance computation will shuffle the list</span>
+            <span class=c1># candidates, because it sorts based on dimensions. Therefore, we</span>
+            <span class=c1># need to re-sort the whole slice.</span>
+            <span class=n>candidates</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+            <span class=k>if</span> <span class=n>candidates</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>pop</span><span class=p>:</span>  <span class=c1># write back if need be</span>
+                <span class=n>pop</span><span class=p>[:</span><span class=n>end</span><span class=p>]</span> <span class=o>=</span> <span class=n>candidates</span>
+
+            <span class=c1># fill offspring population</span>
+            <span class=k>for</span> <span class=n>ofs_idx</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>pop_size</span><span class=p>,</span> <span class=n>pop_size_2</span><span class=p>):</span>
+                <span class=c1># check if we should leave before evaluation</span>
+                <span class=k>if</span> <span class=n>should_terminate</span><span class=p>():</span>
+                    <span class=n>process</span><span class=o>.</span><span class=n>check_in_all</span><span class=p>(</span><span class=n>pop</span><span class=p>)</span>
+                    <span class=k>return</span>  <span class=c1># quit</span>
+                <span class=n>ofs</span><span class=p>:</span> <span class=n>_NSGA2Record</span> <span class=o>=</span> <span class=n>pop</span><span class=p>[</span><span class=n>ofs_idx</span><span class=p>]</span>  <span class=c1># offspring to overwrite</span>
+                <span class=c1># binary tournament with replacement for first parent</span>
+                <span class=n>p1</span><span class=p>:</span> <span class=n>_NSGA2Record</span> <span class=o>=</span> <span class=n>pop</span><span class=p>[</span><span class=n>ri</span><span class=p>(</span><span class=n>pop_size</span><span class=p>)]</span>
+                <span class=n>palt</span><span class=p>:</span> <span class=n>_NSGA2Record</span> <span class=o>=</span> <span class=n>pop</span><span class=p>[</span><span class=n>ri</span><span class=p>(</span><span class=n>pop_size</span><span class=p>)]</span>
+                <span class=n>p1</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>p1</span><span class=p>,</span> <span class=n>palt</span><span class=p>)</span>
+
+                <span class=k>if</span> <span class=n>rd</span><span class=p>()</span> <span class=o>>=</span> <span class=n>cr</span><span class=p>:</span>  <span class=c1># mutation: only 1 parent needed</span>
+                    <span class=n>op1</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>ofs</span><span class=o>.</span><span class=n>x</span><span class=p>,</span> <span class=n>p1</span><span class=o>.</span><span class=n>x</span><span class=p>)</span>  <span class=c1># do mutation</span>
+                <span class=k>else</span><span class=p>:</span>  <span class=c1># crossover: need a second parent</span>
+                    <span class=c1># binary tournament with replacement for second paren</span>
+                    <span class=c1># (who must be different from first parent)</span>
+                    <span class=n>p2</span><span class=p>:</span> <span class=n>_NSGA2Record</span> <span class=o>=</span> <span class=n>p1</span>
+                    <span class=k>while</span> <span class=n>p2</span> <span class=ow>is</span> <span class=n>p1</span><span class=p>:</span>
+                        <span class=n>p2</span> <span class=o>=</span> <span class=n>pop</span><span class=p>[</span><span class=n>ri</span><span class=p>(</span><span class=n>pop_size</span><span class=p>)]</span>
+                    <span class=n>palt</span> <span class=o>=</span> <span class=n>p1</span>
+                    <span class=k>while</span> <span class=n>palt</span> <span class=ow>is</span> <span class=n>p1</span><span class=p>:</span>
+                        <span class=n>palt</span> <span class=o>=</span> <span class=n>pop</span><span class=p>[</span><span class=n>ri</span><span class=p>(</span><span class=n>pop_size</span><span class=p>)]</span>
+                    <span class=n>p2</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>p2</span><span class=p>,</span> <span class=n>palt</span><span class=p>)</span>
+                    <span class=c1># got two parents, now do crossover</span>
+                    <span class=n>op2</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>ofs</span><span class=o>.</span><span class=n>x</span><span class=p>,</span> <span class=n>p1</span><span class=o>.</span><span class=n>x</span><span class=p>,</span> <span class=n>p2</span><span class=o>.</span><span class=n>x</span><span class=p>)</span>
+                <span class=n>evaluate</span><span class=p>(</span><span class=n>ofs</span><span class=o>.</span><span class=n>x</span><span class=p>,</span> <span class=n>ofs</span><span class=o>.</span><span class=n>fs</span><span class=p>)</span>  <span class=c1># otherwise: evaluate</span></div>
+
+
+<div class=viewcode-block id=NSGA2.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.algorithms.mo.html#moptipy.algorithms.mo.nsga2.NSGA2.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of the NSGA-II algorithm to a logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"popSize"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>pop_size</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"cr"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>cr</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=NSGA2.initialize>
+<a class=viewcode-back href=../../../../moptipy.algorithms.mo.html#moptipy.algorithms.mo.nsga2.NSGA2.initialize>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>initialize</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize the algorithm."""</span>
+        <span class=n>Algorithm2</span><span class=o>.</span><span class=n>initialize</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.mo.nsga2</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

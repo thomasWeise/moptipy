@@ -1,0 +1,178 @@
+moptipy.evaluation package
+==========================
+
+.. automodule:: moptipy.evaluation
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+moptipy.evaluation.axis\_ranger module
+--------------------------------------
+
+.. automodule:: moptipy.evaluation.axis_ranger
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.base module
+------------------------------
+
+.. automodule:: moptipy.evaluation.base
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.ecdf module
+------------------------------
+
+.. automodule:: moptipy.evaluation.ecdf
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.end\_results module
+--------------------------------------
+
+.. automodule:: moptipy.evaluation.end_results
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.end\_statistics module
+-----------------------------------------
+
+.. automodule:: moptipy.evaluation.end_statistics
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.ert module
+-----------------------------
+
+.. automodule:: moptipy.evaluation.ert
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.ertecdf module
+---------------------------------
+
+.. automodule:: moptipy.evaluation.ertecdf
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.ioh\_analyzer module
+---------------------------------------
+
+.. automodule:: moptipy.evaluation.ioh_analyzer
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.log\_parser module
+-------------------------------------
+
+.. automodule:: moptipy.evaluation.log_parser
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.plot\_ecdf module
+------------------------------------
+
+.. automodule:: moptipy.evaluation.plot_ecdf
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.plot\_end\_results module
+--------------------------------------------
+
+.. automodule:: moptipy.evaluation.plot_end_results
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.plot\_end\_statistics\_over\_parameter module
+----------------------------------------------------------------
+
+.. automodule:: moptipy.evaluation.plot_end_statistics_over_parameter
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.plot\_ert module
+-----------------------------------
+
+.. automodule:: moptipy.evaluation.plot_ert
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.plot\_progress module
+----------------------------------------
+
+.. automodule:: moptipy.evaluation.plot_progress
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.progress module
+----------------------------------
+
+.. automodule:: moptipy.evaluation.progress
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.selector module
+----------------------------------
+
+.. automodule:: moptipy.evaluation.selector
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.stat\_run module
+-----------------------------------
+
+.. automodule:: moptipy.evaluation.stat_run
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.styler module
+--------------------------------
+
+.. automodule:: moptipy.evaluation.styler
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.tabulate\_end\_results module
+------------------------------------------------
+
+.. automodule:: moptipy.evaluation.tabulate_end_results
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.tabulate\_end\_stats module
+----------------------------------------------
+
+.. automodule:: moptipy.evaluation.tabulate_end_stats
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.evaluation.tabulate\_result\_tests module
+-------------------------------------------------
+
+.. automodule:: moptipy.evaluation.tabulate_result_tests
+   :members:
+   :show-inheritance:
+   :undoc-members:

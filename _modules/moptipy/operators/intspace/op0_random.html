@@ -1,0 +1,85 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.operators.intspace.op0_random — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/operators/intspace/op0_random.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.intspace.op0_random</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.operators.intspace.op0_random</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>A nullary operator filling an integer list with random values.</span>
+
+<span class=sd>>>> from moptipy.utils.nputils import rand_generator</span>
+<span class=sd>>>> gen = rand_generator(12)</span>
+
+<span class=sd>>>> space = IntSpace(4, -2, 2)</span>
+<span class=sd>>>> op = Op0Random(space)</span>
+<span class=sd>>>> xx = space.create()</span>
+
+<span class=sd>>>> op.op0(gen, xx)</span>
+<span class=sd>>>> xx</span>
+<span class=sd>array([-1,  2,  2,  1], dtype=int8)</span>
+<span class=sd>>>> op.op0(gen, xx)</span>
+<span class=sd>>>> xx</span>
+<span class=sd>array([-2, -2, -1, -1], dtype=int8)</span>
+<span class=sd>>>> op.op0(gen, xx)</span>
+<span class=sd>>>> xx</span>
+<span class=sd>array([ 1,  0, -2,  2], dtype=int8)</span>
+
+<span class=sd>>>> space = IntSpace(5, 12000, 20000)</span>
+<span class=sd>>>> op = Op0Random(space)</span>
+<span class=sd>>>> xx = space.create()</span>
+
+<span class=sd>>>> op.op0(gen, xx)</span>
+<span class=sd>>>> xx</span>
+<span class=sd>array([15207, 19574, 18014, 12515, 14406], dtype=int16)</span>
+<span class=sd>>>> op.op0(gen, xx)</span>
+<span class=sd>>>> xx</span>
+<span class=sd>array([16080, 13596, 13434, 14148, 16655], dtype=int16)</span>
+<span class=sd>"""</span>
+
+
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.intspace</span><span class=w> </span><span class=kn>import</span> <span class=n>IntSpace</span>
+
+
+<div class=viewcode-block id=Op0Random>
+<a class=viewcode-back href=../../../../moptipy.operators.intspace.html#moptipy.operators.intspace.op0_random.Op0Random>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Op0Random</span><span class=p>(</span><span class=n>Op0</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""Fill a bit string with random values."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>space</span><span class=p>:</span> <span class=n>IntSpace</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the Nullary Integer-Space operator.</span>
+
+<span class=sd>        :param space: the integer space</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>space</span><span class=p>,</span> <span class=n>IntSpace</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>space</span><span class=p>,</span> <span class=s2>"space"</span><span class=p>,</span> <span class=n>IntSpace</span><span class=p>)</span>
+        <span class=c1>#: the inclusive lower bound</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__lb</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>space</span><span class=o>.</span><span class=n>min_value</span>
+        <span class=c1>#: the exclusive upper bound</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__ub</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>space</span><span class=o>.</span><span class=n>max_value</span> <span class=o>+</span> <span class=mi>1</span>
+
+<div class=viewcode-block id=Op0Random.op0>
+<a class=viewcode-back href=../../../../moptipy.operators.intspace.html#moptipy.operators.intspace.op0_random.Op0Random.op0>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>op0</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>dest</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Fill the string `dest` with random values.</span>
+
+<span class=sd>        :param random: the random number generator</span>
+<span class=sd>        :param dest: the bit string to fill. Afterward, its contents will</span>
+<span class=sd>            be random.</span>
+<span class=sd>        """</span>
+        <span class=n>np</span><span class=o>.</span><span class=n>copyto</span><span class=p>(</span><span class=n>dest</span><span class=p>,</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__lb</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__ub</span><span class=p>,</span> <span class=n>dest</span><span class=o>.</span><span class=n>shape</span><span class=p>,</span> <span class=n>dest</span><span class=o>.</span><span class=n>dtype</span><span class=p>))</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this operator.</span>
+
+<span class=sd>        :return: "uniform"</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"uniform"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.operators.intspace.op0_random</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

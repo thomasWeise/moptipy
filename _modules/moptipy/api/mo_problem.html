@@ -1,0 +1,373 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.api.mo_problem — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/api/mo_problem.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.mo_problem</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.api.mo_problem</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The base classes for multi-objective optimization problems.</span>
+
+<span class=sd>This class provides the ability to evaluate solutions according to multiple</span>
+<span class=sd>criteria. The evaluation results are stored in a numpy array and also are</span>
+<span class=sd>scalarized to a single value.</span>
+
+<span class=sd>Basically, a multi-objective problem provides three essential components:</span>
+
+<span class=sd>1. It can evaluate a candidate solution according to multiple optimization</span>
+<span class=sd>   objectives. Each objective returns one value, subject to minimization,</span>
+<span class=sd>   and all the values are stored in a single numpy array.</span>
+<span class=sd>   This is done by :meth:`~moptipy.api.mo_problem.MOProblem.f_evaluate`</span>
+<span class=sd>2. It provides a criterion deciding whether one such objective vector</span>
+<span class=sd>   dominates (i.e., is strictly better than) another one. This is done by</span>
+<span class=sd>   :meth:`~moptipy.api.mo_problem.MOProblem.f_dominates`. The default</span>
+<span class=sd>   definition adheres to the standard "domination" definition in</span>
+<span class=sd>   multi-objective optimization: A vector `a` dominates a vector `b` if it</span>
+<span class=sd>   is not worse in any objective value and better in at least one. But if</span>
+<span class=sd>   need be, you can overwrite this behavior.</span>
+<span class=sd>3. A scalarization approach: When evaluating a solution, the result is not</span>
+<span class=sd>   just the objective vector itself, but also a single scalar value. This is</span>
+<span class=sd>   needed to create compatibility to single-objective optimization. Matter of</span>
+<span class=sd>   fact, a :class:`~moptipy.api.mo_problem.MOProblem` is actually a subclass</span>
+<span class=sd>   of :class:`~moptipy.api.objective.Objective`. This means that via this</span>
+<span class=sd>   scalarization, all multi-objective problems can also be considered as</span>
+<span class=sd>   single-objective problems. This means that single-objective algorithms can</span>
+<span class=sd>   be applied to them as-is. It also means that log files are compatible.</span>
+<span class=sd>   Multi-objective algorithms can just ignore the scalarization result and</span>
+<span class=sd>   focus on the domination relationship. Often, a weighted sum approach</span>
+<span class=sd>   (:class:`~moptipy.mo.problem.weighted_sum.WeightedSum`) may be the method</span>
+<span class=sd>   of choice for scalarization.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=n>KEY_SPACE_NUM_VARS</span><span class=p>,</span> <span class=n>SCOPE_OBJECTIVE_FUNCTION</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_utils</span><span class=w> </span><span class=kn>import</span> <span class=n>dominates</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>Objective</span><span class=p>,</span> <span class=n>check_objective</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>DEFAULT_FLOAT</span><span class=p>,</span>
+    <span class=n>DEFAULT_INT</span><span class=p>,</span>
+    <span class=n>DEFAULT_UNSIGNED_INT</span><span class=p>,</span>
+    <span class=n>KEY_NUMPY_TYPE</span><span class=p>,</span>
+    <span class=n>int_range_to_dtype</span><span class=p>,</span>
+    <span class=n>numpy_type_to_str</span><span class=p>,</span>
+<span class=p>)</span>
+
+
+<div class=viewcode-block id=MOProblem>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_problem.MOProblem>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>MOProblem</span><span class=p>(</span><span class=n>Objective</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The base class for multi-objective optimization problems.</span>
+
+<span class=sd>    A multi-objective optimization problem is defined as a set of</span>
+<span class=sd>    :class:`~moptipy.api.objective.Objective` functions. Each candidate</span>
+<span class=sd>    solution is evaluated using each of the objectives, i.e., is rated by a</span>
+<span class=sd>    vector of objective values. This vector is the basis for deciding which</span>
+<span class=sd>    candidate solutions to keep and which to discard.</span>
+
+<span class=sd>    In multi-objective optimization, this decision is based on "domination."</span>
+<span class=sd>    A solution `a` dominates a solution `b` if it is not worse in any</span>
+<span class=sd>    objective and better in at least one. This comparison behavior is</span>
+<span class=sd>    implemented in method</span>
+<span class=sd>    :meth:`~moptipy.api.mo_problem.MOProblem.f_dominates` and can be</span>
+<span class=sd>    overwritten if need be.</span>
+
+<span class=sd>    In our implementation, we prescribe that each multi-objective optimization</span>
+<span class=sd>    problem must also be accompanied by a scalarization function, i.e., a</span>
+<span class=sd>    function that represents the vector of objective values as a single scalar</span>
+<span class=sd>    value. The whole multi-objective problem can then be viewed also as a</span>
+<span class=sd>    single objective function itself. The method</span>
+<span class=sd>    :meth:`~moptipy.api.mo_problem.MOProblem.evaluate` first evaluates all of</span>
+<span class=sd>    the objective functions and obtains the vector of objective values. It then</span>
+<span class=sd>    scalarizes the result into a single scalar quality and returns it.</span>
+<span class=sd>    Multi-objective algorithms may instead use the method</span>
+<span class=sd>    :meth:`~moptipy.api.mo_problem.MOProblem.f_evaluate`, which also allows</span>
+<span class=sd>    a vector to be passed in which will then be filled with the results of the</span>
+<span class=sd>    individual objective functions.</span>
+
+<span class=sd>    This makes multi-objective optimization with moptipy compatible with</span>
+<span class=sd>    single-objective optimization. In other words, all optimization methods</span>
+<span class=sd>    implemented for single-objective processes</span>
+<span class=sd>    :class:`~moptipy.api.process.Process` will work out-of-the-box with the</span>
+<span class=sd>    multi-objective version :class:`~moptipy.api.mo_process.MOProcess`.</span>
+
+<span class=sd>    Warning: We use instances of :class:`numpy.ndarray` to represent the</span>
+<span class=sd>    vectors of objective values. This necessitates that each objective</span>
+<span class=sd>    function has, if it is integer-valued</span>
+<span class=sd>    (:meth:`~moptipy.api.objective.Objective.is_always_integer` is `True`)</span>
+<span class=sd>    a range that fits well into at least a 64-bit integer. Specifically, it</span>
+<span class=sd>    must be possible to compute "a - b" without overflow or loss of sign for</span>
+<span class=sd>    any two objective values "a" and "b" within the confines of a numpy</span>
+<span class=sd>    signed 64-bit integer.</span>
+<span class=sd>    """</span>
+
+<div class=viewcode-block id=MOProblem.f_create>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_problem.MOProblem.f_create>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>f_create</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a vector to receive the objective values.</span>
+
+<span class=sd>        This array will be of the length returned by :meth:`f_dimension` and</span>
+<span class=sd>        of the `dtype` of :meth:`f_dtype`.</span>
+
+<span class=sd>        :returns: a vector to receive the objective values</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>f_dimension</span><span class=p>(),</span> <span class=bp>self</span><span class=o>.</span><span class=n>f_dtype</span><span class=p>())</span></div>
+
+
+<div class=viewcode-block id=MOProblem.f_dtype>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_problem.MOProblem.f_dtype>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>f_dtype</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the data type used in :meth:`f_create`.</span>
+
+<span class=sd>        This data type will be an integer data type if all the objective</span>
+<span class=sd>        functions are integer-valued. If the bounds of the objective values</span>
+<span class=sd>        are known, then this type will be "big enough" to allow the</span>
+<span class=sd>        subtraction "a - b" of any two objective vectors "a" and "b" to be</span>
+<span class=sd>        computed without overflow or loss of sign. At most, however, this</span>
+<span class=sd>        data type will be a 64-bit integer.</span>
+<span class=sd>        If any one of the objective functions returns floating point data,</span>
+<span class=sd>        this data type will be a floating point type.</span>
+
+<span class=sd>        :returns: the data type used by :meth:`f_create`.</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=MOProblem.f_dimension>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_problem.MOProblem.f_dimension>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>f_dimension</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Obtain the number of objective functions.</span>
+
+<span class=sd>        :returns: the number of objective functions</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=MOProblem.f_validate>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_problem.MOProblem.f_validate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>f_validate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Validate the objective vector.</span>
+
+<span class=sd>        :param x: the numpy vector</span>
+<span class=sd>        :raises TypeError: if the string is not an element of this space.</span>
+<span class=sd>        :raises ValueError: if the shape of the vector is wrong or any of its</span>
+<span class=sd>            element is not finite.</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>TypeError</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=s2>"x"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span>
+        <span class=n>shape</span> <span class=o>=</span> <span class=n>x</span><span class=o>.</span><span class=n>shape</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>shape</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>x</span><span class=si>}</span><span class=s2> cannot have more than one dimension, but has </span><span class=si>{</span><span class=n>shape</span><span class=si>}</span><span class=s2>!"</span><span class=p>)</span>
+        <span class=n>dim</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>f_dimension</span><span class=p>()</span>  <span class=c1># pylint: disable=E1111</span>
+        <span class=k>if</span> <span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>!=</span> <span class=n>dim</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>x</span><span class=si>}</span><span class=s2> should have length </span><span class=si>{</span><span class=n>dim</span><span class=si>}</span><span class=s2> but has </span><span class=si>{</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=si>}</span><span class=s2>!"</span><span class=p>)</span>
+        <span class=n>dt</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>f_dtype</span><span class=p>()</span>  <span class=c1># pylint: disable=E1111</span>
+        <span class=k>if</span> <span class=n>x</span><span class=o>.</span><span class=n>dtype</span> <span class=o>!=</span> <span class=n>dt</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>x</span><span class=si>}</span><span class=s2> should have dtype </span><span class=si>{</span><span class=n>dt</span><span class=si>}</span><span class=s2> but has </span><span class=si>{</span><span class=n>x</span><span class=o>.</span><span class=n>dtype</span><span class=si>}</span><span class=s2>!"</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=MOProblem.f_evaluate>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_problem.MOProblem.f_evaluate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>f_evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>fs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Perform the multi-objective evaluation of a solution.</span>
+
+<span class=sd>        This method fills the objective vector `fs` with the results of the</span>
+<span class=sd>        objective functions evaluated on `x`. It then returns the scalarized</span>
+<span class=sd>        result, i.e., a single scalar value computed based on all values</span>
+<span class=sd>        in `fs`.</span>
+
+<span class=sd>        :param x: the solution to be evaluated</span>
+<span class=sd>        :param fs: the array to receive the objective values</span>
+<span class=sd>        :returns: the scalarization result</span>
+<span class=sd>        """</span></div>
+
+
+    <span class=c1># noinspection PyMethodMayBeStatic</span>
+<div class=viewcode-block id=MOProblem.f_dominates>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_problem.MOProblem.f_dominates>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>f_dominates</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>a</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>b</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Check if an objective vector dominates or is dominated by another one.</span>
+
+<span class=sd>        Usually, one vector is said to dominate another one if it is not worse</span>
+<span class=sd>        in any objective and better in at least one. This behavior is</span>
+<span class=sd>        implemented in :func:`moptipy.api.mo_utils.dominates` and this is also</span>
+<span class=sd>        the default behavior of this method. However, depending on your</span>
+<span class=sd>        concrete optimization task, you may overwrite this behavior.</span>
+
+<span class=sd>        :param a: the first objective vector</span>
+<span class=sd>        :param b: the second objective value</span>
+<span class=sd>        :returns: an integer value indicating the domination relationship</span>
+<span class=sd>        :retval -1: if `a` dominates `b`</span>
+<span class=sd>        :retval 1: if `b` dominates `a`</span>
+<span class=sd>        :retval 2: if `b` equals `a`</span>
+<span class=sd>        :retval 0: if `a` and `b` are mutually non-dominated, i.e., if neither</span>
+<span class=sd>            `a` dominates `b` not `b` dominates `a` and `b` is also different</span>
+<span class=sd>            from `a`</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>dominates</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=n>b</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=MOProblem.evaluate>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_problem.MOProblem.evaluate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Evaluate a solution `x` and return its scalarized objective value.</span>
+
+<span class=sd>        This method computes all objective values for a given solution and</span>
+<span class=sd>        then returns the scalarized result. The objective values themselves</span>
+<span class=sd>        are directly discarted and not used. It makes a multi-objective</span>
+<span class=sd>        problem compatible with single-objective optimization.</span>
+
+<span class=sd>        :param x: the candidate solution</span>
+<span class=sd>        :returns: the scalarized objective value</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>f_evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>f_create</span><span class=p>())</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the string representation of this multi-objective problem.</span>
+
+<span class=sd>        :returns: the string representation of this multi-objective problem</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"moProblem"</span></div>
+
+
+
+<div class=viewcode-block id=check_mo_problem>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_problem.check_mo_problem>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>check_mo_problem</span><span class=p>(</span><span class=n>mo_problem</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=n>MOProblem</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether an object is a valid instance of :class:`MOProblem`.</span>
+
+<span class=sd>    :param mo_problem: the multi-objective optimization problem</span>
+<span class=sd>    :return: the mo-problem</span>
+<span class=sd>    :raises TypeError: if `mo_problem` is not an instance of</span>
+<span class=sd>        :class:`MOProblem`</span>
+
+<span class=sd>    >>> check_mo_problem(MOProblem())</span>
+<span class=sd>    moProblem</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_mo_problem(1)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    multi-objective optimziation problem should be an instance of moptipy.\</span>
+<span class=sd>api.mo_problem.MOProblem but is int, namely 1.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_mo_problem(None)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    multi-objective optimziation problem should be an instance of moptipy.\</span>
+<span class=sd>api.mo_problem.MOProblem but is None.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>mo_problem</span><span class=p>,</span> <span class=n>MOProblem</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>mo_problem</span>
+    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>mo_problem</span><span class=p>,</span>
+                     <span class=s2>"multi-objective optimziation problem"</span><span class=p>,</span> <span class=n>MOProblem</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=MOSOProblemBridge>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_problem.MOSOProblemBridge>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>MOSOProblemBridge</span><span class=p>(</span><span class=n>MOProblem</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A bridge between multi-objective and single-objective optimization."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>objective</span><span class=p>:</span> <span class=n>Objective</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize the bridge."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=n>check_objective</span><span class=p>(</span><span class=n>objective</span><span class=p>)</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>evaluate</span> <span class=o>=</span> <span class=n>objective</span><span class=o>.</span><span class=n>evaluate</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>lower_bound</span> <span class=o>=</span> <span class=n>objective</span><span class=o>.</span><span class=n>lower_bound</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>upper_bound</span> <span class=o>=</span> <span class=n>objective</span><span class=o>.</span><span class=n>upper_bound</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>is_always_integer</span> <span class=o>=</span> <span class=n>objective</span><span class=o>.</span><span class=n>is_always_integer</span>  <span class=c1># type: ignore</span>
+
+        <span class=n>dt</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>is_always_integer</span><span class=p>():</span>
+            <span class=n>lb</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>()</span>
+            <span class=n>ub</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>upper_bound</span><span class=p>()</span>
+            <span class=n>dt</span> <span class=o>=</span> <span class=n>DEFAULT_INT</span>
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+                <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ub</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+                    <span class=n>dt</span> <span class=o>=</span> <span class=n>int_range_to_dtype</span><span class=p>(</span><span class=n>lb</span><span class=p>,</span> <span class=n>ub</span><span class=p>)</span>
+                <span class=k>elif</span> <span class=n>lb</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>dt</span> <span class=o>=</span> <span class=n>DEFAULT_UNSIGNED_INT</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>dt</span> <span class=o>=</span> <span class=n>DEFAULT_FLOAT</span>
+
+        <span class=c1>#: the data type of the objective array</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__dtype</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>]</span> <span class=o>=</span> <span class=n>dt</span>
+        <span class=c1>#: the objective function</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__f</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Objective</span><span class=p>]</span> <span class=o>=</span> <span class=n>objective</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>f_create</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>dd</span><span class=o>=</span><span class=n>dt</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>dd</span><span class=p>)</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>f_dimension</span> <span class=o>=</span> <span class=k>lambda</span><span class=p>:</span> <span class=mi>1</span>  <span class=c1># type: ignore</span>
+
+<div class=viewcode-block id=MOSOProblemBridge.initialize>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_problem.MOSOProblemBridge.initialize>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>initialize</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize the MO-problem bridge."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__f</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span></div>
+
+
+<div class=viewcode-block id=MOSOProblemBridge.f_evaluate>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_problem.MOSOProblemBridge.f_evaluate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>f_evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>fs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Evaluate the candidate solution.</span>
+
+<span class=sd>        :param x: the solution</span>
+<span class=sd>        :param fs: the objective vector, will become `[res]`</span>
+<span class=sd>        :returns: the objective value `res`</span>
+<span class=sd>        """</span>
+        <span class=n>res</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+        <span class=n>fs</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>=</span> <span class=n>res</span>
+        <span class=k>return</span> <span class=n>res</span></div>
+
+
+<div class=viewcode-block id=MOSOProblemBridge.f_dtype>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_problem.MOSOProblemBridge.f_dtype>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>f_dtype</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Get the objective vector dtype."""</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__dtype</span></div>
+
+
+<div class=viewcode-block id=MOSOProblemBridge.f_validate>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_problem.MOSOProblemBridge.f_validate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>f_validate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Validate the objective vector.</span>
+
+<span class=sd>        :param x: the numpy array with the objective values</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=s2>"x"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"length of x=</span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=n>lb</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>()</span>
+        <span class=n>ub</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>upper_bound</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>lb</span> <span class=o><=</span> <span class=n>x</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o><=</span> <span class=n>ub</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"failed: </span><span class=si>{</span><span class=n>lb</span><span class=si>}</span><span class=s2> <= </span><span class=si>{</span><span class=n>x</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=si>}</span><span class=s2> <= </span><span class=si>{</span><span class=n>ub</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=MOSOProblemBridge.log_parameters_to>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_problem.MOSOProblemBridge.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of this function to the provided destination.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_SPACE_NUM_VARS</span><span class=p>,</span> <span class=s2>"1"</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_NUMPY_TYPE</span><span class=p>,</span> <span class=n>numpy_type_to_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__dtype</span><span class=p>))</span>
+        <span class=k>with</span> <span class=n>logger</span><span class=o>.</span><span class=n>scope</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SCOPE_OBJECTIVE_FUNCTION</span><span class=si>}{</span><span class=mi>0</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span> <span class=k>as</span> <span class=n>scope</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__f</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>scope</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.mo_problem</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

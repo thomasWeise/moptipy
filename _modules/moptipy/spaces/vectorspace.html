@@ -1,0 +1,312 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.spaces.vectorspace — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/spaces/vectorspace.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.spaces.vectorspace</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.spaces.vectorspace</h1><div class=highlight><pre>
+<span></span><span class=sd>"""An implementation of an box-constrained n-dimensional continuous space."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=kn>import</span> <span class=n>clip</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.nparrayspace</span><span class=w> </span><span class=kn>import</span> <span class=n>NPArraySpace</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>DEFAULT_FLOAT</span><span class=p>,</span> <span class=n>array_to_str</span><span class=p>,</span> <span class=n>is_np_float</span>
+
+<span class=c1>#: the log key for the lower bound, i.e., the minimum permitted value</span>
+<span class=n>KEY_LOWER_BOUND</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"lb"</span>
+<span class=c1>#: the log key for the upper bound, i.e., the maximum permitted value</span>
+<span class=n>KEY_UPPER_BOUND</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"ub"</span>
+
+
+<div class=viewcode-block id=VectorSpace>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>VectorSpace</span><span class=p>(</span><span class=n>NPArraySpace</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A vector space where each element is an n-dimensional real vector.</span>
+
+<span class=sd>    Such spaces are useful for continuous optimization. The vectors are</span>
+<span class=sd>    implemented as one-dimensional :class:`numpy.ndarray` of length `n`.</span>
+<span class=sd>    A vector space is constraint by a box which defines the minimum and</span>
+<span class=sd>    maximum permitted value for each of its `n` elements.</span>
+
+<span class=sd>    >>> s = VectorSpace(3)</span>
+<span class=sd>    >>> print(s.dimension)</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> print(s.dtype)</span>
+<span class=sd>    float64</span>
+<span class=sd>    >>> print(s.lower_bound)</span>
+<span class=sd>    [0. 0. 0.]</span>
+<span class=sd>    >>> print(s.upper_bound)</span>
+<span class=sd>    [1. 1. 1.]</span>
+<span class=sd>    >>> print(s.lower_bound_all_same)</span>
+<span class=sd>    True</span>
+<span class=sd>    >>> print(s.upper_bound_all_same)</span>
+<span class=sd>    True</span>
+<span class=sd>    >>> s = VectorSpace(2, -1.0, 5.0)</span>
+<span class=sd>    >>> print(s.lower_bound)</span>
+<span class=sd>    [-1. -1.]</span>
+<span class=sd>    >>> print(s.upper_bound)</span>
+<span class=sd>    [5. 5.]</span>
+<span class=sd>    >>> s = VectorSpace(2, [-1.0, -2.0], 5.0)</span>
+<span class=sd>    >>> print(s.lower_bound)</span>
+<span class=sd>    [-1. -2.]</span>
+<span class=sd>    >>> print(s.upper_bound)</span>
+<span class=sd>    [5. 5.]</span>
+<span class=sd>    >>> print(s.lower_bound_all_same)</span>
+<span class=sd>    False</span>
+<span class=sd>    >>> print(s.upper_bound_all_same)</span>
+<span class=sd>    True</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>dimension</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>lower_bound</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=mf>0.0</span><span class=p>,</span>
+                 <span class=n>upper_bound</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=mf>1.0</span><span class=p>,</span>
+                 <span class=n>dtype</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span> <span class=o>=</span> <span class=n>DEFAULT_FLOAT</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the vector-based search space.</span>
+
+<span class=sd>        :param dimension: The dimension of the search space,</span>
+<span class=sd>            i.e., the number of decision variables.</span>
+<span class=sd>        :param dtype: The basic data type of the vector space,</span>
+<span class=sd>            i.e., the type of the decision variables</span>
+<span class=sd>        :param lower_bound: the optional minimum value(s)</span>
+<span class=sd>        :param upper_bound: the optional maximum value(s)</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>dimension</span><span class=p>,</span> <span class=n>dtype</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>is_np_float</span><span class=p>(</span><span class=n>dtype</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>TypeError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid data type </span><span class=si>{</span><span class=n>dtype</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=c1># first, we process the lower bounds</span>
+        <span class=n>lower_bound_all_same</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=c1># only a single value is given</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"invalid lower bound </span><span class=si>{</span><span class=n>lower_bound</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=c1># if a single value is given, then we expand it a vector</span>
+            <span class=n>lower_bound</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>full</span><span class=p>(</span><span class=n>dimension</span><span class=p>,</span> <span class=n>lower_bound</span><span class=p>,</span> <span class=n>dtype</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=c1># lower bounds are given as vector or iterable</span>
+            <span class=n>lb</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>,</span> <span class=n>dtype</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>lb</span><span class=p>)</span> <span class=o>!=</span> <span class=n>dimension</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"wrong length </span><span class=si>{</span><span class=n>lb</span><span class=si>}</span><span class=s2> of lower "</span>
+                                 <span class=sa>f</span><span class=s2>"bound iterable </span><span class=si>{</span><span class=n>lower_bound</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>lb</span><span class=o>.</span><span class=n>shape</span> <span class=o>!=</span> <span class=p>(</span><span class=n>dimension</span><span class=p>,</span> <span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid shape=</span><span class=si>{</span><span class=n>lb</span><span class=o>.</span><span class=n>shape</span><span class=si>}</span><span class=s2> of "</span>
+                                 <span class=sa>f</span><span class=s2>"lower bound </span><span class=si>{</span><span class=n>lower_bound</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>first</span> <span class=o>=</span> <span class=n>lb</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+            <span class=k>for</span> <span class=n>index</span><span class=p>,</span> <span class=n>item</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>lb</span><span class=p>):</span>
+                <span class=k>if</span> <span class=n>first</span> <span class=o>!=</span> <span class=n>item</span><span class=p>:</span>
+                    <span class=n>lower_bound_all_same</span> <span class=o>=</span> <span class=kc>False</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=n>np</span><span class=o>.</span><span class=n>isfinite</span><span class=p>(</span><span class=n>item</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>index</span><span class=si>}</span><span class=s2>th lower bound=</span><span class=si>{</span><span class=n>item</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>lower_bound</span> <span class=o>=</span> <span class=n>lb</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>,</span> <span class=s2>"lower_bound"</span><span class=p>,</span> <span class=p>(</span>
+                <span class=nb>float</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=kc>None</span><span class=p>))</span>
+
+        <span class=c1># now, we process the upper bounds</span>
+        <span class=n>upper_bound_all_same</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=c1># only a single value is given</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"invalid upper bound </span><span class=si>{</span><span class=n>upper_bound</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=c1># if a single value is given, then we expand it a vector</span>
+            <span class=n>upper_bound</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>full</span><span class=p>(</span><span class=n>dimension</span><span class=p>,</span> <span class=n>upper_bound</span><span class=p>,</span> <span class=n>dtype</span><span class=p>)</span>
+        <span class=k>elif</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=c1># upper bounds are given as vector or iterable</span>
+            <span class=n>lb</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>,</span> <span class=n>dtype</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>lb</span><span class=p>)</span> <span class=o>!=</span> <span class=n>dimension</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"wrong length </span><span class=si>{</span><span class=n>lb</span><span class=si>}</span><span class=s2> of upper "</span>
+                                 <span class=sa>f</span><span class=s2>"bound iterable </span><span class=si>{</span><span class=n>upper_bound</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>lb</span><span class=o>.</span><span class=n>shape</span> <span class=o>!=</span> <span class=p>(</span><span class=n>dimension</span><span class=p>,):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid shape=</span><span class=si>{</span><span class=n>lb</span><span class=o>.</span><span class=n>shape</span><span class=si>}</span><span class=s2> of "</span>
+                                 <span class=sa>f</span><span class=s2>"upper bound </span><span class=si>{</span><span class=n>upper_bound</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>first</span> <span class=o>=</span> <span class=n>lb</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+            <span class=k>for</span> <span class=n>index</span><span class=p>,</span> <span class=n>item</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>lb</span><span class=p>):</span>
+                <span class=k>if</span> <span class=n>first</span> <span class=o>!=</span> <span class=n>item</span><span class=p>:</span>
+                    <span class=n>upper_bound_all_same</span> <span class=o>=</span> <span class=kc>False</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=n>np</span><span class=o>.</span><span class=n>isfinite</span><span class=p>(</span><span class=n>item</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>index</span><span class=si>}</span><span class=s2>th upper bound=</span><span class=si>{</span><span class=n>item</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>upper_bound</span> <span class=o>=</span> <span class=n>lb</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>upper_bound</span><span class=p>,</span> <span class=s2>"upper_bound"</span><span class=p>,</span> <span class=p>(</span>
+                <span class=nb>float</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=kc>None</span><span class=p>))</span>
+
+        <span class=c1># check that the bounds are consistent</span>
+        <span class=k>for</span> <span class=n>idx</span><span class=p>,</span> <span class=n>ll</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>lower_bound</span><span class=p>):</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>ll</span> <span class=o><</span> <span class=n>upper_bound</span><span class=p>[</span><span class=n>idx</span><span class=p>]:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"lower_bound[</span><span class=si>{</span><span class=n>idx</span><span class=si>}</span><span class=s2>]=</span><span class=si>{</span><span class=n>ll</span><span class=si>}</span><span class=s2> >= "</span>
+                                 <span class=sa>f</span><span class=s2>"upper_bound[</span><span class=si>{</span><span class=n>idx</span><span class=si>}</span><span class=s2>]=</span><span class=si>{</span><span class=n>upper_bound</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+        <span class=c1>#: the lower bounds for all variables</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>lower_bound</span>
+        <span class=c1>#: all dimensions have the same lower bound</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>lower_bound_all_same</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>lower_bound_all_same</span>
+        <span class=c1>#: the upper bounds for all variables</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>upper_bound</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>upper_bound</span>
+        <span class=c1>#: all dimensions have the same upper bound</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>upper_bound_all_same</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>upper_bound_all_same</span>
+
+<div class=viewcode-block id=VectorSpace.clipped>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace.clipped>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>clipped</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>func</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>])</span> \
+            <span class=o>-></span> <span class=n>Callable</span><span class=p>[[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Wrap a function ensuring that all vectors are clipped to the bounds.</span>
+
+<span class=sd>        This function is useful to ensure that only valid vectors are passed</span>
+<span class=sd>        to :meth:`~moptipy.api.process.Process.evaluate`.</span>
+
+<span class=sd>        :param func: the function to wrap</span>
+<span class=sd>        :returns: the wrapped function</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[np.ndarray], int | float]"</span><span class=p>,</span>
+                    <span class=k>lambda</span> <span class=n>x</span><span class=p>,</span> <span class=n>lb</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>,</span> <span class=n>ub</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>upper_bound</span><span class=p>,</span>
+                    <span class=n>ff</span><span class=o>=</span><span class=n>func</span><span class=p>:</span> <span class=n>ff</span><span class=p>(</span><span class=n>clip</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>lb</span><span class=p>,</span> <span class=n>ub</span><span class=p>,</span> <span class=n>x</span><span class=p>)))</span></div>
+
+
+<div class=viewcode-block id=VectorSpace.validate>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace.validate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>validate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Validate a vector.</span>
+
+<span class=sd>        :param x: the real vector</span>
+<span class=sd>        :raises TypeError: if the string is not an :class:`numpy.ndarray`.</span>
+<span class=sd>        :raises ValueError: if the shape of the vector is wrong or any of its</span>
+<span class=sd>            element is not finite.</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+
+        <span class=n>mib</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>lower_bound</span>
+        <span class=n>mab</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>upper_bound</span>
+        <span class=k>for</span> <span class=n>index</span><span class=p>,</span> <span class=n>item</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>x</span><span class=p>):</span>
+            <span class=n>miv</span> <span class=o>=</span> <span class=n>mib</span><span class=p>[</span><span class=n>index</span><span class=p>]</span>
+            <span class=n>mav</span> <span class=o>=</span> <span class=n>mab</span><span class=p>[</span><span class=n>index</span><span class=p>]</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>np</span><span class=o>.</span><span class=n>isfinite</span><span class=p>(</span><span class=n>item</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"x[</span><span class=si>{</span><span class=n>index</span><span class=si>}</span><span class=s2>]=</span><span class=si>{</span><span class=n>item</span><span class=si>}</span><span class=s2>, which is not finite"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>miv</span> <span class=o><=</span> <span class=n>item</span> <span class=o><=</span> <span class=n>mav</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"x[</span><span class=si>{</span><span class=n>index</span><span class=si>}</span><span class=s2>]=</span><span class=si>{</span><span class=n>item</span><span class=si>}</span><span class=s2>, but should be in [</span><span class=si>{</span><span class=n>miv</span><span class=si>}</span><span class=s2>,</span><span class=si>{</span><span class=n>mav</span><span class=si>}</span><span class=s2>]."</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=VectorSpace.n_points>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace.n_points>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>n_points</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get an upper bound for the number of different values in this space.</span>
+
+<span class=sd>        :return: We return the approximate number of finite floating point</span>
+<span class=sd>          numbers while ignoring the box constraint. This value here therefore</span>
+<span class=sd>          is an upper bound.</span>
+
+<span class=sd>        >>> import numpy as npx</span>
+<span class=sd>        >>> print(VectorSpace(3, dtype=npx.dtype(npx.float64)).n_points())</span>
+<span class=sd>        6267911251143764491534102180507836301813760039183993274367</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=o>.</span><span class=n>char</span> <span class=o>==</span> <span class=s2>"e"</span><span class=p>:</span>
+            <span class=n>exponent</span> <span class=o>=</span> <span class=mi>5</span>
+            <span class=n>mantissa</span> <span class=o>=</span> <span class=mi>10</span>
+        <span class=k>elif</span> <span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=o>.</span><span class=n>char</span> <span class=o>==</span> <span class=s2>"f"</span><span class=p>:</span>
+            <span class=n>exponent</span> <span class=o>=</span> <span class=mi>8</span>
+            <span class=n>mantissa</span> <span class=o>=</span> <span class=mi>23</span>
+        <span class=k>elif</span> <span class=bp>self</span><span class=o>.</span><span class=n>dtype</span> <span class=o>==</span> <span class=s2>"d"</span><span class=p>:</span>
+            <span class=n>exponent</span> <span class=o>=</span> <span class=mi>11</span>
+            <span class=n>mantissa</span> <span class=o>=</span> <span class=mi>52</span>
+        <span class=k>elif</span> <span class=bp>self</span><span class=o>.</span><span class=n>dtype</span> <span class=o>==</span> <span class=s2>"g"</span><span class=p>:</span>
+            <span class=n>exponent</span> <span class=o>=</span> <span class=mi>15</span>
+            <span class=n>mantissa</span> <span class=o>=</span> <span class=mi>112</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid dtype </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=n>base</span> <span class=o>=</span> <span class=mi>2</span> <span class=o>*</span> <span class=p>((</span><span class=mi>2</span> <span class=o>**</span> <span class=n>exponent</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=p>(</span><span class=mi>2</span> <span class=o>**</span> <span class=n>mantissa</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span>
+        <span class=k>return</span> <span class=n>base</span> <span class=o>**</span> <span class=bp>self</span><span class=o>.</span><span class=n>dimension</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this space.</span>
+
+<span class=sd>        :return: "r" + dimension + dtype.char</span>
+
+<span class=sd>        >>> import numpy as npx</span>
+<span class=sd>        >>> print(VectorSpace(3, dtype=npx.dtype(npx.float64)))</span>
+<span class=sd>        r3d</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"r</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=si>}{</span><span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=o>.</span><span class=n>char</span><span class=si>}</span><span class=s2>"</span>
+
+<div class=viewcode-block id=VectorSpace.log_bounds>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace.log_bounds>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_bounds</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the bounds of this space to the given logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> import numpy as npx</span>
+<span class=sd>        >>> space = VectorSpace(2, -5.0, [2.0, 3.0])</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.key_values("C") as kv:</span>
+<span class=sd>        ...         space.log_bounds(kv)</span>
+<span class=sd>        ...     text = l.get_log()</span>
+<span class=sd>        >>> text[-2]</span>
+<span class=sd>        'ub: 2;3'</span>
+<span class=sd>        >>> text[-3]</span>
+<span class=sd>        'lb: -5'</span>
+<span class=sd>        >>> len(text)</span>
+<span class=sd>        4</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>lower_bound_all_same</span><span class=p>:</span>
+            <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span>
+                <span class=n>KEY_LOWER_BOUND</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>also_hex</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_LOWER_BOUND</span><span class=p>,</span> <span class=n>array_to_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>))</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>upper_bound_all_same</span><span class=p>:</span>
+            <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span>
+                <span class=n>KEY_UPPER_BOUND</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>upper_bound</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>also_hex</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_UPPER_BOUND</span><span class=p>,</span> <span class=n>array_to_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>upper_bound</span><span class=p>))</span></div>
+
+
+<div class=viewcode-block id=VectorSpace.log_parameters_to>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.vectorspace.VectorSpace.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of this space to the given logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> import numpy as npx</span>
+<span class=sd>        >>> space = VectorSpace(2, -5.0, [2.0, 3.0])</span>
+<span class=sd>        >>> space.dimension</span>
+<span class=sd>        2</span>
+<span class=sd>        >>> space.dtype.char</span>
+<span class=sd>        'd'</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.key_values("C") as kv:</span>
+<span class=sd>        ...         space.log_parameters_to(kv)</span>
+<span class=sd>        ...     text = l.get_log()</span>
+<span class=sd>        >>> text[-2]</span>
+<span class=sd>        'ub: 2;3'</span>
+<span class=sd>        >>> text[-3]</span>
+<span class=sd>        'lb: -5'</span>
+<span class=sd>        >>> text[-4]</span>
+<span class=sd>        'dtype: d'</span>
+<span class=sd>        >>> text[-5]</span>
+<span class=sd>        'nvars: 2'</span>
+<span class=sd>        >>> text[-6]</span>
+<span class=sd>        'class: moptipy.spaces.vectorspace.VectorSpace'</span>
+<span class=sd>        >>> text[-7]</span>
+<span class=sd>        'name: r2d'</span>
+<span class=sd>        >>> len(text)</span>
+<span class=sd>        8</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>log_bounds</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.spaces.vectorspace</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

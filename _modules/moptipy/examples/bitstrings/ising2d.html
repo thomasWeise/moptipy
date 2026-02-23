@@ -1,0 +1,849 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.bitstrings.ising2d — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/bitstrings/ising2d.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a accesskey=U href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.ising2d</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.bitstrings.ising2d</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The two-dimensional Ising problem.</span>
+
+<span class=sd>The two-dimensional Ising problem describes a torus. For each bit that differs</span>
+<span class=sd>from its right-side neighboring bit, a penalty of 1 is incurred. For each bit</span>
+<span class=sd>differing from its above neighbor, another penalty of 1 is added.</span>
+<span class=sd>The optimum is a bit string of either all ones or all zeros.</span>
+<span class=sd>The optimal objective value is 0.</span>
+<span class=sd>The worst possible objective value is `2*n`.</span>
+
+<span class=sd>1. Simon Fischer. A Polynomial Upper Bound for a Mutation-Based Algorithm on</span>
+<span class=sd>   the Two-Dimensional Ising Model. In Kalyanmoy Deb, editor, Genetic and</span>
+<span class=sd>   Evolutionary Computation Conference, June 26-30, 2004, Seattle, WA, USA,</span>
+<span class=sd>   Proceedings, Part I, Lecture Notes in Computer Science (LNCS), volume 3102,</span>
+<span class=sd>   Springer Berlin, Heidelberg. pages 1100-1112.</span>
+<span class=sd>   doi: https://doi.org/10.1007/978-3-540-24854-5_108.</span>
+<span class=sd>2. Carola Doerr and Furong Ye and Naama Horesh and Hao Wang and Ofer M. Shir</span>
+<span class=sd>   and Thomas Bäck. Benchmarking Discrete Optimization Heuristics with</span>
+<span class=sd>   IOHprofiler. Applied Soft Computing 88:106027, March 2020,</span>
+<span class=sd>   doi: https://doi.org/10.1016/j.asoc.2019.106027.</span>
+<span class=sd>3. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency</span>
+<span class=sd>   Fitness Assignment: Optimization without Bias for Good Solutions can be</span>
+<span class=sd>   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.</span>
+<span class=sd>   27(4):980-992. August 2023.</span>
+<span class=sd>   doi: https://doi.org/10.1109/TEVC.2022.3191698</span>
+
+<span class=sd>This is code is part of the research work of Mr. Jiazheng ZENG (曾嘉政),</span>
+<span class=sd>a Master's student at the Institute of Applied Optimization</span>
+<span class=sd>(应用优化研究所) of the School of Artificial</span>
+<span class=sd>Intelligence and Big Data (人工智能与大数据学院) at</span>
+<span class=sd>Hefei University (合肥大学) in</span>
+<span class=sd>Hefei, Anhui, China (中国安徽省合肥市) under the supervision of</span>
+<span class=sd>Prof. Dr. Thomas Weise (汤卫思教授).</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterator</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.bitstring_problem</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>SquareBitStringProblem</span><span class=p>,</span>
+<span class=p>)</span>
+
+
+<div class=viewcode-block id=ising2d>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.ising2d.ising2d>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>ising2d</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>k</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Calculate the two-dimensional Ising model.</span>
+
+<span class=sd>    :param x: the flat numpy array representing the bitstring</span>
+<span class=sd>    :param k: the side length of the square grid (i.e., `sqrt(len(x)))`</span>
+<span class=sd>    :return: the two-dimensional Ising objective</span>
+
+<span class=sd>    >>> test_k = 2</span>
+<span class=sd>    >>> y = np.array([False] * test_k * test_k)</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    >>> y.fill(True)</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    >>> y[2] = not y[2]</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    >>> ising2d(np.array([True, False, False, True]), 2)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    >>> test_k = 3</span>
+<span class=sd>    >>> y = np.array([False] * test_k * test_k)</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    >>> y.fill(True)</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    >>> y[4] = not y[4]</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    >>> y[5] = not y[5]</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    >>> y[3] = not y[3]</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    >>> test_k = 5</span>
+<span class=sd>    >>> y = np.array([False] * test_k * test_k)</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    >>> y.fill(True)</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    >>> y[5] = not y[5]</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    >>> y[6] = not y[6]</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    6</span>
+
+<span class=sd>    >>> y[7] = not y[7]</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    >>> y[6] = not y[6]</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    >>> y[10] = not y[10]</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    >>> y[12] = not y[12]</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    >>> y[11] = not y[11]</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    >>> y[6] = not y[6]</span>
+<span class=sd>    >>> ising2d(y, test_k)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # 16 bits, torus width = 4, and 2 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]), 4)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # 16 bits, torus width = 4, and 3 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]), 4)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # 16 bits, torus width = 4, and 3 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]), 4)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # 16 bits, torus width = 4, and 1 true bit</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]), 4)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # 16 bits, torus width = 4, and 4 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0]), 4)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # 16 bits, torus width = 4, and 4 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1]), 4)</span>
+<span class=sd>    10</span>
+
+<span class=sd>    # 16 bits, torus width = 4, and 4 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0]), 4)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # 16 bits, torus width = 4, and 4 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0]), 4)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # 16 bits, torus width = 4, and 10 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1]), 4)</span>
+<span class=sd>    14</span>
+
+<span class=sd>    # 16 bits, torus width = 4, and 8 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0]), 4)</span>
+<span class=sd>    22</span>
+
+<span class=sd>    # 16 bits, torus width = 4, and 12 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0]), 4)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # 16 bits, torus width = 4, and 13 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1]), 4)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # 16 bits, torus width = 4, and 0 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 4)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # 16 bits, torus width = 4, and 16 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 4)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # 25 bits, torus width = 5, and 1 true bit</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0]), 5)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # 25 bits, torus width = 5, and 1 true bit</span>
+<span class=sd>    >>> ising2d(np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0]), 5)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # 25 bits, torus width = 5, and 1 true bit</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0]), 5)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # 25 bits, torus width = 5, and 4 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...    0, 1, 0, 1, 0, 0, 0, 0]), 5)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # 25 bits, torus width = 5, and 5 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    1, 0, 1, 0, 0, 1, 0, 0]), 5)</span>
+<span class=sd>    16</span>
+
+<span class=sd>    # 25 bits, torus width = 5, and 5 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    1, 0, 0, 0, 0, 0, 0, 1]), 5)</span>
+<span class=sd>    16</span>
+
+<span class=sd>    # 25 bits, torus width = 5, and 5 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 1]), 5)</span>
+<span class=sd>    18</span>
+
+<span class=sd>    # 25 bits, torus width = 5, and 5 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 1]), 5)</span>
+<span class=sd>    20</span>
+
+<span class=sd>    # 25 bits, torus width = 5, and 13 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1,</span>
+<span class=sd>    ...    1, 0, 1, 0, 1, 0, 0, 1]), 5)</span>
+<span class=sd>    26</span>
+
+<span class=sd>    # 25 bits, torus width = 5, and 21 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1]), 5)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # 25 bits, torus width = 5, and 24 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1]), 5)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # 25 bits, torus width = 5, and 12 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...    0, 1, 0, 0, 1, 0, 1, 0]), 5)</span>
+<span class=sd>    24</span>
+
+<span class=sd>    # 25 bits, torus width = 5, and 0 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0]), 5)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # 25 bits, torus width = 5, and 25 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1]), 5)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # 36 bits, torus width = 6, and 3 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 6)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # 36 bits, torus width = 6, and 4 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]), 6)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # 36 bits, torus width = 6, and 2 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 6)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # 36 bits, torus width = 6, and 1 true bit</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 6)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # 36 bits, torus width = 6, and 6 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0]), 6)</span>
+<span class=sd>    18</span>
+
+<span class=sd>    # 36 bits, torus width = 6, and 6 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0]), 6)</span>
+<span class=sd>    18</span>
+
+<span class=sd>    # 36 bits, torus width = 6, and 6 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0]), 6)</span>
+<span class=sd>    18</span>
+
+<span class=sd>    # 36 bits, torus width = 6, and 6 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0]), 6)</span>
+<span class=sd>    18</span>
+
+<span class=sd>    # 36 bits, torus width = 6, and 12 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0]), 6)</span>
+<span class=sd>    28</span>
+
+<span class=sd>    # 36 bits, torus width = 6, and 15 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0,</span>
+<span class=sd>    ...    0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1]), 6)</span>
+<span class=sd>    34</span>
+
+<span class=sd>    # 36 bits, torus width = 6, and 26 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1,</span>
+<span class=sd>    ...    1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1]), 6)</span>
+<span class=sd>    30</span>
+
+<span class=sd>    # 36 bits, torus width = 6, and 20 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1,</span>
+<span class=sd>    ...    1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0]), 6)</span>
+<span class=sd>    32</span>
+
+<span class=sd>    # 36 bits, torus width = 6, and 0 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 6)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # 36 bits, torus width = 6, and 36 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 6)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # 49 bits, torus width = 7, and 6 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 0, 0, 0, 1, 0]), 7)</span>
+<span class=sd>    24</span>
+
+<span class=sd>    # 49 bits, torus width = 7, and 4 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 7)</span>
+<span class=sd>    16</span>
+
+<span class=sd>    # 49 bits, torus width = 7, and 2 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 7)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # 49 bits, torus width = 7, and 1 true bit</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 1, 0, 0, 0]), 7)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # 49 bits, torus width = 7, and 7 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...    0, 1, 0, 0, 0, 0, 0, 1, 0, 0]), 7)</span>
+<span class=sd>    24</span>
+
+<span class=sd>    # 49 bits, torus width = 7, and 7 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    1, 0, 0, 0, 0, 1, 0, 0, 0, 0]), 7)</span>
+<span class=sd>    26</span>
+
+<span class=sd>    # 49 bits, torus width = 7, and 7 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 1, 0, 1, 0, 0, 0, 1, 0]), 7)</span>
+<span class=sd>    28</span>
+
+<span class=sd>    # 49 bits, torus width = 7, and 7 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...    0, 0, 1, 0, 0, 0, 0, 0, 0, 0]), 7)</span>
+<span class=sd>    26</span>
+
+<span class=sd>    # 49 bits, torus width = 7, and 14 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1,</span>
+<span class=sd>    ...    0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 1, 0, 0, 0, 0]), 7)</span>
+<span class=sd>    36</span>
+
+<span class=sd>    # 49 bits, torus width = 7, and 12 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    1, 0, 0, 1, 0, 0, 1, 0, 0, 0]), 7)</span>
+<span class=sd>    38</span>
+
+<span class=sd>    # 49 bits, torus width = 7, and 15 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0,</span>
+<span class=sd>    ...    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...    1, 1, 1, 0, 0, 1, 0, 0, 1, 0]), 7)</span>
+<span class=sd>    42</span>
+
+<span class=sd>    # 49 bits, torus width = 7, and 29 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1,</span>
+<span class=sd>    ...    0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...    0, 1, 1, 1, 1, 0, 1, 1, 1, 1]), 7)</span>
+<span class=sd>    48</span>
+
+<span class=sd>    # 49 bits, torus width = 7, and 0 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 7)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # 49 bits, torus width = 7, and 49 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 7)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # 64 bits, torus width = 8, and 5 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0]), 8)</span>
+<span class=sd>    20</span>
+
+<span class=sd>    # 64 bits, torus width = 8, and 7 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0]), 8)</span>
+<span class=sd>    26</span>
+
+<span class=sd>    # 64 bits, torus width = 8, and 2 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0]), 8)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # 64 bits, torus width = 8, and 4 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0]), 8)</span>
+<span class=sd>    14</span>
+
+<span class=sd>    # 64 bits, torus width = 8, and 8 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    1, 0, 0]), 8)</span>
+<span class=sd>    30</span>
+
+<span class=sd>    # 64 bits, torus width = 8, and 8 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0]), 8)</span>
+<span class=sd>    28</span>
+
+<span class=sd>    # 64 bits, torus width = 8, and 8 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    0, 1, 0]), 8)</span>
+<span class=sd>    30</span>
+
+<span class=sd>    # 64 bits, torus width = 8, and 8 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0]), 8)</span>
+<span class=sd>    26</span>
+
+<span class=sd>    # 64 bits, torus width = 8, and 37 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0,</span>
+<span class=sd>    ...    1, 1, 0]), 8)</span>
+<span class=sd>    58</span>
+
+<span class=sd>    # 64 bits, torus width = 8, and 36 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1,</span>
+<span class=sd>    ...    1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1,</span>
+<span class=sd>    ...    1, 1, 1]), 8)</span>
+<span class=sd>    62</span>
+
+<span class=sd>    # 64 bits, torus width = 8, and 55 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1]), 8)</span>
+<span class=sd>    32</span>
+
+<span class=sd>    # 64 bits, torus width = 8, and 38 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1,</span>
+<span class=sd>    ...    1, 0, 1]), 8)</span>
+<span class=sd>    68</span>
+
+<span class=sd>    # 64 bits, torus width = 8, and 0 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0]), 8)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # 64 bits, torus width = 8, and 64 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1]), 8)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # 81 bits, torus width = 9, and 1 true bit</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 9)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # 81 bits, torus width = 9, and 5 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 9)</span>
+<span class=sd>    20</span>
+
+<span class=sd>    # 81 bits, torus width = 9, and 1 true bit</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 9)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # 81 bits, torus width = 9, and 3 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 9)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # 81 bits, torus width = 9, and 9 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]), 9)</span>
+<span class=sd>    30</span>
+
+<span class=sd>    # 81 bits, torus width = 9, and 9 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 9)</span>
+<span class=sd>    32</span>
+
+<span class=sd>    # 81 bits, torus width = 9, and 9 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]), 9)</span>
+<span class=sd>    32</span>
+
+<span class=sd>    # 81 bits, torus width = 9, and 9 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0]), 9)</span>
+<span class=sd>    36</span>
+
+<span class=sd>    # 81 bits, torus width = 9, and 11 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0,</span>
+<span class=sd>    ...    1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]), 9)</span>
+<span class=sd>    40</span>
+
+<span class=sd>    # 81 bits, torus width = 9, and 40 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1,</span>
+<span class=sd>    ...    1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1,</span>
+<span class=sd>    ...    1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0]), 9)</span>
+<span class=sd>    88</span>
+
+<span class=sd>    # 81 bits, torus width = 9, and 35 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0,</span>
+<span class=sd>    ...    1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0,</span>
+<span class=sd>    ...    1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1]), 9)</span>
+<span class=sd>    70</span>
+
+<span class=sd>    # 81 bits, torus width = 9, and 79 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 9)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # 81 bits, torus width = 9, and 0 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 9)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # 81 bits, torus width = 9, and 81 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 9)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # 100 bits, torus width = 10, and 3 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]), 10)</span>
+<span class=sd>    12</span>
+
+<span class=sd>    # 100 bits, torus width = 10, and 5 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 10)</span>
+<span class=sd>    20</span>
+
+<span class=sd>    # 100 bits, torus width = 10, and 2 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 10)</span>
+<span class=sd>    8</span>
+
+<span class=sd>    # 100 bits, torus width = 10, and 1 true bit</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 10)</span>
+<span class=sd>    4</span>
+
+<span class=sd>    # 100 bits, torus width = 10, and 10 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,</span>
+<span class=sd>    ...    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]), 10)</span>
+<span class=sd>    40</span>
+
+<span class=sd>    # 100 bits, torus width = 10, and 10 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]), 10)</span>
+<span class=sd>    38</span>
+
+<span class=sd>    # 100 bits, torus width = 10, and 10 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1,</span>
+<span class=sd>    ...    0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1,</span>
+<span class=sd>    ...    1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 10)</span>
+<span class=sd>    28</span>
+
+<span class=sd>    # 100 bits, torus width = 10, and 10 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0]), 10)</span>
+<span class=sd>    36</span>
+
+<span class=sd>    # 100 bits, torus width = 10, and 91 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1,</span>
+<span class=sd>    ...    1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 10)</span>
+<span class=sd>    32</span>
+
+<span class=sd>    # 100 bits, torus width = 10, and 32 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0,</span>
+<span class=sd>    ...    0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,</span>
+<span class=sd>    ...    0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0,</span>
+<span class=sd>    ...    1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1,</span>
+<span class=sd>    ...    0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0]), 10)</span>
+<span class=sd>    68</span>
+
+<span class=sd>    # 100 bits, torus width = 10, and 89 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0]), 10)</span>
+<span class=sd>    42</span>
+
+<span class=sd>    # 100 bits, torus width = 10, and 92 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 10)</span>
+<span class=sd>    30</span>
+
+<span class=sd>    # 100 bits, torus width = 10, and 0 true bits</span>
+<span class=sd>    >>> ising2d(np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,</span>
+<span class=sd>    ...    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 10)</span>
+<span class=sd>    0</span>
+
+<span class=sd>    # 100 bits, torus width = 10, and 100 true bits</span>
+<span class=sd>    >>> ising2d(np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,</span>
+<span class=sd>    ...    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 10)</span>
+<span class=sd>    0</span>
+<span class=sd>    """</span>
+    <span class=n>n</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>  <span class=c1># Get the length of the bit string.</span>
+    <span class=n>result</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>n</span> <span class=o>+</span> <span class=n>n</span>  <span class=c1># Start with worst-case result.</span>
+
+    <span class=n>prev_row_start</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>n</span> <span class=o>-</span> <span class=n>k</span>  <span class=c1># The start of the bottom row.</span>
+    <span class=n>cur_row_start</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>  <span class=c1># The start index of the first row.</span>
+    <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>k</span><span class=p>):</span>  <span class=c1># Iterate over the rows.</span>
+        <span class=n>prev_j</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>k</span> <span class=o>-</span> <span class=mi>1</span>  <span class=c1># The previous index = last element.</span>
+        <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>k</span><span class=p>):</span>  <span class=c1># Iterate over the current row.</span>
+            <span class=n>center</span> <span class=o>=</span> <span class=n>x</span><span class=p>[</span><span class=n>cur_row_start</span> <span class=o>+</span> <span class=n>j</span><span class=p>]</span>  <span class=c1># The current element.</span>
+            <span class=k>if</span> <span class=n>center</span> <span class=o>==</span> <span class=n>x</span><span class=p>[</span><span class=n>prev_row_start</span> <span class=o>+</span> <span class=n>j</span><span class=p>]:</span>  <span class=c1># One row above the same?</span>
+                <span class=n>result</span> <span class=o>-=</span> <span class=mi>1</span>  <span class=c1># If above element same, no penalty.</span>
+            <span class=k>if</span> <span class=n>center</span> <span class=o>==</span> <span class=n>x</span><span class=p>[</span><span class=n>cur_row_start</span> <span class=o>+</span> <span class=n>prev_j</span><span class=p>]:</span>  <span class=c1># Element to the right.</span>
+                <span class=n>result</span> <span class=o>-=</span> <span class=mi>1</span>  <span class=c1># If right element same, no penalty.</span>
+            <span class=n>prev_j</span> <span class=o>=</span> <span class=n>j</span>  <span class=c1># Previous element &LT-- current element.</span>
+        <span class=n>prev_row_start</span> <span class=o>=</span> <span class=n>cur_row_start</span>  <span class=c1># Previous row &LT-- current row.</span>
+        <span class=n>cur_row_start</span> <span class=o>+=</span> <span class=n>k</span>  <span class=c1># k elements per row.</span>
+
+    <span class=k>return</span> <span class=n>result</span></div>
+
+
+
+<div class=viewcode-block id=Ising2d>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.ising2d.Ising2d>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Ising2d</span><span class=p>(</span><span class=n>SquareBitStringProblem</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The two-dimensional Ising model.</span>
+
+<span class=sd>    >>> ising = Ising2d(16)</span>
+<span class=sd>    >>> ising.n</span>
+<span class=sd>    16</span>
+<span class=sd>    >>> ising.k</span>
+<span class=sd>    4</span>
+<span class=sd>    >>> ising.evaluate(np.array([False, False, False, False,</span>
+<span class=sd>    ...                          False, False, False, False,</span>
+<span class=sd>    ...                          False, False, False, False,</span>
+<span class=sd>    ...                          False, False, False, False]))</span>
+<span class=sd>    0</span>
+<span class=sd>    >>> ising.evaluate(np.array([False, False, False, False,</span>
+<span class=sd>    ...                          False,  True, False, False,</span>
+<span class=sd>    ...                          False, False, False, False,</span>
+<span class=sd>    ...                          False, False, False, False]))</span>
+<span class=sd>    4</span>
+<span class=sd>    >>> ising.evaluate(np.array([False, False, False, False,</span>
+<span class=sd>    ...                           True,  True,  True,  True,</span>
+<span class=sd>    ...                          False, False, False, False,</span>
+<span class=sd>    ...                          False, False, False, False]))</span>
+<span class=sd>    8</span>
+<span class=sd>    >>> ising.evaluate(np.array([False,  True, False, False,</span>
+<span class=sd>    ...                           True,  True,  True,  True,</span>
+<span class=sd>    ...                          False,  True, False, False,</span>
+<span class=sd>    ...                          False,  True, False, False]))</span>
+<span class=sd>    12</span>
+<span class=sd>    >>> ising.evaluate(np.array([False,  True, False, False,</span>
+<span class=sd>    ...                           True,  True,  True,  True,</span>
+<span class=sd>    ...                          False,  True, False, False,</span>
+<span class=sd>    ...                          False,  True, False,  True]))</span>
+<span class=sd>    16</span>
+<span class=sd>    >>> ising.evaluate(np.array([False,  True, False, False,</span>
+<span class=sd>    ...                           True,  True,  True,  True,</span>
+<span class=sd>    ...                          False,  True, False, False,</span>
+<span class=sd>    ...                           True,  True,  True,  True]))</span>
+<span class=sd>    16</span>
+<span class=sd>    """</span>
+
+<div class=viewcode-block id=Ising2d.evaluate>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.ising2d.Ising2d.evaluate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Evaluate a solution to the 2D Ising problem.</span>
+
+<span class=sd>        :param x: the bit string to evaluate</span>
+<span class=sd>        :returns: the value of the 2D Ising Model for the string</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>ising2d</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>k</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=Ising2d.upper_bound>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.ising2d.Ising2d.upper_bound>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>upper_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the upper bound of the two-dimensional Ising model.</span>
+
+<span class=sd>        :return: twice the length of the bit string</span>
+
+<span class=sd>        >>> Ising2d(49).upper_bound()</span>
+<span class=sd>        98</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=mi>2</span> <span class=o>*</span> <span class=bp>self</span><span class=o>.</span><span class=n>n</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the two-dimensional Ising model objective function.</span>
+
+<span class=sd>        :return: ising2d_ + length of string</span>
+
+<span class=sd>        >>> Ising2d(16)</span>
+<span class=sd>        ising2d_16</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"ising2d_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=si>}</span><span class=s2>"</span>
+
+<div class=viewcode-block id=Ising2d.default_instances>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.ising2d.Ising2d.default_instances>[docs]</a>
+    <span class=nd>@classmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>default_instances</span><span class=p>(</span>
+            <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>,</span> <span class=n>scale_min</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>2</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>100</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=n>Iterator</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=s2>"Ising2d"</span><span class=p>]]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the 56 default instances of the :class:`Ising2d` problem.</span>
+
+<span class=sd>        :param scale_min: the minimum permitted scale, by default `2`</span>
+<span class=sd>        :param scale_max: the maximum permitted scale, by default `100`</span>
+<span class=sd>        :returns: a sequence of default :class:`Ising2d` instances</span>
+
+<span class=sd>        >>> len(list(Ising2d.default_instances()))</span>
+<span class=sd>        9</span>
+
+<span class=sd>        >>> [x() for x in Ising2d.default_instances()]</span>
+<span class=sd>        [ising2d_4, ising2d_9, ising2d_16, ising2d_25, ising2d_36, \</span>
+<span class=sd>ising2d_49, ising2d_64, ising2d_81, ising2d_100]</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Iterator[Callable[[], Ising2d]]"</span><span class=p>,</span>
+                    <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>default_instances</span><span class=p>(</span>  <span class=c1># type: ignore</span>
+                        <span class=n>scale_min</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>))</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.ising2d</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

@@ -1,0 +1,420 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.tabulate_result_tests — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/tabulate_result_tests.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.tabulate_result_tests</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.tabulate_result_tests</h1><div class=highlight><pre>
+<span></span><span class=sa>r</span><span class=sd>"""</span>
+<span class=sd>Provides :func:`tabulate_result_tests` creating statistical comparison tables.</span>
+
+<span class=sd>The function :func:`tabulate_result_tests` can compare two or more algorithms</span>
+<span class=sd>on multiple problem instances by using the Mann-Whitney U test [1-3] with the</span>
+<span class=sd>Bonferroni correction [4].</span>
+
+<span class=sd>1. Daniel F. Bauer. Constructing Confidence Sets Using Rank Statistics.</span>
+<span class=sd>   In *Journal of the American Statistical Association.* 67(339):687-690.</span>
+<span class=sd>   September 1972. doi: https://doi.org/10.1080/01621459.1972.10481279.</span>
+<span class=sd>2. Sidney Siegel and N. John Castellan Jr. *Nonparametric Statistics for The</span>
+<span class=sd>   Behavioral Sciences.* 1988 In the Humanities/Social Sciences/Languages</span>
+<span class=sd>   series. New York, NY, USA: McGraw-Hill. ISBN: 0-07-057357-3.</span>
+<span class=sd>3. Myles Hollander and Douglas Alan Wolfe. *Nonparametric Statistical</span>
+<span class=sd>   Methods.* 1973. New York, NY, USA: John Wiley and Sons Ltd.</span>
+<span class=sd>   ISBN: 047140635X.</span>
+<span class=sd>4. Olive Jean Dunn. Multiple Comparisons Among Means. In *Journal of the</span>
+<span class=sd>   American Statistical Association.* 56(293):52-64. March 1961.</span>
+<span class=sd>   doi: https://doi.org/10.1080/01621459.1961.10482090.</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>statistics</span><span class=w> </span><span class=kn>import</span> <span class=n>mean</span><span class=p>,</span> <span class=n>median</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>scipy.stats</span><span class=w> </span><span class=kn>import</span> <span class=n>mannwhitneyu</span>  <span class=c1># type: ignore</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=n>KEY_BEST_F</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_results</span><span class=w> </span><span class=kn>import</span> <span class=n>EndResult</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_results</span><span class=w> </span><span class=kn>import</span> <span class=n>getter</span> <span class=k>as</span> <span class=n>end_result_getter</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.formatted_string</span><span class=w> </span><span class=kn>import</span> <span class=n>FormattedStr</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.markdown</span><span class=w> </span><span class=kn>import</span> <span class=n>Markdown</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.number_renderer</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>DEFAULT_NUMBER_RENDERER</span><span class=p>,</span>
+    <span class=n>NumberRenderer</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.table</span><span class=w> </span><span class=kn>import</span> <span class=n>Table</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.text_format</span><span class=w> </span><span class=kn>import</span> <span class=n>TextFormatDriver</span>
+
+<span class=c1>#: the string constant for alpha</span>
+<span class=n>__ALPHA</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>FormattedStr</span><span class=p>]</span> <span class=o>=</span> <span class=n>FormattedStr</span><span class=o>.</span><span class=n>special</span><span class=p>(</span><span class=s2>"</span><span class=se>\u03b1</span><span class=s2>"</span><span class=p>)</span>
+<span class=c1>#: the string constant for dash or unclear</span>
+<span class=n>__DASH</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>FormattedStr</span><span class=p>]</span> <span class=o>=</span> <span class=n>FormattedStr</span><span class=o>.</span><span class=n>special</span><span class=p>(</span><span class=s2>"</span><span class=se>\u2014</span><span class=s2>"</span><span class=p>)</span>
+<span class=c1>#: the character for less</span>
+<span class=n>__LESS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>FormattedStr</span><span class=p>]</span> <span class=o>=</span> <span class=n>FormattedStr</span><span class=p>(</span><span class=s2>"<"</span><span class=p>,</span> <span class=n>code</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=c1>#: the character for equal</span>
+<span class=n>__UNCLEAR</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>FormattedStr</span><span class=p>]</span> <span class=o>=</span> <span class=n>FormattedStr</span><span class=p>(</span><span class=s2>"?"</span><span class=p>,</span> <span class=n>code</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=c1>#: the character for greater</span>
+<span class=n>__GREATER</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>FormattedStr</span><span class=p>]</span> <span class=o>=</span> <span class=n>FormattedStr</span><span class=p>(</span><span class=s2>">"</span><span class=p>,</span> <span class=n>code</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+<span class=c1>#: the name of the win-equal-loss column</span>
+<span class=n>__WEL</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=n>FormattedStr</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=n>FormattedStr</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=n>FormattedStr</span><span class=p>]]</span> \
+    <span class=o>=</span> <span class=n>__LESS</span><span class=p>,</span> <span class=s2>" / "</span><span class=p>,</span> <span class=n>__UNCLEAR</span><span class=p>,</span> <span class=s2>" / "</span><span class=p>,</span> <span class=n>__GREATER</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__compare</span><span class=p>(</span><span class=n>a</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>],</span>
+              <span class=n>b</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>])</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compare two lists of numbers.</span>
+
+<span class=sd>    `-1` is returned if `a` has both a smaller mean and median value than `b`.</span>
+<span class=sd>    `1` is returned if `a` has both a larger mean and median value than `b`.</span>
+<span class=sd>    `0` is returned otherwise.</span>
+
+<span class=sd>    :param a: the first list of numbers</span>
+<span class=sd>    :param b: the second list of numbers</span>
+<span class=sd>    :returns: `-1` if the numbers in `a` tend to be smaller than those in `b`,</span>
+<span class=sd>        `1` if the numbers in `a` tend to be larger than those in `b`,</span>
+<span class=sd>        `0` if undecided</span>
+<span class=sd>    """</span>
+    <span class=n>smaller</span><span class=p>:</span> <span class=nb>bool</span>
+    <span class=n>ma</span> <span class=o>=</span> <span class=n>mean</span><span class=p>(</span><span class=n>a</span><span class=p>)</span>
+    <span class=n>mb</span> <span class=o>=</span> <span class=n>mean</span><span class=p>(</span><span class=n>b</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>ma</span> <span class=o><</span> <span class=n>mb</span><span class=p>:</span>
+        <span class=n>smaller</span> <span class=o>=</span> <span class=kc>True</span>
+    <span class=k>elif</span> <span class=n>ma</span> <span class=o>></span> <span class=n>mb</span><span class=p>:</span>
+        <span class=n>smaller</span> <span class=o>=</span> <span class=kc>False</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=k>return</span> <span class=mi>0</span>
+    <span class=n>ma</span> <span class=o>=</span> <span class=n>median</span><span class=p>(</span><span class=n>a</span><span class=p>)</span>
+    <span class=n>mb</span> <span class=o>=</span> <span class=n>median</span><span class=p>(</span><span class=n>b</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>ma</span> <span class=o><</span> <span class=n>mb</span><span class=p>:</span>
+        <span class=k>return</span> <span class=o>-</span><span class=mi>1</span> <span class=k>if</span> <span class=n>smaller</span> <span class=k>else</span> <span class=mi>0</span>
+    <span class=k>if</span> <span class=n>ma</span> <span class=o>></span> <span class=n>mb</span><span class=p>:</span>
+        <span class=k>return</span> <span class=mi>0</span> <span class=k>if</span> <span class=n>smaller</span> <span class=k>else</span> <span class=mi>1</span>
+    <span class=k>return</span> <span class=mi>0</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__compare_to_str</span><span class=p>(</span><span class=n>cmp</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>p_str</span><span class=p>:</span> <span class=n>FormattedStr</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                     <span class=n>p</span><span class=p>:</span> <span class=nb>float</span><span class=p>,</span> <span class=n>alpha_prime</span><span class=p>:</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span> <span class=o>|</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Transform a comparison result and a string to an output.</span>
+
+<span class=sd>    :param cmp: the comparison result</span>
+<span class=sd>    :param p_str: the rendered `p` value string</span>
+<span class=sd>    :param p: the actual `p` value</span>
+<span class=sd>    :param alpha_prime: the `alpha` value</span>
+<span class=sd>    :returns: the output</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=n>cmp</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>__DASH</span>
+    <span class=k>if</span> <span class=n>p</span> <span class=o>>=</span> <span class=n>alpha_prime</span><span class=p>:</span>
+        <span class=k>return</span> <span class=p>[</span><span class=n>p_str</span><span class=p>,</span> <span class=s2>" "</span><span class=p>,</span> <span class=n>__UNCLEAR</span><span class=p>]</span>
+    <span class=k>if</span> <span class=n>cmp</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>return</span> <span class=p>[</span><span class=n>p_str</span><span class=p>,</span> <span class=s2>" "</span><span class=p>,</span> <span class=n>__LESS</span><span class=p>]</span>
+    <span class=k>if</span> <span class=n>cmp</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>return</span> <span class=p>[</span><span class=n>p_str</span><span class=p>,</span> <span class=s2>" "</span><span class=p>,</span> <span class=n>__GREATER</span><span class=p>]</span>
+    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+        <span class=sa>f</span><span class=s2>"huh? p=</span><span class=si>{</span><span class=n>p</span><span class=si>}</span><span class=s2>, p_str=</span><span class=si>{</span><span class=n>p_str</span><span class=si>}</span><span class=s2>, cmp=</span><span class=si>{</span><span class=n>cmp</span><span class=si>}</span><span class=s2>, alpha'=</span><span class=si>{</span><span class=n>alpha_prime</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=tabulate_result_tests>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.tabulate_result_tests.tabulate_result_tests>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>tabulate_result_tests</span><span class=p>(</span>
+        <span class=n>end_results</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>EndResult</span><span class=p>],</span>
+        <span class=n>file_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"tests"</span><span class=p>,</span>
+        <span class=n>dir_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"."</span><span class=p>,</span>
+        <span class=n>alpha</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.02</span><span class=p>,</span>
+        <span class=n>text_format_driver</span><span class=p>:</span> <span class=n>TextFormatDriver</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[],</span> <span class=n>TextFormatDriver</span><span class=p>]</span>
+        <span class=o>=</span> <span class=n>Markdown</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span>
+        <span class=n>algorithm_sort_key</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>a</span><span class=p>:</span> <span class=n>a</span><span class=p>,</span>
+        <span class=n>instance_sort_key</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>i</span><span class=p>:</span> <span class=n>i</span><span class=p>,</span>
+        <span class=n>instance_namer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>,</span>
+        <span class=n>algorithm_namer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>,</span>
+        <span class=n>use_lang</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+        <span class=n>p_renderer</span><span class=p>:</span> <span class=n>NumberRenderer</span> <span class=o>=</span> <span class=n>DEFAULT_NUMBER_RENDERER</span><span class=p>,</span>
+        <span class=n>value_getter</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>EndResult</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span>
+        <span class=o>=</span> <span class=n>end_result_getter</span><span class=p>(</span><span class=n>KEY_BEST_F</span><span class=p>))</span> <span class=o>-></span> <span class=n>Path</span><span class=p>:</span>
+<span class=w>    </span><span class=sa>r</span><span class=sd>"""</span>
+<span class=sd>    Tabulate the results of statistical comparisons of end result qualities.</span>
+
+<span class=sd>    `end_results` contains a sequence of</span>
+<span class=sd>    :class:`~moptipy.evaluation.end_results.EndResult` records, each of which</span>
+<span class=sd>    represents the result of one run of one algorithm on one instance. This</span>
+<span class=sd>    function performs a two-tailed Mann-Whitney U test for each algorithm pair</span>
+<span class=sd>    on each problem instance to see if the performances are statistically</span>
+<span class=sd>    significantly different. The results of these tests are tabulated,</span>
+<span class=sd>    together with their `p`-values, i.e., the probabilities that the observed</span>
+<span class=sd>    differences would occur if the two algorithms would perform the same.</span>
+
+<span class=sd>    If `p` is sufficiently small, this means that it is unlikely that the</span>
+<span class=sd>    difference in performance of the two compared algorithms that was observed</span>
+<span class=sd>    stems from randomness. But what does "sufficiently small" mean?</span>
+<span class=sd>    As parameter, this function accepts a significance threshold</span>
+<span class=sd>    `0&LTalpha&LT0.5`. `alpha` is, so to say, the upper limit of the "probability</span>
+<span class=sd>    to be wrong" if we claim something like "algorithm A is better than</span>
+<span class=sd>    algorithm B" that we are going to accept. In other words, if the table</span>
+<span class=sd>    says that algorithm A is better than algorithm B, the chance that this is</span>
+<span class=sd>    wrong is not more than `alpha`.</span>
+
+<span class=sd>    However, if we do many such tests, our chance to make at least one mistake</span>
+<span class=sd>    grows. If we do `n_tests` tests, then the chance that all of them are</span>
+<span class=sd>    "right" would be `1-[(1-alpha)^n_tests]`. Since we are going to do</span>
+<span class=sd>    multiple tests, the Bonferroni correction is therefore applied and</span>
+<span class=sd>    `alpha'=alpha/n_tests` is computed. Then, the chance to have at least one</span>
+<span class=sd>    of the `n_tests` test results to be wrong is not higher than `alpha`.</span>
+
+<span class=sd>    The test results are presented as follows:</span>
+<span class=sd>    The first column of the generated table denotes the problem instances.</span>
+<span class=sd>    Each of the other columns represents a pair of algorithms. In each cell,</span>
+<span class=sd>    the pair is compared based on the results on the instance of the row. The</span>
+<span class=sd>    cell ten holds the `p`-value of the two-tailed Mann-Whitney U test. If the</span>
+<span class=sd>    first algorithm is significantly better (at `p&LTalpha'`) than the second</span>
+<span class=sd>    algorithm, then the cell is marked with `<`. If the first algorithm is</span>
+<span class=sd>    significantly worse (at `p&LTalpha'`) than the second algorithm, then the</span>
+<span class=sd>    cell is marked with `>`. If the observed differences are not significant</span>
+<span class=sd>    (`p>=alpha'`), then the cell is marked with `?`.</span>
+
+<span class=sd>    However, there could also be a situation where a statistical comparison</span>
+<span class=sd>    makes no sense as no difference could reliably be detected anyway. For</span>
+<span class=sd>    example, if one algorithm has a smaller median result but a larger mean</span>
+<span class=sd>    result, or if the medians are the same, or if the means are the same.</span>
+<span class=sd>    Regardless of what outcome a test would have, we could not really claim</span>
+<span class=sd>    that any of the algorithms was better or worse. In such cases, no test</span>
+<span class=sd>    is performed and `-` is printed instead (signified by `&ampmdash;` in the</span>
+<span class=sd>    markdown format).</span>
+
+<span class=sd>    Finally, the bottom row sums up the numbers of `<`, `?`, and `>` outcomes</span>
+<span class=sd>    for each algorithm pair.</span>
+
+<span class=sd>    Depending on the parameter `text_format_driver`, the tables can be</span>
+<span class=sd>    rendered in different formats, such as</span>
+<span class=sd>    :py:class:`~moptipy.utils.markdown.Markdown`,</span>
+<span class=sd>    :py:class:`~moptipy.utils.latex.LaTeX`, and</span>
+<span class=sd>    :py:class:`~moptipy.utils.html.HTML`.</span>
+
+<span class=sd>    :param end_results: the end results data</span>
+<span class=sd>    :param file_name: the base file name</span>
+<span class=sd>    :param dir_name: the base directory</span>
+<span class=sd>    :param alpha: the threshold at which the two-tailed test result is</span>
+<span class=sd>        accepted.</span>
+<span class=sd>    :param text_format_driver: the text format driver</span>
+<span class=sd>    :param algorithm_sort_key: a function returning sort keys for algorithms</span>
+<span class=sd>    :param instance_sort_key: a function returning sort keys for instances</span>
+<span class=sd>    :param instance_namer: the name function for instances receives an</span>
+<span class=sd>        instance ID and returns an instance name; default=identity function</span>
+<span class=sd>    :param algorithm_namer: the name function for algorithms receives an</span>
+<span class=sd>        algorithm ID and returns an instance name; default=identity function</span>
+<span class=sd>    :param use_lang: should we use the language to define the filename</span>
+<span class=sd>    :param p_renderer: the renderer for all probabilities</span>
+<span class=sd>    :param value_getter: the getter for the values that should be compared. By</span>
+<span class=sd>        default, the best obtained objective values are compared. However, if</span>
+<span class=sd>        you let the runs continue until they reach a certain goal quality,</span>
+<span class=sd>        then you may want to compare the runtimes consumed until that quality</span>
+<span class=sd>        is reached. Basically, you can use any of the getters provided by</span>
+<span class=sd>        :meth:`moptipy.evaluation.end_results.getter`, but you must</span>
+<span class=sd>        take care that the comparison makes sense, i.e., compare qualities</span>
+<span class=sd>        under fixed-budget scenarios (the default behavior) or compare</span>
+<span class=sd>        runtimes under scenarios with goal qualities - but do not mix up the</span>
+<span class=sd>        scenarios.</span>
+<span class=sd>    :returns: the path to the file with the tabulated test results</span>
+<span class=sd>    """</span>
+    <span class=c1># Before doing anything, let's do some type checking on the parameters.</span>
+    <span class=c1># I want to ensure that this function is called correctly before we begin</span>
+    <span class=c1># to actually process the data. It is better to fail early than to deliver</span>
+    <span class=c1># some incorrect results.</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>end_results</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>end_results</span><span class=p>,</span> <span class=s2>"end_results"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>file_name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>file_name</span><span class=p>,</span> <span class=s2>"file_name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dir_name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>dir_name</span><span class=p>,</span> <span class=s2>"dir_name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>alpha</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>alpha</span><span class=p>,</span> <span class=s2>"alpha"</span><span class=p>,</span> <span class=nb>float</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=mf>0.0</span> <span class=o><</span> <span class=n>alpha</span> <span class=o><</span> <span class=mf>0.5</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid alpha=</span><span class=si>{</span><span class=n>alpha</span><span class=si>}</span><span class=s2>, must be 0&LTalpha&LT0.5."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>text_format_driver</span><span class=p>):</span>
+        <span class=n>text_format_driver</span> <span class=o>=</span> <span class=n>text_format_driver</span><span class=p>()</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>text_format_driver</span><span class=p>,</span> <span class=n>TextFormatDriver</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>text_format_driver</span><span class=p>,</span> <span class=s2>"text_format_driver"</span><span class=p>,</span>
+                         <span class=n>TextFormatDriver</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>algorithm_namer</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>algorithm_namer</span><span class=p>,</span> <span class=s2>"algorithm_namer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>instance_namer</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>instance_namer</span><span class=p>,</span> <span class=s2>"instance_namer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>use_lang</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>use_lang</span><span class=p>,</span> <span class=s2>"use_lang"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>p_renderer</span><span class=p>,</span> <span class=n>NumberRenderer</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>p_renderer</span><span class=p>,</span> <span class=s2>"p_renderer"</span><span class=p>,</span> <span class=n>NumberRenderer</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>value_getter</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>value_getter</span><span class=p>,</span> <span class=s2>"value_getter"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=c1># now gather the data: algorithms -> instances -> bestF</span>
+    <span class=n>data_dict</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>{}</span>
+    <span class=n>inst_set</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>end_result</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>end_results</span><span class=p>):</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>end_result</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>end_result</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"end_results[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>]"</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>)</span>
+        <span class=n>value</span> <span class=o>=</span> <span class=n>value_getter</span><span class=p>(</span><span class=n>end_result</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>value</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span>
+                <span class=n>value</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"value_getter(</span><span class=si>{</span><span class=n>end_result</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>value</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"value_getter(</span><span class=si>{</span><span class=n>end_result</span><span class=si>}</span><span class=s2>=</span><span class=si>{</span><span class=n>value</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=n>inst_set</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>end_result</span><span class=o>.</span><span class=n>instance</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>end_result</span><span class=o>.</span><span class=n>algorithm</span> <span class=ow>in</span> <span class=n>data_dict</span><span class=p>:</span>
+            <span class=n>inst_res</span> <span class=o>=</span> <span class=n>data_dict</span><span class=p>[</span><span class=n>end_result</span><span class=o>.</span><span class=n>algorithm</span><span class=p>]</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>data_dict</span><span class=p>[</span><span class=n>end_result</span><span class=o>.</span><span class=n>algorithm</span><span class=p>]</span> <span class=o>=</span> <span class=n>inst_res</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=k>if</span> <span class=n>end_result</span><span class=o>.</span><span class=n>instance</span> <span class=ow>in</span> <span class=n>inst_res</span><span class=p>:</span>
+            <span class=n>inst_res</span><span class=p>[</span><span class=n>end_result</span><span class=o>.</span><span class=n>instance</span><span class=p>]</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>value</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>inst_res</span><span class=p>[</span><span class=n>end_result</span><span class=o>.</span><span class=n>instance</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=n>value</span><span class=p>]</span>
+
+    <span class=c1># finished collecting data</span>
+    <span class=n>n_algos</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>data_dict</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>n_algos</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"end results are empty!"</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=mi>1</span> <span class=o><</span> <span class=n>n_algos</span> <span class=o><</span> <span class=mi>5</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid number </span><span class=si>{</span><span class=n>n_algos</span><span class=si>}</span><span class=s2> of "</span>
+                         <span class=s2>"algorithms, must be 1&LTn_algos&LT5."</span><span class=p>)</span>
+    <span class=n>instances</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>inst_set</span><span class=p>,</span> <span class=n>key</span><span class=o>=</span><span class=n>instance_sort_key</span><span class=p>)</span>
+    <span class=n>n_insts</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>instances</span><span class=p>)</span>
+    <span class=n>algorithms</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>data_dict</span><span class=o>.</span><span class=n>keys</span><span class=p>(),</span> <span class=n>key</span><span class=o>=</span><span class=n>algorithm_sort_key</span><span class=p>)</span>
+
+    <span class=c1># validate data</span>
+    <span class=k>for</span> <span class=n>algo</span> <span class=ow>in</span> <span class=n>algorithms</span><span class=p>:</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>data_dict</span><span class=p>[</span><span class=n>algo</span><span class=p>])</span> <span class=o>!=</span> <span class=n>n_insts</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"algorithm </span><span class=si>{</span><span class=n>algo</span><span class=si>!r}</span><span class=s2> has only data for </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>data_dict</span><span class=p>[</span><span class=n>algo</span><span class=p>])</span><span class=si>}</span><span class=s2>"</span>
+                <span class=sa>f</span><span class=s2>" instances, but should have for </span><span class=si>{</span><span class=n>n_insts</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=c1># compute the Bonferroni correction</span>
+    <span class=n>n_cols</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>((</span><span class=n>n_algos</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>n_algos</span><span class=p>)</span> <span class=o>//</span> <span class=mi>2</span>
+    <span class=n>n_pairs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>n_insts</span> <span class=o>*</span> <span class=n>n_cols</span>
+    <span class=n>alpha_prime</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>alpha</span> <span class=o>/</span> <span class=n>n_pairs</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=mf>0.0</span> <span class=o><</span> <span class=n>alpha_prime</span> <span class=o><</span> <span class=mf>0.5</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid alpha'=</span><span class=si>{</span><span class=n>alpha_prime</span><span class=si>}</span><span class=s2>, must be 0&LTalpha'"</span>
+                         <span class=sa>f</span><span class=s2>"&LT0.5, stems from alpha=</span><span class=si>{</span><span class=n>alpha</span><span class=si>}</span><span class=s2> and N=</span><span class=si>{</span><span class=n>n_pairs</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+    <span class=c1># compute the comparison results</span>
+    <span class=n>comparisons</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]]</span> <span class=o>=</span> \
+        <span class=p>[[</span><span class=n>__compare</span><span class=p>(</span><span class=n>data_dict</span><span class=p>[</span><span class=n>algorithms</span><span class=p>[</span><span class=n>i</span><span class=p>]][</span><span class=n>inst</span><span class=p>],</span>
+                    <span class=n>data_dict</span><span class=p>[</span><span class=n>algorithms</span><span class=p>[</span><span class=n>j</span><span class=p>]][</span><span class=n>inst</span><span class=p>])</span>
+          <span class=k>for</span> <span class=n>inst</span> <span class=ow>in</span> <span class=n>instances</span><span class=p>]</span>
+         <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_algos</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span>
+         <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>n_algos</span><span class=p>)]</span>
+
+    <span class=c1># compute the p_values</span>
+    <span class=n>p_values</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]]]</span> <span class=o>=</span> \
+        <span class=p>[[</span><span class=nb>float</span><span class=p>(</span><span class=n>mannwhitneyu</span><span class=p>(</span><span class=n>data_dict</span><span class=p>[</span><span class=n>algorithms</span><span class=p>[</span><span class=n>ij</span><span class=p>[</span><span class=mi>0</span><span class=p>]]][</span><span class=n>inst</span><span class=p>],</span>
+                             <span class=n>data_dict</span><span class=p>[</span><span class=n>algorithms</span><span class=p>[</span><span class=n>ij</span><span class=p>[</span><span class=mi>1</span><span class=p>]]][</span><span class=n>inst</span><span class=p>])</span><span class=o>.</span><span class=n>pvalue</span><span class=p>)</span>
+          <span class=k>if</span> <span class=n>comparisons</span><span class=p>[</span><span class=n>z</span><span class=p>][</span><span class=n>k</span><span class=p>]</span> <span class=o>!=</span> <span class=mi>0</span> <span class=k>else</span> <span class=kc>None</span>
+          <span class=k>for</span> <span class=n>k</span><span class=p>,</span> <span class=n>inst</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>instances</span><span class=p>)]</span>
+         <span class=k>for</span> <span class=n>z</span><span class=p>,</span> <span class=n>ij</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>([(</span><span class=n>ii</span><span class=p>,</span> <span class=n>jj</span><span class=p>)</span> <span class=k>for</span> <span class=n>ii</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_algos</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span>
+                                 <span class=k>for</span> <span class=n>jj</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>ii</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>n_algos</span><span class=p>)])]</span>
+
+    <span class=c1># now format all p values to strings</span>
+    <span class=n>p_flat</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[</span><span class=n>y</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=n>p_values</span> <span class=k>for</span> <span class=n>y</span> <span class=ow>in</span> <span class=n>x</span><span class=p>]</span>
+    <span class=n>p_flat</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>alpha</span><span class=p>)</span>
+    <span class=n>p_flat</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>alpha_prime</span><span class=p>)</span>
+    <span class=n>p_flat_strs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>FormattedStr</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]]</span> <span class=o>=</span> \
+        <span class=n>p_renderer</span><span class=o>.</span><span class=n>render</span><span class=p>(</span><span class=n>p_flat</span><span class=p>)</span>
+    <span class=n>alpha_str</span><span class=p>:</span> <span class=n>FormattedStr</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"FormattedStr"</span><span class=p>,</span> <span class=n>p_flat_strs</span><span class=p>[</span><span class=o>-</span><span class=mi>2</span><span class=p>])</span>
+    <span class=n>a2</span> <span class=o>=</span> <span class=n>FormattedStr</span><span class=o>.</span><span class=n>number</span><span class=p>(</span><span class=n>alpha</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>a2</span><span class=p>)</span> <span class=o><=</span> <span class=nb>len</span><span class=p>(</span><span class=n>alpha_str</span><span class=p>):</span>
+        <span class=n>alpha_str</span> <span class=o>=</span> <span class=n>a2</span>
+    <span class=n>alpha_prime_str</span><span class=p>:</span> <span class=n>FormattedStr</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"FormattedStr"</span><span class=p>,</span> <span class=n>p_flat_strs</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>])</span>
+    <span class=n>a2</span> <span class=o>=</span> <span class=n>FormattedStr</span><span class=o>.</span><span class=n>number</span><span class=p>(</span><span class=n>alpha_prime</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>a2</span><span class=p>)</span> <span class=o><=</span> <span class=nb>len</span><span class=p>(</span><span class=n>alpha_prime_str</span><span class=p>):</span>
+        <span class=n>alpha_prime_str</span> <span class=o>=</span> <span class=n>a2</span>
+    <span class=k>del</span> <span class=n>p_flat_strs</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>
+    <span class=k>del</span> <span class=n>p_flat_strs</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>
+    <span class=n>p_strs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>FormattedStr</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]]]</span> <span class=o>=</span> \
+        <span class=p>[</span><span class=n>p_flat_strs</span><span class=p>[(</span><span class=n>i</span> <span class=o>*</span> <span class=n>n_insts</span><span class=p>):((</span><span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>n_insts</span><span class=p>)]</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_cols</span><span class=p>)]</span>
+
+    <span class=n>summary_row</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>|</span> <span class=nb>str</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=k>if</span> <span class=n>n_insts</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+        <span class=n>summary_row</span> <span class=o>=</span> <span class=p>[</span><span class=n>__WEL</span><span class=p>]</span>
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>col</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>comparisons</span><span class=p>):</span>
+            <span class=n>wins</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+            <span class=n>equals</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+            <span class=n>losses</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+            <span class=n>pv</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>p_values</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+            <span class=k>for</span> <span class=n>j</span><span class=p>,</span> <span class=n>cv</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>col</span><span class=p>):</span>
+                <span class=k>if</span> <span class=p>(</span><span class=n>cv</span> <span class=o>==</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>pv</span><span class=p>[</span><span class=n>j</span><span class=p>]</span> <span class=o>>=</span> <span class=n>alpha_prime</span><span class=p>):</span>
+                    <span class=n>equals</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=k>elif</span> <span class=n>cv</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>wins</span> <span class=o>+=</span> <span class=mi>1</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>losses</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=n>summary_row</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>wins</span><span class=si>}</span><span class=s2>/</span><span class=si>{</span><span class=n>equals</span><span class=si>}</span><span class=s2>/</span><span class=si>{</span><span class=n>losses</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+    <span class=c1>#: the columns</span>
+    <span class=n>cols</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]]]</span> <span class=o>=</span> \
+        <span class=p>[[</span><span class=n>__compare_to_str</span><span class=p>(</span><span class=n>comparisons</span><span class=p>[</span><span class=n>i</span><span class=p>][</span><span class=n>j</span><span class=p>],</span> <span class=n>p_strs</span><span class=p>[</span><span class=n>i</span><span class=p>][</span><span class=n>j</span><span class=p>],</span> <span class=n>p_values</span><span class=p>[</span><span class=n>i</span><span class=p>][</span><span class=n>j</span><span class=p>],</span>
+                           <span class=n>alpha_prime</span><span class=p>)</span>
+          <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_insts</span><span class=p>)]</span>
+         <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_cols</span><span class=p>)]</span>
+    <span class=n>cols</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=p>[</span><span class=n>FormattedStr</span><span class=o>.</span><span class=n>add_format</span><span class=p>(</span><span class=n>instance_namer</span><span class=p>(</span><span class=n>inst</span><span class=p>),</span> <span class=n>code</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+                    <span class=k>for</span> <span class=n>inst</span> <span class=ow>in</span> <span class=n>instances</span><span class=p>])</span>
+
+    <span class=c1># We now got the p_values, the comparison results, and the p_strs.</span>
+
+    <span class=c1># We now can render the headlines. If there is only one pair of</span>
+    <span class=c1># algorithms, we render a single headline with all the information.</span>
+    <span class=c1># If there are multiple algorithm pairs, we do two headlines.</span>
+    <span class=n>head_lines</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]]</span>
+    <span class=n>multi_header</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> \
+        <span class=p>(</span><span class=n>n_algos</span> <span class=o>></span> <span class=mi>2</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>text_format_driver</span><span class=p>,</span> <span class=n>Markdown</span><span class=p>))</span>
+    <span class=k>if</span> <span class=n>multi_header</span><span class=p>:</span>
+        <span class=n>head_lines</span> <span class=o>=</span> <span class=p>[[],</span> <span class=p>[]]</span>
+
+        <span class=k>def</span><span class=w> </span><span class=nf>__app</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=n>b</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>head_lines</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>a</span><span class=p>)</span>
+            <span class=n>head_lines</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>b</span><span class=p>)</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=n>head_lines</span> <span class=o>=</span> <span class=p>[[]]</span>
+
+        <span class=k>def</span><span class=w> </span><span class=nf>__app</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=n>b</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>x</span> <span class=o>=</span> <span class=p>[]</span>
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+                <span class=n>x</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>a</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>x</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>a</span><span class=p>)</span>
+            <span class=n>x</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=s2>" "</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>b</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+                <span class=n>x</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>b</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>x</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>b</span><span class=p>)</span>
+            <span class=n>head_lines</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+
+    <span class=n>__app</span><span class=p>(</span><span class=s2>"Mann-Whitney U"</span><span class=p>,</span> <span class=p>[</span><span class=n>__ALPHA</span><span class=p>,</span> <span class=s2>"="</span><span class=p>,</span> <span class=n>alpha_str</span><span class=p>,</span> <span class=s2>", "</span><span class=p>,</span> <span class=n>__ALPHA</span><span class=p>,</span>
+                             <span class=s2>"'="</span><span class=p>,</span> <span class=n>alpha_prime_str</span><span class=p>])</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n_algos</span> <span class=o>-</span> <span class=mi>1</span><span class=p>):</span>
+        <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>i</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=n>n_algos</span><span class=p>):</span>
+            <span class=n>an1</span> <span class=o>=</span> <span class=n>FormattedStr</span><span class=o>.</span><span class=n>add_format</span><span class=p>(</span><span class=n>algorithm_namer</span><span class=p>(</span><span class=n>algorithms</span><span class=p>[</span><span class=n>i</span><span class=p>]),</span>
+                                          <span class=n>code</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+            <span class=n>an2</span> <span class=o>=</span> <span class=n>FormattedStr</span><span class=o>.</span><span class=n>add_format</span><span class=p>(</span><span class=n>algorithm_namer</span><span class=p>(</span><span class=n>algorithms</span><span class=p>[</span><span class=n>j</span><span class=p>]),</span>
+                                          <span class=n>code</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>an1</span><span class=p>)</span> <span class=o>>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>an2</span><span class=p>):</span>
+                <span class=n>__app</span><span class=p>(</span><span class=n>an1</span><span class=p>,</span> <span class=p>[</span><span class=s2>"vs. "</span><span class=p>,</span> <span class=n>an2</span><span class=p>])</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>__app</span><span class=p>([</span><span class=n>an1</span><span class=p>,</span> <span class=s2>" vs."</span><span class=p>],</span> <span class=n>an2</span><span class=p>)</span>
+
+    <span class=c1># write the table</span>
+    <span class=n>dest</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>text_format_driver</span><span class=o>.</span><span class=n>filename</span><span class=p>(</span>
+        <span class=n>file_name</span><span class=p>,</span> <span class=n>dir_name</span><span class=p>,</span> <span class=n>use_lang</span><span class=p>)</span>
+    <span class=k>with</span> <span class=n>dest</span><span class=o>.</span><span class=n>open_for_write</span><span class=p>()</span> <span class=k>as</span> <span class=n>wd</span><span class=p>,</span> <span class=n>Table</span><span class=p>(</span>
+            <span class=n>wd</span><span class=p>,</span> <span class=p>(</span><span class=s2>"l"</span> <span class=k>if</span> <span class=n>multi_header</span> <span class=k>else</span> <span class=s2>"r"</span><span class=p>)</span> <span class=o>+</span> <span class=p>(</span><span class=s2>"c"</span> <span class=o>*</span> <span class=n>n_cols</span><span class=p>),</span>
+            <span class=n>text_format_driver</span><span class=p>)</span> <span class=k>as</span> <span class=n>table</span><span class=p>:</span>
+        <span class=k>with</span> <span class=n>table</span><span class=o>.</span><span class=n>header</span><span class=p>()</span> <span class=k>as</span> <span class=n>header</span><span class=p>:</span>
+            <span class=k>for</span> <span class=n>hl</span> <span class=ow>in</span> <span class=n>head_lines</span><span class=p>:</span>
+                <span class=k>with</span> <span class=n>header</span><span class=o>.</span><span class=n>row</span><span class=p>()</span> <span class=k>as</span> <span class=n>row</span><span class=p>:</span>
+                    <span class=k>for</span> <span class=n>cell</span> <span class=ow>in</span> <span class=n>hl</span><span class=p>:</span>
+                        <span class=n>row</span><span class=o>.</span><span class=n>cell</span><span class=p>(</span><span class=n>cell</span><span class=p>)</span>
+        <span class=k>with</span> <span class=n>table</span><span class=o>.</span><span class=n>section</span><span class=p>()</span> <span class=k>as</span> <span class=n>section</span><span class=p>:</span>
+            <span class=n>section</span><span class=o>.</span><span class=n>cols</span><span class=p>(</span><span class=n>cols</span><span class=p>)</span>  <span class=c1># type: ignore</span>
+        <span class=k>if</span> <span class=n>summary_row</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>with</span> <span class=n>table</span><span class=o>.</span><span class=n>section</span><span class=p>()</span> <span class=k>as</span> <span class=n>section</span><span class=p>,</span> <span class=n>section</span><span class=o>.</span><span class=n>row</span><span class=p>()</span> <span class=k>as</span> <span class=n>row</span><span class=p>:</span>
+                <span class=k>for</span> <span class=n>s</span> <span class=ow>in</span> <span class=n>summary_row</span><span class=p>:</span>
+                    <span class=n>row</span><span class=o>.</span><span class=n>cell</span><span class=p>(</span><span class=n>s</span><span class=p>)</span>
+
+    <span class=k>return</span> <span class=n>dest</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.tabulate_result_tests</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

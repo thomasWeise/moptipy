@@ -1,0 +1,385 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.jssp.demo_examples — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/jssp/demo_examples.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.demo_examples</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.jssp.demo_examples</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Some fixed demo codes for the JSSP examples."""</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>sys</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>urllib.request</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>rq</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib.figure</span><span class=w> </span><span class=kn>import</span> <span class=n>Figure</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.console</span><span class=w> </span><span class=kn>import</span> <span class=n>logger</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>UTF8</span><span class=p>,</span> <span class=n>Path</span><span class=p>,</span> <span class=n>write_lines</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.experiment</span><span class=w> </span><span class=kn>import</span> <span class=n>INSTANCES</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.gantt</span><span class=w> </span><span class=kn>import</span> <span class=n>Gantt</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.gantt_space</span><span class=w> </span><span class=kn>import</span> <span class=n>GanttSpace</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.instance</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>Instance</span><span class=p>,</span>
+    <span class=n>compute_makespan_lower_bound</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.ob_encoding</span><span class=w> </span><span class=kn>import</span> <span class=n>OperationBasedEncoding</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.jssp.plot_gantt_chart</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>marker_lb</span><span class=p>,</span>
+    <span class=n>marker_makespan</span><span class=p>,</span>
+    <span class=n>plot_gantt_chart</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.permutations</span><span class=w> </span><span class=kn>import</span> <span class=n>Permutations</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.lang</span><span class=w> </span><span class=kn>import</span> <span class=n>Lang</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.plot_utils</span><span class=w> </span><span class=kn>import</span> <span class=n>cm_to_inch</span><span class=p>,</span> <span class=n>create_figure</span><span class=p>,</span> <span class=n>save_figure</span>
+
+
+<div class=viewcode-block id=demo_instance>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.demo_examples.demo_instance>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>demo_instance</span><span class=p>()</span> <span class=o>-></span> <span class=n>Instance</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the demo instance we use.</span>
+
+<span class=sd>    :return: the demo instance</span>
+<span class=sd>    """</span>
+    <span class=n>attr</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"_res_"</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>demo_instance</span><span class=p>,</span> <span class=n>attr</span><span class=p>):</span>
+        <span class=nb>setattr</span><span class=p>(</span><span class=n>demo_instance</span><span class=p>,</span> <span class=n>attr</span><span class=p>,</span> <span class=n>Instance</span><span class=o>.</span><span class=n>from_resource</span><span class=p>(</span><span class=s2>"demo"</span><span class=p>))</span>
+    <span class=k>return</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>demo_instance</span><span class=p>,</span> <span class=n>attr</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=demo_search_space>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.demo_examples.demo_search_space>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>demo_search_space</span><span class=p>()</span> <span class=o>-></span> <span class=n>Permutations</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Obtain an instance of the demo search space.</span>
+
+<span class=sd>    :return: the demo search space</span>
+<span class=sd>    """</span>
+    <span class=n>attr</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"_res_"</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>demo_search_space</span><span class=p>,</span> <span class=n>attr</span><span class=p>):</span>
+        <span class=n>instance</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Instance</span><span class=p>]</span> <span class=o>=</span> <span class=n>demo_instance</span><span class=p>()</span>
+        <span class=nb>setattr</span><span class=p>(</span><span class=n>demo_search_space</span><span class=p>,</span> <span class=n>attr</span><span class=p>,</span>
+                <span class=n>Permutations</span><span class=o>.</span><span class=n>with_repetitions</span><span class=p>(</span><span class=n>instance</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span>
+                                              <span class=n>instance</span><span class=o>.</span><span class=n>machines</span><span class=p>))</span>
+    <span class=k>return</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>demo_search_space</span><span class=p>,</span> <span class=n>attr</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=demo_point_in_search_space>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.demo_examples.demo_point_in_search_space>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>demo_point_in_search_space</span><span class=p>(</span><span class=n>optimum</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create a demo point in the search space.</span>
+
+<span class=sd>    :param optimum: should we return the optimal solution?</span>
+<span class=sd>    :return: the point</span>
+<span class=sd>    """</span>
+    <span class=n>space</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Permutations</span><span class=p>]</span> <span class=o>=</span> <span class=n>demo_search_space</span><span class=p>()</span>
+    <span class=n>res</span> <span class=o>=</span> <span class=n>space</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>
+    <span class=k>if</span> <span class=n>optimum</span><span class=p>:</span>
+        <span class=n>np</span><span class=o>.</span><span class=n>copyto</span><span class=p>(</span><span class=n>res</span><span class=p>,</span> <span class=p>[</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span>
+                        <span class=mi>3</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>0</span><span class=p>])</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=n>np</span><span class=o>.</span><span class=n>copyto</span><span class=p>(</span><span class=n>res</span><span class=p>,</span> <span class=p>[</span><span class=mi>0</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span>
+                        <span class=mi>1</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>])</span>
+    <span class=n>space</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>res</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>res</span></div>
+
+
+
+<div class=viewcode-block id=demo_solution_space>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.demo_examples.demo_solution_space>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>demo_solution_space</span><span class=p>()</span> <span class=o>-></span> <span class=n>GanttSpace</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Obtain an instance of the demo solution space.</span>
+
+<span class=sd>    :return: the demo solution space</span>
+<span class=sd>    """</span>
+    <span class=n>attr</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"_res_"</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>demo_solution_space</span><span class=p>,</span> <span class=n>attr</span><span class=p>):</span>
+        <span class=n>instance</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Instance</span><span class=p>]</span> <span class=o>=</span> <span class=n>demo_instance</span><span class=p>()</span>
+        <span class=nb>setattr</span><span class=p>(</span><span class=n>demo_solution_space</span><span class=p>,</span> <span class=n>attr</span><span class=p>,</span> <span class=n>GanttSpace</span><span class=p>(</span><span class=n>instance</span><span class=p>))</span>
+    <span class=k>return</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>demo_solution_space</span><span class=p>,</span> <span class=n>attr</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=demo_encoding>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.demo_examples.demo_encoding>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>demo_encoding</span><span class=p>()</span> <span class=o>-></span> <span class=n>OperationBasedEncoding</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Obtain an instance of the demo encoding.</span>
+
+<span class=sd>    :return: the demo encoding</span>
+<span class=sd>    """</span>
+    <span class=n>attr</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"_res_"</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>demo_encoding</span><span class=p>,</span> <span class=n>attr</span><span class=p>):</span>
+        <span class=n>instance</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Instance</span><span class=p>]</span> <span class=o>=</span> <span class=n>demo_instance</span><span class=p>()</span>
+        <span class=nb>setattr</span><span class=p>(</span><span class=n>demo_encoding</span><span class=p>,</span> <span class=n>attr</span><span class=p>,</span> <span class=n>OperationBasedEncoding</span><span class=p>(</span><span class=n>instance</span><span class=p>))</span>
+    <span class=k>return</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>demo_encoding</span><span class=p>,</span> <span class=n>attr</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=demo_solution>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.demo_examples.demo_solution>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>demo_solution</span><span class=p>(</span><span class=n>optimum</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=n>Gantt</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create a demo solution.</span>
+
+<span class=sd>    :param optimum: should we return the optimal solution?</span>
+<span class=sd>    :return: the demo solution</span>
+<span class=sd>    """</span>
+    <span class=n>space</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>GanttSpace</span><span class=p>]</span> <span class=o>=</span> <span class=n>demo_solution_space</span><span class=p>()</span>
+    <span class=n>result</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Gantt</span><span class=p>]</span> <span class=o>=</span> <span class=n>space</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>
+    <span class=n>demo_encoding</span><span class=p>()</span><span class=o>.</span><span class=n>decode</span><span class=p>(</span><span class=n>demo_point_in_search_space</span><span class=p>(</span><span class=n>optimum</span><span class=o>=</span><span class=n>optimum</span><span class=p>),</span>
+                           <span class=n>result</span><span class=p>)</span>
+    <span class=n>space</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>result</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>result</span></div>
+
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__make_gantt_demo_name</span><span class=p>(</span><span class=n>optimum</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span>
+                           <span class=n>with_makespan</span><span class=p>:</span> <span class=nb>bool</span><span class=p>,</span>
+                           <span class=n>with_lower_bound</span><span class=p>:</span> <span class=nb>bool</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Construct the name for the demo gantt chart.</span>
+
+<span class=sd>    :param optimum: should we return the optimal solution?</span>
+<span class=sd>    :param with_makespan: should the makespan be included?</span>
+<span class=sd>    :param with_lower_bound: should the lower bound be included?</span>
+<span class=sd>    :return: the file name</span>
+<span class=sd>    """</span>
+    <span class=n>prefix</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"gantt_demo_opt_"</span> <span class=k>if</span> <span class=n>optimum</span> <span class=k>else</span> <span class=s2>"gantt_demo_"</span>
+    <span class=k>if</span> <span class=n>with_makespan</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>with_lower_bound</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>prefix</span> <span class=o>+</span> <span class=s2>"with_makespan_and_lb"</span>
+        <span class=k>return</span> <span class=n>prefix</span> <span class=o>+</span> <span class=s2>"with_makespan"</span>
+    <span class=k>if</span> <span class=n>with_lower_bound</span><span class=p>:</span>
+        <span class=k>return</span> <span class=n>prefix</span> <span class=o>+</span> <span class=s2>"with_lb"</span>
+    <span class=k>return</span> <span class=n>prefix</span> <span class=o>+</span> <span class=s2>"without_makespan"</span>
+
+
+<div class=viewcode-block id=demo_gantt_chart>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.demo_examples.demo_gantt_chart>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>demo_gantt_chart</span><span class=p>(</span><span class=n>dirname</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                     <span class=n>optimum</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+                     <span class=n>with_makespan</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+                     <span class=n>with_lower_bound</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+                     <span class=n>width</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>cm_to_inch</span><span class=p>(</span><span class=mi>10</span><span class=p>),</span>
+                     <span class=n>height</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                     <span class=n>filename</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=n>Callable</span> <span class=o>=</span>
+                     <span class=n>__make_gantt_demo_name</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=n>Path</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Plot the demo gantt chart.</span>
+
+<span class=sd>    :param dirname: the directory</span>
+<span class=sd>    :param optimum: should we return the optimal solution?</span>
+<span class=sd>    :param with_makespan: should the makespan be included?</span>
+<span class=sd>    :param with_lower_bound: should the lower bound be included?</span>
+<span class=sd>    :param width: the optional width</span>
+<span class=sd>    :param height: the optional height</span>
+<span class=sd>    :param filename: the file name</span>
+<span class=sd>    """</span>
+    <span class=n>the_dir</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>dirname</span><span class=p>)</span>
+    <span class=n>the_dir</span><span class=o>.</span><span class=n>ensure_dir_exists</span><span class=p>()</span>
+
+    <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>filename</span><span class=p>):</span>
+        <span class=n>filename</span> <span class=o>=</span> <span class=n>filename</span><span class=p>(</span><span class=n>optimum</span><span class=p>,</span>
+                            <span class=n>with_makespan</span><span class=p>,</span>
+                            <span class=n>with_lower_bound</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>filename</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>filename</span><span class=p>,</span> <span class=s2>"filename"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+
+    <span class=n>result</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>Path</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>markers</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+
+    <span class=k>if</span> <span class=n>with_makespan</span><span class=p>:</span>
+        <span class=k>def</span><span class=w> </span><span class=nf>info</span><span class=p>(</span><span class=n>g</span><span class=p>:</span> <span class=n>Gantt</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>Lang</span><span class=o>.</span><span class=n>current</span><span class=p>()</span><span class=o>.</span><span class=n>format_str</span><span class=p>(</span><span class=s2>"gantt_info"</span><span class=p>,</span> <span class=n>gantt</span><span class=o>=</span><span class=n>g</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>optimum</span><span class=p>:</span>
+            <span class=n>markers</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>marker_makespan</span><span class=p>)</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=k>def</span><span class=w> </span><span class=nf>info</span><span class=p>(</span><span class=n>g</span><span class=p>:</span> <span class=n>Gantt</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>Lang</span><span class=o>.</span><span class=n>current</span><span class=p>()</span><span class=o>.</span><span class=n>format_str</span><span class=p>(</span><span class=s2>"gantt_info_no_ms"</span><span class=p>,</span> <span class=n>gantt</span><span class=o>=</span><span class=n>g</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>with_lower_bound</span><span class=p>:</span>
+        <span class=n>markers</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>marker_lb</span><span class=p>)</span>
+
+    <span class=k>for</span> <span class=n>lang</span> <span class=ow>in</span> <span class=n>Lang</span><span class=o>.</span><span class=n>all_langs</span><span class=p>():</span>
+        <span class=n>lang</span><span class=o>.</span><span class=n>set_current</span><span class=p>()</span>
+        <span class=n>figure</span><span class=p>:</span> <span class=n>Figure</span> <span class=o>=</span> <span class=n>create_figure</span><span class=p>(</span><span class=n>width</span><span class=o>=</span><span class=n>width</span><span class=p>,</span> <span class=n>height</span><span class=o>=</span><span class=n>height</span><span class=p>)</span>
+
+        <span class=n>gantt</span> <span class=o>=</span> <span class=n>demo_solution</span><span class=p>(</span><span class=n>optimum</span><span class=o>=</span><span class=n>optimum</span><span class=p>)</span>
+        <span class=n>plot_gantt_chart</span><span class=p>(</span><span class=n>gantt</span><span class=o>=</span><span class=n>gantt</span><span class=p>,</span>
+                         <span class=n>figure</span><span class=o>=</span><span class=n>figure</span><span class=p>,</span>
+                         <span class=n>x_label_inside</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span>
+                         <span class=n>y_label_inside</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span>
+                         <span class=n>markers</span><span class=o>=</span><span class=n>markers</span><span class=p>,</span>
+                         <span class=n>info</span><span class=o>=</span><span class=n>info</span><span class=p>)</span>
+
+        <span class=n>result</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>save_figure</span><span class=p>(</span><span class=n>fig</span><span class=o>=</span><span class=n>figure</span><span class=p>,</span>
+                                  <span class=n>dir_name</span><span class=o>=</span><span class=n>the_dir</span><span class=p>,</span>
+                                  <span class=n>file_name</span><span class=o>=</span><span class=n>lang</span><span class=o>.</span><span class=n>filename</span><span class=p>(</span><span class=n>filename</span><span class=p>),</span>
+                                  <span class=n>formats</span><span class=o>=</span><span class=s2>"svg"</span><span class=p>))</span>
+    <span class=k>return</span> <span class=n>result</span></div>
+
+
+
+<div class=viewcode-block id=makespan_lower_bound_table>
+<a class=viewcode-back href=../../../../moptipy.examples.jssp.html#moptipy.examples.jssp.demo_examples.makespan_lower_bound_table>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>makespan_lower_bound_table</span><span class=p>(</span>
+        <span class=n>dirname</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+        <span class=n>filename</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"makespan_lower_bound"</span><span class=p>,</span>
+        <span class=n>instances</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span>
+        <span class=nb>tuple</span><span class=p>([</span><span class=s2>"demo"</span><span class=p>]</span> <span class=o>+</span> <span class=nb>list</span><span class=p>(</span><span class=n>INSTANCES</span><span class=p>)))</span> <span class=o>-></span> <span class=n>Path</span><span class=p>:</span>  <span class=c1># noqa</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Make a table with the makespan lower bounds.</span>
+
+<span class=sd>    Larger lower bounds are taken from the repository</span>
+<span class=sd>    https://github.com/thomasWeise/jsspInstancesAndResults.</span>
+
+<span class=sd>    :param dirname: the directory where to store the generated file.</span>
+<span class=sd>    :param filename: the filename</span>
+<span class=sd>    :param instances: the instances</span>
+<span class=sd>    :returns: the generated file</span>
+<span class=sd>    """</span>
+    <span class=n>insts</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>instances</span><span class=p>)</span>
+    <span class=n>insts</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+    <span class=n>i</span> <span class=o>=</span> <span class=n>insts</span><span class=o>.</span><span class=n>index</span><span class=p>(</span><span class=s2>"demo"</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>i</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>del</span> <span class=n>insts</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+        <span class=n>insts</span><span class=o>.</span><span class=n>insert</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=s2>"demo"</span><span class=p>)</span>
+
+    <span class=c1># get the data with the lower bounds information</span>
+    <span class=n>url</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"https://github.com/thomasWeise/jsspInstancesAndResults"</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"now loading data from </span><span class=si>{</span><span class=n>url</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>with</span> <span class=n>rq</span><span class=o>.</span><span class=n>urlopen</span><span class=p>(</span><span class=n>url</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>  <span class=c1># nosec # noqa</span>
+        <span class=n>data</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>read</span><span class=p>()</span><span class=o>.</span><span class=n>decode</span><span class=p>(</span><span class=n>UTF8</span><span class=p>)</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=n>data</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Could not load data form </span><span class=si>{</span><span class=n>url</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"finished loading data from </span><span class=si>{</span><span class=n>url</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>start</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>"&LTtable>"</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>start</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Could not find &LTtable> in </span><span class=si>{</span><span class=n>data</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>end</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>rfind</span><span class=p>(</span><span class=s2>"&LT/dl>"</span><span class=p>,</span> <span class=n>start</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>end</span> <span class=o><=</span> <span class=n>start</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Could not find &LT/dl> in </span><span class=si>{</span><span class=n>data</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>data</span> <span class=o>=</span> <span class=n>data</span><span class=p>[</span><span class=n>start</span><span class=p>:</span><span class=n>end</span><span class=p>]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+
+    <span class=n>lang</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Lang</span><span class=p>]</span> <span class=o>=</span> <span class=n>Lang</span><span class=o>.</span><span class=n>current</span><span class=p>()</span>
+
+    <span class=n>text</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[</span>
+        <span class=p>(</span><span class=sa>r</span><span class=s2>"|name|$\jsspJobs$|$\jsspMachines$|$\lowerBound(\objf)$|"</span>
+         <span class=sa>r</span><span class=s2>"$\lowerBound(\objf)^{\star}$|source for&ampnbsp;"</span>
+         <span class=sa>r</span><span class=s2>"$\lowerBound(\objf)^{\star}$|"</span><span class=p>),</span>
+        <span class=s2>"|:--|--:|--:|--:|--:|:--|"</span><span class=p>,</span>
+    <span class=p>]</span>
+    <span class=n>bsrc</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"[@eq:jsspLowerBound]"</span>
+
+    <span class=c1># compute the data</span>
+    <span class=k>for</span> <span class=n>instn</span> <span class=ow>in</span> <span class=n>insts</span><span class=p>:</span>
+        <span class=n>solved_to_optimality</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=n>inst</span> <span class=o>=</span> <span class=n>Instance</span><span class=o>.</span><span class=n>from_resource</span><span class=p>(</span><span class=n>instn</span><span class=p>)</span>
+        <span class=n>lb</span> <span class=o>=</span> <span class=n>compute_makespan_lower_bound</span><span class=p>(</span><span class=n>machines</span><span class=o>=</span><span class=n>inst</span><span class=o>.</span><span class=n>machines</span><span class=p>,</span>
+                                          <span class=n>jobs</span><span class=o>=</span><span class=n>inst</span><span class=o>.</span><span class=n>jobs</span><span class=p>,</span>
+                                          <span class=n>matrix</span><span class=o>=</span><span class=n>inst</span><span class=p>)</span>
+        <span class=n>src</span> <span class=o>=</span> <span class=n>bsrc</span>
+        <span class=k>if</span> <span class=n>instn</span> <span class=o>==</span> <span class=s2>"demo"</span><span class=p>:</span>
+            <span class=n>lbx</span> <span class=o>=</span> <span class=n>lb</span>
+            <span class=n>solved_to_optimality</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>start</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>find</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s1>'&LTtd align="right">&LTstrong></span><span class=si>{</span><span class=n>instn</span><span class=si>}</span><span class=s1>&LT/strong>&LT/td>'</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>start</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=n>start</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=sa>f</span><span class=s1>'&LTtd align="right"></span><span class=si>{</span><span class=n>instn</span><span class=si>}</span><span class=s1>&LT/td>'</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>start</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Could not find instance </span><span class=si>{</span><span class=n>instn</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=n>prefix</span> <span class=o>=</span> <span class=s2>""</span>
+                <span class=n>suffix</span> <span class=o>=</span> <span class=s2>"&LT/td>"</span>
+                <span class=n>solved_to_optimality</span> <span class=o>=</span> <span class=kc>True</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>prefix</span> <span class=o>=</span> <span class=s2>"&LTstrong>"</span>
+                <span class=n>suffix</span> <span class=o>=</span> <span class=s2>"&LT/strong>&LT/td>"</span>
+            <span class=n>end</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>"&LT/tr>"</span><span class=p>,</span> <span class=n>start</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>end</span> <span class=o><=</span> <span class=n>start</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Could not find end of instance </span><span class=si>{</span><span class=n>instn</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>sel</span> <span class=o>=</span> <span class=n>data</span><span class=p>[</span><span class=n>start</span><span class=p>:</span><span class=n>end</span><span class=p>]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+            <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"located instance text </span><span class=si>{</span><span class=n>sel</span><span class=si>!r}</span><span class=s2> for </span><span class=si>{</span><span class=n>instn</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>prefix</span> <span class=o>=</span> <span class=p>(</span><span class=sa>f</span><span class=s1>'&LTtd align="right"></span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>jobs</span><span class=si>}</span><span class=s1>&LT/td></span><span class=se>\n</span><span class=s1>&LTtd align="'</span>
+                      <span class=sa>f</span><span class=s1>'right"></span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>machines</span><span class=si>}</span><span class=s1>&LT/td></span><span class=se>\n</span><span class=s1>&LTtd align="right">'</span>
+                      <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>prefix</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>pi</span> <span class=o>=</span> <span class=n>sel</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>prefix</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>pi</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Could not find prefix for instance </span><span class=si>{</span><span class=n>instn</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>sel</span> <span class=o>=</span> <span class=n>sel</span><span class=p>[(</span><span class=n>pi</span> <span class=o>+</span> <span class=nb>len</span><span class=p>(</span><span class=n>prefix</span><span class=p>)):]</span>
+            <span class=n>si</span> <span class=o>=</span> <span class=n>sel</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>suffix</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>si</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Could not find suffix for instance </span><span class=si>{</span><span class=n>instn</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>lbx</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>sel</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=n>si</span><span class=p>])</span>
+            <span class=n>npt</span> <span class=o>=</span> <span class=s1>'&LTtd align="center">&LTa href="#'</span>
+            <span class=n>npi</span> <span class=o>=</span> <span class=n>sel</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>npt</span><span class=p>,</span> <span class=n>si</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>npi</span> <span class=o><</span> <span class=n>si</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Could not find source start for instance </span><span class=si>{</span><span class=n>instn</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>sel</span> <span class=o>=</span> <span class=n>sel</span><span class=p>[</span><span class=n>npi</span> <span class=o>+</span> <span class=nb>len</span><span class=p>(</span><span class=n>npt</span><span class=p>):]</span>
+            <span class=n>end</span> <span class=o>=</span> <span class=n>sel</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s1>'"'</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>end</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Could not find source end for instance </span><span class=si>{</span><span class=n>instn</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>srcname</span> <span class=o>=</span> <span class=n>sel</span><span class=p>[:</span><span class=n>end</span><span class=p>]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+            <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Source name is </span><span class=si>{</span><span class=n>srcname</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+            <span class=n>fsrc</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=sa>f</span><span class=s1>'&LTdt id="user-content-</span><span class=si>{</span><span class=n>srcname</span><span class=o>.</span><span class=n>lower</span><span class=p>()</span><span class=si>}</span><span class=s1>">'</span>
+                             <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>srcname</span><span class=si>}</span><span class=s2>&LT/dt>&LTdd>"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>fsrc</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Could not find source mark for instance </span><span class=si>{</span><span class=n>instn</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>fsrce</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>"&LT/dd>"</span><span class=p>,</span> <span class=n>fsrc</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>fsrce</span> <span class=o><=</span> <span class=n>fsrc</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Could not find end mark for instance </span><span class=si>{</span><span class=n>instn</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>sel</span> <span class=o>=</span> <span class=n>data</span><span class=p>[</span><span class=n>fsrc</span><span class=p>:</span><span class=n>fsrce</span><span class=p>]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+            <span class=n>nm</span> <span class=o>=</span> <span class=n>sel</span><span class=o>.</span><span class=n>rfind</span><span class=p>(</span><span class=s2>"&LT/a>"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>nm</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Could not find link end for instance </span><span class=si>{</span><span class=n>instn</span><span class=si>!r}</span><span class=s2>"</span>
+                    <span class=sa>f</span><span class=s2>" and source name </span><span class=si>{</span><span class=n>srcname</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>fm</span> <span class=o>=</span> <span class=n>sel</span><span class=o>.</span><span class=n>rfind</span><span class=p>(</span><span class=s2>">"</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=n>nm</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>fm</span> <span class=o>>=</span> <span class=n>nm</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Could not find label mark for instance </span><span class=si>{</span><span class=n>instn</span><span class=si>!r}</span><span class=s2>"</span>
+                    <span class=sa>f</span><span class=s2>" and source name </span><span class=si>{</span><span class=n>srcname</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>src</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"[@</span><span class=si>{</span><span class=n>sel</span><span class=p>[(</span><span class=n>fm</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=mi>1</span><span class=p>):</span><span class=n>nm</span><span class=p>]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span><span class=si>}</span><span class=s2>]"</span>
+
+        <span class=k>if</span> <span class=n>lbx</span> <span class=o><=</span> <span class=n>lb</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>lbx</span> <span class=o><</span> <span class=n>lb</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Lbx </span><span class=si>{</span><span class=n>lbx</span><span class=si>}</span><span class=s2> cannot be larger than lb </span><span class=si>{</span><span class=n>lb</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>solved_to_optimality</span><span class=p>:</span>
+                <span class=n>src</span> <span class=o>=</span> <span class=s2>"[@eq:jsspLowerBound]"</span>
+        <span class=n>instname</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"`</span><span class=si>{</span><span class=n>instn</span><span class=si>}</span><span class=s2>`"</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>solved_to_optimality</span><span class=p>:</span>
+            <span class=n>instname</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"**</span><span class=si>{</span><span class=n>instname</span><span class=si>}</span><span class=s2>**"</span>
+
+        <span class=n>text</span><span class=o>.</span><span class=n>append</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"|</span><span class=si>{</span><span class=n>instname</span><span class=si>}</span><span class=s2>|</span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>machines</span><span class=si>}</span><span class=s2>|</span><span class=si>{</span><span class=n>inst</span><span class=o>.</span><span class=n>jobs</span><span class=si>}</span><span class=s2>|</span><span class=si>{</span><span class=n>lb</span><span class=si>}</span><span class=s2>|</span><span class=si>{</span><span class=n>lbx</span><span class=si>}</span><span class=s2>|</span><span class=si>{</span><span class=n>src</span><span class=si>}</span><span class=s2>|"</span><span class=p>)</span>
+
+    <span class=c1># write the result</span>
+    <span class=n>out_dir</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>dirname</span><span class=p>)</span>
+    <span class=n>out_dir</span><span class=o>.</span><span class=n>ensure_dir_exists</span><span class=p>()</span>
+    <span class=n>out_file</span> <span class=o>=</span> <span class=n>out_dir</span><span class=o>.</span><span class=n>resolve_inside</span><span class=p>(</span><span class=n>lang</span><span class=o>.</span><span class=n>filename</span><span class=p>(</span><span class=n>filename</span><span class=p>)</span> <span class=o>+</span> <span class=s2>".md"</span><span class=p>)</span>
+    <span class=k>with</span> <span class=n>out_dir</span><span class=o>.</span><span class=n>open_for_write</span><span class=p>()</span> <span class=k>as</span> <span class=n>wd</span><span class=p>:</span>
+        <span class=n>write_lines</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=n>wd</span><span class=p>)</span>
+    <span class=n>out_file</span><span class=o>.</span><span class=n>enforce_file</span><span class=p>()</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"finished writing output results to file </span><span class=si>{</span><span class=n>out_file</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>out_file</span></div>
+
+
+
+<span class=c1># are we being executed?</span>
+<span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s2>"__main__"</span><span class=p>:</span>
+    <span class=n>dest_dir</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>sys</span><span class=o>.</span><span class=n>argv</span><span class=p>[</span><span class=mi>1</span><span class=p>])</span>
+    <span class=n>dest_dir</span><span class=o>.</span><span class=n>ensure_dir_exists</span><span class=p>()</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"We will print the JSSP examples into dir </span><span class=si>{</span><span class=n>dest_dir</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>makespan_lower_bound_table</span><span class=p>(</span><span class=n>dest_dir</span><span class=p>)</span>
+    <span class=n>demo_gantt_chart</span><span class=p>(</span><span class=n>dest_dir</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+    <span class=n>demo_gantt_chart</span><span class=p>(</span><span class=n>dest_dir</span><span class=p>,</span> <span class=kc>False</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Finished printing the JSSP examples into dir </span><span class=si>{</span><span class=n>dest_dir</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.jssp.demo_examples</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

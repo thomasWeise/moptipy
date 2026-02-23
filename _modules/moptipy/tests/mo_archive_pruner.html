@@ -1,0 +1,208 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.tests.mo_archive_pruner — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/tests/mo_archive_pruner.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.mo_archive_pruner</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.tests.mo_archive_pruner</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Functions for testing multi-objective archive pruners."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>default_rng</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_archive</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>MOArchivePruner</span><span class=p>,</span>
+    <span class=n>MORecord</span><span class=p>,</span>
+    <span class=n>check_mo_archive_pruner</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>MOProblem</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.mock.mo_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>MockMOProblem</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.component</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_component</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>DEFAULT_NUMERICAL</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__run_single_test</span><span class=p>(</span>
+        <span class=n>pruner_factory</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>MOProblem</span><span class=p>],</span> <span class=n>MOArchivePruner</span><span class=p>],</span>
+        <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>,</span>
+        <span class=n>dim</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+        <span class=n>dt</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Run a single test.</span>
+
+<span class=sd>    :param pruner_factory: the factory for creating pruners</span>
+<span class=sd>    :param random: the random number generator</span>
+<span class=sd>    :param dim: the dimension</span>
+<span class=sd>    :param dt: the data type</span>
+<span class=sd>    :returns: `True` if a test was run, `False` if we need to try again</span>
+<span class=sd>    """</span>
+    <span class=n>mop</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>MockMOProblem</span><span class=p>]</span> <span class=o>=</span> <span class=n>MockMOProblem</span><span class=o>.</span><span class=n>for_dtype</span><span class=p>(</span><span class=n>dim</span><span class=p>,</span> <span class=n>dt</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>mop</span><span class=p>,</span> <span class=n>MockMOProblem</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>mop</span><span class=p>,</span> <span class=s2>"new mock problem"</span><span class=p>,</span> <span class=n>MockMOProblem</span><span class=p>)</span>
+
+    <span class=n>tag</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"bla</span><span class=si>{</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>100</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span>
+    <span class=n>pruner</span> <span class=o>=</span> <span class=n>pruner_factory</span><span class=p>(</span><span class=n>mop</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>pruner</span><span class=p>,</span> <span class=n>MOArchivePruner</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>pruner</span><span class=p>,</span> <span class=s2>"pruner"</span><span class=p>,</span> <span class=n>MOArchivePruner</span><span class=p>)</span>
+    <span class=n>check_mo_archive_pruner</span><span class=p>(</span><span class=n>pruner</span><span class=p>)</span>
+    <span class=n>validate_component</span><span class=p>(</span><span class=n>pruner</span><span class=p>)</span>
+
+    <span class=n>alen</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=mi>10</span><span class=p>)),</span> <span class=s2>"alen"</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>9</span><span class=p>)</span>
+    <span class=n>amax</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>alen</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)),</span> <span class=s2>"amax"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=n>alen</span><span class=p>)</span>
+
+    <span class=n>dim_mode</span> <span class=o>=</span> <span class=p>[</span><span class=kc>False</span><span class=p>]</span>
+    <span class=k>if</span> <span class=n>dim</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+        <span class=n>dim_mode</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=kc>True</span><span class=p>)</span>
+
+    <span class=k>for</span> <span class=n>use_collapse</span> <span class=ow>in</span> <span class=n>dim_mode</span><span class=p>:</span>
+        <span class=n>archive_1</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>MORecord</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>archive_2</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>MORecord</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>archive_3</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>MORecord</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+
+        <span class=n>collapse_dim</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=k>if</span> <span class=n>use_collapse</span><span class=p>:</span>
+            <span class=n>collapse_dim</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>dim</span><span class=p>))</span>
+
+        <span class=n>max_samples</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>10000</span>
+
+        <span class=k>for</span> <span class=n>_</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>alen</span><span class=p>):</span>
+            <span class=n>needed</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+            <span class=n>rec</span><span class=p>:</span> <span class=n>MORecord</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=n>fs</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=k>while</span> <span class=n>needed</span><span class=p>:</span>   <span class=c1># we make sure that all records are unique</span>
+                <span class=n>max_samples</span> <span class=o>-=</span> <span class=mi>1</span>
+                <span class=k>if</span> <span class=n>max_samples</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>return</span> <span class=kc>False</span>
+                <span class=n>fs</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=n>dim</span><span class=p>,</span> <span class=n>dt</span><span class=p>)</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>fs</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>fs</span><span class=p>,</span> <span class=s2>"fs"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span>
+                <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>fs</span><span class=p>)</span> <span class=o>!=</span> <span class=n>dim</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"len(fs)=</span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>fs</span><span class=p>)</span><span class=si>}</span><span class=s2>!=dim=</span><span class=si>{</span><span class=n>dim</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+                <span class=n>mop</span><span class=o>.</span><span class=n>sample</span><span class=p>(</span><span class=n>fs</span><span class=p>)</span>
+                <span class=n>rec</span> <span class=o>=</span> <span class=n>MORecord</span><span class=p>(</span><span class=n>tag</span><span class=p>,</span> <span class=n>fs</span><span class=p>)</span>
+                <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>rec</span><span class=p>,</span> <span class=n>MORecord</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>rec</span><span class=p>,</span> <span class=s2>"rec"</span><span class=p>,</span> <span class=n>MORecord</span><span class=p>)</span>
+                <span class=n>needed</span> <span class=o>=</span> <span class=kc>False</span>
+                <span class=k>for</span> <span class=n>z</span> <span class=ow>in</span> <span class=n>archive_1</span><span class=p>:</span>
+                    <span class=n>fs2</span> <span class=o>=</span> <span class=n>z</span><span class=o>.</span><span class=n>fs</span>
+                    <span class=k>if</span> <span class=n>np</span><span class=o>.</span><span class=n>array_equal</span><span class=p>(</span><span class=n>fs</span><span class=p>,</span> <span class=n>fs2</span><span class=p>):</span>
+                        <span class=n>needed</span> <span class=o>=</span> <span class=kc>True</span>
+                        <span class=k>break</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>rec</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>fs</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"huh?"</span><span class=p>)</span>
+            <span class=n>archive_1</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>rec</span><span class=p>)</span>
+            <span class=n>rec2</span> <span class=o>=</span> <span class=n>MORecord</span><span class=p>(</span><span class=n>tag</span><span class=p>,</span> <span class=n>fs</span><span class=o>.</span><span class=n>copy</span><span class=p>())</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>rec</span><span class=o>.</span><span class=n>x</span> <span class=o>!=</span> <span class=n>rec2</span><span class=o>.</span><span class=n>x</span><span class=p>)</span> \
+                    <span class=ow>or</span> <span class=p>(</span><span class=ow>not</span> <span class=n>np</span><span class=o>.</span><span class=n>array_equal</span><span class=p>(</span><span class=n>rec2</span><span class=o>.</span><span class=n>fs</span><span class=p>,</span> <span class=n>rec</span><span class=o>.</span><span class=n>fs</span><span class=p>)):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>rec</span><span class=si>}</span><span class=s2> != </span><span class=si>{</span><span class=n>rec2</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>archive_2</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>rec2</span><span class=p>)</span>
+            <span class=n>rec2</span> <span class=o>=</span> <span class=n>MORecord</span><span class=p>(</span><span class=n>tag</span><span class=p>,</span> <span class=n>fs</span><span class=o>.</span><span class=n>copy</span><span class=p>())</span>
+            <span class=n>archive_3</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>rec2</span><span class=p>)</span>
+
+        <span class=c1># done creating archive and copy of archive</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>archive_1</span><span class=p>,</span> <span class=nb>list</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>archive_1</span><span class=p>,</span> <span class=s2>"archive_1"</span><span class=p>,</span> <span class=nb>list</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>archive_2</span><span class=p>,</span> <span class=nb>list</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>archive_2</span><span class=p>,</span> <span class=s2>"archive_2"</span><span class=p>,</span> <span class=nb>list</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>archive_3</span><span class=p>,</span> <span class=nb>list</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>archive_3</span><span class=p>,</span> <span class=s2>"archive_3"</span><span class=p>,</span> <span class=nb>list</span><span class=p>)</span>
+
+        <span class=n>thelen</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>archive_1</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>thelen</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>thelen</span><span class=p>,</span> <span class=s2>"len(archive)"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>thelen</span> <span class=o>!=</span> <span class=n>alen</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>alen</span><span class=si>}</span><span class=s2> != len(archive_1)=</span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>archive_1</span><span class=p>)</span><span class=si>}</span><span class=s2>?"</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>use_collapse</span><span class=p>:</span>
+            <span class=n>collapse_value</span> <span class=o>=</span> <span class=n>archive_1</span><span class=p>[</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=n>alen</span><span class=p>)]</span><span class=o>.</span><span class=n>fs</span><span class=p>[</span>
+                <span class=n>collapse_dim</span><span class=p>]</span>
+            <span class=k>for</span> <span class=n>rec</span> <span class=ow>in</span> <span class=n>archive_1</span><span class=p>:</span>
+                <span class=n>rec</span><span class=o>.</span><span class=n>fs</span><span class=p>[</span><span class=n>collapse_dim</span><span class=p>]</span> <span class=o>=</span> <span class=n>collapse_value</span>
+            <span class=k>for</span> <span class=n>rec</span> <span class=ow>in</span> <span class=n>archive_2</span><span class=p>:</span>
+                <span class=n>rec</span><span class=o>.</span><span class=n>fs</span><span class=p>[</span><span class=n>collapse_dim</span><span class=p>]</span> <span class=o>=</span> <span class=n>collapse_value</span>
+            <span class=k>for</span> <span class=n>rec</span> <span class=ow>in</span> <span class=n>archive_3</span><span class=p>:</span>
+                <span class=n>rec</span><span class=o>.</span><span class=n>fs</span><span class=p>[</span><span class=n>collapse_dim</span><span class=p>]</span> <span class=o>=</span> <span class=n>collapse_value</span>
+
+        <span class=c1># perform the pruning</span>
+        <span class=n>pruner</span><span class=o>.</span><span class=n>prune</span><span class=p>(</span><span class=n>archive_1</span><span class=p>,</span> <span class=n>amax</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>archive_1</span><span class=p>))</span>
+        <span class=n>pruner</span><span class=o>.</span><span class=n>prune</span><span class=p>(</span><span class=n>archive_3</span><span class=p>,</span> <span class=n>amax</span><span class=p>,</span> <span class=nb>len</span><span class=p>(</span><span class=n>archive_3</span><span class=p>))</span>
+
+        <span class=n>thelen</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>archive_1</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>thelen</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>thelen</span><span class=p>,</span> <span class=s2>"len(archive_1)"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>thelen</span> <span class=o>!=</span> <span class=n>alen</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"pruning messed up archive len: </span><span class=si>{</span><span class=n>alen</span><span class=si>}</span><span class=s2> != "</span>
+                <span class=sa>f</span><span class=s2>"len(archive)=</span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>archive_1</span><span class=p>)</span><span class=si>}</span><span class=s2>?"</span><span class=p>)</span>
+
+        <span class=c1># make sure that no element was deleted or added</span>
+        <span class=k>for</span> <span class=n>ii</span><span class=p>,</span> <span class=n>a</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>archive_1</span><span class=p>):</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=n>MORecord</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"archive[</span><span class=si>{</span><span class=n>ii</span><span class=si>}</span><span class=s2>]"</span><span class=p>,</span> <span class=n>MORecord</span><span class=p>)</span>
+            <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>ii</span><span class=p>):</span>
+                <span class=k>if</span> <span class=n>archive_1</span><span class=p>[</span><span class=n>j</span><span class=p>]</span> <span class=ow>is</span> <span class=n>a</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"record </span><span class=si>{</span><span class=n>a</span><span class=si>}</span><span class=s2> appears at "</span>
+                                     <span class=sa>f</span><span class=s2>"indexes </span><span class=si>{</span><span class=n>ii</span><span class=si>}</span><span class=s2> and </span><span class=si>{</span><span class=n>j</span><span class=si>}</span><span class=s2>!"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>a</span><span class=o>.</span><span class=n>x</span> <span class=o>!=</span> <span class=n>tag</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"a.x=</span><span class=si>{</span><span class=n>a</span><span class=o>.</span><span class=n>x</span><span class=si>}</span><span class=s2>!=</span><span class=si>{</span><span class=n>tag</span><span class=si>!r}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>a</span><span class=o>.</span><span class=n>fs</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>a</span><span class=o>.</span><span class=n>fs</span><span class=p>,</span> <span class=s2>"a.fs"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span>
+            <span class=n>b</span> <span class=o>=</span> <span class=n>archive_3</span><span class=p>[</span><span class=n>ii</span><span class=p>]</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>a</span><span class=o>.</span><span class=n>x</span> <span class=o>!=</span> <span class=n>b</span><span class=o>.</span><span class=n>x</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=ow>not</span> <span class=n>np</span><span class=o>.</span><span class=n>array_equal</span><span class=p>(</span><span class=n>a</span><span class=o>.</span><span class=n>fs</span><span class=p>,</span> <span class=n>b</span><span class=o>.</span><span class=n>fs</span><span class=p>)):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"archive pruning not deterministic, archive_1[</span><span class=si>{</span><span class=n>ii</span><span class=si>}</span><span class=s2>]=</span><span class=si>{</span><span class=n>a</span><span class=si>}</span><span class=s2>"</span>
+                    <span class=sa>f</span><span class=s2>" but archive_2[</span><span class=si>{</span><span class=n>ii</span><span class=si>}</span><span class=s2>]=</span><span class=si>{</span><span class=n>b</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>use_collapse</span><span class=p>:</span>
+                <span class=k>for</span> <span class=n>idx</span><span class=p>,</span> <span class=n>b</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>archive_2</span><span class=p>):</span>
+                    <span class=k>if</span> <span class=n>np</span><span class=o>.</span><span class=n>array_equal</span><span class=p>(</span><span class=n>a</span><span class=o>.</span><span class=n>fs</span><span class=p>,</span> <span class=n>b</span><span class=o>.</span><span class=n>fs</span><span class=p>):</span>
+                        <span class=k>if</span> <span class=n>a</span><span class=o>.</span><span class=n>x</span> <span class=o>!=</span> <span class=n>b</span><span class=o>.</span><span class=n>x</span><span class=p>:</span>
+                            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                                <span class=sa>f</span><span class=s2>"a.fs=</span><span class=si>{</span><span class=n>a</span><span class=o>.</span><span class=n>fs</span><span class=si>}</span><span class=s2>==b.fs, but "</span>
+                                <span class=sa>f</span><span class=s2>"a.x=</span><span class=si>{</span><span class=n>a</span><span class=o>.</span><span class=n>x</span><span class=si>}</span><span class=s2>!=b.x=</span><span class=si>{</span><span class=n>b</span><span class=o>.</span><span class=n>x</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+                        <span class=k>del</span> <span class=n>archive_2</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span>
+                        <span class=k>break</span>
+    <span class=k>return</span> <span class=kc>True</span>
+
+
+<div class=viewcode-block id=validate_mo_archive_pruner>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.mo_archive_pruner.validate_mo_archive_pruner>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_mo_archive_pruner</span><span class=p>(</span>
+        <span class=n>pruner_factory</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>MOProblem</span><span class=p>],</span> <span class=n>MOArchivePruner</span><span class=p>],</span>
+        <span class=n>dimensions</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span><span class=p>],</span>
+        <span class=n>dtypes</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>]</span> <span class=o>=</span> <span class=n>DEFAULT_NUMERICAL</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether an object is a moptipy multi-objective optimization pruner.</span>
+
+<span class=sd>    This method checks whether the class is correct and whether the pruning</span>
+<span class=sd>    follows the general contract: Interesting records in the list to be pruned</span>
+<span class=sd>    are moved to the front, the ones to discard are moved to the back. No</span>
+<span class=sd>    record is lost and none is duplicated.</span>
+
+<span class=sd>    :param pruner_factory: the creator for the multi-objective archive pruner</span>
+<span class=sd>        to test</span>
+<span class=sd>    :param dimensions: the dimensions to simulate</span>
+<span class=sd>    :param dtypes: the dtypes to test on</span>
+<span class=sd>    :raises ValueError: if `mo_problem` is not a valid</span>
+<span class=sd>        :class:`~moptipy.api.mo_problem.MOProblem`</span>
+<span class=sd>    :raises TypeError: if values of the wrong types are encountered</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>pruner_factory</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>pruner_factory</span><span class=p>,</span> <span class=s2>"pruner_factory"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dimensions</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>dimensions</span><span class=p>,</span> <span class=s2>"dimensions"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dtypes</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>dtypes</span><span class=p>,</span> <span class=s2>"dtypes"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+
+    <span class=n>nothing</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+    <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>()</span>
+    <span class=k>for</span> <span class=n>dim</span> <span class=ow>in</span> <span class=n>dimensions</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dim</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>dim</span><span class=p>,</span> <span class=s2>"dimensions[i]"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+        <span class=n>nothing</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=k>for</span> <span class=n>dt</span> <span class=ow>in</span> <span class=n>dtypes</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dt</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>dt</span><span class=p>,</span> <span class=s2>"dt"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span>
+            <span class=k>while</span> <span class=ow>not</span> <span class=n>__run_single_test</span><span class=p>(</span><span class=n>pruner_factory</span><span class=p>,</span> <span class=n>random</span><span class=p>,</span> <span class=n>dim</span><span class=p>,</span> <span class=n>dt</span><span class=p>):</span>
+                <span class=k>pass</span>
+
+    <span class=k>if</span> <span class=n>nothing</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"dimensions are empty!"</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.mo_archive_pruner</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

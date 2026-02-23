@@ -1,0 +1,194 @@
+<!doctype html><html data-content_root=../../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.ffa.ffa_fitness — moptipy 0.9.172 documentation</title><link href="../../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/ffa/ffa_fitness.html rel=canonical><link href=../../../../../genindex.html rel=index title=Index><link href=../../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.ffa.ffa_fitness</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.ffa.ffa_fitness</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The Frequency Fitness Assignment (FFA) Process.</span>
+
+<span class=sd>Frequency Fitness Assignment (FFA) replaces all objective values with their</span>
+<span class=sd>encounter frequencies in the selection decisions. The more often an</span>
+<span class=sd>objective value is encountered, the higher gets its encounter frequency.</span>
+<span class=sd>Therefore, local optima are slowly receiving worse and worse fitness.</span>
+
+<span class=sd>Notice that this implementation of FFA has a slight twist to it:</span>
+<span class=sd>It will incorporate the iteration index</span>
+<span class=sd>(:attr:`~moptipy.algorithms.so.record.Record.it`) of the solutions</span>
+<span class=sd>into the fitness.</span>
+<span class=sd>This index is used to break ties, in which case newer solutions are preferred.</span>
+
+<span class=sd>This can make the EA with FFA compatible with the</span>
+<span class=sd>:class:`moptipy.algorithms.so.ffa.fea1plus1.FEA1plus1` if "best" selection</span>
+<span class=sd>(:class:`moptipy.algorithms.modules.selections.best.Best`) is used</span>
+<span class=sd>at mu=lambda=1.</span>
+<span class=sd>To facilitate this, there is one special case in the FFA fitness assignment:</span>
+<span class=sd>If the population consists of exactly 1 element at iteration index 0, then</span>
+<span class=sd>the frequency values are not updated.</span>
+
+<span class=sd>1. Thomas Weise, Zhize Wu, Xinlu Li, and Yan Chen. Frequency Fitness</span>
+<span class=sd>   Assignment: Making Optimization Algorithms Invariant under Bijective</span>
+<span class=sd>   Transformations of the Objective Function Value. *IEEE Transactions on</span>
+<span class=sd>   Evolutionary Computation* 25(2):307-319. April 2021. Preprint available at</span>
+<span class=sd>   arXiv:2001.01416v5 [cs.NE] 15 Oct 2020.</span>
+<span class=sd>   https://dx.doi.org/10.1109/TEVC.2020.3032090</span>
+<span class=sd>2. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency</span>
+<span class=sd>   Fitness Assignment: Optimization without Bias for Good Solutions can be</span>
+<span class=sd>   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.</span>
+<span class=sd>   27(4):980-992. August 2023.</span>
+<span class=sd>   doi: https://doi.org/10.1109/TEVC.2022.3191698</span>
+<span class=sd>3. Thomas Weise, Mingxu Wan, Ke Tang, Pu Wang, Alexandre Devert, and Xin</span>
+<span class=sd>   Yao. Frequency Fitness Assignment. *IEEE Transactions on Evolutionary</span>
+<span class=sd>   Computation (IEEE-EC),* 18(2):226-243, April 2014.</span>
+<span class=sd>   https://dx.doi.org/10.1109/TEVC.2013.2251885</span>
+<span class=sd>4. Thomas Weise, Yan Chen, Xinlu Li, and Zhize Wu. Selecting a diverse set of</span>
+<span class=sd>   benchmark instances from a tunable model problem for black-box discrete</span>
+<span class=sd>   optimization algorithms. *Applied Soft Computing Journal (ASOC),*</span>
+<span class=sd>   92:106269, June 2020. https://dx.doi.org/10.1016/j.asoc.2020.106269</span>
+<span class=sd>5. Thomas Weise, Xinlu Li, Yan Chen, and Zhize Wu. Solving Job Shop Scheduling</span>
+<span class=sd>   Problems Without Using a Bias for Good Solutions. In *Genetic and</span>
+<span class=sd>   Evolutionary Computation Conference Companion (GECCO'21 Companion),*</span>
+<span class=sd>   July 10-14, 2021, Lille, France. ACM, New York, NY, USA.</span>
+<span class=sd>   ISBN 978-1-4503-8351-6. https://dx.doi.org/10.1145/3449726.3463124</span>
+<span class=sd>6. Thomas Weise, Mingxu Wan, Ke Tang, and Xin Yao. Evolving Exact Integer</span>
+<span class=sd>   Algorithms with Genetic Programming. In *Proceedings of the IEEE Congress</span>
+<span class=sd>   on Evolutionary Computation (CEC'14), Proceedings of the 2014 World</span>
+<span class=sd>   Congress on Computational Intelligence (WCCI'14),* pages 1816-1823,</span>
+<span class=sd>   July 6-11, 2014, Beijing, China. Los Alamitos, CA, USA: IEEE Computer</span>
+<span class=sd>   Society Press. ISBN: 978-1-4799-1488-3.</span>
+<span class=sd>   https://dx.doi.org/10.1109/CEC.2014.6900292</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span><span class=p>,</span> <span class=n>type_name_of</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.ffa.ffa_h</span><span class=w> </span><span class=kn>import</span> <span class=n>clear_h</span><span class=p>,</span> <span class=n>create_h</span><span class=p>,</span> <span class=n>log_h</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.fitness</span><span class=w> </span><span class=kn>import</span> <span class=n>Fitness</span><span class=p>,</span> <span class=n>FRecord</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>Objective</span><span class=p>,</span> <span class=n>check_objective</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+
+<span class=c1>#: The lower bound at which we switch to an offset-based backing array for</span>
+<span class=c1>#: the frequency table H.</span>
+<span class=n>SWITCH_TO_OFFSET_LB</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>8_388_608</span>
+
+
+<div class=viewcode-block id=FFA>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.ffa.html#moptipy.algorithms.so.ffa.ffa_fitness.FFA>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>FFA</span><span class=p>(</span><span class=n>Fitness</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The frequency fitness assignment (FFA) process."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>f</span><span class=p>:</span> <span class=n>Objective</span><span class=p>,</span> <span class=n>log_h_tbl</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the frequency fitness assignment mapping.</span>
+
+<span class=sd>        :param f: the objective function</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>log_h_tbl</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>log_h_tbl</span><span class=p>,</span> <span class=s2>"log_h_tbl"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=n>check_objective</span><span class=p>(</span><span class=n>f</span><span class=p>)</span>
+        <span class=n>h</span><span class=p>,</span> <span class=n>ofs</span> <span class=o>=</span> <span class=n>create_h</span><span class=p>(</span><span class=n>f</span><span class=p>)</span>
+        <span class=c1>#: the internal H-table</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__h</span><span class=p>:</span> <span class=n>Final</span> <span class=o>=</span> <span class=n>h</span>
+        <span class=c1>#: the offset</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__ofs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>ofs</span>
+        <span class=c1>#: should we log the H-table?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__log_h_tbl</span> <span class=o>=</span> <span class=n>log_h_tbl</span>
+        <span class=c1>#: are we in the very first iteration?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__first</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name (`"ffa"`) of the FFA fitness assignment process.</span>
+
+<span class=sd>        :return: the name of this process: `ffa`</span>
+<span class=sd>        retval "ffa": always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"ffa"</span>
+
+<div class=viewcode-block id=FFA.log_information_after_run>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.ffa.html#moptipy.algorithms.so.ffa.ffa_fitness.FFA.log_information_after_run>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_information_after_run</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Write the H table."""</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__log_h_tbl</span><span class=p>:</span>
+            <span class=n>log_h</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__h</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__ofs</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=FFA.assign_fitness>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.ffa.html#moptipy.algorithms.so.ffa.ffa_fitness.FFA.assign_fitness>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>assign_fitness</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>p</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>FRecord</span><span class=p>],</span> <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Assign the frequency fitness.</span>
+
+<span class=sd>        :param p: the list of records</span>
+<span class=sd>        :param random: ignored</span>
+
+<span class=sd>        >>> from moptipy.examples.bitstrings.onemax import OneMax</span>
+<span class=sd>        >>> fit = FFA(OneMax(200))</span>
+<span class=sd>        >>> a = FRecord(None, 1)</span>
+<span class=sd>        >>> b = FRecord(None, 2)</span>
+<span class=sd>        >>> c = FRecord(None, 2)</span>
+<span class=sd>        >>> d = FRecord(None, 3)</span>
+<span class=sd>        >>> from numpy.random import default_rng</span>
+<span class=sd>        >>> rand = default_rng()</span>
+<span class=sd>        >>> fit.assign_fitness([a, b, c, d], rand)</span>
+<span class=sd>        >>> assert a.fitness == 1</span>
+<span class=sd>        >>> assert b.fitness == 2</span>
+<span class=sd>        >>> assert c.fitness == 2</span>
+<span class=sd>        >>> assert d.fitness == 1</span>
+<span class=sd>        >>> fit.assign_fitness([a, b, c, d], rand)</span>
+<span class=sd>        >>> assert a.fitness == 2</span>
+<span class=sd>        >>> assert b.fitness == 4</span>
+<span class=sd>        >>> assert c.fitness == 4</span>
+<span class=sd>        >>> assert d.fitness == 2</span>
+<span class=sd>        """</span>
+        <span class=n>h</span><span class=p>:</span> <span class=n>Final</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__h</span>
+        <span class=n>ofs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__ofs</span>
+
+        <span class=n>min_it</span> <span class=o>=</span> <span class=n>max_it</span> <span class=o>=</span> <span class=n>p</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>it</span>  <span class=c1># the minimum and maximum iteration index</span>
+        <span class=k>for</span> <span class=n>r</span> <span class=ow>in</span> <span class=n>p</span><span class=p>:</span>
+            <span class=n>it</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>r</span><span class=o>.</span><span class=n>it</span>  <span class=c1># get iteration index from record</span>
+            <span class=k>if</span> <span class=n>it</span> <span class=o><</span> <span class=n>min_it</span><span class=p>:</span>  <span class=c1># update minimum iteration index</span>
+                <span class=n>min_it</span> <span class=o>=</span> <span class=n>it</span>
+            <span class=k>elif</span> <span class=n>it</span> <span class=o>></span> <span class=n>max_it</span><span class=p>:</span>  <span class=c1># update maximum iteration index</span>
+                <span class=n>max_it</span> <span class=o>=</span> <span class=n>it</span>
+<span class=c1># Compatibility with (1+1) FEA: In first generation with a population size of</span>
+<span class=c1># 1, all elements get the same fitness zero. Otherwise, we would count the</span>
+<span class=c1># very first solution in the next fitness assignment step again.</span>
+<span class=c1># This creates a small incompatibility between FFA with mu=1 and FFA with m>1.</span>
+<span class=c1># This incompatibility is not nice, but it is the only way to ensure that the</span>
+<span class=c1># (1+1) FEA and the GeneralEA with EA and mu=1, lambda=1 are identical.</span>
+        <span class=n>first</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__first</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__first</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=k>if</span> <span class=n>first</span> <span class=ow>and</span> <span class=p>(</span><span class=n>max_it</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>p</span><span class=p>)</span> <span class=o><=</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=k>for</span> <span class=n>r</span> <span class=ow>in</span> <span class=n>p</span><span class=p>:</span>  <span class=c1># same fitness: 0</span>
+                <span class=n>r</span><span class=o>.</span><span class=n>fitness</span> <span class=o>=</span> <span class=mi>0</span>
+            <span class=k>return</span>
+        <span class=k>for</span> <span class=n>r</span> <span class=ow>in</span> <span class=n>p</span><span class=p>:</span>
+            <span class=n>h</span><span class=p>[</span><span class=n>r</span><span class=o>.</span><span class=n>f</span> <span class=o>+</span> <span class=n>ofs</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># type: ignore</span>
+        <span class=n>it_range</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>max_it</span> <span class=o>-</span> <span class=n>min_it</span> <span class=o>+</span> <span class=mi>1</span>  <span class=c1># range of it index</span>
+        <span class=k>for</span> <span class=n>r</span> <span class=ow>in</span> <span class=n>p</span><span class=p>:</span>
+            <span class=n>r</span><span class=o>.</span><span class=n>fitness</span> <span class=o>=</span> <span class=p>((</span><span class=nb>int</span><span class=p>(</span><span class=n>h</span><span class=p>[</span><span class=n>r</span><span class=o>.</span><span class=n>f</span> <span class=o>+</span> <span class=n>ofs</span><span class=p>])</span> <span class=o>*</span> <span class=n>it_range</span><span class=p>)</span>  <span class=c1># type: ignore</span>
+                         <span class=o>+</span> <span class=n>max_it</span> <span class=o>-</span> <span class=n>r</span><span class=o>.</span><span class=n>it</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=FFA.log_parameters_to>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.ffa.html#moptipy.algorithms.so.ffa.ffa_fitness.FFA.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log all parameters of this component as key-value pairs.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"ofs"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__ofs</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"hType"</span><span class=p>,</span> <span class=n>type_name_of</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__h</span><span class=p>))</span></div>
+
+
+<div class=viewcode-block id=FFA.initialize>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.ffa.html#moptipy.algorithms.so.ffa.ffa_fitness.FFA.initialize>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>initialize</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Initialize the algorithm."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+        <span class=n>clear_h</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__h</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__first</span> <span class=o>=</span> <span class=kc>True</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.ffa.ffa_fitness</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

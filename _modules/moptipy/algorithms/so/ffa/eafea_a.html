@@ -1,0 +1,111 @@
+<!doctype html><html data-content_root=../../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.ffa.eafea_a — moptipy 0.9.172 documentation</title><link href="../../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/ffa/eafea_a.html rel=canonical><link href=../../../../../genindex.html rel=index title=Index><link href=../../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.ffa.eafea_a</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.ffa.eafea_a</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The EAFEA-A is hybrid of the (1+1)FEA and the (1+1)EA with Solution Transfer.</span>
+
+<span class=sd>The algorithm combines frequency fitness assignment based local search, i.e.,</span>
+<span class=sd>the FEA, with randomized local search (RLS, also called (1+1) EA in some</span>
+<span class=sd>contexts). Both algorithms get assigned alternating objective function</span>
+<span class=sd>evaluations (FEs). The FEA branch remains unchanged, it is never disturbed and</span>
+<span class=sd>no information flows from the RLS branch over to it. However, solutions are</span>
+<span class=sd>copied from time to time from the FEA branch to the RLS branch. The solution</span>
+<span class=sd>is transferred from the FEA branch to the EA branch if its H-value is 1, i.e.,</span>
+<span class=sd>if it represents a completely new objective value.</span>
+
+<span class=sd>1. Tianyu Liang, Zhize Wu, Jörg Lässig, Daan van den Berg, Sarah Louise</span>
+<span class=sd>   Thomson, and Thomas Weise. Addressing the Traveling Salesperson Problem</span>
+<span class=sd>   with Frequency Fitness Assignment and Hybrid Algorithms. *Soft Computing.*</span>
+<span class=sd>   2024. https://dx.doi.org/10.1007/s00500-024-09718-8</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>collections</span><span class=w> </span><span class=kn>import</span> <span class=n>Counter</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.ffa.ffa_h</span><span class=w> </span><span class=kn>import</span> <span class=n>create_h</span><span class=p>,</span> <span class=n>log_h</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm1</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>Op1</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+
+
+<div class=viewcode-block id=EAFEAA>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.ffa.html#moptipy.algorithms.so.ffa.eafea_a.EAFEAA>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>EAFEAA</span><span class=p>(</span><span class=n>Algorithm1</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""An implementation of the EAFEA-A."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>:</span> <span class=n>Op1</span><span class=p>,</span> <span class=n>log_h_tbl</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the EAFEA-A.</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param op1: the unary search operator</span>
+<span class=sd>        :param log_h_tbl: should we log the H table?</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=s2>"eafeaA"</span><span class=p>,</span> <span class=n>op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>log_h_tbl</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>log_h_tbl</span><span class=p>,</span> <span class=s2>"log_h_tbl"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=c1>#: True if we should log the H table, False otherwise</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__log_h_tbl</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>log_h_tbl</span>
+
+<div class=viewcode-block id=EAFEAA.solve>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.ffa.html#moptipy.algorithms.so.ffa.eafea_a.EAFEAA.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the EAFEA-A to an optimization problem.</span>
+
+<span class=sd>        :param process: the black-box process object</span>
+<span class=sd>        """</span>
+        <span class=c1># Create records for old and new point in the search space.</span>
+        <span class=n>x_c</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>  <span class=c1># record for current solution of the EA</span>
+        <span class=n>x_d</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>  <span class=c1># record for current solution of the FEA</span>
+        <span class=n>x_n</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>  <span class=c1># record for new solution</span>
+
+        <span class=c1># Obtain the random number generator.</span>
+        <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>()</span>
+
+        <span class=c1># Put function references in variables to save time.</span>
+        <span class=n>evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>evaluate</span>  <span class=c1># the objective</span>
+        <span class=n>should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>
+        <span class=n>xcopy</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>copy</span>  <span class=c1># copy(dest, source)</span>
+        <span class=n>op0</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op0</span><span class=o>.</span><span class=n>op0</span>  <span class=c1># the nullary operator</span>
+        <span class=n>op1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op1</span><span class=o>.</span><span class=n>op1</span>  <span class=c1># the unary operator</span>
+
+        <span class=n>h</span><span class=p>,</span> <span class=n>ofs</span> <span class=o>=</span> <span class=n>create_h</span><span class=p>(</span><span class=n>process</span><span class=p>)</span>  <span class=c1># Allocate the h-table</span>
+
+        <span class=c1># Start at a random point in the search space and evaluate it.</span>
+        <span class=n>op0</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>x_c</span><span class=p>)</span>  <span class=c1># Create 1 solution randomly and</span>
+        <span class=n>y_c</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>x_c</span><span class=p>)</span> <span class=o>+</span> <span class=n>ofs</span>  <span class=c1># evaluate it.</span>
+        <span class=n>xcopy</span><span class=p>(</span><span class=n>x_d</span><span class=p>,</span> <span class=n>x_c</span><span class=p>)</span>
+        <span class=n>y_d</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>y_c</span>
+        <span class=n>use_ffa</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+
+        <span class=k>while</span> <span class=ow>not</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># Until we need to quit...</span>
+            <span class=n>use_ffa</span> <span class=o>=</span> <span class=ow>not</span> <span class=n>use_ffa</span>  <span class=c1># toggle use of FFA</span>
+            <span class=n>op1</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>x_n</span><span class=p>,</span> <span class=n>x_d</span> <span class=k>if</span> <span class=n>use_ffa</span> <span class=k>else</span> <span class=n>x_c</span><span class=p>)</span>
+            <span class=n>y_n</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>x_n</span><span class=p>)</span> <span class=o>+</span> <span class=n>ofs</span>
+
+            <span class=k>if</span> <span class=n>use_ffa</span><span class=p>:</span>  <span class=c1># the FEA branch</span>
+                <span class=n>h</span><span class=p>[</span><span class=n>y_n</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># type: ignore  # Increase the frequency</span>
+                <span class=n>h</span><span class=p>[</span><span class=n>y_d</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># type: ignore  # of new_f and cur_f.</span>
+                <span class=n>h_n</span> <span class=o>=</span> <span class=n>h</span><span class=p>[</span><span class=n>y_n</span><span class=p>]</span>  <span class=c1># type: ignore</span>
+                <span class=k>if</span> <span class=n>h_n</span> <span class=o><=</span> <span class=n>h</span><span class=p>[</span><span class=n>y_d</span><span class=p>]:</span>  <span class=c1># type: ignore</span>
+                    <span class=n>y_d</span> <span class=o>=</span> <span class=n>y_n</span>  <span class=c1># Store its objective value.</span>
+                    <span class=n>x_d</span><span class=p>,</span> <span class=n>x_n</span> <span class=o>=</span> <span class=n>x_n</span><span class=p>,</span> <span class=n>x_d</span>  <span class=c1># Swap best and new.</span>
+                    <span class=k>if</span> <span class=n>h_n</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>  <span class=c1># if solution is new, then transfer it to</span>
+                        <span class=n>xcopy</span><span class=p>(</span><span class=n>x_c</span><span class=p>,</span> <span class=n>x_d</span><span class=p>)</span>  <span class=c1># the EA/RLS branch</span>
+            <span class=k>elif</span> <span class=n>y_n</span> <span class=o><=</span> <span class=n>y_c</span><span class=p>:</span>  <span class=c1># the EA/RLS branch</span>
+                <span class=n>y_c</span> <span class=o>=</span> <span class=n>y_n</span>
+                <span class=n>x_c</span><span class=p>,</span> <span class=n>x_n</span> <span class=o>=</span> <span class=n>x_n</span><span class=p>,</span> <span class=n>x_c</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=bp>self</span><span class=o>.</span><span class=n>__log_h_tbl</span><span class=p>:</span>
+            <span class=k>return</span>  <span class=c1># we are done here</span>
+
+        <span class=c1># After we are done, we want to print the H-table.</span>
+        <span class=k>if</span> <span class=n>h</span><span class=p>[</span><span class=n>y_c</span><span class=p>]</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>  <span class=c1># type: ignore  # Fix the H-table for the case</span>
+            <span class=n>h</span> <span class=o>=</span> <span class=n>Counter</span><span class=p>()</span>   <span class=c1># that only one FE was performed: In this case,</span>
+            <span class=n>h</span><span class=p>[</span><span class=n>y_c</span><span class=p>]</span> <span class=o>=</span> <span class=mi>1</span>  <span class=c1># make Counter with only a single 1 value inside.</span>
+
+        <span class=n>log_h</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=n>h</span><span class=p>,</span> <span class=n>ofs</span><span class=p>)</span>  <span class=c1># log the H-table</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.ffa.eafea_a</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

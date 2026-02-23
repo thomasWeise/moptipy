@@ -1,0 +1,648 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.log_parser — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/log_parser.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.log_parser</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.log_parser</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Parsers for structured log data produced by the `moptipy` experiment API.</span>
+
+<span class=sd>The `moptipy` :class:`~moptipy.api.execution.Execution` and experiment-running</span>
+<span class=sd>facility (:func:`~moptipy.api.experiment.run_experiment`) uses the class</span>
+<span class=sd>:class:`~moptipy.utils.logger.Logger` from module :mod:`~moptipy.utils.logger`</span>
+<span class=sd>to produce log files complying with</span>
+<span class=sd>https://thomasweise.github.io/moptipy/#log-files.</span>
+
+<span class=sd>Here we provide a skeleton for parsing such log files in form of the class</span>
+<span class=sd>:class:`~LogParser`. It works similar to SAX-XML parsing in that the data</span>
+<span class=sd>is read is from files and methods that consume the data are invoked. By</span>
+<span class=sd>overwriting these methods, we can do useful things with the data.</span>
+
+<span class=sd>For example in module :mod:`~moptipy.evaluation.end_results`, the method</span>
+<span class=sd>:meth:`~moptipy.evaluation.end_results.from_logs` can load</span>
+<span class=sd>:class:`~moptipy.evaluation.end_results.EndResult` records from the logs</span>
+<span class=sd>and the method :meth:`~moptipy.evaluation.progress.from_logs` in</span>
+<span class=sd>module :mod:`~moptipy.evaluation.progress` reads the whole</span>
+<span class=sd>:class:`~moptipy.evaluation.progress.Progress` that the algorithms make</span>
+<span class=sd>over time.</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>contextlib</span><span class=w> </span><span class=kn>import</span> <span class=n>suppress</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isfinite</span><span class=p>,</span> <span class=n>isinf</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>TypeVar</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.csv</span><span class=w> </span><span class=kn>import</span> <span class=n>COMMENT_START</span><span class=p>,</span> <span class=n>SCOPE_SEPARATOR</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.parser</span><span class=w> </span><span class=kn>import</span> <span class=n>Parser</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.strings.string_conv</span><span class=w> </span><span class=kn>import</span> <span class=n>str_to_num</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_to_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>ERROR_SECTION_PREFIX</span><span class=p>,</span>
+    <span class=n>FILE_SUFFIX</span><span class=p>,</span>
+    <span class=n>KEY_BEST_F</span><span class=p>,</span>
+    <span class=n>KEY_GOAL_F</span><span class=p>,</span>
+    <span class=n>KEY_LAST_IMPROVEMENT_FE</span><span class=p>,</span>
+    <span class=n>KEY_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=p>,</span>
+    <span class=n>KEY_MAX_FES</span><span class=p>,</span>
+    <span class=n>KEY_MAX_TIME_MILLIS</span><span class=p>,</span>
+    <span class=n>KEY_NAME</span><span class=p>,</span>
+    <span class=n>KEY_RAND_SEED</span><span class=p>,</span>
+    <span class=n>KEY_TOTAL_FES</span><span class=p>,</span>
+    <span class=n>KEY_TOTAL_TIME_MILLIS</span><span class=p>,</span>
+    <span class=n>SCOPE_ALGORITHM</span><span class=p>,</span>
+    <span class=n>SCOPE_ENCODING</span><span class=p>,</span>
+    <span class=n>SCOPE_OBJECTIVE_FUNCTION</span><span class=p>,</span>
+    <span class=n>SCOPE_PROCESS</span><span class=p>,</span>
+    <span class=n>SECTION_FINAL_STATE</span><span class=p>,</span>
+    <span class=n>SECTION_SETUP</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation._utils</span><span class=w> </span><span class=kn>import</span> <span class=n>_check_max_time_millis</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>SECTION_END</span><span class=p>,</span>
+    <span class=n>SECTION_START</span><span class=p>,</span>
+    <span class=n>parse_key_values</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>rand_seed_check</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>PART_SEPARATOR</span><span class=p>,</span>
+    <span class=n>sanitize_name</span><span class=p>,</span>
+<span class=p>)</span>
+
+<span class=c1>#: the maximum FEs of a black-box process</span>
+<span class=n>_FULL_KEY_MAX_FES</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> \
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SCOPE_PROCESS</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_MAX_FES</span><span class=si>}</span><span class=s2>"</span>
+<span class=c1>#: the maximum runtime in milliseconds of a black-box process</span>
+<span class=n>_FULL_KEY_MAX_TIME_MILLIS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> \
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SCOPE_PROCESS</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_MAX_TIME_MILLIS</span><span class=si>}</span><span class=s2>"</span>
+<span class=c1>#: the goal objective value of a black-box process</span>
+<span class=n>_FULL_KEY_GOAL_F</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SCOPE_PROCESS</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_GOAL_F</span><span class=si>}</span><span class=s2>"</span>
+<span class=c1>#: the random seed</span>
+<span class=n>_FULL_KEY_RAND_SEED</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> \
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SCOPE_PROCESS</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_RAND_SEED</span><span class=si>}</span><span class=s2>"</span>
+<span class=c1>#: the full algorithm name key</span>
+<span class=n>_FULL_KEY_ALGORITHM</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> \
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SCOPE_ALGORITHM</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_NAME</span><span class=si>}</span><span class=s2>"</span>
+<span class=c1>#: the full objective function name key</span>
+<span class=n>_FULL_KEY_OBJECTIVE</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> \
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SCOPE_OBJECTIVE_FUNCTION</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_NAME</span><span class=si>}</span><span class=s2>"</span>
+<span class=c1>#: the full encoding name key</span>
+<span class=n>_FULL_KEY_ENCODING</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> \
+    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SCOPE_ENCODING</span><span class=si>}{</span><span class=n>SCOPE_SEPARATOR</span><span class=si>}{</span><span class=n>KEY_NAME</span><span class=si>}</span><span class=s2>"</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>_true</span><span class=p>(</span><span class=n>_</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get `True` as return value, always.</span>
+
+<span class=sd>    :retval `True`: always</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=kc>True</span>
+
+
+<span class=c1>#: the type variable for data to be read from the directories</span>
+<span class=n>T</span> <span class=o>=</span> <span class=n>TypeVar</span><span class=p>(</span><span class=s2>"T"</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=LogParser>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.log_parser.LogParser>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>LogParser</span><span class=p>[</span><span class=n>T</span><span class=p>](</span><span class=n>Parser</span><span class=p>[</span><span class=n>T</span><span class=p>]):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A log parser can parse a log file and separate the sections.</span>
+
+<span class=sd>    The log parser is designed to load data from text files generated</span>
+<span class=sd>    by :class:`~moptipy.utils.logger.FileLogger`. It can also recursively</span>
+<span class=sd>    parse directories.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>path_filter</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Path</span><span class=p>],</span> <span class=nb>bool</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the log parser.</span>
+
+<span class=sd>        :param path_filter: a filter allowing us to skip paths or files. If</span>
+<span class=sd>            this :class:`Callable` returns `True`, the file or directory is</span>
+<span class=sd>            considered for parsing. If it returns `False`, it is skipped.</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=n>path_filter</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>path_filter</span> <span class=o>=</span> <span class=n>_true</span>
+        <span class=k>elif</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>path_filter</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>path_filter</span><span class=p>,</span> <span class=s2>"path_filter"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=c1>#: the current depth in terms of directories</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__depth</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=c1>#: the path filter</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__path_filter</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=n>Path</span><span class=p>],</span> <span class=nb>bool</span><span class=p>]]</span> <span class=o>=</span> <span class=n>path_filter</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_should_list_directory</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>directory</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>bool</span><span class=p>,</span> <span class=nb>bool</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Decide whether to enter a directory to parse all files inside.</span>
+
+<span class=sd>        :param directory: the path of the directory</span>
+<span class=sd>        :return: a tuple with two `True` values if all the sub-directories and</span>
+<span class=sd>            files inside the directory should be processed, two `False` values</span>
+<span class=sd>            if this directory should be skipped and parsing should continue</span>
+<span class=sd>            with the next sibling directory</span>
+<span class=sd>        """</span>
+        <span class=n>should</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__path_filter</span><span class=p>(</span><span class=n>directory</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>should</span><span class=p>,</span> <span class=n>should</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_should_parse_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Decide whether to start parsing a file.</span>
+
+<span class=sd>        :param file: the file path</span>
+<span class=sd>        :return: `True` if the file should be parsed, `False` if it should be</span>
+<span class=sd>            skipped (and</span>
+<span class=sd>            :meth:`~moptipy.evaluation.log_parser.LogParser.parse_file` should</span>
+<span class=sd>            return `True`).</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>file</span><span class=o>.</span><span class=n>endswith</span><span class=p>(</span><span class=n>FILE_SUFFIX</span><span class=p>)</span> <span class=ow>and</span> <span class=bp>self</span><span class=o>.</span><span class=n>__path_filter</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+
+    <span class=c1># noinspection PyMethodMayBeStatic</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>_start_section</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>title</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Start a section.</span>
+
+<span class=sd>        If this method returns `True`, then all the lines of text of the</span>
+<span class=sd>        section `title` will be read and together passed to</span>
+<span class=sd>        :meth:`~moptipy.evaluation.log_parser.LogParser.lines`.</span>
+<span class=sd>        If this method returns `False`, then the section will be skipped</span>
+<span class=sd>        and we fast-forward to the next section, if any.</span>
+
+<span class=sd>        :param title: the section title</span>
+<span class=sd>        :return: `True` if the section data should be loaded and passed to</span>
+<span class=sd>            :meth:`lines`, `False` of the section can be skipped. In that</span>
+<span class=sd>            case, we will fast-forward to the next</span>
+<span class=sd>            :meth:`~moptipy.evaluation.log_parser.LogParser.start_section`.</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>title</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Title cannot be empty, but is </span><span class=si>{</span><span class=n>title</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>title</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=n>ERROR_SECTION_PREFIX</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Encountered error section </span><span class=si>{</span><span class=n>title</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>return</span> <span class=kc>False</span>
+
+    <span class=c1># noinspection PyUnusedLocal</span>
+    <span class=c1># noinspection PyMethodMayBeStatic</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>_lines</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>lines</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Consume all the lines from a section.</span>
+
+<span class=sd>        This method receives the complete text of a section, where all lines</span>
+<span class=sd>        are separated and put into one list `lines`. Each line is stripped</span>
+<span class=sd>        from whitespace and comments, empty lines are omitted.</span>
+<span class=sd>        If this method returns `True`, we will continue parsing the file and</span>
+<span class=sd>        move to the next section, if any, or directly to the end of the file</span>
+<span class=sd>        parsing process.</span>
+
+<span class=sd>        :param lines: the lines to consume</span>
+<span class=sd>        :return: `True` if further parsing is necessary and the next section</span>
+<span class=sd>            should be fed to</span>
+<span class=sd>            :meth:`~moptipy.evaluation.log_parser.LogParser.start_section`,</span>
+<span class=sd>            `False` if the parsing process can be terminated`</span>
+<span class=sd>        """</span>
+        <span class=k>del</span> <span class=n>lines</span>
+        <span class=k>return</span> <span class=kc>True</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_parse_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=n>T</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># pylint: disable=R1711</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Parse the contents of a file.</span>
+
+<span class=sd>        :param file: the file to parse</span>
+<span class=sd>        :return: the return value received from invoking `get_result`</span>
+<span class=sd>        """</span>
+        <span class=n>lines</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>buffer</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>state</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=n>wants_section</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=n>sec_end</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>""</span>
+        <span class=n>section</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>""</span>
+        <span class=n>sect_start</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>SECTION_START</span>
+        <span class=n>sect_end</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>SECTION_END</span>
+        <span class=n>cmt_chr</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>COMMENT_START</span>
+
+        <span class=n>index</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>with</span> <span class=p>(</span><span class=n>file</span><span class=o>.</span><span class=n>open_for_read</span><span class=p>()</span> <span class=k>as</span> <span class=n>handle</span><span class=p>):</span>
+            <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+
+                <span class=c1># get the next line</span>
+                <span class=k>if</span> <span class=n>index</span> <span class=o>>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>buffer</span><span class=p>):</span>
+                    <span class=k>try</span><span class=p>:</span>
+                        <span class=n>buffer</span> <span class=o>=</span> <span class=n>handle</span><span class=o>.</span><span class=n>readlines</span><span class=p>(</span><span class=mi>128</span><span class=p>)</span>
+                    <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>be</span><span class=p>:</span>
+                        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                            <span class=sa>f</span><span class=s2>"Error when reading lines from file </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2> "</span>
+                            <span class=sa>f</span><span class=s2>"while in section </span><span class=si>{</span><span class=n>section</span><span class=si>!r}</span><span class=s2>."</span>
+                            <span class=k>if</span> <span class=n>state</span> <span class=o>==</span> <span class=mi>1</span> <span class=k>else</span>
+                            <span class=s2>"Error when reading lines from file "</span>
+                            <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span> <span class=kn>from</span><span class=w> </span><span class=nn>be</span>
+                    <span class=k>if</span> <span class=p>(</span><span class=n>buffer</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>buffer</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>):</span>
+                        <span class=k>break</span>
+                    <span class=n>index</span> <span class=o>=</span> <span class=mi>0</span>
+
+                <span class=n>orig_cur</span> <span class=o>=</span> <span class=n>buffer</span><span class=p>[</span><span class=n>index</span><span class=p>]</span>
+                <span class=n>index</span> <span class=o>+=</span> <span class=mi>1</span>
+
+                <span class=c1># strip next line from comments and white space</span>
+                <span class=n>cur</span> <span class=o>=</span> <span class=n>orig_cur</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+                <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>cur</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>continue</span>
+
+                <span class=n>i</span> <span class=o>=</span> <span class=n>cur</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>cmt_chr</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>i</span> <span class=o>>=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>cur</span> <span class=o>=</span> <span class=n>cur</span><span class=p>[:</span><span class=n>i</span><span class=p>]</span><span class=o>.</span><span class=n>strip</span><span class=p>()</span>
+                    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>cur</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                        <span class=k>continue</span>
+
+                <span class=k>if</span> <span class=n>state</span> <span class=ow>in</span> <span class=p>{</span><span class=mi>0</span><span class=p>,</span> <span class=mi>2</span><span class=p>}:</span>
+                    <span class=k>if</span> <span class=ow>not</span> <span class=n>cur</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=n>sect_start</span><span class=p>):</span>
+                        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Line should start with "</span>
+                                         <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>sect_start</span><span class=si>!r}</span><span class=s2> but is "</span>
+                                         <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>orig_cur</span><span class=si>!r}</span><span class=s2> in file </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+                    <span class=n>section</span> <span class=o>=</span> <span class=n>cur</span><span class=p>[</span><span class=nb>len</span><span class=p>(</span><span class=n>sect_start</span><span class=p>):]</span>
+                    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>section</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                            <span class=s2>"Section title cannot be empty in "</span>
+                            <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2>, but encountered </span><span class=si>{</span><span class=n>orig_cur</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+                    <span class=n>state</span> <span class=o>=</span> <span class=mi>1</span>
+                    <span class=n>sec_end</span> <span class=o>=</span> <span class=n>sect_end</span> <span class=o>+</span> <span class=n>section</span>
+                    <span class=n>wants_section</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_start_section</span><span class=p>(</span><span class=n>section</span><span class=p>)</span>
+                <span class=k>elif</span> <span class=n>state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                    <span class=k>if</span> <span class=n>cur</span> <span class=o>==</span> <span class=n>sec_end</span><span class=p>:</span>
+                        <span class=n>state</span> <span class=o>=</span> <span class=mi>2</span>
+                        <span class=k>if</span> <span class=n>wants_section</span><span class=p>:</span>
+                            <span class=k>try</span><span class=p>:</span>
+                                <span class=n>do_next</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_lines</span><span class=p>(</span><span class=n>lines</span><span class=p>)</span>
+                            <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>be</span><span class=p>:</span>
+                                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                                    <span class=s2>"Error when processing section "</span>
+                                    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>section</span><span class=si>!r}</span><span class=s2> in file </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span> \
+                                    <span class=kn>from</span><span class=w> </span><span class=nn>be</span>
+                            <span class=n>lines</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+                            <span class=k>if</span> <span class=ow>not</span> <span class=n>do_next</span><span class=p>:</span>
+                                <span class=k>break</span>
+                    <span class=k>elif</span> <span class=n>wants_section</span><span class=p>:</span>
+                        <span class=n>lines</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>cur</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>state</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Log file </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2> contains no section."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Log file </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2> ended before"</span>
+                             <span class=sa>f</span><span class=s2>"encountering </span><span class=si>{</span><span class=n>sec_end</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>return</span> <span class=kc>None</span>  <span class=c1># pylint: disable=R1711</span></div>
+
+
+
+<span class=c1>#: the start for random seeds</span>
+<span class=n>_SEED_START</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>PART_SEPARATOR</span><span class=si>}</span><span class=s2>0x"</span>
+
+
+<div class=viewcode-block id=ExperimentParser>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.log_parser.ExperimentParser>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>ExperimentParser</span><span class=p>[</span><span class=n>T</span><span class=p>](</span><span class=n>LogParser</span><span class=p>[</span><span class=n>T</span><span class=p>]):</span>
+<span class=w>    </span><span class=sd>"""A log parser following our pre-defined experiment structure."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>path_filter</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Path</span><span class=p>],</span> <span class=nb>bool</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the experiment parser.</span>
+
+<span class=sd>        :param path_filter: a filter allowing us to skip paths or files. If</span>
+<span class=sd>            this :class:`Callable` returns `True`, the file or directory is</span>
+<span class=sd>            considered for parsing. If it returns `False`, it is skipped.</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>path_filter</span><span class=p>)</span>
+
+        <span class=c1>#: The name of the algorithm to which the current log file belongs.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: The name of the instance to which the current log file belongs.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: The random seed of the current log file.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>rand_seed</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: the file basename</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__file_base_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_start_parse_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Start parsing the file.</span>
+
+<span class=sd>        This function sets up best guesses about the instance name, the</span>
+<span class=sd>        algorithm name, and the random seed based on the file name.</span>
+
+<span class=sd>        :param file: the file to parse</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_start_parse_file</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+        <span class=n>inst_name_suggestion</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>algo_name_suggestion</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=k>with</span> <span class=p>(</span><span class=n>suppress</span><span class=p>(</span><span class=ne>Exception</span><span class=p>)):</span>
+            <span class=n>inst_dir</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>file</span><span class=o>.</span><span class=n>up</span><span class=p>()</span>
+            <span class=n>inst_name_suggestion</span> <span class=o>=</span> <span class=n>inst_dir</span><span class=o>.</span><span class=n>basename</span><span class=p>()</span>
+            <span class=k>if</span> <span class=n>sanitize_name</span><span class=p>(</span><span class=n>inst_name_suggestion</span><span class=p>)</span> <span class=o>!=</span> <span class=n>inst_name_suggestion</span><span class=p>:</span>
+                <span class=n>inst_name_suggestion</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>algo_dir</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>inst_dir</span><span class=o>.</span><span class=n>up</span><span class=p>()</span>
+                <span class=n>algo_name_suggestion</span> <span class=o>=</span> <span class=n>algo_dir</span><span class=o>.</span><span class=n>basename</span><span class=p>()</span>
+                <span class=k>if</span> <span class=n>sanitize_name</span><span class=p>(</span><span class=n>algo_name_suggestion</span><span class=p>)</span> \
+                        <span class=o>!=</span> <span class=n>algo_name_suggestion</span><span class=p>:</span>
+                    <span class=n>algo_name_suggestion</span> <span class=o>=</span> <span class=kc>None</span>
+
+        <span class=n>fbn</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>file</span><span class=o>.</span><span class=n>basename</span><span class=p>()</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__file_base_name</span> <span class=o>=</span> <span class=n>fbn</span>
+
+        <span class=n>seed_start</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>fbn</span><span class=o>.</span><span class=n>rfind</span><span class=p>(</span><span class=n>_SEED_START</span><span class=p>)</span>
+        <span class=n>seed_end</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>fbn</span><span class=p>)</span> <span class=o>-</span> <span class=nb>len</span><span class=p>(</span><span class=n>FILE_SUFFIX</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>seed_start</span> <span class=o>></span> <span class=mi>0</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>seed_end</span> <span class=o>></span> <span class=p>(</span><span class=n>seed_start</span> <span class=o>+</span> <span class=mi>3</span><span class=p>)):</span>
+            <span class=k>try</span><span class=p>:</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>rand_seed</span> <span class=o>=</span> <span class=n>rand_seed_check</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span>
+                    <span class=n>fbn</span><span class=p>[</span><span class=n>seed_start</span> <span class=o>+</span> <span class=mi>3</span><span class=p>:</span><span class=n>seed_end</span><span class=p>],</span> <span class=n>base</span><span class=o>=</span><span class=mi>16</span><span class=p>))</span>
+            <span class=k>except</span> <span class=ne>Exception</span><span class=p>:</span>  <span class=c1># noqa</span>
+                <span class=n>seed_start</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>seed_start</span> <span class=o>></span> <span class=mi>0</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>inst_name_suggestion</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>algo_name_suggestion</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>start</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>algo_name_suggestion</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}</span><span class=s2>"</span>
+                              <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>inst_name_suggestion</span><span class=si>}{</span><span class=n>_SEED_START</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>fbn</span><span class=o>.</span><span class=n>casefold</span><span class=p>()</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=n>start</span><span class=o>.</span><span class=n>casefold</span><span class=p>()):</span>
+                    <span class=bp>self</span><span class=o>.</span><span class=n>instance</span> <span class=o>=</span> <span class=n>inst_name_suggestion</span>
+                    <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span> <span class=o>=</span> <span class=n>algo_name_suggestion</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>start</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>PART_SEPARATOR</span><span class=si>}{</span><span class=n>inst_name_suggestion</span><span class=si>}{</span><span class=n>_SEED_START</span><span class=si>}</span><span class=s2>"</span>
+                <span class=k>if</span> <span class=n>start</span><span class=o>.</span><span class=n>casefold</span><span class=p>()</span> <span class=ow>in</span> <span class=n>fbn</span><span class=o>.</span><span class=n>casefold</span><span class=p>():</span>
+                    <span class=bp>self</span><span class=o>.</span><span class=n>instance</span> <span class=o>=</span> <span class=n>inst_name_suggestion</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_parse_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=n>T</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Parse the file contents.</span>
+
+<span class=sd>        :param file: the file to parse</span>
+<span class=sd>        :returns: nothing</span>
+<span class=sd>        """</span>
+        <span class=n>res</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>T</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_parse_file</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>rand_seed</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>instance</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>):</span>
+            <span class=n>bn</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__file_base_name</span>
+            <span class=n>alcf</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span><span class=o>.</span><span class=n>casefold</span><span class=p>()</span><span class=si>}{</span><span class=n>PART_SEPARATOR</span><span class=si>}</span><span class=s2>"</span>
+            <span class=k>if</span> <span class=n>bn</span><span class=o>.</span><span class=n>casefold</span><span class=p>()</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=n>alcf</span><span class=p>):</span>
+                <span class=n>inst_end</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>bn</span><span class=o>.</span><span class=n>rfind</span><span class=p>(</span><span class=n>_SEED_START</span><span class=p>)</span>
+                <span class=n>anl</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>alcf</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>inst_end</span> <span class=o>></span> <span class=n>anl</span><span class=p>:</span>
+                    <span class=n>inst</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>bn</span><span class=p>[</span><span class=n>anl</span><span class=p>:</span><span class=n>inst_end</span><span class=p>]</span>
+                    <span class=k>if</span> <span class=n>sanitize_name</span><span class=p>(</span><span class=n>inst</span><span class=p>)</span> <span class=o>==</span> <span class=n>inst</span><span class=p>:</span>
+                        <span class=bp>self</span><span class=o>.</span><span class=n>instance</span> <span class=o>=</span> <span class=n>inst</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>instance</span> <span class=o>=</span> <span class=s2>"unknown"</span>
+
+        <span class=k>return</span> <span class=n>res</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_end_parse_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Finalize parsing a file.</span>
+
+<span class=sd>        :param file: the file</span>
+<span class=sd>        """</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>rand_seed</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>instance</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__file_base_name</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_end_parse_file</span><span class=p>(</span><span class=n>file</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=SetupAndStateParser>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.log_parser.SetupAndStateParser>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>SetupAndStateParser</span><span class=p>[</span><span class=n>T</span><span class=p>](</span><span class=n>ExperimentParser</span><span class=p>[</span><span class=n>T</span><span class=p>]):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A log parser which loads and processes the basic data from the logs.</span>
+
+<span class=sd>    This parser processes the `SETUP` and `STATE` sections of a log file and</span>
+<span class=sd>    stores the performance-related information in member variables.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>path_filter</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Path</span><span class=p>],</span> <span class=nb>bool</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the basic data parser.</span>
+
+<span class=sd>        :param path_filter: a filter allowing us to skip paths or files. If</span>
+<span class=sd>            this :class:`Callable` returns `True`, the file or directory is</span>
+<span class=sd>            considered for parsing. If it returns `False`, it is skipped.</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>path_filter</span><span class=p>)</span>
+        <span class=c1>#: the total consumed runtime, in objective function evaluations</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>total_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: the total consumed runtime in milliseconds</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>total_time_millis</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: the best objective function value encountered</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>best_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: the objective function evaluation when the last improvement</span>
+        <span class=c1>#: happened, in milliseconds</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>last_improvement_fe</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: the time step when the last improvement happened, in milliseconds</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>last_improvement_time_millis</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: the goal objective value, if any</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: the maximum permitted number of objective function evaluations,</span>
+        <span class=c1>#: if any</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: the maximum runtime limit in milliseconds, if any</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>max_time_millis</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: The name of the objective to which the current log file belongs.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>objective</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: The name of the encoding to which the current log file belongs.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>encoding</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: the internal state, an OR mask: 1=after setup section, 2=after</span>
+        <span class=c1>#: state section, 4=in setup section, 8=in state section</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__state</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_should_parse_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Begin parsing the file identified by `path`.</span>
+
+<span class=sd>        :param file: the path identifying the file</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_should_parse_file</span><span class=p>(</span><span class=n>file</span><span class=p>):</span>
+            <span class=k>return</span> <span class=kc>False</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Illegal state when trying to parse </span><span class=si>{</span><span class=n>file</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>return</span> <span class=kc>True</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_parse_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=n>T</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Parse the file.</span>
+
+<span class=sd>        :param file: the file</span>
+<span class=sd>        :returns: the parsed object</span>
+<span class=sd>        """</span>
+        <span class=n>res</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>T</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_parse_file</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>!=</span> <span class=mi>3</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=s2>"Illegal state, log file must have both a "</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SECTION_FINAL_STATE</span><span class=si>!r}</span><span class=s2> and a "</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SECTION_SETUP</span><span class=si>!r}</span><span class=s2> section."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>rand_seed</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"rand_seed is missing."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"algorithm is missing."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>instance</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"instance is missing."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>objective</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"objective is missing."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>total_fes</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"total_fes is missing."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>total_time_millis</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"total_time_millis is missing."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>best_f</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"best_f is missing."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>last_improvement_fe</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"last_improvement_fe is missing."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>last_improvement_time_millis</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"last_improvement_time_millis is missing."</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>res</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_end_parse_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Finalize the state *after* parsing.</span>
+
+<span class=sd>        :param file: the file to parse</span>
+<span class=sd>        """</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>total_fes</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>total_time_millis</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>best_f</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>last_improvement_fe</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>last_improvement_time_millis</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>max_time_millis</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>objective</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>encoding</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>return</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_end_parse_file</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_needs_more_lines</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Check whether we need to process more lines.</span>
+
+<span class=sd>        You can overwrite this method if your parser parses additional log</span>
+<span class=sd>        sections. Your overwritten method should return `True` if more</span>
+<span class=sd>        sections except `STATE` and `SETUP` still need to be parsed and return</span>
+<span class=sd>        `super().needs_more_lines()` otherwise.</span>
+
+<span class=sd>        :returns: `True` if more data needs to be processed, `False` otherwise</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>!=</span> <span class=mi>3</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_lines</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>lines</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Process the lines loaded from a section.</span>
+
+<span class=sd>        If you process more sections, you should override this method. Your</span>
+<span class=sd>        overridden method then can parse the data if you are in the right</span>
+<span class=sd>        section. It should end with `return super().lines(lines)`.</span>
+
+<span class=sd>        :param lines: the lines that have been loaded</span>
+<span class=sd>        :returns: `True` if parsing should be continued, `False` otherwise</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>&</span> <span class=mi>4</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_setup_section</span><span class=p>(</span><span class=n>parse_key_values</span><span class=p>(</span><span class=n>lines</span><span class=p>))</span>
+        <span class=k>elif</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>&</span> <span class=mi>8</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_state_section</span><span class=p>(</span><span class=n>lines</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>_needs_more_lines</span><span class=p>()</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_start_section</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>title</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Begin a section.</span>
+
+<span class=sd>        :param title: the section title</span>
+<span class=sd>        :returns: `True` if the text of the section should be processed,</span>
+<span class=sd>            `False` otherwise</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_start_section</span><span class=p>(</span><span class=n>title</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>title</span> <span class=o>==</span> <span class=n>SECTION_SETUP</span><span class=p>:</span>
+            <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>&</span> <span class=mi>1</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Already did section </span><span class=si>{</span><span class=n>title</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>|=</span> <span class=mi>4</span>
+            <span class=k>return</span> <span class=kc>True</span>
+        <span class=k>if</span> <span class=n>title</span> <span class=o>==</span> <span class=n>SECTION_FINAL_STATE</span><span class=p>:</span>
+            <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>&</span> <span class=mi>2</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Already did section </span><span class=si>{</span><span class=n>title</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>|=</span> <span class=mi>8</span>
+            <span class=k>return</span> <span class=kc>True</span>
+        <span class=k>return</span> <span class=kc>False</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_setup_section</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>data</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Parse the data from the `setup` section.</span>
+
+<span class=sd>        :param data: the parsed data</span>
+<span class=sd>        """</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=k>if</span> <span class=n>_FULL_KEY_GOAL_F</span> <span class=ow>in</span> <span class=n>data</span><span class=p>:</span>
+            <span class=n>goal_f</span> <span class=o>=</span> <span class=n>data</span><span class=p>[</span><span class=n>_FULL_KEY_GOAL_F</span><span class=p>]</span>
+            <span class=n>g</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>str_to_num</span><span class=p>(</span><span class=n>goal_f</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>g</span><span class=p>):</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span> <span class=o>=</span> <span class=n>g</span>
+            <span class=k>elif</span> <span class=ow>not</span> <span class=p>(</span><span class=n>isinf</span><span class=p>(</span><span class=n>g</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>g</span> <span class=o>>=</span> <span class=n>inf</span><span class=p>)):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"invalid goal f </span><span class=si>{</span><span class=n>goal_f</span><span class=si>}</span><span class=s2>, which renders to </span><span class=si>{</span><span class=n>g</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>_FULL_KEY_MAX_FES</span> <span class=ow>in</span> <span class=n>data</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span> <span class=o>=</span> <span class=n>check_to_int_range</span><span class=p>(</span>
+                <span class=n>data</span><span class=p>[</span><span class=n>_FULL_KEY_MAX_FES</span><span class=p>],</span> <span class=n>_FULL_KEY_MAX_FES</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span>
+                <span class=mi>1_000_000_000_000_000</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>_FULL_KEY_MAX_TIME_MILLIS</span> <span class=ow>in</span> <span class=n>data</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>max_time_millis</span> <span class=o>=</span> <span class=n>check_to_int_range</span><span class=p>(</span>
+                <span class=n>data</span><span class=p>[</span><span class=n>_FULL_KEY_MAX_TIME_MILLIS</span><span class=p>],</span> <span class=n>_FULL_KEY_MAX_TIME_MILLIS</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span>
+                <span class=mi>1_000_000_000_000</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>_FULL_KEY_ALGORITHM</span> <span class=ow>in</span> <span class=n>data</span><span class=p>:</span>
+            <span class=n>a</span> <span class=o>=</span> <span class=n>data</span><span class=p>[</span><span class=n>_FULL_KEY_ALGORITHM</span><span class=p>]</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span> <span class=o>=</span> <span class=n>a</span>
+            <span class=k>elif</span> <span class=n>a</span> <span class=o>!=</span> <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span><span class=p>:</span>
+                <span class=c1># this error may occur under windows due to case-insensitive</span>
+                <span class=c1># file names</span>
+                <span class=k>if</span> <span class=n>a</span><span class=o>.</span><span class=n>casefold</span><span class=p>()</span> <span class=o>==</span> <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span><span class=o>.</span><span class=n>casefold</span><span class=p>():</span>
+                    <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span> <span class=o>=</span> <span class=n>a</span>  <span class=c1># rely on name from log file</span>
+                <span class=k>else</span><span class=p>:</span>  <span class=c1># ok, case was not the issue - raise error</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"algorithm name from file name is </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span><span class=si>!r}</span><span class=s2>"</span>
+                        <span class=sa>f</span><span class=s2>", but key </span><span class=si>{</span><span class=n>_FULL_KEY_ALGORITHM</span><span class=si>!r}</span><span class=s2> gives </span><span class=si>{</span><span class=n>a</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"key </span><span class=si>{</span><span class=n>_FULL_KEY_ALGORITHM</span><span class=si>!r}</span><span class=s2> missing in file!"</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>_FULL_KEY_OBJECTIVE</span> <span class=ow>in</span> <span class=n>data</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>objective</span> <span class=o>=</span> <span class=n>data</span><span class=p>[</span><span class=n>_FULL_KEY_OBJECTIVE</span><span class=p>]</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"key </span><span class=si>{</span><span class=n>_FULL_KEY_OBJECTIVE</span><span class=si>!r}</span><span class=s2> missing in file!"</span><span class=p>)</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>encoding</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>_FULL_KEY_ENCODING</span><span class=p>)</span>
+
+        <span class=n>seed_check</span> <span class=o>=</span> <span class=n>rand_seed_check</span><span class=p>(</span><span class=nb>int</span><span class=p>(</span><span class=n>data</span><span class=p>[</span><span class=n>_FULL_KEY_RAND_SEED</span><span class=p>]))</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>rand_seed</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>rand_seed</span> <span class=o>=</span> <span class=n>seed_check</span>
+        <span class=k>elif</span> <span class=n>seed_check</span> <span class=o>!=</span> <span class=bp>self</span><span class=o>.</span><span class=n>rand_seed</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"Found seed </span><span class=si>{</span><span class=n>seed_check</span><span class=si>}</span><span class=s2> in log file, but file name "</span>
+                <span class=sa>f</span><span class=s2>"indicates seed </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>rand_seed</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>=</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>|</span> <span class=mi>1</span><span class=p>)</span> <span class=o>&</span> <span class=p>(</span><span class=o>~</span><span class=mi>4</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_state_section</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>lines</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Process the data of the final state section.</span>
+
+<span class=sd>        :param lines: the lines of that section</span>
+<span class=sd>        """</span>
+        <span class=n>data</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=n>parse_key_values</span><span class=p>(</span><span class=n>lines</span><span class=p>)</span>
+
+        <span class=bp>self</span><span class=o>.</span><span class=n>total_fes</span> <span class=o>=</span> <span class=n>check_to_int_range</span><span class=p>(</span>
+            <span class=n>data</span><span class=p>[</span><span class=n>KEY_TOTAL_FES</span><span class=p>],</span> <span class=n>KEY_TOTAL_FES</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span>
+            <span class=mi>1_000_000_000_000_000</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_fes</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>total_time_millis</span> <span class=o>=</span> <span class=n>check_to_int_range</span><span class=p>(</span>
+            <span class=n>data</span><span class=p>[</span><span class=n>KEY_TOTAL_TIME_MILLIS</span><span class=p>],</span> <span class=n>KEY_TOTAL_TIME_MILLIS</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span>
+            <span class=mi>1_000_000_000_000</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_time_millis</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span>
+            <span class=p>((</span><span class=mi>1_000_000</span> <span class=o>+</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_time_millis</span><span class=p>)</span> <span class=o>*</span> <span class=mi>1_000</span><span class=p>))</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_time_millis</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>_check_max_time_millis</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>max_time_millis</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>total_fes</span><span class=p>,</span>
+                                   <span class=bp>self</span><span class=o>.</span><span class=n>total_time_millis</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>best_f</span> <span class=o>=</span> <span class=n>str_to_num</span><span class=p>(</span><span class=n>data</span><span class=p>[</span><span class=n>KEY_BEST_F</span><span class=p>])</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>best_f</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"infinite best f detected: </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>best_f</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>last_improvement_fe</span> <span class=o>=</span> <span class=n>check_to_int_range</span><span class=p>(</span>
+            <span class=n>data</span><span class=p>[</span><span class=n>KEY_LAST_IMPROVEMENT_FE</span><span class=p>],</span> <span class=n>KEY_LAST_IMPROVEMENT_FE</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>total_fes</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>last_improvement_time_millis</span> <span class=o>=</span> <span class=n>check_to_int_range</span><span class=p>(</span>
+            <span class=n>data</span><span class=p>[</span><span class=n>KEY_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=p>],</span>
+            <span class=n>KEY_LAST_IMPROVEMENT_TIME_MILLIS</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>total_time_millis</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>=</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__state</span> <span class=o>|</span> <span class=mi>2</span><span class=p>)</span> <span class=o>&</span> <span class=p>(</span><span class=o>~</span><span class=mi>8</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.log_parser</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

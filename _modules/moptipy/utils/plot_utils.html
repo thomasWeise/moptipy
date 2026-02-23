@@ -1,0 +1,733 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.utils.plot_utils — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/utils/plot_utils.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.plot_utils</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.utils.plot_utils</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Utilities for creating and storing figures."""</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>os.path</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>statistics</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>st</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>warnings</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>isfinite</span><span class=p>,</span> <span class=n>sqrt</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>Sequence</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>matplotlib.pyplot</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>plt</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib</span><span class=w> </span><span class=kn>import</span> <span class=n>rcParams</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib.artist</span><span class=w> </span><span class=kn>import</span> <span class=n>Artist</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib.axes</span><span class=w> </span><span class=kn>import</span> <span class=n>Axes</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib.backend_bases</span><span class=w> </span><span class=kn>import</span> <span class=n>RendererBase</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib.backends.backend_agg</span><span class=w> </span><span class=kn>import</span> <span class=n>RendererAgg</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>matplotlib.figure</span><span class=w> </span><span class=kn>import</span> <span class=n>Figure</span><span class=p>,</span> <span class=n>SubFigure</span>  <span class=c1># type: ignore</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span><span class=p>,</span> <span class=n>directory_path</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span><span class=p>,</span> <span class=n>type_name_of</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>moptipy.utils.plot_defaults</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>pd</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.lang</span><span class=w> </span><span class=kn>import</span> <span class=n>Lang</span>
+
+<span class=c1># Ensure that matplotlib uses Type 1 fonts.</span>
+<span class=c1># Some scientific conferences, such as GECCO organized by ACM, require this.</span>
+<span class=c1># In the language utilities :meth:`~moptipy.utils.lang.Lang.font`, we do</span>
+<span class=c1># return acceptable fonts anyway, but it may be better to set this here</span>
+<span class=c1># explicitly to avoid any problem.</span>
+<span class=n>rcParams</span><span class=p>[</span><span class=s2>"pdf.fonttype"</span><span class=p>]</span> <span class=o>=</span> <span class=mi>42</span>
+<span class=n>rcParams</span><span class=p>[</span><span class=s2>"ps.fonttype"</span><span class=p>]</span> <span class=o>=</span> <span class=mi>42</span>
+
+<span class=c1>#: The golden ratio constant with value 1.618033988749895.</span>
+<span class=n>__GOLDEN_RATIO</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=mf>0.5</span> <span class=o>+</span> <span class=p>(</span><span class=mf>0.5</span> <span class=o>*</span> <span class=n>sqrt</span><span class=p>(</span><span class=mi>5</span><span class=p>))</span>
+
+
+<div class=viewcode-block id=create_figure>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_utils.create_figure>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>create_figure</span><span class=p>(</span><span class=n>width</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=mf>8.6</span><span class=p>,</span>
+                  <span class=n>height</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                  <span class=n>dpi</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=mf>384.0</span><span class=p>,</span>
+                  <span class=o>**</span><span class=n>kwargs</span><span class=p>)</span> <span class=o>-></span> <span class=n>Figure</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create a matplotlib figure.</span>
+
+<span class=sd>    :param width: the optional width</span>
+<span class=sd>    :param height: the optional height</span>
+<span class=sd>    :param dpi: the dpi value</span>
+<span class=sd>    :param kwargs: a set of optional arguments</span>
+<span class=sd>    :return: the figure option</span>
+<span class=sd>    """</span>
+    <span class=c1># Check the size, i.e., width and height and use</span>
+    <span class=n>put_size</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+    <span class=k>if</span> <span class=n>width</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>height</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>put_size</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>width</span> <span class=o>=</span> <span class=n>__GOLDEN_RATIO</span> <span class=o>*</span> <span class=n>height</span>
+    <span class=k>elif</span> <span class=n>height</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>height</span> <span class=o>=</span> <span class=n>width</span> <span class=o>/</span> <span class=n>__GOLDEN_RATIO</span>
+
+    <span class=k>if</span> <span class=n>put_size</span><span class=p>:</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>height</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+            <span class=n>height</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>height</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>height</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid height type </span><span class=si>{</span><span class=nb>type</span><span class=p>(</span><span class=n>height</span><span class=p>)</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>isfinite</span><span class=p>(</span><span class=n>height</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=mf>0.1</span> <span class=o><</span> <span class=n>height</span> <span class=o><</span> <span class=mf>10000.0</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid height </span><span class=si>{</span><span class=n>height</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>nheight</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=mf>0.5</span> <span class=o>+</span> <span class=p>(</span><span class=n>height</span> <span class=o>*</span> <span class=mi>72</span><span class=p>))</span> <span class=o>/</span> <span class=mf>72.0</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>isfinite</span><span class=p>(</span><span class=n>nheight</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=mf>0.1</span> <span class=o><</span> <span class=n>nheight</span> <span class=o><</span> <span class=mf>10000.0</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid height </span><span class=si>{</span><span class=n>height</span><span class=si>}</span><span class=s2> as it maps to "</span>
+                             <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>nheight</span><span class=si>}</span><span class=s2> after to-point-and-back conversion."</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>width</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+            <span class=n>width</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>width</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>width</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid width type </span><span class=si>{</span><span class=nb>type</span><span class=p>(</span><span class=n>width</span><span class=p>)</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>isfinite</span><span class=p>(</span><span class=n>width</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=mf>0.1</span> <span class=o><</span> <span class=n>width</span> <span class=o><</span> <span class=mf>10000.0</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid width </span><span class=si>{</span><span class=n>width</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>nwidth</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=mf>0.5</span> <span class=o>+</span> <span class=p>(</span><span class=n>width</span> <span class=o>*</span> <span class=mi>72</span><span class=p>))</span> <span class=o>/</span> <span class=mf>72.0</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>isfinite</span><span class=p>(</span><span class=n>nwidth</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=mf>0.1</span> <span class=o><</span> <span class=n>nwidth</span> <span class=o><</span> <span class=mf>10000.0</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid width </span><span class=si>{</span><span class=n>width</span><span class=si>}</span><span class=s2> as it maps to "</span>
+                             <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>nwidth</span><span class=si>}</span><span class=s2> after to-point-and-back conversion."</span><span class=p>)</span>
+
+        <span class=n>kwargs</span><span class=p>[</span><span class=s2>"figsize"</span><span class=p>]</span> <span class=o>=</span> <span class=n>width</span><span class=p>,</span> <span class=n>height</span>
+
+    <span class=k>if</span> <span class=n>dpi</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dpi</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+            <span class=n>dpi</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>dpi</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dpi</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid dpi type </span><span class=si>{</span><span class=nb>type</span><span class=p>(</span><span class=n>dpi</span><span class=p>)</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>isfinite</span><span class=p>(</span><span class=n>dpi</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=mf>1.0</span> <span class=o><</span> <span class=n>dpi</span> <span class=o><</span> <span class=mf>10000.0</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid dpi value </span><span class=si>{</span><span class=n>dpi</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>kwargs</span><span class=p>[</span><span class=s2>"dpi"</span><span class=p>]</span> <span class=o>=</span> <span class=n>dpi</span>
+
+    <span class=k>if</span> <span class=s2>"frameon"</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>kwargs</span><span class=p>:</span>
+        <span class=n>kwargs</span><span class=p>[</span><span class=s2>"frameon"</span><span class=p>]</span> <span class=o>=</span> <span class=kc>False</span>
+
+    <span class=k>if</span> <span class=s2>"constrained_layout"</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>kwargs</span><span class=p>:</span>
+        <span class=n>kwargs</span><span class=p>[</span><span class=s2>"constrained_layout"</span><span class=p>]</span> <span class=o>=</span> <span class=kc>False</span>
+
+    <span class=k>return</span> <span class=n>Figure</span><span class=p>(</span><span class=o>**</span><span class=n>kwargs</span><span class=p>)</span></div>
+
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__divide_evenly</span><span class=p>(</span><span class=n>items</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>chunks</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>reverse</span><span class=p>:</span> <span class=nb>bool</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Divide `n` items into `k` chunks, trying to create equally-sized chunks.</span>
+
+<span class=sd>    :param items: the number of items to divide</span>
+<span class=sd>    :param chunks: the number of chunks</span>
+<span class=sd>    :param reverse: should we put the additional items at the end (True)</span>
+<span class=sd>        or front (False)</span>
+<span class=sd>    :returns: the list of items</span>
+
+<span class=sd>    >>> print(__divide_evenly(9, 3, reverse=True))</span>
+<span class=sd>    [3, 3, 3]</span>
+<span class=sd>    >>> print(__divide_evenly(10, 3, reverse=True))</span>
+<span class=sd>    [3, 3, 4]</span>
+<span class=sd>    >>> print(__divide_evenly(10, 3, reverse=False))</span>
+<span class=sd>    [4, 3, 3]</span>
+<span class=sd>    >>> print(__divide_evenly(11, 3, reverse=True))</span>
+<span class=sd>    [3, 4, 4]</span>
+<span class=sd>    >>> print(__divide_evenly(11, 3, reverse=False))</span>
+<span class=sd>    [4, 4, 3]</span>
+<span class=sd>    >>> print(__divide_evenly(12, 3, reverse=False))</span>
+<span class=sd>    [4, 4, 4]</span>
+<span class=sd>    """</span>
+    <span class=c1># validate that we do not have more chunks than items or otherwise invalid</span>
+    <span class=c1># parameters</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>items</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>chunks</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>chunks</span> <span class=o>></span> <span class=n>items</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"cannot divide </span><span class=si>{</span><span class=n>items</span><span class=si>}</span><span class=s2> items into </span><span class=si>{</span><span class=n>chunks</span><span class=si>}</span><span class=s2> chunks."</span><span class=p>)</span>
+
+    <span class=c1># First we compute the minimum number of items per chunk.</span>
+    <span class=c1># Our basic solution is to put exactly this many items into each chunk.</span>
+    <span class=c1># For example, if items=10 and chunks=3, this will fill 3 items into each</span>
+    <span class=c1># chunk.</span>
+    <span class=n>result</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=n>items</span> <span class=o>//</span> <span class=n>chunks</span><span class=p>]</span> <span class=o>*</span> <span class=n>chunks</span>
+    <span class=c1># We then fill the remaining items into the chunks at the front</span>
+    <span class=c1># (reverse=False) or end (reverse=True) of the list.</span>
+    <span class=c1># We do this by putting exactly one such item into each chunk, starting</span>
+    <span class=c1># from the end.</span>
+    <span class=c1># Since items modulo chunks must be in [0..chunks), this is possible.</span>
+    <span class=c1># This setup will yield the lowest possible standard deviation of items</span>
+    <span class=c1># per chunk.</span>
+    <span class=c1># In case of items=10 and chunks=3, items % chunks = 1 and the chunks will</span>
+    <span class=c1># become [3, 3, 4]. If items=3, no items need to be distributed and we get</span>
+    <span class=c1># [3, 3, 3].</span>
+    <span class=k>if</span> <span class=n>reverse</span><span class=p>:</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=p>(</span><span class=n>items</span> <span class=o>%</span> <span class=n>chunks</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=n>result</span><span class=p>[</span><span class=o>-</span><span class=n>i</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>items</span> <span class=o>%</span> <span class=n>chunks</span><span class=p>):</span>
+            <span class=n>result</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>
+    <span class=k>return</span> <span class=n>result</span>
+
+
+<div class=viewcode-block id=create_figure_with_subplots>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_utils.create_figure_with_subplots>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>create_figure_with_subplots</span><span class=p>(</span>
+        <span class=n>items</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+        <span class=n>max_items_per_plot</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>3</span><span class=p>,</span>
+        <span class=n>max_rows</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>3</span><span class=p>,</span>
+        <span class=n>max_cols</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span><span class=p>,</span>
+        <span class=n>min_rows</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span><span class=p>,</span>
+        <span class=n>min_cols</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span><span class=p>,</span>
+        <span class=n>default_width_per_col</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=mf>8.6</span><span class=p>,</span>
+        <span class=n>max_width</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=mf>8.6</span><span class=p>,</span>
+        <span class=n>default_height_per_row</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=mf>8.6</span> <span class=o>/</span> <span class=n>__GOLDEN_RATIO</span><span class=p>,</span>
+        <span class=n>max_height</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=mi>9</span><span class=p>,</span>
+        <span class=n>dpi</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=mf>384.0</span><span class=p>,</span>
+        <span class=n>plot_config</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=o>**</span><span class=n>kwargs</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=n>Figure</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=n>Axes</span> <span class=o>|</span> <span class=n>Figure</span><span class=p>,</span>
+                                     <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=o>...</span><span class=p>]]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Divide a figure into nrows*ncols sub-plots.</span>
+
+<span class=sd>    :param items: the number of items to divide</span>
+<span class=sd>    :param max_items_per_plot: the maximum number of items per plot</span>
+<span class=sd>    :param max_rows: the maximum number of rows</span>
+<span class=sd>    :param max_cols: the maximum number of columns</span>
+<span class=sd>    :param min_rows: the minimum number of rows</span>
+<span class=sd>    :param min_cols: the minimum number of cols</span>
+<span class=sd>    :param default_width_per_col: the optional default width of a column</span>
+<span class=sd>    :param default_height_per_row: the optional default height per row</span>
+<span class=sd>    :param max_height: the maximum height</span>
+<span class=sd>    :param max_width: the maximum width</span>
+<span class=sd>    :param dpi: the dpi value</span>
+<span class=sd>    :param kwargs: a set of optional arguments</span>
+<span class=sd>    :param plot_config: the configuration to be applied to all sub-plots</span>
+<span class=sd>    :returns: a tuple with the figure, followed by a series of tuples with</span>
+<span class=sd>        each sub-figure, the index of the first item assigned to it, the</span>
+<span class=sd>        index of the last item assigned to it + 1, their row, their column,</span>
+<span class=sd>        and their overall index</span>
+<span class=sd>    """</span>
+    <span class=c1># First, we do a lot of sanity checks</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>items</span><span class=p>,</span> <span class=s2>"items"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>max_items_per_plot</span><span class=p>,</span> <span class=s2>"max_items_per_plot"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>max_rows</span><span class=p>,</span> <span class=s2>"max_rows"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>100</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>min_rows</span><span class=p>,</span> <span class=s2>"min_rows"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=n>max_rows</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>max_cols</span><span class=p>,</span> <span class=s2>"max_cols"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>100</span><span class=p>)</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>min_cols</span><span class=p>,</span> <span class=s2>"min_cols"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=n>max_cols</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>max_cols</span> <span class=o>*</span> <span class=n>max_rows</span> <span class=o>*</span> <span class=n>max_items_per_plot</span><span class=p>)</span> <span class=o><</span> <span class=n>items</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"Cannot distribute </span><span class=si>{</span><span class=n>items</span><span class=si>}</span><span class=s2> items into at most </span><span class=si>{</span><span class=n>max_rows</span><span class=si>}</span><span class=s2> rows "</span>
+            <span class=sa>f</span><span class=s2>"and </span><span class=si>{</span><span class=n>max_cols</span><span class=si>}</span><span class=s2> cols with at most </span><span class=si>{</span><span class=n>max_items_per_plot</span><span class=si>}</span><span class=s2> per "</span>
+            <span class=s2>"plot."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>default_width_per_col</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>default_width_per_col</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>default_width_per_col</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>default_width_per_col</span><span class=p>))</span> \
+                <span class=ow>or</span> <span class=p>(</span><span class=n>default_width_per_col</span> <span class=o><=</span> <span class=mf>0.1</span><span class=p>)</span> \
+                <span class=ow>or</span> <span class=p>(</span><span class=n>default_width_per_col</span> <span class=o>>=</span> <span class=mi>1000</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"invalid default_width_per_col </span><span class=si>{</span><span class=n>default_width_per_col</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>max_width</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>max_width</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>max_width</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>max_width</span><span class=p>))</span> \
+                <span class=ow>or</span> <span class=p>(</span><span class=n>max_width</span> <span class=o><=</span> <span class=mf>0.1</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>max_width</span> <span class=o>>=</span> <span class=mi>10000</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid max_width </span><span class=si>{</span><span class=n>max_width</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>default_width_per_col</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> \
+                <span class=ow>and</span> <span class=p>(</span><span class=n>default_width_per_col</span> <span class=o>></span> <span class=n>max_width</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"default_width_per_col </span><span class=si>{</span><span class=n>default_width_per_col</span><span class=si>}</span><span class=s2> "</span>
+                             <span class=sa>f</span><span class=s2>"> max_width </span><span class=si>{</span><span class=n>max_width</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>default_height_per_row</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>default_height_per_row</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>default_height_per_row</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>default_height_per_row</span><span class=p>))</span> \
+                <span class=ow>or</span> <span class=p>(</span><span class=n>default_height_per_row</span> <span class=o><=</span> <span class=mf>0.1</span><span class=p>)</span> \
+                <span class=ow>or</span> <span class=p>(</span><span class=n>default_height_per_row</span> <span class=o>>=</span> <span class=mi>10000</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"invalid default_height_per_row </span><span class=si>{</span><span class=n>default_height_per_row</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>max_height</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>max_height</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>max_height</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>max_height</span><span class=p>))</span> \
+                <span class=ow>or</span> <span class=p>(</span><span class=n>max_height</span> <span class=o><=</span> <span class=mf>0.1</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>max_height</span> <span class=o>>=</span> <span class=mi>10000</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid max_width </span><span class=si>{</span><span class=n>max_height</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>default_height_per_row</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> \
+                <span class=ow>and</span> <span class=p>(</span><span class=n>max_height</span> <span class=o><</span> <span class=n>default_height_per_row</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"max_height </span><span class=si>{</span><span class=n>max_height</span><span class=si>}</span><span class=s2> < "</span>
+                <span class=sa>f</span><span class=s2>"default_height_per_row </span><span class=si>{</span><span class=n>default_height_per_row</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+    <span class=c1># setting up the default dimensions</span>
+    <span class=k>if</span> <span class=n>default_height_per_row</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>default_height_per_row</span> <span class=o>=</span> <span class=mf>1.95</span>
+        <span class=k>if</span> <span class=n>max_height</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>default_height_per_row</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>default_height_per_row</span><span class=p>,</span> <span class=n>max_height</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>max_height</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>max_height</span> <span class=o>=</span> <span class=n>max_rows</span> <span class=o>*</span> <span class=n>default_height_per_row</span>
+    <span class=k>if</span> <span class=n>default_width_per_col</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>default_width_per_col</span> <span class=o>=</span> <span class=mf>8.6</span>
+        <span class=k>if</span> <span class=n>max_width</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>default_width_per_col</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>default_width_per_col</span><span class=p>,</span> <span class=n>max_width</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>max_width</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>max_width</span> <span class=o>=</span> <span class=n>default_width_per_col</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>plot_config</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>plot_config</span><span class=p>,</span> <span class=nb>dict</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>plot_config</span><span class=p>,</span> <span class=s2>"plot_config"</span><span class=p>,</span> <span class=p>(</span><span class=nb>dict</span><span class=p>,</span> <span class=kc>None</span><span class=p>))</span>
+
+    <span class=c1># How many plots do we need at least? Well, if we can put</span>
+    <span class=c1># max_items_per_plot items into each plot and have items many items, then</span>
+    <span class=c1># we need ceil(items / max_items_per_plot) many. This is what we compute</span>
+    <span class=c1># here.</span>
+    <span class=n>min_plots</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=n>items</span> <span class=o>//</span> <span class=n>max_items_per_plot</span><span class=p>)</span> \
+        <span class=o>+</span> <span class=nb>min</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>items</span> <span class=o>%</span> <span class=n>max_items_per_plot</span><span class=p>)</span>
+    <span class=c1># The maximum conceivable number of plots would be items, so this we do</span>
+    <span class=c1># not need to compute.</span>
+    <span class=n>plots_i</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=mi>6</span>
+    <span class=n>rows_i</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>plots_i</span> <span class=o>+</span> <span class=mi>1</span>
+    <span class=n>cols_i</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>rows_i</span> <span class=o>+</span> <span class=mi>1</span>
+    <span class=n>height_i</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>cols_i</span> <span class=o>+</span> <span class=mi>1</span>
+    <span class=n>width_i</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>height_i</span> <span class=o>+</span> <span class=mi>1</span>
+    <span class=n>plots_per_row_i</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>width_i</span> <span class=o>+</span> <span class=mi>1</span>
+    <span class=n>chunks_i</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>plots_per_row_i</span> <span class=o>+</span> <span class=mi>1</span>
+    <span class=n>best</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span>  <span class=c1># the plots-per-row std</span>
+                <span class=nb>float</span><span class=p>,</span>  <span class=c1># the items-per-plot std</span>
+                <span class=nb>float</span><span class=p>,</span>  <span class=c1># the overall area of the figure</span>
+                <span class=nb>float</span><span class=p>,</span>  <span class=c1># the std deviation of (w, h*golden_ratio),</span>
+                <span class=nb>float</span><span class=p>,</span>  <span class=c1># -plot area</span>
+                <span class=nb>float</span><span class=p>,</span>  <span class=c1># the std deviation of (w, h*golden_ratio) per plot</span>
+                <span class=nb>int</span><span class=p>,</span>  <span class=c1># the number of plots</span>
+                <span class=nb>int</span><span class=p>,</span>  <span class=c1># the number of rows</span>
+                <span class=nb>int</span><span class=p>,</span>  <span class=c1># the number of cols</span>
+                <span class=nb>float</span><span class=p>,</span>  <span class=c1># the figure height</span>
+                <span class=nb>float</span><span class=p>,</span>  <span class=c1># the figure width</span>
+                <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>],</span>  <span class=c1># the plots per row</span>
+                <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> \
+        <span class=p>(</span><span class=mf>1000000.0</span><span class=p>,</span> <span class=mf>1000000.0</span><span class=p>,</span> <span class=mf>1000000.0</span><span class=p>,</span> <span class=mf>1000000.0</span><span class=p>,</span> <span class=mf>1000000.0</span><span class=p>,</span> <span class=mf>1000000.0</span><span class=p>,</span>
+         <span class=mi>1</span> <span class=o><<</span> <span class=mi>62</span><span class=p>,</span> <span class=mi>1</span> <span class=o><<</span> <span class=mi>62</span><span class=p>,</span> <span class=mi>1</span> <span class=o><<</span> <span class=mi>62</span><span class=p>,</span> <span class=mf>1000000.0</span><span class=p>,</span> <span class=mf>1000000.0</span><span class=p>,</span> <span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=p>[</span><span class=mi>0</span><span class=p>])</span>
+
+    <span class=c1># Now we simply try all valid combinations.</span>
+    <span class=k>for</span> <span class=n>rows</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>min_rows</span><span class=p>,</span> <span class=n>max_rows</span> <span class=o>+</span> <span class=mi>1</span><span class=p>):</span>
+        <span class=k>if</span> <span class=n>rows</span> <span class=o>></span> <span class=n>items</span><span class=p>:</span>
+            <span class=k>continue</span>  <span class=c1># more rows than items</span>
+        <span class=k>for</span> <span class=n>cols</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>min_cols</span><span class=p>,</span> <span class=n>max_cols</span> <span class=o>+</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=c1># We need cols plots per row, except for the last row, where we</span>
+            <span class=c1># could only put a single plot if we wanted.</span>
+            <span class=n>min_plots_for_config</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span> <span class=o>+</span> <span class=p>((</span><span class=n>rows</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=n>cols</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>min_plots_for_config</span> <span class=o>></span> <span class=n>items</span><span class=p>:</span>
+                <span class=k>continue</span>  <span class=c1># if this exceeds the maximum number of plots, skip</span>
+            <span class=c1># compute the maximum plots we can get in this config</span>
+            <span class=n>max_plots_per_config</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>rows</span> <span class=o>*</span> <span class=n>cols</span>
+            <span class=k>if</span> <span class=n>max_plots_per_config</span> <span class=o><</span> <span class=n>min_plots</span><span class=p>:</span>
+                <span class=k>continue</span>  <span class=c1># not enough plots possible</span>
+
+            <span class=c1># now we can iterate over the number of plots we can provide</span>
+            <span class=k>for</span> <span class=n>plots</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>max</span><span class=p>(</span><span class=n>min_plots_for_config</span><span class=p>,</span> <span class=n>min_plots</span><span class=p>),</span>
+                               <span class=nb>min</span><span class=p>(</span><span class=n>max_plots_per_config</span><span class=p>,</span> <span class=n>items</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>):</span>
+                <span class=c1># We compute the figure width. If we have multiple columns,</span>
+                <span class=c1># we try to add 2% plus 0.02" as breathing space per column.</span>
+                <span class=n>fig_width</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>max_width</span><span class=p>,</span> <span class=p>((</span><span class=mf>1.02</span> <span class=o>*</span> <span class=n>default_width_per_col</span><span class=p>)</span>
+                                            <span class=o>+</span> <span class=mf>0.02</span><span class=p>)</span> <span class=o>*</span> <span class=n>cols</span><span class=p>)</span>
+                <span class=c1># The width of a single plot is then computed as follows:</span>
+                <span class=n>plot_width</span> <span class=o>=</span> <span class=n>fig_width</span> <span class=o>/</span> <span class=n>cols</span>
+                <span class=k>if</span> <span class=n>plot_width</span> <span class=o><</span> <span class=mf>0.9</span><span class=p>:</span>
+                    <span class=k>continue</span>  <span class=c1># the single plots would be too small</span>
+                <span class=c1># We compute the overall figure height. Again we add breathing</span>
+                <span class=c1># space if we have multiple rows.</span>
+                <span class=n>fig_height</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>max_height</span><span class=p>,</span> <span class=p>((</span><span class=mf>1.02</span> <span class=o>*</span> <span class=n>default_height_per_row</span><span class=p>)</span>
+                                              <span class=o>+</span> <span class=mf>0.02</span><span class=p>)</span> <span class=o>*</span> <span class=n>rows</span><span class=p>)</span>
+                <span class=n>plot_height</span> <span class=o>=</span> <span class=n>fig_height</span> <span class=o>/</span> <span class=n>rows</span>
+                <span class=k>if</span> <span class=n>plot_height</span> <span class=o><</span> <span class=mf>0.9</span><span class=p>:</span>
+                    <span class=k>continue</span>  <span class=c1># the single plots would be too small</span>
+                <span class=c1># So dimension-wise, the plot sizes are OK.</span>
+                <span class=c1># How about the distribution of items? We put the rows with</span>
+                <span class=c1># plots at the top and the plots with more items at the end.</span>
+                <span class=n>plot_distr</span> <span class=o>=</span> <span class=n>__divide_evenly</span><span class=p>(</span><span class=n>plots</span><span class=p>,</span> <span class=n>rows</span><span class=p>,</span> <span class=n>reverse</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+                <span class=n>item_distr</span> <span class=o>=</span> <span class=n>__divide_evenly</span><span class=p>(</span><span class=n>items</span><span class=p>,</span> <span class=n>plots</span><span class=p>,</span> <span class=n>reverse</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+
+                <span class=n>current</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span>
+                               <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span> <span class=nb>float</span><span class=p>,</span>
+                               <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>],</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span>
+                    <span class=n>st</span><span class=o>.</span><span class=n>stdev</span><span class=p>(</span><span class=n>plot_distr</span><span class=p>)</span> <span class=k>if</span> <span class=n>rows</span> <span class=o>></span> <span class=mi>1</span> <span class=k>else</span> <span class=mi>0</span><span class=p>,</span>
+                    <span class=n>st</span><span class=o>.</span><span class=n>stdev</span><span class=p>(</span><span class=n>item_distr</span><span class=p>)</span> <span class=k>if</span> <span class=n>plots</span> <span class=o>></span> <span class=mi>1</span> <span class=k>else</span> <span class=mi>0</span><span class=p>,</span>
+                    <span class=n>fig_height</span> <span class=o>*</span> <span class=n>fig_width</span><span class=p>,</span>  <span class=c1># the area of the figure</span>
+                    <span class=n>st</span><span class=o>.</span><span class=n>stdev</span><span class=p>([</span><span class=n>fig_width</span><span class=p>,</span> <span class=n>fig_height</span> <span class=o>*</span> <span class=n>__GOLDEN_RATIO</span><span class=p>]),</span>
+                    <span class=o>-</span><span class=n>plot_width</span> <span class=o>*</span> <span class=n>plot_height</span><span class=p>,</span>  <span class=c1># -plot area</span>
+                    <span class=n>st</span><span class=o>.</span><span class=n>stdev</span><span class=p>([</span><span class=n>plot_width</span><span class=p>,</span> <span class=n>plot_height</span> <span class=o>*</span> <span class=n>__GOLDEN_RATIO</span><span class=p>]),</span>
+                    <span class=n>plots</span><span class=p>,</span>  <span class=c1># the number of plots</span>
+                    <span class=n>rows</span><span class=p>,</span>  <span class=c1># the number of rows</span>
+                    <span class=n>cols</span><span class=p>,</span>  <span class=c1># the number of cols</span>
+                    <span class=n>fig_height</span><span class=p>,</span>  <span class=c1># the figure height</span>
+                    <span class=n>fig_width</span><span class=p>,</span>  <span class=c1># the figure width</span>
+                    <span class=n>plot_distr</span><span class=p>,</span>  <span class=c1># the plots per row</span>
+                    <span class=n>item_distr</span><span class=p>)</span>  <span class=c1># the data chunks per plot</span>
+                <span class=k>if</span> <span class=p>((</span><span class=n>current</span><span class=p>[</span><span class=n>plots_i</span><span class=p>]</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span>  <span class=c1># type: ignore</span>
+                    <span class=o><</span> <span class=n>best</span><span class=p>[</span><span class=n>plots_i</span><span class=p>])</span> <span class=ow>or</span> <span class=p>((</span>  <span class=c1># type: ignore</span>
+                        <span class=n>current</span><span class=p>[</span><span class=n>plots_i</span><span class=p>]</span>   <span class=c1># type: ignore</span>
+                        <span class=o><=</span> <span class=p>(</span><span class=n>best</span><span class=p>[</span><span class=n>plots_i</span><span class=p>]</span> <span class=o>+</span> <span class=mi>1</span><span class=p>))</span>  <span class=c1># type: ignore</span>
+                        <span class=ow>and</span> <span class=p>(</span><span class=n>current</span> <span class=o><</span> <span class=n>best</span><span class=p>)):</span>  <span class=c1># type: ignore</span>
+                    <span class=n>best</span> <span class=o>=</span> <span class=n>current</span>
+
+    <span class=n>n_plots</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>best</span><span class=p>[</span><span class=n>plots_i</span><span class=p>]</span>  <span class=c1># type: ignore</span>
+    <span class=k>if</span> <span class=n>n_plots</span> <span class=o>></span> <span class=n>items</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"Could not place </span><span class=si>{</span><span class=n>items</span><span class=si>}</span><span class=s2> in </span><span class=si>{</span><span class=n>min_cols</span><span class=si>}</span><span class=s2>..</span><span class=si>{</span><span class=n>max_cols</span><span class=si>}</span><span class=s2> columns "</span>
+            <span class=sa>f</span><span class=s2>"at </span><span class=si>{</span><span class=n>min_rows</span><span class=si>}</span><span class=s2>..</span><span class=si>{</span><span class=n>max_rows</span><span class=si>}</span><span class=s2> rows with at most "</span>
+            <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>max_items_per_plot</span><span class=si>}</span><span class=s2> items per plot for a max_width=</span><span class=si>{</span><span class=n>max_width</span><span class=si>}</span><span class=s2>"</span>
+            <span class=sa>f</span><span class=s2>" and max_height=</span><span class=si>{</span><span class=n>max_height</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=c1># create the figure of the computed dimensions</span>
+    <span class=n>figure</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Figure</span><span class=p>]</span> <span class=o>=</span> <span class=n>create_figure</span><span class=p>(</span>
+        <span class=n>width</span><span class=o>=</span><span class=n>best</span><span class=p>[</span><span class=n>width_i</span><span class=p>],</span> <span class=n>height</span><span class=o>=</span><span class=n>best</span><span class=p>[</span><span class=n>height_i</span><span class=p>],</span>  <span class=c1># type: ignore</span>
+        <span class=n>dpi</span><span class=o>=</span><span class=n>dpi</span><span class=p>,</span> <span class=o>**</span><span class=n>kwargs</span><span class=p>)</span>
+    <span class=k>if</span> <span class=p>(</span><span class=n>n_plots</span> <span class=o><=</span> <span class=mi>1</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>plot_config</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>):</span>
+        <span class=c1># if there is only one plot, we are done here</span>
+        <span class=k>return</span> <span class=n>figure</span><span class=p>,</span> <span class=p>((</span><span class=n>figure</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=n>items</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>),</span> <span class=p>)</span>
+
+    <span class=c1># if there are multiple plots, we need to generate them</span>
+    <span class=n>allfigs</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=n>Axes</span> <span class=o>|</span> <span class=n>Figure</span><span class=p>,</span>
+                        <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>index</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>chunk_start</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>nrows</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>best</span><span class=p>[</span><span class=n>rows_i</span><span class=p>]</span>  <span class=c1># type: ignore</span>
+    <span class=n>ncols</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>best</span><span class=p>[</span><span class=n>cols_i</span><span class=p>]</span>  <span class=c1># type: ignore</span>
+    <span class=n>chunks</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=n>best</span><span class=p>[</span><span class=n>chunks_i</span><span class=p>]</span>  <span class=c1># type: ignore</span>
+    <span class=n>plots_per_row</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=n>best</span><span class=p>[</span><span class=n>plots_per_row_i</span><span class=p>]</span>  <span class=c1># type: ignore</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>nrows</span><span class=p>):</span>
+        <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>plots_per_row</span><span class=p>[</span><span class=n>i</span><span class=p>]):</span>
+            <span class=n>chunk_next</span> <span class=o>=</span> <span class=n>chunk_start</span> <span class=o>+</span> <span class=n>chunks</span><span class=p>[</span><span class=n>index</span><span class=p>]</span>
+            <span class=k>if</span> <span class=n>plot_config</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>sp</span> <span class=o>=</span> <span class=n>figure</span><span class=o>.</span><span class=n>add_subplot</span><span class=p>(</span><span class=n>nrows</span><span class=p>,</span> <span class=n>ncols</span><span class=p>,</span> <span class=p>(</span><span class=n>i</span> <span class=o>*</span> <span class=n>ncols</span><span class=p>)</span> <span class=o>+</span> <span class=n>j</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>sp</span> <span class=o>=</span> <span class=n>figure</span><span class=o>.</span><span class=n>add_subplot</span><span class=p>(</span><span class=n>nrows</span><span class=p>,</span> <span class=n>ncols</span><span class=p>,</span> <span class=p>(</span><span class=n>i</span> <span class=o>*</span> <span class=n>ncols</span><span class=p>)</span> <span class=o>+</span> <span class=n>j</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span>
+                                        <span class=o>**</span><span class=n>plot_config</span><span class=p>)</span>
+            <span class=n>allfigs</span><span class=o>.</span><span class=n>append</span><span class=p>((</span><span class=n>sp</span><span class=p>,</span> <span class=n>chunk_start</span><span class=p>,</span> <span class=n>chunk_next</span><span class=p>,</span> <span class=n>i</span><span class=p>,</span> <span class=n>j</span><span class=p>,</span> <span class=n>index</span><span class=p>))</span>
+            <span class=n>chunk_start</span> <span class=o>=</span> <span class=n>chunk_next</span>
+            <span class=n>index</span> <span class=o>+=</span> <span class=mi>1</span>
+    <span class=k>return</span> <span class=n>figure</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>allfigs</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=save_figure>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_utils.save_figure>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>save_figure</span><span class=p>(</span><span class=n>fig</span><span class=p>:</span> <span class=n>Figure</span><span class=p>,</span>
+                <span class=n>file_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"figure"</span><span class=p>,</span>
+                <span class=n>dir_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"."</span><span class=p>,</span>
+                <span class=n>formats</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"svg"</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=n>Path</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Store the given figure in files of the given formats and dispose it.</span>
+
+<span class=sd>    :param fig: the figure to save</span>
+<span class=sd>    :param file_name: the basic file name</span>
+<span class=sd>    :param dir_name: the directory name</span>
+<span class=sd>    :param formats: the file format(s)</span>
+<span class=sd>    :return: a list of files</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>fig</span><span class=p>,</span> <span class=n>Figure</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>fig</span><span class=p>,</span> <span class=s2>"figure"</span><span class=p>,</span> <span class=n>Figure</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>file_name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>file_name</span><span class=p>,</span> <span class=s2>"file_name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>file_name</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid filename </span><span class=si>{</span><span class=n>file_name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dir_name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>dir_name</span><span class=p>,</span> <span class=s2>"dir_name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>dir_name</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid dirname </span><span class=si>{</span><span class=n>dir_name</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>formats</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+        <span class=n>formats</span> <span class=o>=</span> <span class=p>[</span><span class=n>formats</span><span class=p>]</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>formats</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>formats</span><span class=p>,</span> <span class=s2>"formats"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+
+    <span class=n>size</span> <span class=o>=</span> <span class=n>fig</span><span class=o>.</span><span class=n>get_size_inches</span><span class=p>()</span>
+    <span class=n>orientation</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> \
+        <span class=s2>"landscape"</span> <span class=k>if</span> <span class=n>size</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>>=</span> <span class=n>size</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=k>else</span> <span class=s2>"portrait"</span>
+
+    <span class=c1># set minimal margins to the axes to avoid wasting space</span>
+    <span class=k>for</span> <span class=n>ax</span> <span class=ow>in</span> <span class=n>fig</span><span class=o>.</span><span class=n>axes</span><span class=p>:</span>  <span class=c1># consider the dimension of the axes</span>
+        <span class=n>margins</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>*</span> <span class=nb>len</span><span class=p>(</span><span class=n>ax</span><span class=o>.</span><span class=n>margins</span><span class=p>())</span>
+        <span class=n>ax</span><span class=o>.</span><span class=n>margins</span><span class=p>(</span><span class=o>*</span><span class=n>margins</span><span class=p>)</span>
+
+    <span class=n>use_dir</span> <span class=o>=</span> <span class=n>directory_path</span><span class=p>(</span><span class=n>dir_name</span><span class=p>)</span>
+    <span class=n>files</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=k>for</span> <span class=n>fmt</span> <span class=ow>in</span> <span class=n>formats</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>fmt</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>fmt</span><span class=p>,</span> <span class=s2>"element of formats"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=n>dest_file</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>os</span><span class=o>.</span><span class=n>path</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>use_dir</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>file_name</span><span class=si>}</span><span class=s2>.</span><span class=si>{</span><span class=n>fmt</span><span class=si>}</span><span class=s2>"</span><span class=p>))</span>
+        <span class=n>dest_file</span><span class=o>.</span><span class=n>ensure_file_exists</span><span class=p>()</span>
+        <span class=k>with</span> <span class=n>warnings</span><span class=o>.</span><span class=n>catch_warnings</span><span class=p>():</span>
+            <span class=n>warnings</span><span class=o>.</span><span class=n>simplefilter</span><span class=p>(</span><span class=s2>"ignore"</span><span class=p>)</span>
+            <span class=c1># UserWarning: There are no gridspecs with layoutgrids.</span>
+            <span class=c1># Possibly did not call parent GridSpec with the "figure" keyword</span>
+            <span class=n>fig</span><span class=o>.</span><span class=n>savefig</span><span class=p>(</span><span class=n>dest_file</span><span class=p>,</span> <span class=n>transparent</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=nb>format</span><span class=o>=</span><span class=n>fmt</span><span class=p>,</span>
+                        <span class=n>orientation</span><span class=o>=</span><span class=n>orientation</span><span class=p>,</span>
+                        <span class=n>dpi</span><span class=o>=</span><span class=s2>"figure"</span><span class=p>,</span>
+                        <span class=n>bbox_inches</span><span class=o>=</span><span class=s2>"tight"</span><span class=p>,</span>
+                        <span class=n>pad_inches</span><span class=o>=</span><span class=mf>1.0</span> <span class=o>/</span> <span class=mf>72.0</span><span class=p>)</span>
+        <span class=n>dest_file</span><span class=o>.</span><span class=n>enforce_file</span><span class=p>()</span>
+        <span class=n>files</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>dest_file</span><span class=p>)</span>
+
+    <span class=n>fig</span><span class=o>.</span><span class=n>clf</span><span class=p>(</span><span class=kc>False</span><span class=p>)</span>
+    <span class=n>plt</span><span class=o>.</span><span class=n>close</span><span class=p>(</span><span class=n>fig</span><span class=p>)</span>
+    <span class=k>del</span> <span class=n>fig</span>
+
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>files</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"No formats were specified."</span><span class=p>)</span>
+
+    <span class=k>return</span> <span class=n>files</span></div>
+
+
+
+<div class=viewcode-block id=label_box>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_utils.label_box>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>label_box</span><span class=p>(</span><span class=n>axes</span><span class=p>:</span> <span class=n>Axes</span><span class=p>,</span>
+              <span class=n>text</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+              <span class=n>x</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+              <span class=n>y</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+              <span class=n>font_size</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>pd</span><span class=o>.</span><span class=n>importance_to_font_size</span><span class=p>(</span><span class=mi>0</span><span class=p>),</span>
+              <span class=n>may_rotate_text</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+              <span class=n>z_order</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+              <span class=n>font</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=n>Callable</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span>
+              <span class=k>lambda</span><span class=p>:</span> <span class=n>Lang</span><span class=o>.</span><span class=n>current</span><span class=p>()</span><span class=o>.</span><span class=n>font</span><span class=p>())</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Put a label text box near an axis.</span>
+
+<span class=sd>    :param axes: the axes to add the label to</span>
+<span class=sd>    :param text: the text to place</span>
+<span class=sd>    :param x: the location along the x-axis: `0` means left,</span>
+<span class=sd>        `0.5` means centered, `1` means right</span>
+<span class=sd>    :param y: the location along the x-axis: `0` means bottom,</span>
+<span class=sd>        `0.5` means centered, `1` means top</span>
+<span class=sd>    :param font_size: the font size</span>
+<span class=sd>    :param may_rotate_text: should we rotate the text by 90° if that</span>
+<span class=sd>        makes sense (`True`) or always keep it horizontally (`False`)</span>
+<span class=sd>    :param z_order: an optional z-order value</span>
+<span class=sd>    :param font: the font to use</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=n>x</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>y</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"At least one of x or y must not be None."</span><span class=p>)</span>
+        <span class=n>x</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=k>elif</span> <span class=n>y</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>y</span> <span class=o>=</span> <span class=mi>0</span>
+
+    <span class=n>spacing</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=mf>4.0</span><span class=p>,</span> <span class=n>font_size</span> <span class=o>/</span> <span class=mf>2.0</span><span class=p>)</span>
+    <span class=n>xtext</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.0</span>
+    <span class=n>ytext</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.0</span>
+    <span class=n>xalign</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"center"</span>
+    <span class=n>yalign</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=s2>"center"</span>
+    <span class=k>if</span> <span class=n>x</span> <span class=o>>=</span> <span class=mf>0.85</span><span class=p>:</span>
+        <span class=n>xtext</span> <span class=o>=</span> <span class=o>-</span><span class=n>spacing</span>
+        <span class=n>xalign</span> <span class=o>=</span> <span class=s2>"right"</span>
+    <span class=k>elif</span> <span class=n>x</span> <span class=o><=</span> <span class=mf>0.15</span><span class=p>:</span>
+        <span class=n>xtext</span> <span class=o>=</span> <span class=n>spacing</span>
+        <span class=n>xalign</span> <span class=o>=</span> <span class=s2>"left"</span>
+    <span class=k>if</span> <span class=n>y</span> <span class=o>>=</span> <span class=mf>0.85</span><span class=p>:</span>
+        <span class=n>ytext</span> <span class=o>=</span> <span class=o>-</span><span class=n>spacing</span>
+        <span class=n>yalign</span> <span class=o>=</span> <span class=s2>"top"</span>
+    <span class=k>elif</span> <span class=n>y</span> <span class=o><=</span> <span class=mf>0.15</span><span class=p>:</span>
+        <span class=n>ytext</span> <span class=o>=</span> <span class=n>spacing</span>
+        <span class=n>yalign</span> <span class=o>=</span> <span class=s2>"bottom"</span>
+
+    <span class=n>args</span> <span class=o>=</span> <span class=p>{</span><span class=s2>"text"</span><span class=p>:</span> <span class=n>text</span><span class=p>,</span>
+            <span class=s2>"xy"</span><span class=p>:</span> <span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>),</span>
+            <span class=s2>"xytext"</span><span class=p>:</span> <span class=p>(</span><span class=n>xtext</span><span class=p>,</span> <span class=n>ytext</span><span class=p>),</span>
+            <span class=s2>"verticalalignment"</span><span class=p>:</span> <span class=n>yalign</span><span class=p>,</span>
+            <span class=s2>"horizontalalignment"</span><span class=p>:</span> <span class=n>xalign</span><span class=p>,</span>
+            <span class=s2>"xycoords"</span><span class=p>:</span> <span class=s2>"axes fraction"</span><span class=p>,</span>
+            <span class=s2>"textcoords"</span><span class=p>:</span> <span class=s2>"offset points"</span><span class=p>,</span>
+            <span class=s2>"fontsize"</span><span class=p>:</span> <span class=n>font_size</span><span class=p>,</span>
+            <span class=s2>"bbox"</span><span class=p>:</span> <span class=p>{</span><span class=s2>"boxstyle"</span><span class=p>:</span> <span class=s2>"round"</span><span class=p>,</span>
+                     <span class=s2>"color"</span><span class=p>:</span> <span class=s2>"white"</span><span class=p>,</span>
+                     <span class=s2>"fill"</span><span class=p>:</span> <span class=kc>True</span><span class=p>,</span>
+                     <span class=s2>"linewidth"</span><span class=p>:</span> <span class=mi>0</span><span class=p>,</span>
+                     <span class=s2>"alpha"</span><span class=p>:</span> <span class=mf>0.9</span><span class=p>}}</span>
+    <span class=k>if</span> <span class=n>z_order</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>args</span><span class=p>[</span><span class=s2>"zorder"</span><span class=p>]</span> <span class=o>=</span> <span class=n>z_order</span>
+
+    <span class=k>if</span> <span class=n>may_rotate_text</span> <span class=ow>and</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>text</span><span class=p>)</span> <span class=o>></span> <span class=mi>2</span><span class=p>):</span>
+        <span class=n>args</span><span class=p>[</span><span class=s2>"rotation"</span><span class=p>]</span> <span class=o>=</span> <span class=mi>90</span>
+
+    <span class=k>if</span> <span class=nb>callable</span><span class=p>(</span><span class=n>font</span><span class=p>):</span>
+        <span class=n>font</span> <span class=o>=</span> <span class=n>font</span><span class=p>()</span>
+    <span class=k>if</span> <span class=n>font</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>font</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>font</span><span class=p>,</span> <span class=s2>"font"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=n>args</span><span class=p>[</span><span class=s2>"fontname"</span><span class=p>]</span> <span class=o>=</span> <span class=n>font</span>
+
+    <span class=n>axes</span><span class=o>.</span><span class=n>annotate</span><span class=p>(</span><span class=o>**</span><span class=n>args</span><span class=p>)</span>  <span class=c1># type: ignore</span></div>
+
+
+
+<div class=viewcode-block id=label_axes>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_utils.label_axes>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>label_axes</span><span class=p>(</span><span class=n>axes</span><span class=p>:</span> <span class=n>Axes</span><span class=p>,</span>
+               <span class=n>x_label</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+               <span class=n>x_label_inside</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+               <span class=n>x_label_location</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>0.5</span><span class=p>,</span>
+               <span class=n>y_label</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+               <span class=n>y_label_inside</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+               <span class=n>y_label_location</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mi>1</span><span class=p>,</span>
+               <span class=n>font_size</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>pd</span><span class=o>.</span><span class=n>importance_to_font_size</span><span class=p>(</span><span class=mi>0</span><span class=p>),</span>
+               <span class=n>z_order</span><span class=p>:</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Put labels on a figure.</span>
+
+<span class=sd>    :param axes: the axes to add the label to</span>
+<span class=sd>    :param x_label: a callable returning the label for</span>
+<span class=sd>        the x-axis, a label string, or `None` if no label should be put</span>
+<span class=sd>    :param x_label_inside: put the x-axis label inside the plot (so that</span>
+<span class=sd>        it does not consume additional vertical space)</span>
+<span class=sd>    :param x_label_location: the location of the x-axis label if it is</span>
+<span class=sd>        placed inside the plot area</span>
+<span class=sd>    :param y_label: a callable returning the label for</span>
+<span class=sd>        the y-axis, a label string, or `None` if no label should be put</span>
+<span class=sd>    :param y_label_inside: put the xyaxis label inside the plot (so that</span>
+<span class=sd>        it does not consume additional horizontal space)nal vertical space)</span>
+<span class=sd>    :param y_label_location: the location of the y-axis label if it is</span>
+<span class=sd>        placed inside the plot area</span>
+<span class=sd>    :param font_size: the font size to use</span>
+<span class=sd>    :param z_order: an optional z-order value</span>
+<span class=sd>    """</span>
+    <span class=c1># put the label on the x-axis, if any</span>
+    <span class=k>if</span> <span class=n>x_label</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>x_label</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>x_label</span><span class=p>,</span> <span class=s2>"x_label"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>x_label</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>x_label_inside</span><span class=p>:</span>
+                <span class=n>label_box</span><span class=p>(</span><span class=n>axes</span><span class=p>,</span> <span class=n>text</span><span class=o>=</span><span class=n>x_label</span><span class=p>,</span> <span class=n>x</span><span class=o>=</span><span class=n>x_label_location</span><span class=p>,</span> <span class=n>y</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span>
+                          <span class=n>font_size</span><span class=o>=</span><span class=n>font_size</span><span class=p>,</span> <span class=n>z_order</span><span class=o>=</span><span class=n>z_order</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>axes</span><span class=o>.</span><span class=n>set_xlabel</span><span class=p>(</span><span class=n>x_label</span><span class=p>,</span> <span class=n>fontsize</span><span class=o>=</span><span class=n>font_size</span><span class=p>)</span>
+
+    <span class=c1># put the label on the y-axis, if any</span>
+    <span class=k>if</span> <span class=n>y_label</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>y_label</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>y_label</span><span class=p>,</span> <span class=s2>"y_label"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>y_label</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>y_label_inside</span><span class=p>:</span>
+                <span class=n>label_box</span><span class=p>(</span><span class=n>axes</span><span class=p>,</span> <span class=n>text</span><span class=o>=</span><span class=n>y_label</span><span class=p>,</span> <span class=n>x</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>y</span><span class=o>=</span><span class=n>y_label_location</span><span class=p>,</span>
+                          <span class=n>font_size</span><span class=o>=</span><span class=n>font_size</span><span class=p>,</span> <span class=n>may_rotate_text</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+                          <span class=n>z_order</span><span class=o>=</span><span class=n>z_order</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>axes</span><span class=o>.</span><span class=n>set_ylabel</span><span class=p>(</span><span class=n>y_label</span><span class=p>,</span> <span class=n>fontsize</span><span class=o>=</span><span class=n>font_size</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=get_axes>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_utils.get_axes>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>get_axes</span><span class=p>(</span><span class=n>figure</span><span class=p>:</span> <span class=n>Axes</span> <span class=o>|</span> <span class=n>Figure</span><span class=p>)</span> <span class=o>-></span> <span class=n>Axes</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Obtain the axes from a figure or axes object.</span>
+
+<span class=sd>    :param figure: the figure</span>
+<span class=sd>    :return: the Axes</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>figure</span><span class=p>,</span> <span class=n>Figure</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>figure</span><span class=o>.</span><span class=n>add_axes</span><span class=p>((</span><span class=mf>0.005</span><span class=p>,</span> <span class=mf>0.005</span><span class=p>,</span> <span class=mf>0.99</span><span class=p>,</span> <span class=mf>0.99</span><span class=p>))</span>
+    <span class=k>if</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>figure</span><span class=p>,</span> <span class=s2>"axes"</span><span class=p>)</span> \
+            <span class=ow>or</span> <span class=nb>isinstance</span><span class=p>(</span><span class=nb>getattr</span><span class=p>(</span><span class=nb>type</span><span class=p>(</span><span class=n>figure</span><span class=p>),</span> <span class=s2>"axes"</span><span class=p>,</span> <span class=kc>None</span><span class=p>),</span> <span class=nb>property</span><span class=p>):</span>
+        <span class=k>try</span><span class=p>:</span>
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>figure</span><span class=o>.</span><span class=n>axes</span><span class=p>,</span> <span class=n>Axes</span><span class=p>):</span>
+                <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Axes"</span><span class=p>,</span> <span class=n>figure</span><span class=o>.</span><span class=n>axes</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>figure</span><span class=o>.</span><span class=n>axes</span><span class=p>,</span> <span class=n>Sequence</span><span class=p>):</span>
+                <span class=n>ax</span> <span class=o>=</span> <span class=n>figure</span><span class=o>.</span><span class=n>axes</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+                <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ax</span><span class=p>,</span> <span class=n>Axes</span><span class=p>):</span>
+                    <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Axes"</span><span class=p>,</span> <span class=n>ax</span><span class=p>)</span>
+            <span class=k>elif</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>figure</span><span class=o>.</span><span class=n>axes</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+                <span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=n>figure</span><span class=o>.</span><span class=n>axes</span><span class=p>:</span>
+                    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=n>Axes</span><span class=p>):</span>
+                        <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Axes"</span><span class=p>,</span> <span class=n>k</span><span class=p>)</span>
+                    <span class=k>break</span>
+        <span class=k>except</span> <span class=ne>TypeError</span><span class=p>:</span>
+            <span class=k>pass</span>
+        <span class=k>except</span> <span class=ne>IndexError</span><span class=p>:</span>
+            <span class=k>pass</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>figure</span><span class=p>,</span> <span class=n>Axes</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"Axes"</span><span class=p>,</span> <span class=n>figure</span><span class=p>)</span>
+    <span class=k>raise</span> <span class=ne>TypeError</span><span class=p>(</span>
+        <span class=sa>f</span><span class=s2>"Cannot get Axes of object of type </span><span class=si>{</span><span class=n>type_name_of</span><span class=p>(</span><span class=n>figure</span><span class=p>)</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=get_renderer>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_utils.get_renderer>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>get_renderer</span><span class=p>(</span><span class=n>figure</span><span class=p>:</span> <span class=n>Axes</span> <span class=o>|</span> <span class=n>Figure</span> <span class=o>|</span> <span class=n>SubFigure</span><span class=p>)</span> <span class=o>-></span> <span class=n>RendererBase</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get a renderer that can be used for determining figure element sizes.</span>
+
+<span class=sd>    :param figure: the figure element</span>
+<span class=sd>    :return: the renderer</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>figure</span><span class=p>,</span> <span class=n>Axes</span><span class=p>):</span>
+        <span class=n>figure</span> <span class=o>=</span> <span class=n>figure</span><span class=o>.</span><span class=n>figure</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>figure</span><span class=p>,</span> <span class=n>Figure</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>figure</span><span class=p>,</span> <span class=s2>"figure"</span><span class=p>,</span> <span class=n>Figure</span><span class=p>)</span>
+    <span class=n>canvas</span> <span class=o>=</span> <span class=n>figure</span><span class=o>.</span><span class=n>canvas</span>
+    <span class=k>if</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>canvas</span><span class=p>,</span> <span class=s2>"renderer"</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>canvas</span><span class=o>.</span><span class=n>renderer</span>
+    <span class=k>if</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>canvas</span><span class=p>,</span> <span class=s2>"get_renderer"</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>canvas</span><span class=o>.</span><span class=n>get_renderer</span><span class=p>()</span>
+    <span class=k>return</span> <span class=n>RendererAgg</span><span class=p>(</span><span class=n>width</span><span class=o>=</span><span class=n>figure</span><span class=o>.</span><span class=n>get_figwidth</span><span class=p>(),</span>
+                       <span class=n>height</span><span class=o>=</span><span class=n>figure</span><span class=o>.</span><span class=n>get_figheight</span><span class=p>(),</span>
+                       <span class=n>dpi</span><span class=o>=</span><span class=n>figure</span><span class=o>.</span><span class=n>get_dpi</span><span class=p>())</span></div>
+
+
+
+<div class=viewcode-block id=cm_to_inch>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_utils.cm_to_inch>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>cm_to_inch</span><span class=p>(</span><span class=n>cm</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Convert cm to inch.</span>
+
+<span class=sd>    :param cm: the cm value</span>
+<span class=sd>    :return: the value in inch</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>cm</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>cm</span><span class=p>,</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>cm</span><span class=p>,</span> <span class=s2>"cm"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>cm</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"cm must be finite, but is </span><span class=si>{</span><span class=n>cm</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>res</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>cm</span> <span class=o>/</span> <span class=mf>2.54</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>res</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Conversation </span><span class=si>{</span><span class=n>cm</span><span class=si>}</span><span class=s2> cm to inch "</span>
+                         <span class=sa>f</span><span class=s2>"must be finite, but is </span><span class=si>{</span><span class=n>res</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>res</span></div>
+
+
+
+<span class=c1>#: the color attributes</span>
+<span class=n>__COLOR_ATTRS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>bool</span><span class=p>,</span> <span class=nb>bool</span><span class=p>,</span> <span class=nb>str</span><span class=p>],</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> \
+    <span class=p>((</span><span class=kc>True</span><span class=p>,</span> <span class=kc>True</span><span class=p>,</span> <span class=s2>"get_label"</span><span class=p>),</span> <span class=p>(</span><span class=kc>False</span><span class=p>,</span> <span class=kc>True</span><span class=p>,</span> <span class=s2>"label"</span><span class=p>),</span>
+     <span class=p>(</span><span class=kc>False</span><span class=p>,</span> <span class=kc>True</span><span class=p>,</span> <span class=s2>"_label"</span><span class=p>),</span> <span class=p>(</span><span class=kc>True</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=s2>"get_color"</span><span class=p>),</span>
+     <span class=p>(</span><span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=s2>"color"</span><span class=p>),</span> <span class=p>(</span><span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=s2>"_color"</span><span class=p>),</span>
+     <span class=p>(</span><span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=s2>"edgecolor"</span><span class=p>),</span> <span class=p>(</span><span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=s2>"_edgecolor"</span><span class=p>),</span>
+     <span class=p>(</span><span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=s2>"markeredgecolor"</span><span class=p>),</span> <span class=p>(</span><span class=kc>False</span><span class=p>,</span> <span class=kc>False</span><span class=p>,</span> <span class=s2>"_markeredgecolor"</span><span class=p>))</span>
+
+
+<div class=viewcode-block id=get_label_colors>
+<a class=viewcode-back href=../../../moptipy.utils.html#moptipy.utils.plot_utils.get_label_colors>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>get_label_colors</span><span class=p>(</span>
+        <span class=n>handles</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Artist</span><span class=p>],</span>
+        <span class=n>color_map</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>|</span> <span class=nb>str</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>default_color</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>|</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>pd</span><span class=o>.</span><span class=n>COLOR_BLACK</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>|</span> <span class=nb>str</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get a list with label colors from a set of artists.</span>
+
+<span class=sd>    :param handles: the handles</span>
+<span class=sd>    :param color_map: an optional color decode</span>
+<span class=sd>    :param default_color: the default color</span>
+<span class=sd>    :returns: a list of label colors</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>handles</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>handles</span><span class=p>,</span> <span class=s2>"handles"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>__get_color</span><span class=p>(</span><span class=n>a</span><span class=p>:</span> <span class=n>Artist</span><span class=p>,</span> <span class=n>colmap</span><span class=o>=</span><span class=n>color_map</span><span class=p>,</span>
+                    <span class=n>defcol</span><span class=o>=</span><span class=n>default_color</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>|</span> <span class=nb>str</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=n>Artist</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=s2>"artist"</span><span class=p>,</span> <span class=n>Artist</span><span class=p>)</span>
+
+        <span class=k>for</span> <span class=n>acall</span><span class=p>,</span> <span class=n>astr</span><span class=p>,</span> <span class=n>aname</span> <span class=ow>in</span> <span class=n>__COLOR_ATTRS</span><span class=p>:</span>
+            <span class=k>if</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=n>aname</span><span class=p>):</span>
+                <span class=n>val</span> <span class=o>=</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>a</span><span class=p>,</span> <span class=n>aname</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>val</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                    <span class=k>continue</span>
+                <span class=k>if</span> <span class=n>acall</span><span class=p>:</span>
+                    <span class=n>val</span> <span class=o>=</span> <span class=n>val</span><span class=p>()</span>
+                <span class=k>if</span> <span class=n>val</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                    <span class=k>continue</span>
+                <span class=k>if</span> <span class=n>astr</span><span class=p>:</span>
+                    <span class=k>if</span> <span class=n>colmap</span><span class=p>:</span>
+                        <span class=k>if</span> <span class=n>val</span> <span class=ow>in</span> <span class=n>colmap</span><span class=p>:</span>
+                            <span class=n>val</span> <span class=o>=</span> <span class=n>colmap</span><span class=p>[</span><span class=n>val</span><span class=p>]</span>
+                        <span class=k>else</span><span class=p>:</span>
+                            <span class=k>continue</span>
+                    <span class=k>else</span><span class=p>:</span>
+                        <span class=k>continue</span>
+                <span class=k>if</span> <span class=n>val</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                    <span class=k>continue</span>
+                <span class=k>if</span> <span class=n>val</span> <span class=o>!=</span> <span class=n>defcol</span><span class=p>:</span>
+                    <span class=k>return</span> <span class=n>val</span>
+        <span class=k>return</span> <span class=n>defcol</span>
+
+    <span class=k>return</span> <span class=p>[</span><span class=n>__get_color</span><span class=p>(</span><span class=n>aa</span><span class=p>)</span> <span class=k>for</span> <span class=n>aa</span> <span class=ow>in</span> <span class=n>handles</span><span class=p>]</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.utils.plot_utils</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

@@ -1,0 +1,537 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.ecdf — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/ecdf.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.ecdf</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.ecdf</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Approximate the :class:`~moptipy.evaluation.ecdf.Ecdf` to reach certain goals.</span>
+
+<span class=sd>The empirical cumulative distribution function (ECDF) for short illustrates</span>
+<span class=sd>the fraction of runs that have reached a certain goal over time. Let's say</span>
+<span class=sd>that you have performed 10 runs of a certain algorithm on a certain problem.</span>
+<span class=sd>As goal quality, you could define the globally optimal solution quality.</span>
+<span class=sd>For any point in time, the ECDF then shows how many of these runs have solved</span>
+<span class=sd>the problem to this goal, to optimality.</span>
+<span class=sd>Let's say the first run solves the problem after 100 FEs.</span>
+<span class=sd>Then the ECDF is 0 until 99 FEs and at 100 FEs, it becomes 1/10.</span>
+<span class=sd>The second-fastest run solves the problem after 200 FEs.</span>
+<span class=sd>The ECDF thus stays 0.1 until 199 FEs and at 200 FEs, it jumps to 0.2.</span>
+<span class=sd>And so on.</span>
+<span class=sd>This means that the value of the ECDF is always between 0 and 1.</span>
+
+<span class=sd>1. Nikolaus Hansen, Anne Auger, Steffen Finck, Raymond Ros. *Real-Parameter</span>
+<span class=sd>   Black-Box Optimization Benchmarking 2010: Experimental Setup.*</span>
+<span class=sd>   Research Report RR-7215, INRIA. 2010. inria-00462481.</span>
+<span class=sd>   https://hal.inria.fr/inria-00462481/document/</span>
+<span class=sd>2. Dave Andrew Douglas Tompkins and Holger H. Hoos. UBCSAT: An Implementation</span>
+<span class=sd>   and Experimentation Environment for SLS Algorithms for SAT and MAX-SAT. In</span>
+<span class=sd>   *Revised Selected Papers from the Seventh International Conference on</span>
+<span class=sd>   Theory and Applications of Satisfiability Testing (SAT'04),* May 10-13,</span>
+<span class=sd>   2004, Vancouver, BC, Canada, pages 306-320. Lecture Notes in Computer</span>
+<span class=sd>   Science (LNCS), volume 3542. Berlin, Germany: Springer-Verlag GmbH.</span>
+<span class=sd>   ISBN: 3-540-27829-X. doi: https://doi.org/10.1007/11527695_24.</span>
+<span class=sd>3. Holger H. Hoos and Thomas Stützle. Evaluating Las Vegas Algorithms -</span>
+<span class=sd>   Pitfalls and Remedies. In Gregory F. Cooper and Serafín Moral, editors,</span>
+<span class=sd>   *Proceedings of the 14th Conference on Uncertainty in Artificial</span>
+<span class=sd>   Intelligence (UAI'98)*, July 24-26, 1998, Madison, WI, USA, pages 238-245.</span>
+<span class=sd>   San Francisco, CA, USA: Morgan Kaufmann Publishers Inc.</span>
+<span class=sd>   ISBN: 1-55860-555-X.</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>dataclasses</span><span class=w> </span><span class=kn>import</span> <span class=n>dataclass</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.console</span><span class=w> </span><span class=kn>import</span> <span class=n>logger</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.csv</span><span class=w> </span><span class=kn>import</span> <span class=n>COMMENT_START</span><span class=p>,</span> <span class=n>CSV_SEPARATOR</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.strings.string_conv</span><span class=w> </span><span class=kn>import</span> <span class=n>num_to_str</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>KEY_ALGORITHM</span><span class=p>,</span>
+    <span class=n>KEY_GOAL_F</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation._utils</span><span class=w> </span><span class=kn>import</span> <span class=n>_get_goal_reach_index</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.base</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>F_NAME_NORMALIZED</span><span class=p>,</span>
+    <span class=n>F_NAME_SCALED</span><span class=p>,</span>
+    <span class=n>KEY_ENCODING</span><span class=p>,</span>
+    <span class=n>KEY_N</span><span class=p>,</span>
+    <span class=n>KEY_OBJECTIVE_FUNCTION</span><span class=p>,</span>
+    <span class=n>MultiRun2DData</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.progress</span><span class=w> </span><span class=kn>import</span> <span class=n>Progress</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.lang</span><span class=w> </span><span class=kn>import</span> <span class=n>Lang</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>KEY_VALUE_SEPARATOR</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>is_all_finite</span>
+
+<span class=c1>#: The number of instances.</span>
+<span class=n>KEY_N_INSTS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>KEY_N</span><span class=si>}</span><span class=s2>Insts"</span>
+<span class=c1>#: The objective dimension name.</span>
+<span class=n>KEY_F_NAME</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"fName"</span>
+
+
+<div class=viewcode-block id=Ecdf>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.ecdf.Ecdf>[docs]</a>
+<span class=nd>@dataclass</span><span class=p>(</span><span class=n>frozen</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>init</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>order</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>eq</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>class</span><span class=w> </span><span class=nc>Ecdf</span><span class=p>(</span><span class=n>MultiRun2DData</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The ECDF data."""</span>
+
+    <span class=c1>#: The ECDF data function</span>
+    <span class=n>ecdf</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span>
+    <span class=c1>#: The number of instances over which the ERT-ECDF is computed.</span>
+    <span class=n>n_insts</span><span class=p>:</span> <span class=nb>int</span>
+    <span class=c1>#: The goal value, or None if different goals were used for different</span>
+    <span class=c1>#: instances</span>
+    <span class=n>goal_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                 <span class=n>algorithm</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>objective</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>encoding</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>n_insts</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>time_unit</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>f_name</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>goal_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>ecdf</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the ECDF function.</span>
+
+<span class=sd>        :param algorithm: the algorithm name, if all runs are with the same</span>
+<span class=sd>            algorithm</span>
+<span class=sd>        :param objective: the objective name, if all runs are on the same</span>
+<span class=sd>            objective function, `None` otherwise</span>
+<span class=sd>        :param encoding: the encoding name, if all runs are on the same</span>
+<span class=sd>            encoding and an encoding was actually used, `None` otherwise</span>
+<span class=sd>        :param n: the total number of runs</span>
+<span class=sd>        :param n_insts: the total number of instances</span>
+<span class=sd>        :param time_unit: the time unit</span>
+<span class=sd>        :param f_name: the objective dimension name</span>
+<span class=sd>        :param goal_f: the goal value, or `None` if different goals were used</span>
+<span class=sd>            for different instances</span>
+<span class=sd>        :param numpy.ndarray ecdf: the ert-ecdf matrix</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=n>objective</span><span class=p>,</span> <span class=n>encoding</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span>
+                         <span class=n>time_unit</span><span class=p>,</span> <span class=n>f_name</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span>
+            <span class=bp>self</span><span class=p>,</span> <span class=s2>"n_insts"</span><span class=p>,</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>n_insts</span><span class=p>,</span> <span class=s2>"n_insts"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=p>))</span>
+
+        <span class=k>if</span> <span class=n>goal_f</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>goal_f</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>goal_f</span><span class=p>,</span> <span class=s2>"goal_f"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>goal_f</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid goal_f </span><span class=si>{</span><span class=n>goal_f</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"goal_f"</span><span class=p>,</span> <span class=n>goal_f</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ecdf</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>ecdf</span><span class=p>,</span> <span class=s2>"ecdf"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span>
+        <span class=n>ecdf</span><span class=o>.</span><span class=n>flags</span><span class=o>.</span><span class=n>writeable</span> <span class=o>=</span> <span class=kc>False</span>
+
+        <span class=n>time</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>ecdf</span><span class=p>[:,</span> <span class=mi>0</span><span class=p>]</span>
+        <span class=n>ll</span> <span class=o>=</span> <span class=n>time</span><span class=o>.</span><span class=n>size</span>
+        <span class=k>if</span> <span class=n>ll</span> <span class=o><</span> <span class=mi>2</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Must have at least two points in "</span>
+                             <span class=sa>f</span><span class=s2>"ecdf curve , but encountered </span><span class=si>{</span><span class=n>ll</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>is_all_finite</span><span class=p>(</span><span class=n>time</span><span class=p>[:</span><span class=o>-</span><span class=mi>1</span><span class=p>]):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Non-last Ert-based time-values must be finite, "</span>
+                             <span class=sa>f</span><span class=s2>"but encountered </span><span class=si>{</span><span class=n>time</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>np</span><span class=o>.</span><span class=n>any</span><span class=p>(</span><span class=n>time</span><span class=p>[</span><span class=mi>1</span><span class=p>:]</span> <span class=o><=</span> <span class=n>time</span><span class=p>[:</span><span class=o>-</span><span class=mi>1</span><span class=p>]):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Time data must be strictly increasing,"</span>
+                             <span class=sa>f</span><span class=s2>"but encountered </span><span class=si>{</span><span class=n>time</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=n>prb</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> <span class=n>ecdf</span><span class=p>[:,</span> <span class=mi>1</span><span class=p>]</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>is_all_finite</span><span class=p>(</span><span class=n>prb</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"All ECDF values must be finite, but encountered </span><span class=si>{</span><span class=n>prb</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>ll</span> <span class=o>></span> <span class=mi>2</span><span class=p>)</span> <span class=ow>and</span> <span class=n>np</span><span class=o>.</span><span class=n>any</span><span class=p>(</span><span class=n>prb</span><span class=p>[</span><span class=mi>1</span><span class=p>:</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o><=</span> <span class=n>prb</span><span class=p>[:</span><span class=o>-</span><span class=mi>2</span><span class=p>]):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"ECDF data must be strictly increasing,"</span>
+                             <span class=sa>f</span><span class=s2>"but encountered </span><span class=si>{</span><span class=n>prb</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>prb</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"First ECDF element cannot be </span><span class=si>{</span><span class=n>prb</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>prb</span><span class=p>[</span><span class=n>ll</span> <span class=o>-</span> <span class=mi>1</span><span class=p>]</span> <span class=o>></span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Last ECDF element cannot be </span><span class=si>{</span><span class=n>prb</span><span class=p>[</span><span class=n>ll</span><span class=w> </span><span class=o>-</span><span class=w> </span><span class=mi>1</span><span class=p>]</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"ecdf"</span><span class=p>,</span> <span class=n>ecdf</span><span class=p>)</span>
+
+<div class=viewcode-block id=Ecdf.time_label>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.ecdf.Ecdf.time_label>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>time_label</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the time label for x-axes.</span>
+
+<span class=sd>        :return: the time key</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>Lang</span><span class=o>.</span><span class=n>translate</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>time_unit</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_time_key</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the time key.</span>
+
+<span class=sd>        :return: the time key</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>time_unit</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_tuple</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=n>Any</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the tuple representation of this object used in comparisons.</span>
+
+<span class=sd>        :return: the comparison-relevant data of this object in a tuple</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=vm>__class__</span><span class=o>.</span><span class=vm>__name__</span><span class=p>,</span>
+                <span class=s2>""</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span>
+                <span class=s2>""</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>instance</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span>
+                <span class=s2>""</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>objective</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>objective</span><span class=p>,</span>
+                <span class=s2>""</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoding</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>encoding</span><span class=p>,</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=p>,</span> <span class=o>-</span><span class=mi>1</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>time_unit</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>f_name</span><span class=p>,</span>
+                <span class=n>inf</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=bp>self</span><span class=o>.</span><span class=n>goal_f</span><span class=p>,</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>n_insts</span><span class=p>)</span>
+
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>_compute_times</span><span class=p>(</span><span class=n>source</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>Progress</span><span class=p>],</span>
+                       <span class=n>goal</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compute the times for the given goals.</span>
+
+<span class=sd>        Warning: `source` must only contain progress objects that contain</span>
+<span class=sd>        monotonously improving points. It must not contain runs that may get</span>
+<span class=sd>        worse over time.</span>
+
+<span class=sd>        :param source: the source array</span>
+<span class=sd>        :param goal: the goal value</span>
+<span class=sd>        :return: a list of times</span>
+<span class=sd>        """</span>
+        <span class=n>ret</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=k>for</span> <span class=n>pr</span> <span class=ow>in</span> <span class=n>source</span><span class=p>:</span>
+            <span class=n>idx</span> <span class=o>=</span> <span class=n>_get_goal_reach_index</span><span class=p>(</span><span class=n>pr</span><span class=o>.</span><span class=n>f</span><span class=p>,</span> <span class=n>goal</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>idx</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>continue</span>
+            <span class=n>ret</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>pr</span><span class=o>.</span><span class=n>time</span><span class=p>[</span><span class=n>idx</span><span class=p>])</span>
+        <span class=k>return</span> <span class=n>ret</span>
+
+    <span class=c1># noinspection PyUnusedLocal</span>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>_get_div</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>n_insts</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the divisor.</span>
+
+<span class=sd>        :param n: the number of runs</span>
+<span class=sd>        :param n_insts: the number of instances</span>
+<span class=sd>        :return: the divisor</span>
+<span class=sd>        """</span>
+        <span class=k>del</span> <span class=n>n_insts</span>
+        <span class=k>return</span> <span class=n>n</span>
+
+    <span class=nd>@classmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>_create</span><span class=p>(</span><span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=s2>"Ecdf"</span><span class=p>],</span>
+                <span class=n>source</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Progress</span><span class=p>],</span>
+                <span class=n>goal_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span>
+                    <span class=nb>str</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                <span class=n>use_default_goal_f</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"Ecdf"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create one single Ecdf record from an iterable of Progress records.</span>
+
+<span class=sd>        :param source: the set of progress instances</span>
+<span class=sd>        :param goal_f: the goal objective value</span>
+<span class=sd>        :param use_default_goal_f: should we use the default lower bounds as</span>
+<span class=sd>            goals?</span>
+<span class=sd>        :return: the Ecdf record</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=s2>"source"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+
+        <span class=n>algorithm</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>objective</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>encoding</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>time_unit</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>f_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>inst_runs</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>list</span><span class=p>[</span><span class=n>Progress</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=n>n</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+
+        <span class=k>for</span> <span class=n>progress</span> <span class=ow>in</span> <span class=n>source</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>progress</span><span class=p>,</span> <span class=n>Progress</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>progress</span><span class=p>,</span> <span class=s2>"progress"</span><span class=p>,</span> <span class=n>Progress</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>n</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=n>algorithm</span> <span class=o>=</span> <span class=n>progress</span><span class=o>.</span><span class=n>algorithm</span>
+                <span class=n>time_unit</span> <span class=o>=</span> <span class=n>progress</span><span class=o>.</span><span class=n>time_unit</span>
+                <span class=n>objective</span> <span class=o>=</span> <span class=n>progress</span><span class=o>.</span><span class=n>objective</span>
+                <span class=n>encoding</span> <span class=o>=</span> <span class=n>progress</span><span class=o>.</span><span class=n>encoding</span>
+                <span class=n>f_name</span> <span class=o>=</span> <span class=n>progress</span><span class=o>.</span><span class=n>f_name</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>algorithm</span> <span class=o>!=</span> <span class=n>progress</span><span class=o>.</span><span class=n>algorithm</span><span class=p>:</span>
+                    <span class=n>algorithm</span> <span class=o>=</span> <span class=kc>None</span>
+                <span class=k>if</span> <span class=n>objective</span> <span class=o>!=</span> <span class=n>progress</span><span class=o>.</span><span class=n>objective</span><span class=p>:</span>
+                    <span class=n>objective</span> <span class=o>=</span> <span class=kc>None</span>
+                <span class=k>if</span> <span class=n>encoding</span> <span class=o>!=</span> <span class=n>progress</span><span class=o>.</span><span class=n>encoding</span><span class=p>:</span>
+                    <span class=n>encoding</span> <span class=o>=</span> <span class=kc>None</span>
+                <span class=k>if</span> <span class=n>time_unit</span> <span class=o>!=</span> <span class=n>progress</span><span class=o>.</span><span class=n>time_unit</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"Cannot mix time units </span><span class=si>{</span><span class=n>time_unit</span><span class=si>}</span><span class=s2> "</span>
+                        <span class=sa>f</span><span class=s2>"and </span><span class=si>{</span><span class=n>progress</span><span class=o>.</span><span class=n>time_unit</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>f_name</span> <span class=o>!=</span> <span class=n>progress</span><span class=o>.</span><span class=n>f_name</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Cannot mix f-names </span><span class=si>{</span><span class=n>f_name</span><span class=si>}</span><span class=s2> "</span>
+                                     <span class=sa>f</span><span class=s2>"and </span><span class=si>{</span><span class=n>progress</span><span class=o>.</span><span class=n>f_name</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+            <span class=n>n</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=k>if</span> <span class=n>progress</span><span class=o>.</span><span class=n>instance</span> <span class=ow>in</span> <span class=n>inst_runs</span><span class=p>:</span>
+                <span class=n>inst_runs</span><span class=p>[</span><span class=n>progress</span><span class=o>.</span><span class=n>instance</span><span class=p>]</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>progress</span><span class=p>)</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>inst_runs</span><span class=p>[</span><span class=n>progress</span><span class=o>.</span><span class=n>instance</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=n>progress</span><span class=p>]</span>
+        <span class=k>del</span> <span class=n>source</span>
+
+        <span class=k>if</span> <span class=n>n</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Did not encounter any progress information."</span><span class=p>)</span>
+        <span class=n>n_insts</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>inst_runs</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>n_insts</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>n_insts</span> <span class=o>></span> <span class=n>n</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Huh?."</span><span class=p>)</span>
+
+        <span class=n>times</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>goal</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span>
+        <span class=n>same_goal_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>first</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span>
+        <span class=k>for</span> <span class=n>instance</span><span class=p>,</span> <span class=n>pl</span> <span class=ow>in</span> <span class=n>inst_runs</span><span class=o>.</span><span class=n>items</span><span class=p>():</span>
+            <span class=n>goal</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>goal_f</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+                <span class=n>goal</span> <span class=o>=</span> <span class=n>goal_f</span>
+            <span class=k>elif</span> <span class=nb>callable</span><span class=p>(</span><span class=n>goal_f</span><span class=p>):</span>
+                <span class=n>goal</span> <span class=o>=</span> <span class=n>goal_f</span><span class=p>(</span><span class=n>instance</span><span class=p>)</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>goal</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=n>use_default_goal_f</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>f_name</span> <span class=o>==</span> <span class=n>F_NAME_SCALED</span><span class=p>:</span>
+                    <span class=n>goal</span> <span class=o>=</span> <span class=mi>1</span>
+                <span class=k>elif</span> <span class=n>f_name</span> <span class=o>==</span> <span class=n>F_NAME_NORMALIZED</span><span class=p>:</span>
+                    <span class=n>goal</span> <span class=o>=</span> <span class=mi>0</span>
+                <span class=k>else</span><span class=p>:</span>
+                    <span class=n>goal</span> <span class=o>=</span> <span class=n>pl</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>f_standard</span>
+                    <span class=k>for</span> <span class=n>pp</span> <span class=ow>in</span> <span class=n>pl</span><span class=p>:</span>
+                        <span class=k>if</span> <span class=n>goal</span> <span class=o>!=</span> <span class=n>pp</span><span class=o>.</span><span class=n>f_standard</span><span class=p>:</span>
+                            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Inconsistent goals: "</span>
+                                             <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>goal</span><span class=si>}</span><span class=s2> and </span><span class=si>{</span><span class=n>pp</span><span class=o>.</span><span class=n>f_standard</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>goal</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>goal</span><span class=p>,</span> <span class=s2>"goal"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+            <span class=k>if</span> <span class=n>first</span><span class=p>:</span>
+                <span class=n>same_goal_f</span> <span class=o>=</span> <span class=n>goal</span>
+            <span class=k>elif</span> <span class=n>goal</span> <span class=o>!=</span> <span class=n>same_goal_f</span><span class=p>:</span>
+                <span class=n>same_goal_f</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=n>res</span> <span class=o>=</span> <span class=bp>cls</span><span class=o>.</span><span class=n>_compute_times</span><span class=p>(</span><span class=n>pl</span><span class=p>,</span> <span class=n>goal</span><span class=p>)</span>
+            <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>res</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>t</span><span class=p>):</span>
+                    <span class=k>if</span> <span class=n>t</span> <span class=o><</span> <span class=mi>0</span><span class=p>:</span>
+                        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid ert </span><span class=si>{</span><span class=n>t</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+                    <span class=n>times</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>t</span><span class=p>)</span>
+                <span class=k>elif</span> <span class=ow>not</span> <span class=p>(</span><span class=n>t</span> <span class=o>>=</span> <span class=n>inf</span><span class=p>):</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Invalid ert </span><span class=si>{</span><span class=n>t</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>del</span> <span class=n>inst_runs</span>
+
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>times</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>return</span> <span class=bp>cls</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>objective</span><span class=p>,</span> <span class=n>encoding</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=n>n_insts</span><span class=p>,</span> <span class=n>time_unit</span><span class=p>,</span>
+                       <span class=n>f_name</span><span class=p>,</span> <span class=n>same_goal_f</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>([[</span><span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>],</span> <span class=p>[</span><span class=n>inf</span><span class=p>,</span> <span class=mi>0</span><span class=p>]]))</span>
+
+        <span class=n>times</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+        <span class=n>time</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+        <span class=n>ecdf</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+        <span class=n>success</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=n>div</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>cls</span><span class=o>.</span><span class=n>_get_div</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=n>n_insts</span><span class=p>)</span>
+        <span class=n>ll</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>for</span> <span class=n>t</span> <span class=ow>in</span> <span class=n>times</span><span class=p>:</span>
+            <span class=n>success</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># noqa: SIM113</span>
+            <span class=k>if</span> <span class=n>t</span> <span class=o>></span> <span class=n>time</span><span class=p>[</span><span class=n>ll</span><span class=p>]:</span>
+                <span class=n>time</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>t</span><span class=p>)</span>
+                <span class=n>ecdf</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>success</span> <span class=o>/</span> <span class=n>div</span><span class=p>)</span>
+                <span class=n>ll</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>ecdf</span><span class=p>[</span><span class=n>ll</span><span class=p>]</span> <span class=o>=</span> <span class=n>success</span> <span class=o>/</span> <span class=n>div</span>
+
+        <span class=n>time</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>inf</span><span class=p>)</span>
+        <span class=n>ecdf</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>ecdf</span><span class=p>[</span><span class=n>ll</span><span class=p>])</span>
+
+        <span class=k>return</span> <span class=bp>cls</span><span class=p>(</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>objective</span><span class=p>,</span> <span class=n>encoding</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=n>n_insts</span><span class=p>,</span>
+                   <span class=n>time_unit</span><span class=p>,</span> <span class=n>f_name</span><span class=p>,</span> <span class=n>same_goal_f</span><span class=p>,</span>
+                   <span class=n>np</span><span class=o>.</span><span class=n>column_stack</span><span class=p>((</span><span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>time</span><span class=p>),</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>ecdf</span><span class=p>))))</span>
+
+    <span class=nd>@classmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>_from_progresses</span><span class=p>(</span>
+            <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>[</span><span class=s2>"Ecdf"</span><span class=p>],</span>
+            <span class=n>source</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Progress</span><span class=p>],</span> <span class=n>consumer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=s2>"Ecdf"</span><span class=p>],</span> <span class=n>Any</span><span class=p>],</span>
+            <span class=n>f_goal</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span>
+                        <span class=o>|</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+            <span class=n>join_all_algorithms</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+            <span class=n>join_all_objectives</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+            <span class=n>join_all_encodings</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Compute one or multiple ECDFs from a stream of end results.</span>
+
+<span class=sd>        :param source: the set of progress instances</span>
+<span class=sd>        :param f_goal: one or multiple goal values</span>
+<span class=sd>        :param consumer: the destination to which the new records will be</span>
+<span class=sd>            passed, can be the `append` method of a :class:`list`</span>
+<span class=sd>        :param join_all_algorithms: should the Ecdf be aggregated over all</span>
+<span class=sd>            algorithms</span>
+<span class=sd>        :param join_all_objectives: should the Ecdf be aggregated over all</span>
+<span class=sd>            objective functions</span>
+<span class=sd>        :param join_all_encodings: should the Ecdf be aggregated over all</span>
+<span class=sd>            encodings</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=s2>"source"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>consumer</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>consumer</span><span class=p>,</span> <span class=s2>"consumer"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>join_all_algorithms</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>join_all_algorithms</span><span class=p>,</span>
+                             <span class=s2>"join_all_algorithms"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>join_all_objectives</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>join_all_objectives</span><span class=p>,</span>
+                             <span class=s2>"join_all_objectives"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>join_all_encodings</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>join_all_encodings</span><span class=p>,</span>
+                             <span class=s2>"join_all_encodings"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>f_goal</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=n>f_goal</span> <span class=o>=</span> <span class=p>[</span><span class=n>f_goal</span><span class=p>]</span>
+
+        <span class=n>sorter</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>],</span> <span class=nb>list</span><span class=p>[</span><span class=n>Progress</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=k>for</span> <span class=n>er</span> <span class=ow>in</span> <span class=n>source</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>er</span><span class=p>,</span> <span class=n>Progress</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>er</span><span class=p>,</span> <span class=s2>"progress"</span><span class=p>,</span> <span class=n>Progress</span><span class=p>)</span>
+            <span class=n>key</span> <span class=o>=</span> <span class=p>(</span><span class=s2>""</span> <span class=k>if</span> <span class=n>join_all_algorithms</span> <span class=k>else</span> <span class=n>er</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span>
+                   <span class=s2>""</span> <span class=k>if</span> <span class=n>join_all_objectives</span> <span class=k>else</span> <span class=n>er</span><span class=o>.</span><span class=n>objective</span><span class=p>,</span>
+                   <span class=s2>""</span> <span class=k>if</span> <span class=n>join_all_encodings</span> <span class=k>else</span> <span class=p>(</span>
+                       <span class=s2>""</span> <span class=k>if</span> <span class=n>er</span><span class=o>.</span><span class=n>encoding</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>er</span><span class=o>.</span><span class=n>encoding</span><span class=p>))</span>
+            <span class=k>if</span> <span class=n>key</span> <span class=ow>in</span> <span class=n>sorter</span><span class=p>:</span>
+                <span class=n>lst</span> <span class=o>=</span> <span class=n>sorter</span><span class=p>[</span><span class=n>key</span><span class=p>]</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=n>lst</span> <span class=o>=</span> <span class=p>[]</span>
+                <span class=n>sorter</span><span class=p>[</span><span class=n>key</span><span class=p>]</span> <span class=o>=</span> <span class=n>lst</span>
+            <span class=n>lst</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>er</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>sorter</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"source must not be empty"</span><span class=p>)</span>
+
+        <span class=n>keyz</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>sorter</span><span class=o>.</span><span class=n>keys</span><span class=p>())</span>
+        <span class=k>for</span> <span class=n>goal</span> <span class=ow>in</span> <span class=n>f_goal</span><span class=p>:</span>
+            <span class=n>use_default_goal</span> <span class=o>=</span> <span class=n>goal</span> <span class=ow>is</span> <span class=kc>None</span>
+            <span class=k>for</span> <span class=n>key</span> <span class=ow>in</span> <span class=n>keyz</span><span class=p>:</span>
+                <span class=n>consumer</span><span class=p>(</span><span class=bp>cls</span><span class=o>.</span><span class=n>_create</span><span class=p>(</span><span class=n>sorter</span><span class=p>[</span><span class=n>key</span><span class=p>],</span> <span class=n>goal</span><span class=p>,</span> <span class=n>use_default_goal</span><span class=p>))</span></div>
+
+
+
+<div class=viewcode-block id=create>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.ecdf.create>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=n>source</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Progress</span><span class=p>],</span>
+           <span class=n>goal_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span>
+               <span class=nb>str</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+           <span class=n>use_default_goal_f</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-></span> <span class=n>Ecdf</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create one single Ecdf record from an iterable of Progress records.</span>
+
+<span class=sd>    :param source: the set of progress instances</span>
+<span class=sd>    :param goal_f: the goal objective value</span>
+<span class=sd>    :param use_default_goal_f: should we use the default lower bounds as</span>
+<span class=sd>        goals?</span>
+<span class=sd>    :return: the Ecdf record</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>Ecdf</span><span class=o>.</span><span class=n>_create</span><span class=p>(</span><span class=n>source</span><span class=p>,</span> <span class=n>goal_f</span><span class=p>,</span> <span class=n>use_default_goal_f</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=from_progresses>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.ecdf.from_progresses>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>from_progresses</span><span class=p>(</span>
+        <span class=n>source</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Progress</span><span class=p>],</span> <span class=n>consumer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Ecdf</span><span class=p>],</span> <span class=n>Any</span><span class=p>],</span>
+        <span class=n>f_goal</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span>
+                    <span class=o>|</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=n>Callable</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>join_all_algorithms</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+        <span class=n>join_all_objectives</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+        <span class=n>join_all_encodings</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute one or multiple ECDFs from a stream of end results.</span>
+
+<span class=sd>    :param source: the set of progress instances</span>
+<span class=sd>    :param f_goal: one or multiple goal values</span>
+<span class=sd>    :param consumer: the destination to which the new records will be</span>
+<span class=sd>        passed, can be the `append` method of a :class:`list`</span>
+<span class=sd>    :param join_all_algorithms: should the Ecdf be aggregated over all</span>
+<span class=sd>        algorithms</span>
+<span class=sd>    :param join_all_objectives: should the Ecdf be aggregated over all</span>
+<span class=sd>        objective functions</span>
+<span class=sd>    :param join_all_encodings: should the Ecdf be aggregated over all</span>
+<span class=sd>        encodings</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>Ecdf</span><span class=o>.</span><span class=n>_from_progresses</span><span class=p>(</span>
+        <span class=n>source</span><span class=p>,</span> <span class=n>consumer</span><span class=p>,</span> <span class=n>f_goal</span><span class=p>,</span> <span class=n>join_all_algorithms</span><span class=p>,</span>
+        <span class=n>join_all_objectives</span><span class=p>,</span> <span class=n>join_all_encodings</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=get_goal>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.ecdf.get_goal>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>get_goal</span><span class=p>(</span><span class=n>ecdf</span><span class=p>:</span> <span class=n>Ecdf</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the goal value from the given ecdf instance.</span>
+
+<span class=sd>    :param Ecdf ecdf: the ecdf instance</span>
+<span class=sd>    :return: the goal value</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=n>ecdf</span><span class=o>.</span><span class=n>goal_f</span></div>
+
+
+
+<div class=viewcode-block id=goal_to_str>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.ecdf.goal_to_str>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>goal_to_str</span><span class=p>(</span><span class=n>goal_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Transform a goal to a string.</span>
+
+<span class=sd>    :param goal_f: the goal value</span>
+<span class=sd>    :return: the string representation</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=s2>"undefined"</span> <span class=k>if</span> <span class=n>goal_f</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> \
+        <span class=sa>f</span><span class=s2>"goal: </span><span class=se>\u2264</span><span class=si>{</span><span class=n>num_to_str</span><span class=p>(</span><span class=n>goal_f</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span></div>
+
+
+
+<div class=viewcode-block id=to_csv>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.ecdf.to_csv>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>to_csv</span><span class=p>(</span><span class=n>ecdf</span><span class=p>:</span> <span class=n>Ecdf</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+           <span class=n>put_header</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-></span> <span class=n>Path</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Store a :class:`Ecdf` record in a CSV file.</span>
+
+<span class=sd>    :param ecdf: the ecdf</span>
+<span class=sd>    :param file: the file to generate</span>
+<span class=sd>    :param put_header: should we put a header with meta-data?</span>
+<span class=sd>    :return: the fully resolved file name</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>ecdf</span><span class=p>,</span> <span class=n>Ecdf</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>ecdf</span><span class=p>,</span> <span class=s2>"ecdf"</span><span class=p>,</span> <span class=n>Ecdf</span><span class=p>)</span>
+    <span class=n>path</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Writing ECDF to CSV file </span><span class=si>{</span><span class=n>path</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>path</span><span class=o>.</span><span class=n>ensure_parent_dir_exists</span><span class=p>()</span>
+
+    <span class=k>with</span> <span class=n>path</span><span class=o>.</span><span class=n>open_for_write</span><span class=p>()</span> <span class=k>as</span> <span class=n>out</span><span class=p>:</span>
+        <span class=n>sep</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>CSV_SEPARATOR</span>
+        <span class=n>write</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=n>out</span><span class=o>.</span><span class=n>write</span>
+        <span class=k>if</span> <span class=n>put_header</span><span class=p>:</span>
+            <span class=n>kv</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>KEY_VALUE_SEPARATOR</span>
+            <span class=n>cmt</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>COMMENT_START</span>
+            <span class=k>if</span> <span class=n>ecdf</span><span class=o>.</span><span class=n>algorithm</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>cmt</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>KEY_ALGORITHM</span><span class=si>}{</span><span class=n>kv</span><span class=si>}{</span><span class=n>ecdf</span><span class=o>.</span><span class=n>algorithm</span><span class=si>}</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>cmt</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>KEY_N</span><span class=si>}{</span><span class=n>kv</span><span class=si>}{</span><span class=n>ecdf</span><span class=o>.</span><span class=n>n</span><span class=si>}</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>cmt</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>KEY_N_INSTS</span><span class=si>}{</span><span class=n>kv</span><span class=si>}{</span><span class=n>ecdf</span><span class=o>.</span><span class=n>n_insts</span><span class=si>}</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>cmt</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>KEY_F_NAME</span><span class=si>}{</span><span class=n>kv</span><span class=si>}{</span><span class=n>ecdf</span><span class=o>.</span><span class=n>f_name</span><span class=si>}</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>ecdf</span><span class=o>.</span><span class=n>goal_f</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>cmt</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>KEY_GOAL_F</span><span class=si>}{</span><span class=n>kv</span><span class=si>}{</span><span class=n>ecdf</span><span class=o>.</span><span class=n>goal_f</span><span class=si>}</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>ecdf</span><span class=o>.</span><span class=n>objective</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>cmt</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>KEY_OBJECTIVE_FUNCTION</span><span class=si>}</span><span class=s2>"</span>
+                      <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>kv</span><span class=si>}{</span><span class=n>ecdf</span><span class=o>.</span><span class=n>objective</span><span class=si>}</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>ecdf</span><span class=o>.</span><span class=n>encoding</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>cmt</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>KEY_ENCODING</span><span class=si>}{</span><span class=n>kv</span><span class=si>}{</span><span class=n>ecdf</span><span class=o>.</span><span class=n>encoding</span><span class=si>}</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+
+        <span class=n>write</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>ecdf</span><span class=o>.</span><span class=n>_time_key</span><span class=p>()</span><span class=si>}{</span><span class=n>sep</span><span class=si>}</span><span class=s2>ecdf</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>v</span> <span class=ow>in</span> <span class=n>ecdf</span><span class=o>.</span><span class=n>ecdf</span><span class=p>:</span>
+            <span class=n>out</span><span class=o>.</span><span class=n>write</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>num_to_str</span><span class=p>(</span><span class=n>v</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span><span class=si>}{</span><span class=n>sep</span><span class=si>}{</span><span class=n>num_to_str</span><span class=p>(</span><span class=n>v</span><span class=p>[</span><span class=mi>1</span><span class=p>])</span><span class=si>}</span><span class=se>\n</span><span class=s2>"</span><span class=p>)</span>
+
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Done writing ECDF to CSV file </span><span class=si>{</span><span class=n>path</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=n>path</span><span class=o>.</span><span class=n>enforce_file</span><span class=p>()</span>
+    <span class=k>return</span> <span class=n>path</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.ecdf</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

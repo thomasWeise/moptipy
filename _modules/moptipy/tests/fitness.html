@@ -1,0 +1,126 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.tests.fitness — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/tests/fitness.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.fitness</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.tests.fitness</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Test fitness assignment processes."""</span>
+
+
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>default_rng</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.fitness</span><span class=w> </span><span class=kn>import</span> <span class=n>Fitness</span><span class=p>,</span> <span class=n>FRecord</span><span class=p>,</span> <span class=n>check_fitness</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>Objective</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.space</span><span class=w> </span><span class=kn>import</span> <span class=n>Space</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.component</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_component</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>rand_seed_generate</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>_FRecord</span><span class=p>(</span><span class=n>FRecord</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The internal F-record."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>z</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""Initialize."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>inf</span><span class=p>)</span>
+        <span class=c1>#: the internal id</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>z</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>z</span>
+
+
+<div class=viewcode-block id=validate_fitness>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.fitness.validate_fitness>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_fitness</span><span class=p>(</span><span class=n>fitness</span><span class=p>:</span> <span class=n>Fitness</span><span class=p>,</span> <span class=n>objective</span><span class=p>:</span> <span class=n>Objective</span><span class=p>,</span> <span class=n>space</span><span class=p>:</span> <span class=n>Space</span><span class=p>,</span>
+                     <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Validate a fitness assignment process on a given problem.</span>
+
+<span class=sd>    :param fitness: the fitness assignment process</span>
+<span class=sd>    :param objective: the objective function</span>
+<span class=sd>    :param space: the space of solutions</span>
+<span class=sd>    :param op0: the nullary operator</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>fitness</span><span class=p>,</span> <span class=n>Fitness</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>fitness</span><span class=p>,</span> <span class=s2>"fitness"</span><span class=p>,</span> <span class=n>Fitness</span><span class=p>)</span>
+    <span class=n>check_fitness</span><span class=p>(</span><span class=n>fitness</span><span class=p>)</span>
+    <span class=n>validate_component</span><span class=p>(</span><span class=n>fitness</span><span class=p>)</span>
+
+    <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>()</span>
+    <span class=n>pop1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>_FRecord</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>pop2</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>_FRecord</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>pop3</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>_FRecord</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=n>ps</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=mi>1</span> <span class=o>+</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>48</span><span class=p>))</span>
+    <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>ps</span><span class=p>):</span>
+        <span class=n>fr</span><span class=p>:</span> <span class=n>_FRecord</span> <span class=o>=</span> <span class=n>_FRecord</span><span class=p>(</span><span class=n>space</span><span class=o>.</span><span class=n>create</span><span class=p>(),</span> <span class=n>i</span><span class=p>)</span>
+        <span class=n>op0</span><span class=o>.</span><span class=n>op0</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>fr</span><span class=o>.</span><span class=n>x</span><span class=p>)</span>
+        <span class=n>fr</span><span class=o>.</span><span class=n>f</span> <span class=o>=</span> <span class=n>objective</span><span class=o>.</span><span class=n>evaluate</span><span class=p>(</span><span class=n>fr</span><span class=o>.</span><span class=n>x</span><span class=p>)</span>
+        <span class=n>fr</span><span class=o>.</span><span class=n>it</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>20</span><span class=p>))</span>
+        <span class=k>if</span> <span class=n>fr</span><span class=o>.</span><span class=n>fitness</span> <span class=o>!=</span> <span class=n>inf</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"v = </span><span class=si>{</span><span class=n>fr</span><span class=o>.</span><span class=n>fitness</span><span class=si>}</span><span class=s2>, should be inf"</span><span class=p>)</span>
+        <span class=n>pop1</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>fr</span><span class=p>)</span>
+        <span class=n>fr2</span><span class=p>:</span> <span class=n>_FRecord</span> <span class=o>=</span> <span class=n>_FRecord</span><span class=p>(</span><span class=n>fr</span><span class=o>.</span><span class=n>x</span><span class=p>,</span> <span class=n>fr</span><span class=o>.</span><span class=n>z</span><span class=p>)</span>
+        <span class=n>fr2</span><span class=o>.</span><span class=n>f</span> <span class=o>=</span> <span class=n>fr</span><span class=o>.</span><span class=n>f</span>
+        <span class=n>fr2</span><span class=o>.</span><span class=n>it</span> <span class=o>=</span> <span class=n>fr</span><span class=o>.</span><span class=n>it</span>
+        <span class=n>pop2</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>fr2</span><span class=p>)</span>
+        <span class=n>fr2</span> <span class=o>=</span> <span class=n>_FRecord</span><span class=p>(</span><span class=n>fr</span><span class=o>.</span><span class=n>x</span><span class=p>,</span> <span class=n>fr</span><span class=o>.</span><span class=n>z</span><span class=p>)</span>
+        <span class=n>fr2</span><span class=o>.</span><span class=n>f</span> <span class=o>=</span> <span class=n>fr</span><span class=o>.</span><span class=n>f</span>
+        <span class=n>fr2</span><span class=o>.</span><span class=n>it</span> <span class=o>=</span> <span class=n>fr</span><span class=o>.</span><span class=n>it</span>
+        <span class=n>pop3</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>fr2</span><span class=p>)</span>
+
+    <span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>6</span><span class=p>):</span>
+        <span class=k>if</span> <span class=n>k</span> <span class=o>>=</span> <span class=mi>3</span><span class=p>:</span>
+            <span class=c1># make all records identical</span>
+            <span class=n>fr0</span> <span class=o>=</span> <span class=n>pop1</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+            <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>ps</span><span class=p>):</span>
+                <span class=n>fr</span> <span class=o>=</span> <span class=n>_FRecord</span><span class=p>(</span><span class=n>fr0</span><span class=o>.</span><span class=n>x</span><span class=p>,</span> <span class=n>i</span><span class=p>)</span>
+                <span class=n>fr</span><span class=o>.</span><span class=n>f</span> <span class=o>=</span> <span class=n>fr0</span><span class=o>.</span><span class=n>f</span>
+                <span class=n>fr</span><span class=o>.</span><span class=n>it</span> <span class=o>=</span> <span class=n>fr0</span><span class=o>.</span><span class=n>it</span>
+                <span class=n>fr</span><span class=o>.</span><span class=n>fitness</span> <span class=o>=</span> <span class=n>fr0</span><span class=o>.</span><span class=n>fitness</span>
+                <span class=n>pop1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>fr</span>
+                <span class=n>fr</span> <span class=o>=</span> <span class=n>_FRecord</span><span class=p>(</span><span class=n>fr0</span><span class=o>.</span><span class=n>x</span><span class=p>,</span> <span class=n>i</span><span class=p>)</span>
+                <span class=n>fr</span><span class=o>.</span><span class=n>f</span> <span class=o>=</span> <span class=n>fr0</span><span class=o>.</span><span class=n>f</span>
+                <span class=n>fr</span><span class=o>.</span><span class=n>it</span> <span class=o>=</span> <span class=n>fr0</span><span class=o>.</span><span class=n>it</span>
+                <span class=n>fr</span><span class=o>.</span><span class=n>fitness</span> <span class=o>=</span> <span class=n>fr0</span><span class=o>.</span><span class=n>fitness</span>
+                <span class=n>pop2</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>fr</span>
+                <span class=n>fr</span> <span class=o>=</span> <span class=n>_FRecord</span><span class=p>(</span><span class=n>fr0</span><span class=o>.</span><span class=n>x</span><span class=p>,</span> <span class=n>i</span><span class=p>)</span>
+                <span class=n>fr</span><span class=o>.</span><span class=n>f</span> <span class=o>=</span> <span class=n>fr0</span><span class=o>.</span><span class=n>f</span>
+                <span class=n>fr</span><span class=o>.</span><span class=n>it</span> <span class=o>=</span> <span class=n>fr0</span><span class=o>.</span><span class=n>it</span>
+                <span class=n>fr</span><span class=o>.</span><span class=n>fitness</span> <span class=o>=</span> <span class=n>fr0</span><span class=o>.</span><span class=n>fitness</span>
+                <span class=n>pop3</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>fr</span>
+        <span class=k>if</span> <span class=n>k</span> <span class=ow>in</span> <span class=p>{</span><span class=mi>2</span><span class=p>,</span> <span class=mi>4</span><span class=p>}:</span>
+            <span class=k>for</span> <span class=n>fr</span> <span class=ow>in</span> <span class=n>pop1</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>fr</span><span class=o>.</span><span class=n>fitness</span> <span class=o>=</span> <span class=n>inf</span> <span class=k>if</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span> <span class=k>else</span> <span class=o>-</span><span class=n>inf</span>
+
+        <span class=n>seed</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>rand_seed_generate</span><span class=p>()</span>
+        <span class=n>fitness</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+        <span class=n>fitness</span><span class=o>.</span><span class=n>assign_fitness</span><span class=p>(</span><span class=n>cast</span><span class=p>(</span><span class=s2>"list[FRecord]"</span><span class=p>,</span> <span class=n>pop1</span><span class=p>),</span> <span class=n>default_rng</span><span class=p>(</span><span class=n>seed</span><span class=p>))</span>
+        <span class=n>fitness</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>
+        <span class=n>fitness</span><span class=o>.</span><span class=n>assign_fitness</span><span class=p>(</span><span class=n>cast</span><span class=p>(</span><span class=s2>"list[FRecord]"</span><span class=p>,</span> <span class=n>pop3</span><span class=p>),</span> <span class=n>default_rng</span><span class=p>(</span><span class=n>seed</span><span class=p>))</span>
+        <span class=n>pop1</span><span class=o>.</span><span class=n>sort</span><span class=p>(</span><span class=n>key</span><span class=o>=</span><span class=k>lambda</span> <span class=n>r</span><span class=p>:</span> <span class=n>r</span><span class=o>.</span><span class=n>z</span><span class=p>)</span>
+        <span class=n>pop3</span><span class=o>.</span><span class=n>sort</span><span class=p>(</span><span class=n>key</span><span class=o>=</span><span class=k>lambda</span> <span class=n>r</span><span class=p>:</span> <span class=n>r</span><span class=o>.</span><span class=n>z</span><span class=p>)</span>
+
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>fr</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>pop1</span><span class=p>):</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>fr</span><span class=p>,</span> <span class=n>_FRecord</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>fr</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"pop[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>]"</span><span class=p>,</span> <span class=n>_FRecord</span><span class=p>)</span>
+            <span class=n>fr2</span> <span class=o>=</span> <span class=n>pop2</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+            <span class=k>if</span> <span class=n>fr</span><span class=o>.</span><span class=n>x</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>fr2</span><span class=o>.</span><span class=n>x</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"fitness assignment changed x reference!"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>fr</span><span class=o>.</span><span class=n>it</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>fr2</span><span class=o>.</span><span class=n>it</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"fitness assignment assigned rec.it to </span><span class=si>{</span><span class=n>fr</span><span class=o>.</span><span class=n>it</span><span class=si>}</span><span class=s2>!"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>fr</span><span class=o>.</span><span class=n>f</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>fr2</span><span class=o>.</span><span class=n>f</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"fitness assignment assigned rec.f to </span><span class=si>{</span><span class=n>fr</span><span class=o>.</span><span class=n>f</span><span class=si>}</span><span class=s2>!"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>fr</span><span class=o>.</span><span class=n>fitness</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>fr</span><span class=o>.</span><span class=n>fitness</span><span class=p>,</span> <span class=s2>"rec.fitness"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>fr</span><span class=o>.</span><span class=n>fitness</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"rec.fitness should be finite, but is </span><span class=si>{</span><span class=n>fr</span><span class=o>.</span><span class=n>fitness</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>fr2</span> <span class=o>=</span> <span class=n>pop3</span><span class=p>[</span><span class=n>i</span><span class=p>]</span>
+            <span class=k>if</span> <span class=p>(</span><span class=n>fr2</span><span class=o>.</span><span class=n>fitness</span> <span class=o>!=</span> <span class=n>fr</span><span class=o>.</span><span class=n>fitness</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>fr2</span><span class=o>.</span><span class=n>f</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>fr</span><span class=o>.</span><span class=n>f</span><span class=p>)</span> <span class=ow>or</span> \
+                    <span class=p>(</span><span class=n>fr2</span><span class=o>.</span><span class=n>it</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>fr</span><span class=o>.</span><span class=n>it</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>fr2</span><span class=o>.</span><span class=n>x</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>fr</span><span class=o>.</span><span class=n>x</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"inconsistency detected when repeating "</span>
+                                 <span class=sa>f</span><span class=s2>"fitness assignment: </span><span class=si>{</span><span class=nb>str</span><span class=p>(</span><span class=n>fr2</span><span class=p>)</span><span class=si>!r}</span><span class=s2> != "</span>
+                                 <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=nb>str</span><span class=p>(</span><span class=n>fr</span><span class=p>)</span><span class=si>!r}</span><span class=s2> at index </span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2> of population "</span>
+                                 <span class=sa>f</span><span class=s2>"of length </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>pop1</span><span class=p>)</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.fitness</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

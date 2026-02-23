@@ -1,0 +1,618 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.bitstrings.w_model — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/bitstrings/w_model.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a accesskey=U href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.w_model</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.bitstrings.w_model</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>A Python implementation of the W-Model benchmark problem.</span>
+
+<span class=sd>This is a tunable benchmark problem for bit-string based search spaces.</span>
+<span class=sd>It exhibits ruggedness, epistasis, deceptiveness, and (uniform) neutrality in</span>
+<span class=sd>a tunable fashion.</span>
+<span class=sd>In [1], a set of 19 diverse instances of the W-Model are selected for</span>
+<span class=sd>algorithm benchmarking. These instances are provided via</span>
+<span class=sd>:meth:`~moptipy.examples.bitstrings.w_model.WModel.default_instances`.</span>
+
+<span class=sd>1. Thomas Weise, Yan Chen, Xinlu Li, and Zhize Wu. Selecting a diverse set of</span>
+<span class=sd>   benchmark instances from a tunable model problem for black-box discrete</span>
+<span class=sd>   optimization algorithms. *Applied Soft Computing Journal (ASOC)*, 92:106269,</span>
+<span class=sd>   June 2020. doi: https://doi.org/10.1016/j.asoc.2020.106269</span>
+<span class=sd>2. Thomas Weise and Zijun Wu. Difficult Features of Combinatorial Optimization</span>
+<span class=sd>   Problems and the Tunable W-Model Benchmark Problem for Simulating them. In</span>
+<span class=sd>   *Black Box Discrete Optimization Benchmarking (BB-DOB) Workshop* of</span>
+<span class=sd>   *Companion Material Proceedings of the Genetic and Evolutionary Computation</span>
+<span class=sd>   Conference (GECCO 2018),* July 15th-19th 2018, Kyoto, Japan,</span>
+<span class=sd>   pages 1769-1776, ISBN 978-1-4503-5764-7. ACM.</span>
+<span class=sd>   doi: https://doi.org/10.1145/3205651.3208240</span>
+<span class=sd>3. Thomas Weise, Stefan Niemczyk, Hendrik Skubch, Roland Reichle, and</span>
+<span class=sd>   Kurt Geihs. A Tunable Model for Multi-Objective, Epistatic, Rugged, and</span>
+<span class=sd>   Neutral Fitness Landscapes. In Maarten Keijzer, Giuliano Antoniol,</span>
+<span class=sd>   Clare Bates Congdon, Kalyanmoy Deb, Benjamin Doerr, Nikolaus Hansen,</span>
+<span class=sd>   John H. Holmes, Gregory S. Hornby, Daniel Howard, James Kennedy,</span>
+<span class=sd>   Sanjeev P. Kumar, Fernando G. Lobo, Julian Francis Miller, Jason H. Moore,</span>
+<span class=sd>   Frank Neumann, Martin Pelikan, Jordan B. Pollack, Kumara Sastry,</span>
+<span class=sd>   Kenneth Owen Stanley, Adrian Stoica, El-Ghazali, and Ingo Wegener, editors,</span>
+<span class=sd>   *Proceedings of the 10th Annual Conference on Genetic and Evolutionary</span>
+<span class=sd>   Computation (GECCO'08)*, pages 795-802, July 12-16, 2008, Atlanta, GA, USA.</span>
+<span class=sd>   ISBN: 978-1-60558-130-9, New York, NY, USA: ACM Press.</span>
+<span class=sd>   doi: https://doi.org/10.1145/1389095.1389252</span>
+<span class=sd>4. Carola Doerr, Furong Ye, Naama Horesh, Hao Wang, Ofer M. Shir, Thomas Bäck.</span>
+<span class=sd>   Benchmarking Discrete Optimization Heuristics with IOHprofiler. *Applied</span>
+<span class=sd>   Soft Computing* 88:106027, March 2020,</span>
+<span class=sd>   doi: https://doi.org/10.1016/j.asoc.2019.106027.</span>
+<span class=sd>5. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency</span>
+<span class=sd>   Fitness Assignment: Optimization without Bias for Good Solutions can be</span>
+<span class=sd>   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.</span>
+<span class=sd>   27(4):980-992. August 2023.</span>
+<span class=sd>   doi: https://doi.org/10.1109/TEVC.2022.3191698</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>array</span><span class=w> </span><span class=kn>import</span> <span class=n>array</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>sqrt</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterator</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numba</span>  <span class=c1># type: ignore</span>
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.bitstring_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>BitStringProblem</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>DEFAULT_BOOL</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=n>sanitize_name</span>
+
+
+<div class=viewcode-block id=w_model_f>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.w_model.w_model_f>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>w_model_f</span><span class=p>(</span><span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the basic hamming distance of the W-Model to the optimal string.</span>
+
+<span class=sd>    The optimal string in the W-Model is `0101010101...`. Here we compute the</span>
+<span class=sd>    objective value of a candidate solution, i.e., the Hamming distance to</span>
+<span class=sd>    the string `010101010101...`. This is the basic problem objective</span>
+<span class=sd>    function. It can be applied either directly, on top of transformations</span>
+<span class=sd>    such as the neutrality- or epistasis mappings. Its result can be</span>
+<span class=sd>    transformed by a ruggedness permutation to introduce ruggedness into the</span>
+<span class=sd>    problem.</span>
+
+<span class=sd>    :param x: the bit string to evaluate</span>
+<span class=sd>    :return: the Hamming distance to the string of alternating zeros and ones</span>
+<span class=sd>        and starting with `0`.</span>
+
+<span class=sd>    >>> w_model_f(np.array([False]))</span>
+<span class=sd>    0</span>
+<span class=sd>    >>> w_model_f(np.array([True]))</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> w_model_f(np.array([False, True]))</span>
+<span class=sd>    0</span>
+<span class=sd>    >>> w_model_f(np.array([False, False]))</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> w_model_f(np.array([True, True]))</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> w_model_f(np.array([True, False]))</span>
+<span class=sd>    2</span>
+<span class=sd>    >>> w_model_f(np.array([False, True, False]))</span>
+<span class=sd>    0</span>
+<span class=sd>    >>> w_model_f(np.array([True, False, True]))</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> w_model_f(np.array([True, True, True]))</span>
+<span class=sd>    2</span>
+<span class=sd>    >>> w_model_f(np.array([True, True, False]))</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> w_model_f(np.array([False, True, True]))</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> w_model_f(np.array([False, True, False, True, False, True, False]))</span>
+<span class=sd>    0</span>
+<span class=sd>    >>> w_model_f(np.array([False, True, False, True, False, True, True]))</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> w_model_f(np.array([True, False, True, False, True, False, True]))</span>
+<span class=sd>    7</span>
+<span class=sd>    """</span>
+    <span class=n>result</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>xx</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>x</span><span class=p>):</span>
+        <span class=k>if</span> <span class=n>xx</span> <span class=o>==</span> <span class=p>((</span><span class=n>i</span> <span class=o>&</span> <span class=mi>1</span><span class=p>)</span> <span class=o>==</span> <span class=mi>0</span><span class=p>):</span>
+            <span class=n>result</span> <span class=o>+=</span> <span class=mi>1</span>
+    <span class=k>return</span> <span class=n>result</span></div>
+
+
+
+<div class=viewcode-block id=w_model_neutrality>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.w_model.w_model_neutrality>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>w_model_neutrality</span><span class=p>(</span><span class=n>x_in</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>mu</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>x_out</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Perform the neutrality transformation.</span>
+
+<span class=sd>    The neutrality transformation is the first layer of the W-Model. It</span>
+<span class=sd>    introduces (or better, removes during the mapping) uniform redundancy by</span>
+<span class=sd>    basically reducing the size of a bit string by factor `mu`.</span>
+
+<span class=sd>    Basically, the input array `x_in` is split in consecutive bit groups of</span>
+<span class=sd>    length `mu`. Each such group is translated to one bit in the output string</span>
+<span class=sd>    `x_out`. This bit will become `1` if the majority of the bits in the input</span>
+<span class=sd>    group are also `1`. Otherwise it becomes `0`.</span>
+
+<span class=sd>    Notice that `len(x_out) >= mu * length(x_in)` must hold.</span>
+
+<span class=sd>    :param x_in: the input array</span>
+<span class=sd>    :param mu: the number of bits to merge</span>
+<span class=sd>    :param x_out: the output array</span>
+
+<span class=sd>    >>> xin = np.array([0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...                 0, 1, 1, 1, 0, 1, 0, 0, 0, 0], bool)</span>
+<span class=sd>    >>> xout = np.empty(len(xin) // 2, bool)</span>
+<span class=sd>    >>> w_model_neutrality(xin, 2, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    1011001110</span>
+<span class=sd>    >>> xin = np.array([0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0,</span>
+<span class=sd>    ...                 0, 1, 1, 1, 0, 1, 0, 0, 0, 0], bool)</span>
+<span class=sd>    >>> w_model_neutrality(xin, 2, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    1111001110</span>
+<span class=sd>    """</span>
+    <span class=n>threshold_for_1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=n>mu</span> <span class=o>>></span> <span class=mi>1</span><span class=p>)</span> <span class=o>+</span> <span class=p>(</span><span class=n>mu</span> <span class=o>&</span> <span class=mi>1</span><span class=p>)</span>
+    <span class=n>flush</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>mu</span>
+    <span class=n>i_in</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>i_out</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>ones</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>length_in</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>x_in</span><span class=p>)</span>
+    <span class=n>length_out</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>x_out</span><span class=p>)</span>
+    <span class=k>while</span> <span class=p>(</span><span class=n>i_in</span> <span class=o><</span> <span class=n>length_in</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>i_out</span> <span class=o><</span> <span class=n>length_out</span><span class=p>):</span>
+        <span class=k>if</span> <span class=n>x_in</span><span class=p>[</span><span class=n>i_in</span><span class=p>]:</span>
+            <span class=n>ones</span> <span class=o>+=</span> <span class=mi>1</span>
+        <span class=n>i_in</span> <span class=o>+=</span> <span class=mi>1</span>
+        <span class=k>if</span> <span class=n>i_in</span> <span class=o>>=</span> <span class=n>flush</span><span class=p>:</span>
+            <span class=n>flush</span> <span class=o>+=</span> <span class=n>mu</span>
+            <span class=n>x_out</span><span class=p>[</span><span class=n>i_out</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=n>ones</span> <span class=o>>=</span> <span class=n>threshold_for_1</span><span class=p>)</span>
+            <span class=n>i_out</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=n>ones</span> <span class=o>=</span> <span class=mi>0</span></div>
+
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>__w_model_epistasis</span><span class=p>(</span><span class=n>x_in</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>start</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                        <span class=n>nu</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>x_out</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Perform the transformation of an epistasis chunk.</span>
+
+<span class=sd>    :param x_in: the input string</span>
+<span class=sd>    :param start: the start index</span>
+<span class=sd>    :param nu: the epistasis parameter</span>
+<span class=sd>    :param x_out: the output string</span>
+
+<span class=sd>    >>> xout = np.empty(4, bool)</span>
+<span class=sd>    >>> __w_model_epistasis(np.array([0, 0, 0, 0], bool), 0, 4, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    0000</span>
+<span class=sd>    >>> __w_model_epistasis(np.array([0, 0, 0, 1], bool), 0, 4, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    1101</span>
+<span class=sd>    >>> __w_model_epistasis(np.array([0, 0, 1, 0], bool), 0, 4, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    1011</span>
+<span class=sd>    >>> __w_model_epistasis(np.array([0, 1, 0, 0], bool), 0, 4, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    0111</span>
+<span class=sd>    >>> __w_model_epistasis(np.array([1, 0, 0, 0], bool), 0, 4, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    1111</span>
+<span class=sd>    >>> __w_model_epistasis(np.array([1, 1, 1, 1], bool), 0, 4, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    1110</span>
+<span class=sd>    >>> __w_model_epistasis(np.array([0, 1, 1, 1], bool), 0, 4, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    0001</span>
+<span class=sd>    >>> __w_model_epistasis(np.array([1, 0, 1, 1], bool), 0, 4, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    1001</span>
+<span class=sd>    >>> __w_model_epistasis(np.array([1, 1, 0, 1], bool), 0, 4, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    0101</span>
+<span class=sd>    >>> __w_model_epistasis(np.array([1, 1, 1, 0], bool), 0, 4, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    0011</span>
+<span class=sd>    >>> __w_model_epistasis(np.array([0, 0, 1, 1], bool), 0, 4, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    0110</span>
+<span class=sd>    >>> __w_model_epistasis(np.array([0, 1, 0, 1], bool), 0, 4, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    1010</span>
+<span class=sd>    >>> __w_model_epistasis(np.array([0, 1, 1, 0], bool), 0, 4, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    1100</span>
+<span class=sd>    >>> __w_model_epistasis(np.array([1, 0, 0, 1], bool), 0, 4, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    0010</span>
+<span class=sd>    >>> __w_model_epistasis(np.array([1, 0, 1, 0], bool), 0, 4, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    0100</span>
+<span class=sd>    >>> __w_model_epistasis(np.array([1, 1, 0, 0], bool), 0, 4, xout)</span>
+<span class=sd>    >>> print("".join('1' if xx else '0' for xx in xout))</span>
+<span class=sd>    1000</span>
+<span class=sd>    """</span>
+    <span class=n>end</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=n>start</span> <span class=o>+</span> <span class=n>nu</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span>
+    <span class=n>flip</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>x_in</span><span class=p>[</span><span class=n>start</span><span class=p>]</span>
+    <span class=n>i</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>end</span>
+    <span class=n>skip</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>start</span>
+    <span class=k>while</span> <span class=n>i</span> <span class=o>>=</span> <span class=n>start</span><span class=p>:</span>
+        <span class=n>result</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=n>flip</span>
+        <span class=n>j</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>end</span>
+        <span class=k>while</span> <span class=n>j</span> <span class=o>></span> <span class=n>start</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>j</span> <span class=o>!=</span> <span class=n>skip</span><span class=p>:</span>
+                <span class=n>result</span> <span class=o>^=</span> <span class=n>x_in</span><span class=p>[</span><span class=n>j</span><span class=p>]</span>
+            <span class=n>j</span> <span class=o>-=</span> <span class=mi>1</span>
+        <span class=n>x_out</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>result</span>
+        <span class=n>skip</span> <span class=o>-=</span> <span class=mi>1</span>
+        <span class=k>if</span> <span class=n>skip</span> <span class=o><</span> <span class=n>start</span><span class=p>:</span>
+            <span class=n>skip</span> <span class=o>=</span> <span class=n>end</span>
+        <span class=n>i</span> <span class=o>-=</span> <span class=mi>1</span>
+
+
+<div class=viewcode-block id=w_model_epistasis>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.w_model.w_model_epistasis>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>w_model_epistasis</span><span class=p>(</span><span class=n>x_in</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>nu</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>x_out</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Perform the epistasis transformation.</span>
+
+<span class=sd>    :param x_in: the input string</span>
+<span class=sd>    :param nu: the epistasis parameter</span>
+<span class=sd>    :param x_out: the output string</span>
+<span class=sd>    """</span>
+    <span class=n>total_len</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>x_in</span><span class=p>)</span>
+    <span class=n>end</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>total_len</span> <span class=o>-</span> <span class=n>nu</span>
+    <span class=n>i</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=k>while</span> <span class=n>i</span> <span class=o><=</span> <span class=n>end</span><span class=p>:</span>
+        <span class=n>__w_model_epistasis</span><span class=p>(</span><span class=n>x_in</span><span class=p>,</span> <span class=n>i</span><span class=p>,</span> <span class=n>nu</span><span class=p>,</span> <span class=n>x_out</span><span class=p>)</span>
+        <span class=n>i</span> <span class=o>+=</span> <span class=n>nu</span>
+    <span class=k>if</span> <span class=n>i</span> <span class=o><</span> <span class=n>total_len</span><span class=p>:</span>
+        <span class=n>__w_model_epistasis</span><span class=p>(</span><span class=n>x_in</span><span class=p>,</span> <span class=n>i</span><span class=p>,</span> <span class=n>total_len</span> <span class=o>-</span> <span class=n>i</span><span class=p>,</span> <span class=n>x_out</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=w_model_max_gamma>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.w_model.w_model_max_gamma>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>w_model_max_gamma</span><span class=p>(</span><span class=n>nopt</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the maximum gamma value for a given length `nopt`.</span>
+
+<span class=sd>    :param nopt: the length of the optimal bit string</span>
+<span class=sd>    :return: the maximum gamma value</span>
+<span class=sd>    """</span>
+    <span class=k>return</span> <span class=nb>int</span><span class=p>((</span><span class=n>nopt</span> <span class=o>*</span> <span class=p>(</span><span class=n>nopt</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span> <span class=o>>></span> <span class=mi>1</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=w_model_create_ruggedness_permutation>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.w_model.w_model_create_ruggedness_permutation>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>w_model_create_ruggedness_permutation</span><span class=p>(</span>
+        <span class=n>gamma</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>nopt</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>r</span><span class=p>:</span> <span class=n>array</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create the raw ruggedness array.</span>
+
+<span class=sd>    This function creates the ruggedness permutation where groups of rugged</span>
+<span class=sd>    transformations alternate with deceptive permutations for increasing</span>
+<span class=sd>    gamma.</span>
+
+<span class=sd>    :param gamma: the parameter for the ruggedness</span>
+<span class=sd>    :param nopt: the length of the optimal string</span>
+<span class=sd>    :param r: the array to receive the permutation</span>
+
+<span class=sd>    >>> r = array('i', range(11))</span>
+<span class=sd>    >>> w_model_create_ruggedness_permutation(0, 10, r)</span>
+<span class=sd>    >>> "".join(str(xx) for xx in r)</span>
+<span class=sd>    '012345678910'</span>
+<span class=sd>    >>> r = array('i', range(7))</span>
+<span class=sd>    >>> w_model_create_ruggedness_permutation(9, 6, r)</span>
+<span class=sd>    >>> r[3]</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> r[6]</span>
+<span class=sd>    5</span>
+<span class=sd>    """</span>
+    <span class=n>max_gamma</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>w_model_max_gamma</span><span class=p>(</span><span class=n>nopt</span><span class=p>)</span>
+    <span class=n>start</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span> <span class=k>if</span> <span class=n>gamma</span> <span class=o><=</span> <span class=mi>0</span> <span class=k>else</span> <span class=p>(</span>
+        <span class=n>nopt</span> <span class=o>-</span> <span class=mi>1</span> <span class=o>-</span> <span class=nb>int</span><span class=p>(</span><span class=mf>0.5</span> <span class=o>+</span> <span class=n>sqrt</span><span class=p>(</span><span class=mf>0.25</span> <span class=o>+</span> <span class=p>((</span><span class=n>max_gamma</span> <span class=o>-</span> <span class=n>gamma</span><span class=p>)</span> <span class=o><<</span> <span class=mi>1</span><span class=p>))))</span>
+    <span class=n>k</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>j</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span>
+    <span class=k>while</span> <span class=n>j</span> <span class=o><=</span> <span class=n>start</span><span class=p>:</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>j</span> <span class=o>&</span> <span class=mi>1</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>r</span><span class=p>[</span><span class=n>j</span><span class=p>]</span> <span class=o>=</span> <span class=n>nopt</span> <span class=o>-</span> <span class=n>k</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>k</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=n>r</span><span class=p>[</span><span class=n>j</span><span class=p>]</span> <span class=o>=</span> <span class=n>k</span>
+        <span class=n>j</span> <span class=o>+=</span> <span class=mi>1</span>
+
+    <span class=k>while</span> <span class=n>j</span> <span class=o><=</span> <span class=n>nopt</span><span class=p>:</span>
+        <span class=n>k</span> <span class=o>+=</span> <span class=mi>1</span>
+        <span class=n>r</span><span class=p>[</span><span class=n>j</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=n>nopt</span> <span class=o>-</span> <span class=n>k</span><span class=p>)</span> <span class=k>if</span> <span class=p>((</span><span class=n>start</span> <span class=o>&</span> <span class=mi>1</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>)</span> <span class=k>else</span> <span class=n>k</span>
+        <span class=n>j</span> <span class=o>+=</span> <span class=mi>1</span>
+
+    <span class=n>upper</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=p>((</span><span class=n>gamma</span> <span class=o>-</span> <span class=n>max_gamma</span><span class=p>)</span> <span class=o>+</span> <span class=p>(</span>
+        <span class=p>((</span><span class=n>nopt</span> <span class=o>-</span> <span class=n>start</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=p>(</span><span class=n>nopt</span> <span class=o>-</span> <span class=n>start</span><span class=p>))</span> <span class=o>>></span> <span class=mi>1</span><span class=p>))</span>
+    <span class=n>j</span> <span class=o>-=</span> <span class=mi>1</span>
+    <span class=n>i</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span>
+    <span class=k>while</span> <span class=n>i</span> <span class=o><=</span> <span class=n>upper</span><span class=p>:</span>
+        <span class=n>j</span> <span class=o>-=</span> <span class=mi>1</span>
+        <span class=n>r</span><span class=p>[</span><span class=n>j</span><span class=p>],</span> <span class=n>r</span><span class=p>[</span><span class=n>nopt</span><span class=p>]</span> <span class=o>=</span> <span class=n>r</span><span class=p>[</span><span class=n>nopt</span><span class=p>],</span> <span class=n>r</span><span class=p>[</span><span class=n>j</span><span class=p>]</span>
+        <span class=n>i</span> <span class=o>+=</span> <span class=mi>1</span></div>
+
+
+
+<div class=viewcode-block id=w_model_ruggedness_translate>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.w_model.w_model_ruggedness_translate>[docs]</a>
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>w_model_ruggedness_translate</span><span class=p>(</span><span class=n>gamma</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>nopt</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Transform the gamma values such that deceptive follows rugged.</span>
+
+<span class=sd>    If the ruggedness permutations are created with raw gamma values, then</span>
+<span class=sd>    rugged and deceptive permutations will alternate with rising gamma.</span>
+<span class=sd>    With this function here, the gamma parameters are translated such that</span>
+<span class=sd>    first all the rugged permutations come (with rising degree of ruggedness)</span>
+<span class=sd>    and then the deceptive ones come.</span>
+
+<span class=sd>    :param gamma: the parameter for the ruggedness</span>
+<span class=sd>    :param nopt: the length of the optimal string</span>
+<span class=sd>    :returns: the translated gamma values</span>
+
+<span class=sd>    >>> w_model_ruggedness_translate(12, 6)</span>
+<span class=sd>    9</span>
+<span class=sd>    >>> w_model_ruggedness_translate(34, 25)</span>
+<span class=sd>    57</span>
+<span class=sd>    >>> w_model_ruggedness_translate(0, 5)</span>
+<span class=sd>    0</span>
+<span class=sd>    >>> w_model_ruggedness_translate(1, 5)</span>
+<span class=sd>    1</span>
+<span class=sd>    >>> w_model_ruggedness_translate(2, 5)</span>
+<span class=sd>    2</span>
+<span class=sd>    >>> w_model_ruggedness_translate(3, 5)</span>
+<span class=sd>    3</span>
+<span class=sd>    >>> w_model_ruggedness_translate(4, 5)</span>
+<span class=sd>    4</span>
+<span class=sd>    >>> w_model_ruggedness_translate(5, 5)</span>
+<span class=sd>    8</span>
+<span class=sd>    >>> w_model_ruggedness_translate(6, 5)</span>
+<span class=sd>    9</span>
+<span class=sd>    >>> w_model_ruggedness_translate(7, 5)</span>
+<span class=sd>    10</span>
+<span class=sd>    >>> w_model_ruggedness_translate(8, 5)</span>
+<span class=sd>    7</span>
+<span class=sd>    >>> w_model_ruggedness_translate(9, 5)</span>
+<span class=sd>    6</span>
+<span class=sd>    >>> w_model_ruggedness_translate(10, 5)</span>
+<span class=sd>    5</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=n>gamma</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>return</span> <span class=mi>0</span>
+
+    <span class=n>last_upper</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=p>(</span><span class=n>nopt</span> <span class=o>>></span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=p>((</span><span class=n>nopt</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>>></span> <span class=mi>1</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>gamma</span> <span class=o><=</span> <span class=n>last_upper</span><span class=p>:</span>
+        <span class=n>j</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(((</span><span class=n>nopt</span> <span class=o>+</span> <span class=mi>2</span><span class=p>)</span> <span class=o>*</span> <span class=mf>0.5</span><span class=p>)</span> <span class=o>-</span> <span class=n>sqrt</span><span class=p>(</span>
+            <span class=p>(((</span><span class=n>nopt</span> <span class=o>*</span> <span class=n>nopt</span><span class=p>)</span> <span class=o>*</span> <span class=mf>0.25</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>-</span> <span class=n>gamma</span><span class=p>))</span>
+        <span class=n>k</span> <span class=o>=</span> <span class=p>((</span><span class=n>gamma</span> <span class=o>-</span> <span class=p>((</span><span class=n>nopt</span> <span class=o>+</span> <span class=mi>2</span><span class=p>)</span> <span class=o>*</span> <span class=n>j</span><span class=p>))</span> <span class=o>+</span> <span class=p>(</span><span class=n>j</span> <span class=o>*</span> <span class=n>j</span><span class=p>)</span> <span class=o>+</span> <span class=n>nopt</span><span class=p>)</span>
+        <span class=k>return</span> <span class=nb>int</span><span class=p>((</span><span class=n>k</span> <span class=o>+</span> <span class=mi>1</span> <span class=o>+</span> <span class=p>((((</span><span class=n>nopt</span> <span class=o>+</span> <span class=mi>2</span><span class=p>)</span> <span class=o>*</span> <span class=n>j</span><span class=p>)</span> <span class=o>-</span> <span class=p>(</span><span class=n>j</span> <span class=o>*</span> <span class=n>j</span><span class=p>)</span> <span class=o>-</span> <span class=n>nopt</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=o><<</span> <span class=mi>1</span><span class=p>))</span>
+                   <span class=o>-</span> <span class=p>(</span><span class=n>j</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span>
+
+    <span class=n>j</span> <span class=o>=</span> <span class=nb>int</span><span class=p>((((</span><span class=n>nopt</span> <span class=o>%</span> <span class=mi>2</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>*</span> <span class=mf>0.5</span><span class=p>)</span> <span class=o>+</span> <span class=n>sqrt</span><span class=p>(</span>
+        <span class=p>(((</span><span class=mi>1</span> <span class=o>-</span> <span class=p>(</span><span class=n>nopt</span> <span class=o>%</span> <span class=mi>2</span><span class=p>))</span> <span class=o>*</span> <span class=mf>0.25</span><span class=p>)</span> <span class=o>+</span> <span class=n>gamma</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span> <span class=o>-</span> <span class=n>last_upper</span><span class=p>))</span>
+    <span class=n>k</span> <span class=o>=</span> <span class=n>gamma</span> <span class=o>-</span> <span class=p>(((</span><span class=n>j</span> <span class=o>-</span> <span class=p>(</span><span class=n>nopt</span> <span class=o>%</span> <span class=mi>2</span><span class=p>))</span> <span class=o>*</span> <span class=p>(</span><span class=n>j</span> <span class=o>-</span> <span class=mi>1</span><span class=p>))</span> <span class=o>+</span> <span class=mi>1</span> <span class=o>+</span> <span class=n>last_upper</span><span class=p>)</span>
+    <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>w_model_max_gamma</span><span class=p>(</span><span class=n>nopt</span><span class=p>)</span> <span class=o>-</span> <span class=n>k</span> <span class=o>-</span> <span class=p>((</span><span class=mi>2</span> <span class=o>*</span> <span class=n>j</span> <span class=o>*</span> <span class=n>j</span><span class=p>)</span> <span class=o>-</span> <span class=n>j</span><span class=p>)</span>
+               <span class=o>-</span> <span class=p>((</span><span class=n>nopt</span> <span class=o>%</span> <span class=mi>2</span><span class=p>)</span> <span class=o>*</span> <span class=p>((</span><span class=o>-</span><span class=mi>2</span> <span class=o>*</span> <span class=n>j</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)))</span></div>
+
+
+
+<span class=nd>@numba</span><span class=o>.</span><span class=n>njit</span><span class=p>(</span><span class=n>nogil</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>cache</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>inline</span><span class=o>=</span><span class=s2>"always"</span><span class=p>)</span>
+<span class=k>def</span><span class=w> </span><span class=nf>_w_model</span><span class=p>(</span><span class=n>x_in</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>m</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>m_out</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+             <span class=n>nu</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>nu_out</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span> <span class=n>r</span><span class=p>:</span> <span class=n>array</span> <span class=o>|</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Compute the value of the multi-stage W-model.</span>
+
+<span class=sd>    :param x_in: the input array</span>
+<span class=sd>    :param m: the neutrality level</span>
+<span class=sd>    :param m_out: the temporary variable for the de-neutralized `x_in`</span>
+<span class=sd>    :param nu: the epistasis level</span>
+<span class=sd>    :param nu_out: the temporary variable for the epistasis transformed string</span>
+<span class=sd>    :param r: the ruggedness transform, if any</span>
+<span class=sd>    :returns: the objective value</span>
+<span class=sd>    """</span>
+    <span class=n>neutral</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span>
+    <span class=k>if</span> <span class=n>m_out</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>neutral</span> <span class=o>=</span> <span class=n>x_in</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=n>neutral</span> <span class=o>=</span> <span class=n>m_out</span>
+        <span class=n>w_model_neutrality</span><span class=p>(</span><span class=n>x_in</span><span class=p>,</span> <span class=n>m</span><span class=p>,</span> <span class=n>neutral</span><span class=p>)</span>
+    <span class=n>epi</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span>
+    <span class=k>if</span> <span class=n>nu_out</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>epi</span> <span class=o>=</span> <span class=n>neutral</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=n>epi</span> <span class=o>=</span> <span class=n>nu_out</span>
+        <span class=n>w_model_epistasis</span><span class=p>(</span><span class=n>neutral</span><span class=p>,</span> <span class=n>nu</span><span class=p>,</span> <span class=n>epi</span><span class=p>)</span>
+    <span class=n>f</span> <span class=o>=</span> <span class=n>w_model_f</span><span class=p>(</span><span class=n>epi</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>r</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>return</span> <span class=nb>int</span><span class=p>(</span><span class=n>f</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>r</span><span class=p>[</span><span class=n>f</span><span class=p>]</span>
+
+
+<div class=viewcode-block id=WModel>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.w_model.WModel>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>WModel</span><span class=p>(</span><span class=n>BitStringProblem</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The tunable W-Model benchmark problem."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>nopt</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>m</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span><span class=p>,</span> <span class=n>nu</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>2</span><span class=p>,</span>
+                 <span class=n>gamma</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span> <span class=n>name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize an W-Model instance.</span>
+
+<span class=sd>        :param nopt: the length of the optimal string</span>
+<span class=sd>        :param m: the neutrality parameter</span>
+<span class=sd>        :param nu: the epistasis parameter</span>
+<span class=sd>        :param gamma: the ruggedness parameter</span>
+<span class=sd>        :param name: the (optional) special name of this instance</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>nopt</span> <span class=o>*</span> <span class=n>m</span><span class=p>)</span>
+        <span class=c1>#: the length of the optimal string</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>nopt</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>nopt</span><span class=p>,</span> <span class=s2>"nopt"</span><span class=p>,</span> <span class=mi>2</span><span class=p>)</span>
+        <span class=c1>#: the neutrality parameter</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>m</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>m</span><span class=p>,</span> <span class=s2>"m"</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+        <span class=c1>#: the internal buffer for de-neutralization</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__m_out</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=kc>None</span> <span class=k>if</span> <span class=n>m</span> <span class=o><</span> <span class=mi>2</span> \
+            <span class=k>else</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=n>nopt</span><span class=p>,</span> <span class=n>DEFAULT_BOOL</span><span class=p>)</span>
+        <span class=c1>#: the epistasis parameter</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>nu</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>nu</span><span class=p>,</span> <span class=s2>"nu"</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=n>nopt</span><span class=p>)</span>
+        <span class=c1>#: the normalized epistasis parameter</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>nu1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=n>nu</span> <span class=o>-</span> <span class=mi>2</span><span class=p>)</span> <span class=o>/</span> <span class=p>(</span><span class=n>nopt</span> <span class=o>-</span> <span class=mi>2</span><span class=p>)</span>
+        <span class=c1>#: the internal buffer for de-epistazation</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__nu_out</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=kc>None</span> <span class=k>if</span> <span class=n>nu</span> <span class=o><=</span> <span class=mi>2</span> \
+            <span class=k>else</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=n>nopt</span><span class=p>,</span> <span class=n>DEFAULT_BOOL</span><span class=p>)</span>
+        <span class=n>max_gamma</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>w_model_max_gamma</span><span class=p>(</span><span class=n>nopt</span><span class=p>)</span>
+        <span class=c1>#: the ruggedness parameter</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>gamma</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>gamma</span><span class=p>,</span> <span class=s2>"gamma"</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=n>max_gamma</span><span class=p>)</span>
+        <span class=c1>#: the normalized ruggedness parameter</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>gamma1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>gamma</span> <span class=o>/</span> <span class=n>max_gamma</span>
+        <span class=c1>#: the translated gamma parameter</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>gamma_prime</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>w_model_ruggedness_translate</span><span class=p>(</span>
+            <span class=n>gamma</span><span class=p>,</span> <span class=n>nopt</span><span class=p>)</span>
+        <span class=n>r</span><span class=p>:</span> <span class=n>array</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>  <span class=c1># the ruggedness table</span>
+        <span class=k>if</span> <span class=n>gamma</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>r</span> <span class=o>=</span> <span class=n>array</span><span class=p>(</span><span class=s2>"i"</span><span class=p>,</span> <span class=nb>range</span><span class=p>(</span><span class=n>nopt</span> <span class=o>+</span> <span class=mi>1</span><span class=p>))</span>
+            <span class=n>w_model_create_ruggedness_permutation</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>gamma_prime</span><span class=p>,</span> <span class=n>nopt</span><span class=p>,</span> <span class=n>r</span><span class=p>)</span>
+        <span class=c1>#: the ruggedness table</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__r</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>array</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>r</span>
+
+        <span class=k>if</span> <span class=n>name</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>name</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"wmodel_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>nopt</span><span class=si>}</span><span class=s2>_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>m</span><span class=si>}</span><span class=s2>_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>nu</span><span class=si>}</span><span class=s2>_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>gamma</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=nb>str</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>name</span><span class=p>,</span> <span class=s2>"name"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+            <span class=k>if</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>name</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>sanitize_name</span><span class=p>(</span><span class=n>name</span><span class=p>)</span> <span class=o>!=</span> <span class=n>name</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"invalid name: </span><span class=si>{</span><span class=n>name</span><span class=si>!r}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=c1>#: the name of this w-model instance</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>name</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>name</span>
+
+<div class=viewcode-block id=WModel.upper_bound>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.w_model.WModel.upper_bound>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>upper_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the upper bound of the bit string based problem.</span>
+
+<span class=sd>        :return: the length of the bit string</span>
+
+<span class=sd>        >>> WModel(7, 6, 4, 4).upper_bound()</span>
+<span class=sd>        7</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>nopt</span></div>
+
+
+<div class=viewcode-block id=WModel.evaluate>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.w_model.WModel.evaluate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Evaluate a solution to the W-Model.</span>
+
+<span class=sd>        :param x: the bit string to evaluate</span>
+<span class=sd>        :returns: the value of the W-Model for the string</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>_w_model</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>m</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__m_out</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>nu</span><span class=p>,</span>
+                        <span class=bp>self</span><span class=o>.</span><span class=n>__nu_out</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__r</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the W-Model instance.</span>
+
+<span class=sd>        :returns: the name of the W-Model instance.</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>name</span>
+
+<div class=viewcode-block id=WModel.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.w_model.WModel.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log all parameters of this component as key-value pairs.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.key_values("C") as kv:</span>
+<span class=sd>        ...         WModel(6, 2, 4, 7).log_parameters_to(kv)</span>
+<span class=sd>        ...     text = l.get_log()</span>
+<span class=sd>        >>> text[1]</span>
+<span class=sd>        'name: wmodel_6_2_4_7'</span>
+<span class=sd>        >>> text[3]</span>
+<span class=sd>        'lowerBound: 0'</span>
+<span class=sd>        >>> text[4]</span>
+<span class=sd>        'upperBound: 6'</span>
+<span class=sd>        >>> text[5]</span>
+<span class=sd>        'n: 12'</span>
+<span class=sd>        >>> text[6]</span>
+<span class=sd>        'nopt: 6'</span>
+<span class=sd>        >>> text[7]</span>
+<span class=sd>        'm: 2'</span>
+<span class=sd>        >>> text[8]</span>
+<span class=sd>        'nu: 4'</span>
+<span class=sd>        >>> text[9]</span>
+<span class=sd>        'nu1: 0.5'</span>
+<span class=sd>        >>> text[11]</span>
+<span class=sd>        'gamma: 7'</span>
+<span class=sd>        >>> text[12]</span>
+<span class=sd>        'gamma1: 0.4666666666666667'</span>
+<span class=sd>        >>> text[14]</span>
+<span class=sd>        'gammaPrime: 11'</span>
+<span class=sd>        >>> len(text)</span>
+<span class=sd>        16</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"nopt"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>nopt</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"m"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>m</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"nu"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>nu</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"nu1"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>nu1</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"gamma"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>gamma</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"gamma1"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>gamma1</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"gammaPrime"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>gamma_prime</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=WModel.default_instances>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.w_model.WModel.default_instances>[docs]</a>
+    <span class=nd>@classmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>default_instances</span><span class=p>(</span>
+            <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>,</span> <span class=n>scale_min</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>16</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>256</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=n>Iterator</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=s2>"WModel"</span><span class=p>]]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the 19 default instances of the W-Model.</span>
+
+<span class=sd>        :param scale_min: the minimum permitted scale</span>
+<span class=sd>        :param scale_max: the maximum permitted scale</span>
+<span class=sd>        :returns: an `Iterable` that can provide callables constructing the</span>
+<span class=sd>            19 default instances of the W-Model</span>
+
+<span class=sd>        >>> len(list(WModel.default_instances()))</span>
+<span class=sd>        19</span>
+
+<span class=sd>        >>> [x() for x in WModel.default_instances()]</span>
+<span class=sd>        [wmodel_1, wmodel_2, wmodel_3, wmodel_4, wmodel_5, wmodel_6, \</span>
+<span class=sd>wmodel_7, wmodel_8, wmodel_9, wmodel_10, wmodel_11, wmodel_12, \</span>
+<span class=sd>wmodel_13, wmodel_14, wmodel_15, wmodel_16, wmodel_17, wmodel_18, \</span>
+<span class=sd>wmodel_19]</span>
+
+<span class=sd>        >>> len(list(WModel.default_instances(scale_max=200)))</span>
+<span class=sd>        18</span>
+
+<span class=sd>        >>> len(list(WModel.default_instances(scale_min=40)))</span>
+<span class=sd>        14</span>
+<span class=sd>        """</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>scale_max</span><span class=p>,</span> <span class=s2>"scale_max"</span><span class=p>,</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>scale_min</span><span class=p>,</span> <span class=s2>"scale_min"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000</span><span class=p>)</span>
+        <span class=k>return</span> <span class=p>(</span><span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[], WModel]"</span><span class=p>,</span>
+                     <span class=k>lambda</span> <span class=n>a</span><span class=o>=</span><span class=n>iid</span><span class=p>,</span> <span class=n>b</span><span class=o>=</span><span class=n>z</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>c</span><span class=o>=</span><span class=n>z</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span> <span class=n>d</span><span class=o>=</span><span class=n>z</span><span class=p>[</span><span class=mi>2</span><span class=p>],</span> <span class=n>g</span><span class=o>=</span><span class=n>z</span><span class=p>[</span><span class=mi>3</span><span class=p>]:</span>
+                     <span class=n>WModel</span><span class=p>(</span><span class=n>b</span><span class=p>,</span> <span class=n>c</span><span class=p>,</span> <span class=n>d</span><span class=p>,</span> <span class=n>g</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"wmodel_</span><span class=si>{</span><span class=n>a</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=mi>1</span><span class=si>}</span><span class=s2>"</span><span class=p>))</span>
+                <span class=k>for</span> <span class=n>iid</span><span class=p>,</span> <span class=n>z</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>([</span>
+                    <span class=p>(</span><span class=mi>10</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>6</span><span class=p>,</span> <span class=mi>10</span><span class=p>),</span> <span class=p>(</span><span class=mi>10</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>6</span><span class=p>,</span> <span class=mi>18</span><span class=p>),</span> <span class=p>(</span><span class=mi>16</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>5</span><span class=p>,</span> <span class=mi>72</span><span class=p>),</span>
+                    <span class=p>(</span><span class=mi>16</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>9</span><span class=p>,</span> <span class=mi>72</span><span class=p>),</span> <span class=p>(</span><span class=mi>25</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>23</span><span class=p>,</span> <span class=mi>90</span><span class=p>),</span> <span class=p>(</span><span class=mi>32</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>397</span><span class=p>),</span>
+                    <span class=p>(</span><span class=mi>32</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=mi>11</span><span class=p>,</span> <span class=mi>0</span><span class=p>),</span> <span class=p>(</span><span class=mi>32</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=mi>14</span><span class=p>,</span> <span class=mi>0</span><span class=p>),</span> <span class=p>(</span><span class=mi>32</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=mi>8</span><span class=p>,</span> <span class=mi>128</span><span class=p>),</span>
+                    <span class=p>(</span><span class=mi>50</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>36</span><span class=p>,</span> <span class=mi>245</span><span class=p>),</span> <span class=p>(</span><span class=mi>50</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>21</span><span class=p>,</span> <span class=mi>256</span><span class=p>),</span> <span class=p>(</span><span class=mi>50</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>16</span><span class=p>,</span> <span class=mi>613</span><span class=p>),</span>
+                    <span class=p>(</span><span class=mi>64</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>32</span><span class=p>,</span> <span class=mi>256</span><span class=p>),</span> <span class=p>(</span><span class=mi>64</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>21</span><span class=p>,</span> <span class=mi>16</span><span class=p>),</span> <span class=p>(</span><span class=mi>64</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>21</span><span class=p>,</span> <span class=mi>256</span><span class=p>),</span>
+                    <span class=p>(</span><span class=mi>64</span><span class=p>,</span> <span class=mi>3</span><span class=p>,</span> <span class=mi>21</span><span class=p>,</span> <span class=mi>403</span><span class=p>),</span> <span class=p>(</span><span class=mi>64</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=mi>52</span><span class=p>,</span> <span class=mi>2</span><span class=p>),</span> <span class=p>(</span><span class=mi>75</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>60</span><span class=p>,</span> <span class=mi>16</span><span class=p>),</span>
+                    <span class=p>(</span><span class=mi>75</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>32</span><span class=p>,</span> <span class=mi>4</span><span class=p>)])</span> <span class=k>if</span> <span class=n>scale_min</span> <span class=o><=</span> <span class=n>z</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>*</span> <span class=n>z</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=o><=</span> <span class=n>scale_max</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.w_model</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

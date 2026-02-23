@@ -1,0 +1,143 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.api.objective — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/api/objective.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.objective</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.api.objective</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The base class for implementing objective functions.</span>
+
+<span class=sd>An objective function evaluates the quality of a candidate solution of an</span>
+<span class=sd>optimization problem. Solutions with smaller objective values are better,</span>
+<span class=sd>i.e., objective functions are subject to minimization. All objective</span>
+<span class=sd>functions inherit from :class:`~moptipy.api.objective.Objective`. If you</span>
+<span class=sd>implement a new objective function, you can test it via the pre-defined unit</span>
+<span class=sd>test routine :func:`~moptipy.tests.objective.validate_objective`.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api</span><span class=w> </span><span class=kn>import</span> <span class=n>logging</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.component</span><span class=w> </span><span class=kn>import</span> <span class=n>Component</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=Objective>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.objective.Objective>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Objective</span><span class=p>(</span><span class=n>Component</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    An objective function subject to minimization.</span>
+
+<span class=sd>    An objective function represents one optimization criterion that</span>
+<span class=sd>    is used for rating the solution quality. All objective functions in</span>
+<span class=sd>    our system are subject to minimization, meaning that smaller values</span>
+<span class=sd>    are better.</span>
+<span class=sd>    """</span>
+
+<div class=viewcode-block id=Objective.evaluate>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.objective.Objective.evaluate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Evaluate a solution `x` and return its objective value.</span>
+
+<span class=sd>        The return value is either an integer or a float and must be</span>
+<span class=sd>        finite. Smaller objective values are better, i.e., all objective</span>
+<span class=sd>        functions are subject to minimization.</span>
+
+<span class=sd>        :param x: the candidate solution</span>
+<span class=sd>        :return: the objective value</span>
+<span class=sd>        """</span></div>
+
+    <span class=c1># end book</span>
+
+<div class=viewcode-block id=Objective.lower_bound>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.objective.Objective.lower_bound>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>lower_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the lower bound of the objective value.</span>
+
+<span class=sd>        This function returns a theoretical limit for how good a solution</span>
+<span class=sd>        could be at best. If no real limit is known, the function should</span>
+<span class=sd>        return `-inf`.</span>
+
+<span class=sd>        :return: the lower bound of the objective value</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=o>-</span><span class=n>inf</span></div>
+
+
+<div class=viewcode-block id=Objective.upper_bound>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.objective.Objective.upper_bound>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>upper_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the upper bound of the objective value.</span>
+
+<span class=sd>        This function returns a theoretical limit for how bad a solution could</span>
+<span class=sd>        be at worst. If no real limit is known, the function should return</span>
+<span class=sd>        `inf`.</span>
+
+<span class=sd>        :return: the upper bound of the objective value</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>inf</span></div>
+
+
+<div class=viewcode-block id=Objective.is_always_integer>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.objective.Objective.is_always_integer>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>is_always_integer</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Return `True` if :meth:`~evaluate` will always return an `int` value.</span>
+
+<span class=sd>        :returns: `True` if :meth:`~evaluate` will always return an `int`</span>
+<span class=sd>          or `False` if also a `float` may be returned.</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=kc>False</span></div>
+
+
+<div class=viewcode-block id=Objective.log_parameters_to>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.objective.Objective.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of this function to the provided destination.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>b</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>()</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>b</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span> <span class=ow>or</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>b</span><span class=p>):</span>
+            <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>logging</span><span class=o>.</span><span class=n>KEY_F_LOWER_BOUND</span><span class=p>,</span> <span class=n>b</span><span class=p>)</span>
+        <span class=n>b</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>upper_bound</span><span class=p>()</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>b</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span> <span class=ow>or</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>b</span><span class=p>):</span>
+            <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>logging</span><span class=o>.</span><span class=n>KEY_F_UPPER_BOUND</span><span class=p>,</span> <span class=n>b</span><span class=p>)</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=check_objective>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.objective.check_objective>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>check_objective</span><span class=p>(</span><span class=n>objective</span><span class=p>:</span> <span class=n>Any</span><span class=p>)</span> <span class=o>-></span> <span class=n>Objective</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether an object is a valid instance of :class:`Objective`.</span>
+
+<span class=sd>    :param objective: the objective</span>
+<span class=sd>    :return: the objective</span>
+<span class=sd>    :raises TypeError: if `objective` is not an instance of</span>
+<span class=sd>        :class:`Objective`</span>
+
+<span class=sd>    >>> check_objective(Objective())</span>
+<span class=sd>    Objective</span>
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_objective('A')</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    objective function should be an instance of moptipy.api.objective.\</span>
+<span class=sd>Objective but is str, namely 'A'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     check_objective(None)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    objective function should be an instance of moptipy.api.objective.\</span>
+<span class=sd>Objective but is None.</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>objective</span><span class=p>,</span> <span class=n>Objective</span><span class=p>):</span>
+        <span class=k>return</span> <span class=n>objective</span>
+    <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>objective</span><span class=p>,</span> <span class=s2>"objective function"</span><span class=p>,</span> <span class=n>Objective</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.objective</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

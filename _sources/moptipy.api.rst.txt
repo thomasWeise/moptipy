@@ -1,0 +1,146 @@
+moptipy.api package
+===================
+
+.. automodule:: moptipy.api
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+moptipy.api.algorithm module
+----------------------------
+
+.. automodule:: moptipy.api.algorithm
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.api.component module
+----------------------------
+
+.. automodule:: moptipy.api.component
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.api.encoding module
+---------------------------
+
+.. automodule:: moptipy.api.encoding
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.api.execution module
+----------------------------
+
+.. automodule:: moptipy.api.execution
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.api.experiment module
+-----------------------------
+
+.. automodule:: moptipy.api.experiment
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.api.logging module
+--------------------------
+
+.. automodule:: moptipy.api.logging
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.api.mo\_algorithm module
+--------------------------------
+
+.. automodule:: moptipy.api.mo_algorithm
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.api.mo\_archive module
+------------------------------
+
+.. automodule:: moptipy.api.mo_archive
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.api.mo\_execution module
+--------------------------------
+
+.. automodule:: moptipy.api.mo_execution
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.api.mo\_problem module
+------------------------------
+
+.. automodule:: moptipy.api.mo_problem
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.api.mo\_process module
+------------------------------
+
+.. automodule:: moptipy.api.mo_process
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.api.mo\_utils module
+----------------------------
+
+.. automodule:: moptipy.api.mo_utils
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.api.objective module
+----------------------------
+
+.. automodule:: moptipy.api.objective
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.api.operators module
+----------------------------
+
+.. automodule:: moptipy.api.operators
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.api.process module
+--------------------------
+
+.. automodule:: moptipy.api.process
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.api.space module
+------------------------
+
+.. automodule:: moptipy.api.space
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.api.subprocesses module
+-------------------------------
+
+.. automodule:: moptipy.api.subprocesses
+   :members:
+   :show-inheritance:
+   :undoc-members:

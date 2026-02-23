@@ -1,0 +1,185 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.tests.mo_problem — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/tests/mo_problem.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.mo_problem</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.tests.mo_problem</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Functions for testing multi-objective optimization problems."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>default_rng</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_problem</span><span class=w> </span><span class=kn>import</span> <span class=n>MOProblem</span><span class=p>,</span> <span class=n>check_mo_problem</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.space</span><span class=w> </span><span class=kn>import</span> <span class=n>Space</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.tests.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>validate_objective</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>is_np_float</span><span class=p>,</span> <span class=n>is_np_int</span>
+
+
+<div class=viewcode-block id=validate_mo_problem>
+<a class=viewcode-back href=../../../moptipy.tests.html#moptipy.tests.mo_problem.validate_mo_problem>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>validate_mo_problem</span><span class=p>(</span>
+        <span class=n>mo_problem</span><span class=p>:</span> <span class=n>MOProblem</span><span class=p>,</span>
+        <span class=n>solution_space</span><span class=p>:</span> <span class=n>Space</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+        <span class=n>make_solution_space_element_valid</span><span class=p>:</span>
+        <span class=n>Callable</span><span class=p>[[</span><span class=n>Generator</span><span class=p>,</span> <span class=n>Any</span><span class=p>],</span> <span class=n>Any</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>_</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span><span class=p>,</span>
+        <span class=n>is_deterministic</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+        <span class=n>lower_bound_threshold</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=o>-</span><span class=n>inf</span><span class=p>,</span>
+        <span class=n>upper_bound_threshold</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>inf</span><span class=p>,</span>
+        <span class=n>must_be_equal_to</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Any</span><span class=p>],</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check whether an object is a moptipy multi-objective optimization problem.</span>
+
+<span class=sd>    :param mo_problem: the multi-objective optimization problem to test</span>
+<span class=sd>    :param solution_space: the solution space</span>
+<span class=sd>    :param make_solution_space_element_valid: a function that makes an element</span>
+<span class=sd>        from the solution space valid</span>
+<span class=sd>    :param bool is_deterministic: is the objective function deterministic?</span>
+<span class=sd>    :param lower_bound_threshold: the threshold for the lower bound</span>
+<span class=sd>    :param upper_bound_threshold: the threshold for the upper bound</span>
+<span class=sd>    :param must_be_equal_to: an optional function that should return the</span>
+<span class=sd>        exactly same values as the objective function</span>
+<span class=sd>    :raises ValueError: if `mo_problem` is not a valid</span>
+<span class=sd>        :class:`~moptipy.api.mo_problem.MOProblem`</span>
+<span class=sd>    :raises TypeError: if values of the wrong types are encountered</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>mo_problem</span><span class=p>,</span> <span class=n>MOProblem</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>mo_problem</span><span class=p>,</span> <span class=s2>"mo_problem"</span><span class=p>,</span> <span class=n>MOProblem</span><span class=p>)</span>
+    <span class=n>check_mo_problem</span><span class=p>(</span><span class=n>mo_problem</span><span class=p>)</span>
+    <span class=n>validate_objective</span><span class=p>(</span><span class=n>mo_problem</span><span class=p>,</span> <span class=n>solution_space</span><span class=p>,</span>
+                       <span class=n>make_solution_space_element_valid</span><span class=p>,</span> <span class=n>is_deterministic</span><span class=p>,</span>
+                       <span class=n>lower_bound_threshold</span><span class=p>,</span> <span class=n>upper_bound_threshold</span><span class=p>,</span>
+                       <span class=n>must_be_equal_to</span><span class=p>)</span>
+
+    <span class=n>dim</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>mo_problem</span><span class=o>.</span><span class=n>f_dimension</span><span class=p>(),</span>
+                                      <span class=s2>"f_dimension()"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>100_000</span><span class=p>)</span>
+    <span class=n>all_int</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>mo_problem</span><span class=o>.</span><span class=n>is_always_integer</span><span class=p>()</span>
+    <span class=n>fses</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]]</span> <span class=o>=</span> \
+        <span class=n>mo_problem</span><span class=o>.</span><span class=n>f_create</span><span class=p>(),</span> <span class=n>mo_problem</span><span class=o>.</span><span class=n>f_create</span><span class=p>()</span>
+
+    <span class=n>exp_dtype</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>]</span> <span class=o>=</span> <span class=n>mo_problem</span><span class=o>.</span><span class=n>f_dtype</span><span class=p>()</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>exp_dtype</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>exp_dtype</span><span class=p>,</span> <span class=s2>"exp_dtype"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>is_np_float</span><span class=p>(</span><span class=n>exp_dtype</span><span class=p>):</span>
+        <span class=k>if</span> <span class=n>all_int</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"if f_dtype()==</span><span class=si>{</span><span class=n>exp_dtype</span><span class=si>}</span><span class=s2>, "</span>
+                             <span class=sa>f</span><span class=s2>"is_always_integer() must not be </span><span class=si>{</span><span class=n>all_int</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+    <span class=k>elif</span> <span class=ow>not</span> <span class=n>is_np_int</span><span class=p>(</span><span class=n>exp_dtype</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"f_dtype() cannot be </span><span class=si>{</span><span class=n>exp_dtype</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>fses</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=ow>is</span> <span class=n>fses</span><span class=p>[</span><span class=mi>1</span><span class=p>]:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"f_create returns same array!"</span><span class=p>)</span>
+
+    <span class=n>shape</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span><span class=n>dim</span><span class=p>,</span> <span class=p>)</span>
+    <span class=k>for</span> <span class=n>fs</span> <span class=ow>in</span> <span class=n>fses</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>fs</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>fs</span><span class=p>,</span> <span class=s2>"f_create()"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>fs</span><span class=p>)</span> <span class=o>!=</span> <span class=n>dim</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"len(f_create()) == </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>fs</span><span class=p>)</span><span class=si>}</span><span class=s2> but f_dimension()==</span><span class=si>{</span><span class=n>dim</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>fs</span><span class=o>.</span><span class=n>shape</span> <span class=o>!=</span> <span class=n>shape</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"f_create().shape=</span><span class=si>{</span><span class=n>fs</span><span class=o>.</span><span class=n>shape</span><span class=si>}</span><span class=s2>, but must be </span><span class=si>{</span><span class=n>shape</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>fs</span><span class=o>.</span><span class=n>dtype</span> <span class=o>!=</span> <span class=n>exp_dtype</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"f_dtype()=</span><span class=si>{</span><span class=n>exp_dtype</span><span class=si>}</span><span class=s2> but f_create().dtype=</span><span class=si>{</span><span class=n>fs</span><span class=o>.</span><span class=n>dtype</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>all_int</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>all_int</span><span class=p>,</span> <span class=s2>"is_always_integer()"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=n>is_int</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=n>is_np_int</span><span class=p>(</span><span class=n>fs</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>is_int</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>is_np_int</span><span class=p>,</span> <span class=s2>"is_np_int(dtype)"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=n>is_float</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=n>is_np_float</span><span class=p>(</span><span class=n>fs</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>is_float</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>is_float</span><span class=p>,</span> <span class=s2>"is_np_float(dtype)"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>is_int</span> <span class=o>^</span> <span class=n>is_float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"dtype (</span><span class=si>{</span><span class=n>fs</span><span class=o>.</span><span class=n>dtype</span><span class=si>}</span><span class=s2>) of f_create() must be "</span>
+                             <span class=sa>f</span><span class=s2>"either int (</span><span class=si>{</span><span class=n>is_int</span><span class=si>}</span><span class=s2>) or float (</span><span class=si>{</span><span class=n>is_float</span><span class=si>}</span><span class=s2>)."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>all_int</span> <span class=ow>and</span> <span class=ow>not</span> <span class=n>is_int</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"if is_always_integer()==</span><span class=si>{</span><span class=n>all_int</span><span class=si>}</span><span class=s2>, then the "</span>
+                             <span class=sa>f</span><span class=s2>"dtype (</span><span class=si>{</span><span class=n>fs</span><span class=o>.</span><span class=n>dtype</span><span class=si>}</span><span class=s2>) of f_create() must be an "</span>
+                             <span class=sa>f</span><span class=s2>"integer type, but is not (</span><span class=si>{</span><span class=n>is_int</span><span class=si>}</span><span class=s2>)."</span><span class=p>)</span>
+    <span class=n>fs1</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span>
+    <span class=n>fs2</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span>
+    <span class=n>fs1</span><span class=p>,</span> <span class=n>fs2</span> <span class=o>=</span> <span class=n>fses</span>
+    <span class=k>if</span> <span class=n>fs1</span><span class=o>.</span><span class=n>dtype</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>fs2</span><span class=o>.</span><span class=n>dtype</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"encountered two different dtypes when invoking "</span>
+                         <span class=sa>f</span><span class=s2>"f_create() twice: </span><span class=si>{</span><span class=n>fs1</span><span class=o>.</span><span class=n>dtype</span><span class=si>}</span><span class=s2>, </span><span class=si>{</span><span class=n>fs2</span><span class=o>.</span><span class=n>dtype</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+    <span class=n>lower</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>mo_problem</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>()</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=nb>isinstance</span><span class=p>(</span><span class=n>lower</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>lower</span><span class=p>,</span> <span class=s2>"lower_bound()"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+    <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>lower</span><span class=p>))</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=p>(</span><span class=n>lower</span> <span class=o><=</span> <span class=p>(</span><span class=o>-</span><span class=n>inf</span><span class=p>))):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"lower bound must be finite or -inf, but is </span><span class=si>{</span><span class=n>lower</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>lower</span> <span class=o><</span> <span class=n>lower_bound_threshold</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"lower bound must not be less than "</span>
+                         <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>lower_bound_threshold</span><span class=si>}</span><span class=s2>, but is </span><span class=si>{</span><span class=n>lower</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=n>upper</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=n>mo_problem</span><span class=o>.</span><span class=n>upper_bound</span><span class=p>()</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=nb>isinstance</span><span class=p>(</span><span class=n>upper</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>upper</span><span class=p>,</span> <span class=s2>"upper_bound()"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+    <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>upper</span><span class=p>))</span> <span class=ow>and</span> <span class=p>(</span><span class=ow>not</span> <span class=p>(</span><span class=n>upper</span> <span class=o>>=</span> <span class=n>inf</span><span class=p>)):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"upper bound must be finite or +inf, but is </span><span class=si>{</span><span class=n>upper</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>upper</span> <span class=o>></span> <span class=n>upper_bound_threshold</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"upper bound must not be more than </span><span class=si>{</span><span class=n>upper_bound_threshold</span><span class=si>}</span><span class=s2>, "</span>
+            <span class=sa>f</span><span class=s2>"but is </span><span class=si>{</span><span class=n>lower</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>lower</span> <span class=o>>=</span> <span class=n>upper</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Result of lower_bound() must be smaller than "</span>
+                         <span class=sa>f</span><span class=s2>"upper_bound(), but got </span><span class=si>{</span><span class=n>lower</span><span class=si>}</span><span class=s2> vs. </span><span class=si>{</span><span class=n>upper</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+    <span class=n>count</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=k>if</span> <span class=n>make_solution_space_element_valid</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>count</span> <span class=o>+=</span> <span class=mi>1</span>
+    <span class=k>if</span> <span class=n>solution_space</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>count</span> <span class=o>+=</span> <span class=mi>1</span>
+    <span class=k>if</span> <span class=n>count</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+        <span class=k>return</span>
+    <span class=k>if</span> <span class=n>count</span> <span class=o><</span> <span class=mi>2</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"either provide both of solution_space and "</span>
+                         <span class=s2>"make_solution_space_element_valid or none."</span><span class=p>)</span>
+
+    <span class=n>x</span> <span class=o>=</span> <span class=n>solution_space</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>
+    <span class=k>if</span> <span class=n>x</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"solution_space.create() produced None."</span><span class=p>)</span>
+    <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>default_rng</span><span class=p>()</span>
+    <span class=n>x</span> <span class=o>=</span> <span class=n>make_solution_space_element_valid</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>x</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"make_solution_space_element_valid() produced None."</span><span class=p>)</span>
+    <span class=n>solution_space</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+
+    <span class=n>reses</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[</span>
+        <span class=n>mo_problem</span><span class=o>.</span><span class=n>f_evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>fs1</span><span class=p>),</span> <span class=n>mo_problem</span><span class=o>.</span><span class=n>f_evaluate</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>fs2</span><span class=p>)]</span>
+    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>reses</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>2</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Huh? </span><span class=si>{</span><span class=nb>len</span><span class=p>(</span><span class=n>reses</span><span class=p>)</span><span class=si>}</span><span class=s2> != 2 for </span><span class=si>{</span><span class=n>reses</span><span class=si>}</span><span class=s2>??"</span><span class=p>)</span>
+
+    <span class=k>for</span> <span class=n>fs</span> <span class=ow>in</span> <span class=n>fses</span><span class=p>:</span>
+        <span class=k>for</span> <span class=n>v</span> <span class=ow>in</span> <span class=n>fs</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>v</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"encountered non-finite value </span><span class=si>{</span><span class=n>v</span><span class=si>}</span><span class=s2> in "</span>
+                                 <span class=sa>f</span><span class=s2>"objective vector </span><span class=si>{</span><span class=n>fs</span><span class=si>}</span><span class=s2> of </span><span class=si>{</span><span class=n>x</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>mo_problem</span><span class=o>.</span><span class=n>f_validate</span><span class=p>(</span><span class=n>fs</span><span class=p>)</span>
+
+    <span class=n>fdr</span> <span class=o>=</span> <span class=n>mo_problem</span><span class=o>.</span><span class=n>f_dominates</span><span class=p>(</span><span class=n>fses</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>fses</span><span class=p>[</span><span class=mi>1</span><span class=p>])</span>
+    <span class=k>if</span> <span class=n>fdr</span> <span class=o>!=</span> <span class=mi>2</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"f_dominates(x, x) must be 2, but is </span><span class=si>{</span><span class=n>fdr</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+    <span class=k>for</span> <span class=n>res</span> <span class=ow>in</span> <span class=n>reses</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>res</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>res</span><span class=p>,</span> <span class=s2>"f_evaluate(x)"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>res</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"result of f_evaluate() must be finite, but is </span><span class=si>{</span><span class=n>res</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>res</span> <span class=o><</span> <span class=n>lower</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"f_evaluate()=</span><span class=si>{</span><span class=n>res</span><span class=si>}</span><span class=s2> < lower_bound()=</span><span class=si>{</span><span class=n>lower</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>res</span> <span class=o>></span> <span class=n>upper</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"f_evaluate()=</span><span class=si>{</span><span class=n>res</span><span class=si>}</span><span class=s2> > upper_bound()=</span><span class=si>{</span><span class=n>upper</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>is_deterministic</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>np</span><span class=o>.</span><span class=n>array_equal</span><span class=p>(</span><span class=n>fs1</span><span class=p>,</span> <span class=n>fs2</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"deterministic objective returns vectors "</span>
+                             <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>fses</span><span class=si>}</span><span class=s2> when evaluating </span><span class=si>{</span><span class=n>x</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>reses</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>!=</span> <span class=n>reses</span><span class=p>[</span><span class=mi>1</span><span class=p>]:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"deterministic objective returns scalar "</span>
+                             <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>reses</span><span class=si>}</span><span class=s2> when evaluating </span><span class=si>{</span><span class=n>x</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.tests.mo_problem</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

@@ -1,0 +1,386 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.spaces.signed_permutations — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/spaces/signed_permutations.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.spaces.signed_permutations</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.spaces.signed_permutations</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>A search space for signed permutations of a base string.</span>
+
+<span class=sd>The base string can be a string where each element occurs exactly once,</span>
+<span class=sd>e.g., `[1, 2, 3]` or `[7, 2, 5]`. It could also be a string where some or</span>
+<span class=sd>all elements occur multiple times, e.g., a permutation with repetition, such</span>
+<span class=sd>as `[1, 7, 7, 4, 5, 3, 3, 3]` or `[3, 3, 1, 1, 2, 2]`. Each element may then</span>
+<span class=sd>occur either in its original (positive) value in a string or in its negated</span>
+<span class=sd>(negative) form.</span>
+
+<span class=sd>Notice that a signed permutation can never include the element `0`. Therefore,</span>
+<span class=sd>some methods have different semantics compared to those in class</span>
+<span class=sd>:class:`~moptipy.spaces.permutations.Permutations`.</span>
+
+<span class=sd>Search operators working on elements of this space are given in module</span>
+<span class=sd>:mod:`moptipy.operators.signed_permutations`, but several of those in</span>
+<span class=sd>:mod:`moptipy.operators.permutations` should work as well.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>factorial</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Counter</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.intspace</span><span class=w> </span><span class=kn>import</span> <span class=n>IntSpace</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.permutations</span><span class=w> </span><span class=kn>import</span> <span class=n>KEY_BASE_STRING</span><span class=p>,</span> <span class=n>KEY_REPETITIONS</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>array_to_str</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.strings</span><span class=w> </span><span class=kn>import</span> <span class=n>sanitize_name</span>
+
+<span class=c1>#: the unsigned minimum</span>
+<span class=n>KEY_UNSIGNED_MIN</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"unsignedMin"</span>
+
+
+<div class=viewcode-block id=SignedPermutations>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.signed_permutations.SignedPermutations>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>SignedPermutations</span><span class=p>(</span><span class=n>IntSpace</span><span class=p>):</span>  <span class=c1># +book</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Signed permutations of a base string stored as :class:`numpy.ndarray`.</span>
+
+<span class=sd>    This class includes standard permutations of the form 1, 2, ..., n,</span>
+<span class=sd>    but also permutations with repetitions.</span>
+<span class=sd>    The idea is that a base string is defined, i.e., an array of integer</span>
+<span class=sd>    values. In this array, some values may appear twice, some may be missing.</span>
+<span class=sd>    For example, `[1, 3, 5, 5, 7]` is a proper base string. The space defined</span>
+<span class=sd>    over this base string would then contain values such as `[1, 3, 5, 5, 7]`,</span>
+<span class=sd>    `[1, 5, 3, 5, 7]`, `[7, 5, 5, 3, 1]` and so on. Basically, it will contain</span>
+<span class=sd>    all strings that can be created by shuffling the base string *and/or*</span>
+<span class=sd>    negating some or all of the values, i.e., `[-1, 3, -5, 5, -7]` would also</span>
+<span class=sd>    be possible. These strings have in common that they contain exactly all the</span>
+<span class=sd>    values from the base string and contain them exactly as same as often as</span>
+<span class=sd>    they appear in the base string. They can never contain `0`.</span>
+
+<span class=sd>    The space defined upon the above base string contains</span>
+<span class=sd>    (2 ** 5) * 5! / (1! * 1! * 2! * 1!) = 32 * 120 / 2 = 1920</span>
+<span class=sd>    different strings.</span>
+
+<span class=sd>    The permutation space defined above can be created as follows:</span>
+
+<span class=sd>    >>> perm = SignedPermutations([1, 3, 5, 5, 7])</span>
+<span class=sd>    >>> print(perm.to_str(perm.blueprint))</span>
+<span class=sd>    1;3;5;5;7</span>
+<span class=sd>    >>> print(perm)</span>
+<span class=sd>    signedPermOfString</span>
+<span class=sd>    >>> print(perm.n_points())</span>
+<span class=sd>    1920</span>
+
+<span class=sd>    Another example is this:</span>
+
+<span class=sd>    >>> perm = SignedPermutations((1, 2, 3, 3, 2))</span>
+<span class=sd>    >>> print(perm.to_str(perm.blueprint))</span>
+<span class=sd>    1;2;2;3;3</span>
+<span class=sd>    >>> print(perm)</span>
+<span class=sd>    signedPermOfString</span>
+<span class=sd>    >>> print(perm.n_points())</span>
+<span class=sd>    960</span>
+
+<span class=sd>    If you want to create a permutation with repetitions, e.g.,</span>
+<span class=sd>    where each of the n=4 values from 1 to 4 appear exactly 3 times,</span>
+<span class=sd>    you can use the utility method `with_repetitions`:</span>
+
+<span class=sd>    >>> perm = SignedPermutations.with_repetitions(4, 3)</span>
+<span class=sd>    >>> print(perm.to_str(perm.blueprint))</span>
+<span class=sd>    1;1;1;2;2;2;3;3;3;4;4;4</span>
+<span class=sd>    >>> print(perm)</span>
+<span class=sd>    signedPerm4w3r</span>
+<span class=sd>    >>> print(perm.n_points())</span>
+<span class=sd>    1513881600</span>
+
+<span class=sd>    If you instead want to create standard permutations, i.e., where</span>
+<span class=sd>    each value from 1 to n appears exactly once, you would do:</span>
+
+<span class=sd>    >>> perm = SignedPermutations.standard(5)</span>
+<span class=sd>    >>> print(perm.to_str(perm.blueprint))</span>
+<span class=sd>    1;2;3;4;5</span>
+<span class=sd>    >>> print(perm)</span>
+<span class=sd>    signedPerm5</span>
+<span class=sd>    >>> print(perm.n_points())</span>
+<span class=sd>    3840</span>
+
+<span class=sd>    Different from normal permutations with repetitions, it is allowed</span>
+<span class=sd>    that signed permutations with repetitions contain the same element,</span>
+<span class=sd>    as long as their length is larger than 1.</span>
+
+<span class=sd>    >>> perm = SignedPermutations([1, 1])</span>
+<span class=sd>    >>> print(perm.to_str(perm.blueprint))</span>
+<span class=sd>    1;1</span>
+<span class=sd>    >>> x = perm.create()</span>
+<span class=sd>    >>> perm.validate(x)</span>
+<span class=sd>    >>> x[0] = -1</span>
+<span class=sd>    >>> perm.validate(x)</span>
+<span class=sd>    >>> x[1] = -1</span>
+<span class=sd>    >>> perm.validate(x)</span>
+<span class=sd>    >>> x[0] = 1</span>
+<span class=sd>    >>> perm.validate(x)</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     perm = SignedPermutations([1])</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    base_string must contain at least two different elements or have at \</span>
+<span class=sd>least length 2, but is [1].</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>base_string</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>int</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the space of signed permutations of a base string.</span>
+
+<span class=sd>        :param base_string: an iterable of integer to denote the base string</span>
+<span class=sd>        :raises TypeError: if one of the parameters has the wrong type</span>
+<span class=sd>        :raises ValueError: if the parameters have the wrong value</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>base_string</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>base_string</span><span class=p>,</span> <span class=s2>"base_string"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+
+        <span class=n>string</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>(</span><span class=nb>abs</span><span class=p>(</span><span class=n>i</span><span class=p>)</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>base_string</span><span class=p>)</span>
+        <span class=n>total</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>string</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>total</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"base string must not be empty, but is </span><span class=si>{</span><span class=n>base_string</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=c1># get data ranges</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__shape</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Counter</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=n>Counter</span><span class=p>[</span><span class=nb>int</span><span class=p>]()</span>
+        <span class=n>minimum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>string</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+        <span class=n>maximum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>string</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>string</span><span class=p>:</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>i</span><span class=p>,</span> <span class=nb>int</span><span class=p>):</span>
+                <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>i</span><span class=p>,</span> <span class=s2>"element of base_string"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__shape</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=n>minimum</span> <span class=o>=</span> <span class=nb>min</span><span class=p>(</span><span class=n>minimum</span><span class=p>,</span> <span class=n>i</span><span class=p>)</span>
+            <span class=n>maximum</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>maximum</span><span class=p>,</span> <span class=n>i</span><span class=p>)</span>
+
+        <span class=c1># checking that the data is not empty</span>
+        <span class=n>different</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__shape</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>total</span> <span class=o><=</span> <span class=mi>1</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span><span class=n>different</span> <span class=o><=</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"base_string must contain at least two different"</span>
+                             <span class=s2>" elements or have at least length 2, but is "</span>
+                             <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>base_string</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>minimum</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"base_string must only contain positive values,"</span>
+                             <span class=sa>f</span><span class=s2>" but minimum is </span><span class=si>{</span><span class=n>minimum</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=c1># creating super class</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>total</span><span class=p>,</span> <span class=o>-</span><span class=n>maximum</span><span class=p>,</span> <span class=n>maximum</span><span class=p>)</span>
+
+        <span class=c1>#: a numpy array of the right type with the base string</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>blueprint</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>]</span> <span class=o>=</span> \
+            <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>string</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span>
+
+        <span class=n>npoints</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>factorial</span><span class=p>(</span><span class=n>total</span><span class=p>)</span>
+        <span class=n>rep</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__shape</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>minimum</span><span class=p>)</span>
+        <span class=k>for</span> <span class=n>v</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>__shape</span><span class=o>.</span><span class=n>values</span><span class=p>():</span>
+            <span class=n>npoints</span> <span class=o>//=</span> <span class=n>factorial</span><span class=p>(</span><span class=n>v</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>v</span> <span class=o>!=</span> <span class=n>rep</span><span class=p>:</span>
+                <span class=n>rep</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: the exact number of different signed permutations</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__n_points</span> <span class=o>=</span> <span class=p>(</span><span class=mi>2</span> <span class=o>**</span> <span class=nb>len</span><span class=p>(</span><span class=n>string</span><span class=p>))</span> <span class=o>*</span> <span class=n>npoints</span>
+
+        <span class=c1>#: the number of repetitions if all elements occur as same</span>
+        <span class=c1>#: as often, or None otherwise</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__repetitions</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>rep</span>
+
+        <span class=c1>#: the unsigned minimum</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>unsigned_min_value</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>minimum</span>
+
+<div class=viewcode-block id=SignedPermutations.has_repetitions>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.signed_permutations.SignedPermutations.has_repetitions>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>has_repetitions</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Return whether elements occur repeatedly in the base string.</span>
+
+<span class=sd>        :returns: `True` if at least one element occurs more than once,</span>
+<span class=sd>            `False` otherwise</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__repetitions</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__repetitions</span> <span class=o>></span> <span class=mi>1</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=SignedPermutations.n>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.signed_permutations.SignedPermutations.n>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>n</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the number of different values in the base string.</span>
+
+<span class=sd>        :returns: the number of different values in the base string</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__shape</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=SignedPermutations.is_dense>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.signed_permutations.SignedPermutations.is_dense>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>is_dense</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Check if all values in `min..max` appear in the permutation.</span>
+
+<span class=sd>        :returns: `True` if the permutation is dense in the sense that</span>
+<span class=sd>            all values from `self.min_value` to `self.max_value` appear.</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=nb>len</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__shape</span><span class=p>)</span> <span class=o>==</span> <span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>max_value</span> <span class=o>-</span> <span class=bp>self</span><span class=o>.</span><span class=n>unsigned_min_value</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=SignedPermutations.log_parameters_to>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.signed_permutations.SignedPermutations.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of this space to the given logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_UNSIGNED_MIN</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>unsigned_min_value</span><span class=p>)</span>
+
+        <span class=n>reps</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__repetitions</span>
+        <span class=k>if</span> <span class=n>reps</span><span class=p>:</span>
+            <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_REPETITIONS</span><span class=p>,</span> <span class=n>reps</span><span class=p>)</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>is_dense</span><span class=p>():</span>
+                <span class=k>return</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_BASE_STRING</span><span class=p>,</span>
+                         <span class=n>array_to_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>blueprint</span><span class=p>))</span></div>
+
+
+<div class=viewcode-block id=SignedPermutations.create>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.signed_permutations.SignedPermutations.create>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sa>r</span><span class=sd>"""</span>
+<span class=sd>        Create a permutation equal to the base string.</span>
+
+<span class=sd>        The result is of the form [1, 1, 2, 2, 2, 3, 3...].</span>
+
+<span class=sd>        :return: the permutation of the base string</span>
+
+<span class=sd>        >>> perm = SignedPermutations([1, 5, 2, 2, 4, 3, 4])</span>
+<span class=sd>        >>> x = perm.create()</span>
+<span class=sd>        >>> print(perm.to_str(x))</span>
+<span class=sd>        1;2;2;3;4;4;5</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>blueprint</span><span class=o>.</span><span class=n>copy</span><span class=p>()</span>  <span class=c1># Create copy of the blueprint.</span></div>
+
+
+<div class=viewcode-block id=SignedPermutations.validate>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.signed_permutations.SignedPermutations.validate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>validate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Validate a signed permutation of the base string.</span>
+
+<span class=sd>        :param x: the integer string</span>
+<span class=sd>        :raises TypeError: if the string is not an :class:`numpy.ndarray`.</span>
+<span class=sd>        :raises ValueError: if the element is not a valid element of this</span>
+<span class=sd>            permutation space, e.g., if the shape or data type of `x` is</span>
+<span class=sd>            wrong, if an element is outside of the bounds, or if an</span>
+<span class=sd>            element does not occur exactly the prescribed amount of times</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+        <span class=n>counts</span><span class=p>:</span> <span class=n>Counter</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>Counter</span><span class=p>[</span><span class=nb>int</span><span class=p>]()</span>
+        <span class=k>for</span> <span class=n>xx</span> <span class=ow>in</span> <span class=n>x</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>xx</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"0 is not permitted in signed permutations."</span><span class=p>)</span>
+            <span class=n>counts</span><span class=p>[</span><span class=nb>abs</span><span class=p>(</span><span class=n>xx</span><span class=p>)]</span> <span class=o>+=</span> <span class=mi>1</span>
+
+        <span class=k>if</span> <span class=n>counts</span> <span class=o>!=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__shape</span><span class=p>:</span>
+            <span class=k>for</span> <span class=n>key</span> <span class=ow>in</span> <span class=nb>sorted</span><span class=p>(</span><span class=nb>set</span><span class=p>(</span><span class=n>counts</span><span class=o>.</span><span class=n>keys</span><span class=p>())</span><span class=o>.</span><span class=n>union</span><span class=p>(</span>
+                    <span class=nb>set</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__shape</span><span class=o>.</span><span class=n>keys</span><span class=p>()))):</span>
+                <span class=n>exp</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__shape</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span>
+                <span class=n>found</span> <span class=o>=</span> <span class=n>counts</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>found</span> <span class=o>!=</span> <span class=n>exp</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                        <span class=sa>f</span><span class=s2>"Expected to find </span><span class=si>{</span><span class=n>key</span><span class=si>}</span><span class=s2> exactly </span><span class=si>{</span><span class=n>exp</span><span class=si>}</span><span class=s2> times "</span>
+                        <span class=sa>f</span><span class=s2>"but found it </span><span class=si>{</span><span class=n>found</span><span class=si>}</span><span class=s2> times."</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=SignedPermutations.n_points>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.signed_permutations.SignedPermutations.n_points>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>n_points</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the number of possible different permutations of the base string.</span>
+
+<span class=sd>        :return: (2 ** dimension) * factorial(dimension) /</span>
+<span class=sd>            Product(factorial(count(e)) for all e)</span>
+
+<span class=sd>        >>> print(SignedPermutations([1, 2, 3, 1, 2, 3]).n_points())</span>
+<span class=sd>        5760</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>__n_points</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this space.</span>
+
+<span class=sd>        :return: "perm" + blueprint string</span>
+
+<span class=sd>        >>> print(SignedPermutations([3, 1, 5, 2, 1]))</span>
+<span class=sd>        signedPermOfString</span>
+<span class=sd>        >>> print(SignedPermutations([3, 2, 3, 1, 1, 2]))</span>
+<span class=sd>        signedPerm3w2r</span>
+<span class=sd>        >>> print(SignedPermutations([4, 2, 1, 3]))</span>
+<span class=sd>        signedPerm4</span>
+<span class=sd>        >>> print(SignedPermutations([3, 2, 4, 2, 3, 2, 4, 3, 4]))</span>
+<span class=sd>        signedPerm2to4w3r</span>
+<span class=sd>        """</span>
+        <span class=n>minimum</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>unsigned_min_value</span>
+        <span class=n>maximum</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>max_value</span>
+        <span class=n>reps</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__repetitions</span>
+        <span class=n>different</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=p>()</span>
+        <span class=k>if</span> <span class=n>reps</span> <span class=ow>and</span> <span class=p>(</span><span class=n>different</span> <span class=o>!=</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>dimension</span> <span class=o>//</span> <span class=n>reps</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"huh? </span><span class=si>{</span><span class=n>different</span><span class=si>}</span><span class=s2> != </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=si>}</span><span class=s2> / </span><span class=si>{</span><span class=n>reps</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=n>all_values</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>is_dense</span><span class=p>()</span>
+        <span class=n>min_is_1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>minimum</span> <span class=o>==</span> <span class=mi>1</span>
+
+        <span class=k>if</span> <span class=n>reps</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>reps</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>all_values</span><span class=p>:</span>
+                    <span class=k>if</span> <span class=n>min_is_1</span><span class=p>:</span>
+                        <span class=k>return</span> <span class=sa>f</span><span class=s2>"signedPerm</span><span class=si>{</span><span class=n>different</span><span class=si>}</span><span class=s2>"</span>
+                    <span class=k>return</span> <span class=n>sanitize_name</span><span class=p>(</span><span class=sa>f</span><span class=s2>"signedPerm</span><span class=si>{</span><span class=n>minimum</span><span class=si>}</span><span class=s2>to</span><span class=si>{</span><span class=n>maximum</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>elif</span> <span class=n>all_values</span><span class=p>:</span>  <span class=c1># repetitions != 1</span>
+                <span class=k>if</span> <span class=n>min_is_1</span><span class=p>:</span>
+                    <span class=k>return</span> <span class=sa>f</span><span class=s2>"signedPerm</span><span class=si>{</span><span class=n>different</span><span class=si>}</span><span class=s2>w</span><span class=si>{</span><span class=n>reps</span><span class=si>}</span><span class=s2>r"</span>
+                <span class=k>return</span> <span class=n>sanitize_name</span><span class=p>(</span><span class=sa>f</span><span class=s2>"signedPerm</span><span class=si>{</span><span class=n>minimum</span><span class=si>}</span><span class=s2>to</span><span class=si>{</span><span class=n>maximum</span><span class=si>}</span><span class=s2>w</span><span class=si>{</span><span class=n>reps</span><span class=si>}</span><span class=s2>r"</span><span class=p>)</span>
+        <span class=k>return</span> <span class=s2>"signedPermOfString"</span>
+
+<div class=viewcode-block id=SignedPermutations.standard>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.signed_permutations.SignedPermutations.standard>[docs]</a>
+    <span class=nd>@staticmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>standard</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"SignedPermutations"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a space for permutations of `1..n`.</span>
+
+<span class=sd>        Notice that this method is different compared to the method</span>
+<span class=sd>        :meth:`~moptipy.spaces.permutations.Permutations.standard` of class</span>
+<span class=sd>        :class:`~moptipy.spaces.permutations.Permutations` in that it starts</span>
+<span class=sd>        the permutations at `1`, not at `0`.</span>
+
+<span class=sd>        :param n: the range of the values</span>
+<span class=sd>        :returns: the permutations space</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>SignedPermutations</span><span class=p>(</span><span class=nb>range</span><span class=p>(</span>
+            <span class=mi>1</span><span class=p>,</span> <span class=mi>1</span> <span class=o>+</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=mi>100_000_000</span><span class=p>)))</span></div>
+
+
+<div class=viewcode-block id=SignedPermutations.with_repetitions>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.signed_permutations.SignedPermutations.with_repetitions>[docs]</a>
+    <span class=nd>@staticmethod</span>  <span class=c1># +book</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>with_repetitions</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>repetitions</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=s2>"SignedPermutations"</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a space for permutations of `1..n` with repetitions.</span>
+
+<span class=sd>        Notice that this method is different compared to the method</span>
+<span class=sd>        :meth:`~moptipy.spaces.permutations.Permutations.with_repetitions` of</span>
+<span class=sd>        class :class:`~moptipy.spaces.permutations.Permutations` in that it</span>
+<span class=sd>        starts the permutations at `1`, not at `0`.</span>
+
+<span class=sd>        :param n: the range of the values</span>
+<span class=sd>        :param repetitions: how often each value occurs</span>
+<span class=sd>        :returns: the permutations space</span>
+<span class=sd>        """</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>repetitions</span><span class=p>,</span> <span class=s2>"repetitions"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>repetitions</span> <span class=o><=</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>SignedPermutations</span><span class=o>.</span><span class=n>standard</span><span class=p>(</span><span class=n>n</span><span class=p>)</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>100_000_000</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>SignedPermutations</span><span class=p>(</span><span class=nb>list</span><span class=p>(</span><span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>1</span> <span class=o>+</span> <span class=n>n</span><span class=p>))</span> <span class=o>*</span> <span class=n>repetitions</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.spaces.signed_permutations</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

@@ -1,0 +1,638 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.api.process — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/api/process.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.process</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.api.process</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Processes offer data to both the user and the optimization algorithm.</span>
+
+<span class=sd>They provide the information about the optimization process and its current</span>
+<span class=sd>state as handed to the optimization algorithm and, after the algorithm has</span>
+<span class=sd>finished, to the user. They also supply the optimization algorithm with</span>
+<span class=sd>everything it needs to run, e.g., random numbers</span>
+<span class=sd>(:meth:`~moptipy.api.process.Process.get_random`), they evaluate solutions</span>
+<span class=sd>(:meth:`~moptipy.api.process.Process.evaluate`) , and they tell it when to</span>
+<span class=sd>stop (:meth:`~moptipy.api.process.Process.should_terminate`).</span>
+
+<span class=sd>The idea behind this interface is to treat optimization algorithms as</span>
+<span class=sd>so-called *anytime algorithms*. An anytime algorithm will begin with a guess</span>
+<span class=sd>about what the solution for a problem could be. It will then iteratively</span>
+<span class=sd>sample and evaluate (:meth:`~moptipy.api.process.Process.evaluate`) new</span>
+<span class=sd>solutions, i.e., new and hopefully better guesses. It can be stopped at any</span>
+<span class=sd>time, e.g., by the termination criterion,</span>
+<span class=sd>:meth:`~moptipy.api.process.Process.should_terminate` and then return the best</span>
+<span class=sd>guess of the solution (:meth:`~moptipy.api.process.Process.get_copy_of_best_y`,</span>
+<span class=sd>:meth:`~moptipy.api.process.Process.get_best_f`).</span>
+
+<span class=sd>The process API also collects all the information about the optimization</span>
+<span class=sd>process, performs in-memory logging if wanted, and can write a standardized,</span>
+<span class=sd>text-based log file for each run of an algorithm in a clear folder structure.</span>
+<span class=sd>By storing information about the algorithm, the problem, and the system, as</span>
+<span class=sd>well as the random seed, this allows for self-documenting and replicable</span>
+<span class=sd>experiments.</span>
+
+<span class=sd>The class :class:`Process` is a base class from which all optimization</span>
+<span class=sd>processes are derived. It is for the standard single-objective optimization</span>
+<span class=sd>case. A multi-objective variant is given in module</span>
+<span class=sd>:mod:`~moptipy.api.mo_process` as class</span>
+<span class=sd>:class:`~moptipy.api.mo_process.MOProcess`.</span>
+
+<span class=sd>Furthermore, processes also lent themselves to "forking" off some of the</span>
+<span class=sd>computational budget of an algorithm to sub-algorithms. For this purpose, the</span>
+<span class=sd>module :mod:`~moptipy.api.subprocesses` provides specialized routines, such as</span>
+<span class=sd>:func:`~moptipy.api.subprocesses.for_fes` for creating sub-processes that</span>
+<span class=sd>forward all method calls to the original process but will perform at most a</span>
+<span class=sd>given number of objective function evaluations or</span>
+<span class=sd>:func:`~moptipy.api.subprocesses.from_starting_point`, which creates a</span>
+<span class=sd>sub-process that has the current-best solution pre-set to a given point in the</span>
+<span class=sd>search space and its quality.</span>
+<span class=sd>:func:`~moptipy.api.subprocesses.without_should_terminate` wraps a process in</span>
+<span class=sd>such a way that the termination criterion</span>
+<span class=sd>:meth:`~moptipy.api.process.Process.should_terminate`, which is suitable for</span>
+<span class=sd>invoking externally implemented optimization algorithms that do not know/care</span>
+<span class=sd>about the `moptipy` API.</span>
+
+<span class=sd>1. Mark S. Boddy and Thomas L. Dean. *Solving Time-Dependent Planning</span>
+<span class=sd>   Problems.* Report CS-89-03, February 1989. Providence, RI, USA: Brown</span>
+<span class=sd>   University, Department of Computer Science.</span>
+<span class=sd>   ftp://ftp.cs.brown.edu/pub/techreports/89/cs89-03.pdf</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>contextlib</span><span class=w> </span><span class=kn>import</span> <span class=n>AbstractContextManager</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>inf</span><span class=p>,</span> <span class=n>isnan</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Self</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>Objective</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.space</span><span class=w> </span><span class=kn>import</span> <span class=n>Space</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=Process>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Process</span><span class=p>(</span><span class=n>Space</span><span class=p>,</span> <span class=n>Objective</span><span class=p>,</span> <span class=n>AbstractContextManager</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Processes offer data to the optimization algorithm and the user.</span>
+
+<span class=sd>    A Process presents the objective function and search space to an</span>
+<span class=sd>    optimization algorithm. Since it wraps the actual objective</span>
+<span class=sd>    function, it can see all evaluated solutions and remember the</span>
+<span class=sd>    best-so-far solution. It can also count the FEs and the runtime</span>
+<span class=sd>    that has passed. Therefore, it also presents the termination</span>
+<span class=sd>    criterion to the optimization algorithm. It also provides a random</span>
+<span class=sd>    number generator the algorithm. It can write log files with the</span>
+<span class=sd>    progress of the search and the end result. Finally, it provides</span>
+<span class=sd>    the end result to the user, who can access it after the algorithm</span>
+<span class=sd>    has finished.</span>
+<span class=sd>    """</span>
+
+<span class=c1># end book</span>
+
+<div class=viewcode-block id=Process.get_random>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.get_random>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_random</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>Generator</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Obtain the random number generator.</span>
+
+<span class=sd>        The optimization algorithm and all of its components must only use</span>
+<span class=sd>        this random number generator for all their non-deterministic</span>
+<span class=sd>        decisions. In order to guarantee reproducible runs, there must not be</span>
+<span class=sd>        any other source of randomness. This generator can be seeded in the</span>
+<span class=sd>        :meth:`~moptipy.api.execution.Execution.set_rand_seed` method of the</span>
+<span class=sd>        :class:`~moptipy.api.execution.Execution` builder object.</span>
+
+<span class=sd>        :return: the random number generator</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Process.should_terminate>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.should_terminate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>should_terminate</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Check whether the optimization process should terminate.</span>
+
+<span class=sd>        If this function returns `True`, the optimization process must</span>
+<span class=sd>        not perform any objective function evaluations anymore.</span>
+<span class=sd>        It will automatically become `True` when a termination criterion</span>
+<span class=sd>        is hit or if anyone calls :meth:`terminate`, which happens also</span>
+<span class=sd>        at the end of a `with` statement.</span>
+
+<span class=sd>        Generally, the termination criterion is configured by the methods</span>
+<span class=sd>        :meth:`~moptipy.api.execution.Execution.set_max_fes`,</span>
+<span class=sd>        :meth:`~moptipy.api.execution.Execution.set_max_time_millis`, and</span>
+<span class=sd>        :meth:`~moptipy.api.execution.Execution.set_goal_f` of the</span>
+<span class=sd>        :class:`~moptipy.api.execution.Execution` builder. Furthermore, if</span>
+<span class=sd>        the objective function has a finite</span>
+<span class=sd>        :meth:`~moptipy.api.objective.Objective.lower_bound`, then this lower</span>
+<span class=sd>        bound is also used as goal objective value if no goal objective value</span>
+<span class=sd>        is specified via :meth:`~moptipy.api.execution.Execution.set_goal_f`.</span>
+<span class=sd>        :meth:`should_terminate` then returns `True` as soon as any one of the</span>
+<span class=sd>        configured criteria is met, i.e., the process terminates when the</span>
+<span class=sd>        earliest one of the criteria is met.</span>
+
+<span class=sd>        :return: `True` if the process should terminate, `False` if not</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Process.evaluate>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.evaluate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span> <span class=o>|</span> <span class=nb>int</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Evaluate a solution `x` and return its objective value.</span>
+
+<span class=sd>        This method implements the</span>
+<span class=sd>        :meth:`~moptipy.api.objective.Objective.evaluate` method of</span>
+<span class=sd>        the :class:`moptipy.api.objective.Objective` function interface,</span>
+<span class=sd>        but on :class:`Process` level.</span>
+
+<span class=sd>        The return value is either an integer or a float and must be</span>
+<span class=sd>        finite. Smaller objective values are better, i.e., all objective</span>
+<span class=sd>        functions are subject to minimization.</span>
+
+<span class=sd>        This method here is usually a wrapper that internally invokes the</span>
+<span class=sd>        actual :class:`~moptipy.api.objective.Objective` function, but it does</span>
+<span class=sd>        more: While it does use the</span>
+<span class=sd>        :meth:`~moptipy.api.objective.Objective.evaluate` method of the</span>
+<span class=sd>        objective function to compute the quality of a candidate solution,</span>
+<span class=sd>        it also internally increments the counter for the objective function</span>
+<span class=sd>        evaluations (FEs) that have passed. You can request the number of</span>
+<span class=sd>        these FEs via :meth:`get_consumed_fes` (and also the time that has</span>
+<span class=sd>        passed via :meth:`get_consumed_time_millis`, but this is unrelated</span>
+<span class=sd>        to the :meth:`evaluate` method).</span>
+
+<span class=sd>        Still, counting the FEs like this allows us to know when, e.g., the</span>
+<span class=sd>        computational budget in terms of a maximum permitted number of FEs</span>
+<span class=sd>        has been exhausted, in which case :meth:`should_terminate` will</span>
+<span class=sd>        become `True`.</span>
+
+<span class=sd>        Also, since this method will see all objective values and the</span>
+<span class=sd>        corresponding candidate solutions, it is able to internally remember</span>
+<span class=sd>        the best solution you have ever created and its corresponding</span>
+<span class=sd>        objective value. Therefore, the optimization :class:`Process` can</span>
+<span class=sd>        provide both to you via the methods :meth:`has_best`,</span>
+<span class=sd>        :meth:`get_copy_of_best_x`, :meth:`get_copy_of_best_y`, and</span>
+<span class=sd>        :meth:`get_best_f`. At the same time, if a goal objective value or</span>
+<span class=sd>        lower bound for the objective function is specified and one solution</span>
+<span class=sd>        is seen that has such a quality, :meth:`should_terminate` will again</span>
+<span class=sd>        become `True`.</span>
+
+<span class=sd>        Finally, this method also performs all logging, e.g., of improving</span>
+<span class=sd>        moves, in memory if logging is activated. (See</span>
+<span class=sd>        :meth:`~moptipy.api.execution.Execution.set_log_file`,</span>
+<span class=sd>        :meth:`~moptipy.api.execution.Execution.set_log_improvements`, and</span>
+<span class=sd>        :meth:`~moptipy.api.execution.Execution.set_log_all_fes`.)</span>
+
+<span class=sd>        In some cases, you may not need to invoke the original objective</span>
+<span class=sd>        function via this wrapper to obtain the objective value of a solution.</span>
+<span class=sd>        Indeed, in some cases you *know* the objective value because of the</span>
+<span class=sd>        way you constructed the solution. However, you still need to tell our</span>
+<span class=sd>        system the objective value and provide the solution to ensure the</span>
+<span class=sd>        correct counting of FEs, the correct preservation of the best</span>
+<span class=sd>        solution, and the correct setting of the termination criterion. For</span>
+<span class=sd>        these situations, you will call :meth:`register` instead of</span>
+<span class=sd>        :meth:`evaluate`.</span>
+
+<span class=sd>        :param x: the candidate solution</span>
+<span class=sd>        :return: the objective value</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Process.register>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.register>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>register</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>,</span> <span class=n>f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Register a solution `x` with externally-evaluated objective value.</span>
+
+<span class=sd>        This function is equivalent to :meth:`evaluate`, but receives the</span>
+<span class=sd>        objective value as parameter. In some problems, algorithms can compute</span>
+<span class=sd>        the objective value of a solution very efficiently without passing it</span>
+<span class=sd>        to the objective function.</span>
+
+<span class=sd>        For example, on the Traveling Salesperson Problem with n cities, if</span>
+<span class=sd>        you have a tour of known length and swap two cities in it, then you</span>
+<span class=sd>        can compute the overall tour length in O(1) instead of O(n) that you</span>
+<span class=sd>        would need to pay for a full evaluation. In such a case, you could</span>
+<span class=sd>        use `register` instead of `evaluate`.</span>
+
+<span class=sd>        `x` must be provided if `f` marks an improvement. In this case, the</span>
+<span class=sd>        contents of `x` will be copied to an internal variable remembering the</span>
+<span class=sd>        best-so-far solution. If `f` is not an improvement, you may pass in</span>
+<span class=sd>        `None` for `x` or just any valid point in the search space.</span>
+
+<span class=sd>        For each candidate solution you construct, you must call either</span>
+<span class=sd>        :meth:`evaluate` or :meth:`register`. This is because these two</span>
+<span class=sd>        functions also count the objective function evaluations (FEs) that</span>
+<span class=sd>        have passed. This is needed to check the termination criterion, for</span>
+<span class=sd>        instance.</span>
+
+<span class=sd>        :param x: the candidate solution</span>
+<span class=sd>        :param f: the objective value</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Process.get_consumed_fes>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.get_consumed_fes>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_consumed_fes</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Obtain the number consumed objective function evaluations.</span>
+
+<span class=sd>        This is the number of calls to :meth:`evaluate`.</span>
+
+<span class=sd>        :return: the number of objective function evaluations so far</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Process.get_consumed_time_millis>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.get_consumed_time_millis>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_consumed_time_millis</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Obtain an approximation of the consumed runtime in milliseconds.</span>
+
+<span class=sd>        :return: the consumed runtime measured in milliseconds.</span>
+<span class=sd>        :rtype: int</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Process.get_max_fes>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.get_max_fes>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_max_fes</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Obtain the maximum number of permitted objective function evaluations.</span>
+
+<span class=sd>        If no limit is set, `None` is returned.</span>
+
+<span class=sd>        :return: the maximum number of objective function evaluations,</span>
+<span class=sd>            or `None` if no limit is specified.</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Process.get_max_time_millis>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.get_max_time_millis>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_max_time_millis</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Obtain the maximum runtime permitted in milliseconds.</span>
+
+<span class=sd>        If no limit is set, `None` is returned.</span>
+
+<span class=sd>        :return: the maximum runtime permitted in milliseconds,</span>
+<span class=sd>            or `None` if no limit is specified.</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Process.has_best>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.has_best>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>has_best</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Check whether a current best solution is available.</span>
+
+<span class=sd>        As soon as one objective function evaluation has been performed,</span>
+<span class=sd>        the black-box process can provide a best-so-far solution. Then,</span>
+<span class=sd>        this method returns `True`. Otherwise, it returns `False`. This</span>
+<span class=sd>        means that this method returns `True` if and only if you have</span>
+<span class=sd>        called either :meth:`evaluate` or :meth:`register` at least once.</span>
+
+<span class=sd>        :return: True if the current-best solution can be queried.</span>
+
+<span class=sd>        See Also</span>
+<span class=sd>            - :meth:`get_best_f`</span>
+<span class=sd>            - :meth:`get_copy_of_best_x`</span>
+<span class=sd>            - :meth:`get_copy_of_best_y`</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Process.get_best_f>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.get_best_f>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_best_f</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the objective value of the current best solution.</span>
+
+<span class=sd>        This always corresponds to the best-so-far solution, i.e., the</span>
+<span class=sd>        best solution that you have passed to :meth:`evaluate` or</span>
+<span class=sd>        :meth:`register` so far. It is *NOT* the best possible objective</span>
+<span class=sd>        value for the optimization problem. It is the best objective value</span>
+<span class=sd>        that the process has seen *so far*, the current best objective value.</span>
+
+<span class=sd>        You should only call this method if you are either sure that you</span>
+<span class=sd>        have invoked meth:`evaluate` before :meth:`register` of if you called</span>
+<span class=sd>        :meth:`has_best` before and it returned `True`.</span>
+
+<span class=sd>        :return: the objective value of the current best solution.</span>
+
+<span class=sd>        See Also</span>
+<span class=sd>            - :meth:`has_best`</span>
+<span class=sd>            - :meth:`get_copy_of_best_x`</span>
+<span class=sd>            - :meth:`get_copy_of_best_y`</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Process.get_copy_of_best_x>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.get_copy_of_best_x>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_copy_of_best_x</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get a copy of the current best point in the search space.</span>
+
+<span class=sd>        This always corresponds to the point in the search space encoding the</span>
+<span class=sd>        best-so-far solution, i.e., the best point in the search space that</span>
+<span class=sd>        you have passed to :meth:`evaluate` or :meth:`register` so far.</span>
+<span class=sd>        It is *NOT* the best global optimum for the optimization problem. It</span>
+<span class=sd>        corresponds to the best solution that the process has seen *so far*,</span>
+<span class=sd>        the current best solution.</span>
+
+<span class=sd>        Even if the optimization algorithm using this process does not</span>
+<span class=sd>        preserve this solution in special variable and has already lost it</span>
+<span class=sd>        again, this method will still return it. The optimization process</span>
+<span class=sd>        encapsulated by this `process` object will always remember it.</span>
+
+<span class=sd>        This also means that your algorithm implementations do not need to</span>
+<span class=sd>        store the best-so-far solution anywhere if doing so would be</span>
+<span class=sd>        complicated. They can obtain it simply from this method whenever</span>
+<span class=sd>        needed.</span>
+
+<span class=sd>        You should only call this method if you are either sure that you</span>
+<span class=sd>        have invoked :meth:`evaluate` before :meth:`register` of if you called</span>
+<span class=sd>        :meth:`has_best` before and it returned `True`.</span>
+
+<span class=sd>        For understanding the relationship between the search space and the</span>
+<span class=sd>        solution space, see module :mod:`~moptipy.api.encoding`.</span>
+
+<span class=sd>        :param x: the destination data structure to be overwritten</span>
+
+<span class=sd>        See Also</span>
+<span class=sd>            - :meth:`has_best`</span>
+<span class=sd>            - :meth:`get_best_f`</span>
+<span class=sd>            - :meth:`get_copy_of_best_y`</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Process.get_copy_of_best_y>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.get_copy_of_best_y>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_copy_of_best_y</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>y</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get a copy of the current best point in the solution space.</span>
+
+<span class=sd>        This always corresponds to the best-so-far solution, i.e., the</span>
+<span class=sd>        best solution that you have passed to :meth:`evaluate` or</span>
+<span class=sd>        :meth:`register` so far. It is *NOT* the global optimum for the</span>
+<span class=sd>        optimization problem. It is the best solution that the process has</span>
+<span class=sd>        seen *so far*, the current best solution.</span>
+
+<span class=sd>        You should only call this method if you are either sure that you</span>
+<span class=sd>        have invoked meth:`evaluate` before :meth:`register` of if you called</span>
+<span class=sd>        :meth:`has_best` before and it returned `True`.</span>
+
+<span class=sd>        :param y: the destination data structure to be overwritten</span>
+
+<span class=sd>        See Also</span>
+<span class=sd>            - :meth:`has_best`</span>
+<span class=sd>            - :meth:`get_best_f`</span>
+<span class=sd>            - :meth:`get_copy_of_best_x`</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Process.get_last_improvement_fe>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.get_last_improvement_fe>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_last_improvement_fe</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the FE at which the last improvement was made.</span>
+
+<span class=sd>        You should only call this method if you are either sure that you</span>
+<span class=sd>        have invoked meth:`evaluate` before :meth:`register` of if you called</span>
+<span class=sd>        :meth:`has_best` before and it returned `True`.</span>
+
+<span class=sd>        :return: the function evaluation when the last improvement was made</span>
+<span class=sd>        :raises ValueError: if no FE was performed yet</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Process.get_last_improvement_time_millis>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.get_last_improvement_time_millis>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_last_improvement_time_millis</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the FE at which the last improvement was made.</span>
+
+<span class=sd>        You should only call this method if you are either sure that you</span>
+<span class=sd>        have invoked meth:`evaluate` before :meth:`register` of if you called</span>
+<span class=sd>        :meth:`has_best` before and it returned `True`.</span>
+
+<span class=sd>        :return: the function evaluation when the last improvement was made</span>
+<span class=sd>        :raises ValueError: if no FE was performed yet</span>
+<span class=sd>        """</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this process implementation.</span>
+
+<span class=sd>        This method is overwritten for each subclass of :class:`Process`</span>
+<span class=sd>        and then returns a short descriptive value of these classes.</span>
+
+<span class=sd>        :return: "process" for this base class</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"process"</span>
+
+<div class=viewcode-block id=Process.terminate>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.terminate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>terminate</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># +book</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Terminate this process.</span>
+
+<span class=sd>        This function is automatically called at the end of the `with`</span>
+<span class=sd>        statement, but can also be called by the algorithm when it is</span>
+<span class=sd>        finished and is also invoked automatically when a termination</span>
+<span class=sd>        criterion is hit.</span>
+<span class=sd>        After the first time this method is invoked, :meth:`should_terminate`</span>
+<span class=sd>        becomes `True`.</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Process.has_log>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.has_log>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>has_log</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Will any information of this process be logged?.</span>
+
+<span class=sd>        Only if this method returns `True`, invoking :meth:`add_log_section`</span>
+<span class=sd>        makes any sense. Otherwise, the data would just be discarded.</span>
+
+<span class=sd>        :retval `True`: if the process is associated with a log output</span>
+<span class=sd>        :retval `False`: if no information is stored in a log output</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Process.add_log_section>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.add_log_section>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>add_log_section</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>title</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>text</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Add a section to the log, if a log is written (otherwise ignore it).</span>
+
+<span class=sd>        When creating the experiment</span>
+<span class=sd>        :class:`~moptipy.api.execution.Execution`, you can specify a log file</span>
+<span class=sd>        via method :meth:`~moptipy.api.execution.Execution.set_log_file`.</span>
+<span class=sd>        Then, the results of your algorithm and the system configuration will</span>
+<span class=sd>        be stored as text in this file. Each type of information will be</span>
+<span class=sd>        stored in a different section. The end state with the final solution</span>
+<span class=sd>        quality, for instance, will be stored in a section named `STATE`.</span>
+<span class=sd>        Each section begins with the line `BEGIN_XXX` and ends with the line</span>
+<span class=sd>        `END_XXX`, where `XXX` is the name of the section. Between these two</span>
+<span class=sd>        lines, all the contents of the section are stored.</span>
+
+<span class=sd>        This method here allows you to add a custom section to your log file.</span>
+<span class=sd>        This can happen in your implementation of the method</span>
+<span class=sd>        :meth:`~moptipy.api.algorithm.Algorithm.solve` of your algorithm.</span>
+<span class=sd>        (Ideally at its end.) Of course, invoking this method only makes sense</span>
+<span class=sd>        if there actually is a log file. You can check for this by calling</span>
+<span class=sd>        :meth:`has_log`.</span>
+
+<span class=sd>        You can specify a custom section name (which must be in upper case</span>
+<span class=sd>        characters) and a custom section body text.</span>
+<span class=sd>        Of course, the name of this section must not clash with any other</span>
+<span class=sd>        section name. Neither the section name nor section body should contain</span>
+<span class=sd>        strings like `BEGIN_` or `END_`, and such and such. You do not want to</span>
+<span class=sd>        mess up your log files. Ofcourse you can add a section with a given</span>
+<span class=sd>        name only once, because otherwise there would be a name clash.</span>
+<span class=sd>        Anyway, if you add sections like this, they will be appended at the</span>
+<span class=sd>        end of the log file. This way, you have all the standard log data and</span>
+<span class=sd>        your additional information in one consistent file.</span>
+
+<span class=sd>        Be advised: Adding sections costs time and memory. You do not want to</span>
+<span class=sd>        do such a thing in a loop. If your algorithm should store additional</span>
+<span class=sd>        data, it makes sense to gather this data in an efficient way during</span>
+<span class=sd>        the run and only flush it to a section at the end of the run.</span>
+
+<span class=sd>        :param title: the title of the log section</span>
+<span class=sd>        :param text: the text to log</span>
+<span class=sd>        """</span></div>
+
+
+<div class=viewcode-block id=Process.get_log_basename>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.get_log_basename>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_log_basename</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the basename of the log, if any.</span>
+
+<span class=sd>        If a log file is associated with this process, then this function</span>
+<span class=sd>        returns the name of the log file without the file suffix. If no log</span>
+<span class=sd>        file is associated with the process, then `None` is returned.</span>
+
+<span class=sd>        This can be used to store additional information during the run of</span>
+<span class=sd>        the optimization algorithm. However, treat this carefully, as some</span>
+<span class=sd>        files with the same base name may exist or be generated by other</span>
+<span class=sd>        modules.</span>
+
+<span class=sd>        :returns: the path to the log file without the file suffix if a log</span>
+<span class=sd>            file is associated with the process, or `None` otherwise</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=kc>None</span></div>
+
+
+<div class=viewcode-block id=Process.initialize>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.Process.initialize>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>initialize</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Raise an error because this method shall never be called.</span>
+
+<span class=sd>        :raises ValueError: always</span>
+<span class=sd>        """</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Never call the initialize() method of a Process!"</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__enter__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Begin a `with` statement.</span>
+
+<span class=sd>        :return: this process itself</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__exit__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>exception_type</span><span class=p>,</span> <span class=n>exception_value</span><span class=p>,</span> <span class=n>traceback</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        End a `with` statement.</span>
+
+<span class=sd>        :param exception_type: ignored</span>
+<span class=sd>        :param exception_value: ignored</span>
+<span class=sd>        :param traceback: ignored</span>
+<span class=sd>        :returns: `True` to suppress an exception, `False` to rethrow it</span>
+<span class=sd>        """</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>terminate</span><span class=p>()</span>
+        <span class=k>return</span> <span class=n>exception_type</span> <span class=ow>is</span> <span class=kc>None</span></div>
+
+
+
+<div class=viewcode-block id=check_max_fes>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.check_max_fes>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>check_max_fes</span><span class=p>(</span><span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                  <span class=n>none_is_ok</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check the maximum FEs.</span>
+
+<span class=sd>    This is a small utility method that validates whether a maximum for the</span>
+<span class=sd>    objective function evaluations (FEs) is valid.</span>
+
+<span class=sd>    :param max_fes: the maximum FEs</span>
+<span class=sd>    :param none_is_ok: is `None` ok?</span>
+<span class=sd>    :return: the maximum fes, or `None`</span>
+<span class=sd>    :raises TypeError: if `max_fes` is `None` (and `None` is not allowed) or</span>
+<span class=sd>        not an `int`</span>
+<span class=sd>    :raises ValueError: if `max_fes` is invalid</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=n>max_fes</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>none_is_ok</span><span class=p>:</span>
+            <span class=k>return</span> <span class=kc>None</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>max_fes</span><span class=p>,</span> <span class=s2>"max_fes"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>max_fes</span><span class=p>,</span> <span class=s2>"max_fes"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000_000_000</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=check_max_time_millis>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.check_max_time_millis>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>check_max_time_millis</span><span class=p>(</span><span class=n>max_time_millis</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                          <span class=n>none_is_ok</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check the maximum time in milliseconds.</span>
+
+<span class=sd>    This is a small utility method that validates whether a maximum for the</span>
+<span class=sd>    milliseconds that can be used as runtime limit is valid.</span>
+
+<span class=sd>    :param max_time_millis: the maximum time in milliseconds</span>
+<span class=sd>    :param none_is_ok: is None ok?</span>
+<span class=sd>    :return: the maximum time in milliseconds, or `None`</span>
+<span class=sd>    :raises TypeError: if `max_time_millis` is `None` (and `None` is not</span>
+<span class=sd>        allowed) or not an `int`</span>
+<span class=sd>    :raises ValueError: if `max_time_millis` is invalid</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=n>max_time_millis</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>none_is_ok</span><span class=p>:</span>
+            <span class=k>return</span> <span class=kc>None</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>max_time_millis</span><span class=p>,</span> <span class=s2>"max_time_millis"</span><span class=p>,</span> <span class=nb>int</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>check_int_range</span><span class=p>(</span>
+        <span class=n>max_time_millis</span><span class=p>,</span> <span class=s2>"max_time_millis"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>100_000_000_000</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=check_goal_f>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.process.check_goal_f>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>check_goal_f</span><span class=p>(</span><span class=n>goal_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>none_is_ok</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Check the goal objective value.</span>
+
+<span class=sd>    This is a small utility method that validates whether a goal objective</span>
+<span class=sd>    value is valid.</span>
+
+<span class=sd>    :param goal_f: the goal objective value</span>
+<span class=sd>    :param none_is_ok: is `None` ok?</span>
+<span class=sd>    :return: the goal objective value, or `None`</span>
+<span class=sd>    :raises TypeError: if `goal_f` is `None` (and `None` is not allowed) or</span>
+<span class=sd>        neither an `int` nor a `float`</span>
+<span class=sd>    :raises ValueError: if `goal_f` is invalid</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=nb>isinstance</span><span class=p>(</span><span class=n>goal_f</span><span class=p>,</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>)):</span>
+        <span class=k>if</span> <span class=n>none_is_ok</span> <span class=ow>and</span> <span class=p>(</span><span class=n>goal_f</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>):</span>
+            <span class=k>return</span> <span class=kc>None</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>goal_f</span><span class=p>,</span> <span class=s2>"goal_f"</span><span class=p>,</span> <span class=p>(</span><span class=nb>int</span><span class=p>,</span> <span class=nb>float</span><span class=p>))</span>
+    <span class=k>if</span> <span class=n>isnan</span><span class=p>(</span><span class=n>goal_f</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Goal objective value must not be NaN, but is "</span>
+                         <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>goal_f</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>goal_f</span> <span class=o>>=</span> <span class=n>inf</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Goal objective value must be less than positive "</span>
+                         <span class=sa>f</span><span class=s2>"infinity, but is </span><span class=si>{</span><span class=n>goal_f</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>goal_f</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.process</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

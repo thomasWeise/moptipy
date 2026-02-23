@@ -1,0 +1,227 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.api.mo_execution — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/api/mo_execution.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.mo_execution</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.api.mo_execution</h1><div class=highlight><pre>
+<span></span><span class=sd>"""The multi-objective algorithm execution API."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>isfinite</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Self</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api._mo_process_no_ss</span><span class=w> </span><span class=kn>import</span> <span class=n>_MOProcessNoSS</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api._mo_process_no_ss_log</span><span class=w> </span><span class=kn>import</span> <span class=n>_MOProcessNoSSLog</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api._mo_process_ss</span><span class=w> </span><span class=kn>import</span> <span class=n>_MOProcessSS</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api._mo_process_ss_log</span><span class=w> </span><span class=kn>import</span> <span class=n>_MOProcessSSLog</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm</span><span class=p>,</span> <span class=n>check_algorithm</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.encoding</span><span class=w> </span><span class=kn>import</span> <span class=n>Encoding</span><span class=p>,</span> <span class=n>check_encoding</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.execution</span><span class=w> </span><span class=kn>import</span> <span class=n>Execution</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_archive</span><span class=w> </span><span class=kn>import</span> <span class=n>MOArchivePruner</span><span class=p>,</span> <span class=n>check_mo_archive_pruner</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_problem</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>MOProblem</span><span class=p>,</span>
+    <span class=n>MOSOProblemBridge</span><span class=p>,</span>
+    <span class=n>check_mo_problem</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.mo_process</span><span class=w> </span><span class=kn>import</span> <span class=n>MOProcess</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>Objective</span><span class=p>,</span> <span class=n>check_objective</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>check_goal_f</span><span class=p>,</span>
+    <span class=n>check_max_fes</span><span class=p>,</span>
+    <span class=n>check_max_time_millis</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.space</span><span class=w> </span><span class=kn>import</span> <span class=n>Space</span><span class=p>,</span> <span class=n>check_space</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.mo.archive.keep_farthest</span><span class=w> </span><span class=kn>import</span> <span class=n>KeepFarthest</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=n>rand_seed_check</span>
+
+
+<div class=viewcode-block id=MOExecution>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_execution.MOExecution>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>MOExecution</span><span class=p>(</span><span class=n>Execution</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Define all the components of a multi-objective experiment and execute it.</span>
+
+<span class=sd>    Different from :class:`~moptipy.api.execution.Execution`, this class here</span>
+<span class=sd>    allows us to construct multi-objective optimization processes, i.e., such</span>
+<span class=sd>    that have more than one optimization goal.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Create the multi-objective execution."""</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=c1>#: the maximum size of a pruned archive</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_archive_max_size</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: the archive size limit at which pruning should be performed</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_archive_prune_limit</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=c1>#: the archive pruning strategy</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_archive_pruner</span><span class=p>:</span> <span class=n>MOArchivePruner</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+
+<div class=viewcode-block id=MOExecution.set_archive_max_size>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_execution.MOExecution.set_archive_max_size>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_archive_max_size</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>size</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set the upper limit for the archive size (after pruning).</span>
+
+<span class=sd>        The internal archive of the multi-objective optimization process</span>
+<span class=sd>        retains non-dominated solutions encountered during the search. Since</span>
+<span class=sd>        there can be infinitely many such solutions, the archive could grow</span>
+<span class=sd>        without bound if left untouched.</span>
+<span class=sd>        Therefore, we define two size limits: the maximum archive size</span>
+<span class=sd>        (defined by this method) and the pruning limit. Once the archive grows</span>
+<span class=sd>        beyond the pruning limit, it is cut down to the archive size limit.</span>
+
+<span class=sd>        :param size: the maximum archive size</span>
+<span class=sd>        :returns: this execution</span>
+<span class=sd>        """</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>size</span><span class=p>,</span> <span class=s2>"maximum archive size"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_archive_prune_limit</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> \
+                <span class=p>(</span><span class=n>size</span> <span class=o>></span> <span class=bp>self</span><span class=o>.</span><span class=n>_archive_prune_limit</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"archive max size </span><span class=si>{</span><span class=n>size</span><span class=si>}</span><span class=s2> must be <= than archive "</span>
+                <span class=sa>f</span><span class=s2>"prune limit </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>_archive_prune_limit</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_archive_max_size</span> <span class=o>=</span> <span class=n>size</span>
+        <span class=k>return</span> <span class=bp>self</span></div>
+
+
+<div class=viewcode-block id=MOExecution.set_archive_pruning_limit>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_execution.MOExecution.set_archive_pruning_limit>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_archive_pruning_limit</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                                  <span class=n>limit</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set the size limit of the archive above which pruning is performed.</span>
+
+<span class=sd>        If the size of the archive grows above this limit, the archive will be</span>
+<span class=sd>        pruned down to the archive size limit.</span>
+
+<span class=sd>        :param limit: the archive pruning limit</span>
+<span class=sd>        :returns: this execution</span>
+<span class=sd>        """</span>
+        <span class=n>check_int_range</span><span class=p>(</span><span class=n>limit</span><span class=p>,</span> <span class=s2>"limit"</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_archive_max_size</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> \
+                <span class=p>(</span><span class=n>limit</span> <span class=o><</span> <span class=bp>self</span><span class=o>.</span><span class=n>_archive_max_size</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"archive pruning limit </span><span class=si>{</span><span class=n>limit</span><span class=si>}</span><span class=s2> must be >= than archive "</span>
+                <span class=sa>f</span><span class=s2>"maximum size </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>_archive_max_size</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_archive_prune_limit</span> <span class=o>=</span> <span class=n>limit</span>
+        <span class=k>return</span> <span class=bp>self</span></div>
+
+
+<div class=viewcode-block id=MOExecution.set_archive_pruner>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_execution.MOExecution.set_archive_pruner>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_archive_pruner</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                           <span class=n>pruner</span><span class=p>:</span> <span class=n>MOArchivePruner</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set the pruning strategy for downsizing the archive.</span>
+
+<span class=sd>        :param pruner: the archive pruner</span>
+<span class=sd>        :returns: this execution</span>
+<span class=sd>        """</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_archive_pruner</span> <span class=o>=</span> <span class=n>check_mo_archive_pruner</span><span class=p>(</span><span class=n>pruner</span><span class=p>)</span>
+        <span class=k>return</span> <span class=bp>self</span></div>
+
+
+<div class=viewcode-block id=MOExecution.set_objective>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_execution.MOExecution.set_objective>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>set_objective</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>objective</span><span class=p>:</span> <span class=n>Objective</span><span class=p>)</span> <span class=o>-></span> <span class=n>Self</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Set the objective function in form of a multi-objective problem.</span>
+
+<span class=sd>        :param objective: the objective function</span>
+<span class=sd>        :returns: this execution</span>
+<span class=sd>        """</span>
+        <span class=n>check_objective</span><span class=p>(</span><span class=n>objective</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>objective</span><span class=p>,</span> <span class=n>MOProblem</span><span class=p>):</span>
+            <span class=n>objective</span> <span class=o>=</span> <span class=n>MOSOProblemBridge</span><span class=p>(</span><span class=n>objective</span><span class=p>)</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>set_objective</span><span class=p>(</span><span class=n>check_mo_problem</span><span class=p>(</span><span class=n>objective</span><span class=p>))</span>
+        <span class=k>return</span> <span class=bp>self</span></div>
+
+
+<div class=viewcode-block id=MOExecution.execute>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.mo_execution.MOExecution.execute>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>execute</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>MOProcess</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a multi-objective process, apply algorithm, and return result.</span>
+
+<span class=sd>        This method is multi-objective equivalent of the</span>
+<span class=sd>        :meth:`~moptipy.api.execution.Execution.execute` method. It returns a</span>
+<span class=sd>        multi-objective process after applying the multi-objective algorithm.</span>
+
+<span class=sd>        :returns: the instance of :class:`~moptipy.api.mo_process.MOProcess`</span>
+<span class=sd>            after applying the algorithm.</span>
+<span class=sd>        """</span>
+        <span class=n>objective</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>MOProblem</span><span class=p>]</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"MOProblem"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>_objective</span><span class=p>)</span>
+        <span class=n>solution_space</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Space</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_space</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_solution_space</span><span class=p>)</span>
+        <span class=n>search_space</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Space</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_space</span><span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_search_space</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>_encoding</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span>
+        <span class=n>encoding</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Encoding</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_encoding</span><span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_encoding</span><span class=p>,</span> <span class=n>search_space</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span>
+        <span class=n>rand_seed</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_rand_seed</span>
+        <span class=k>if</span> <span class=n>rand_seed</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>rand_seed</span> <span class=o>=</span> <span class=n>rand_seed_check</span><span class=p>(</span><span class=n>rand_seed</span><span class=p>)</span>
+        <span class=n>max_time_millis</span> <span class=o>=</span> <span class=n>check_max_time_millis</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_max_time_millis</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+        <span class=n>max_fes</span> <span class=o>=</span> <span class=n>check_max_fes</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_max_fes</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+        <span class=n>goal_f</span> <span class=o>=</span> <span class=n>check_goal_f</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_goal_f</span><span class=p>,</span> <span class=kc>True</span><span class=p>)</span>
+        <span class=n>f_lb</span> <span class=o>=</span> <span class=n>objective</span><span class=o>.</span><span class=n>lower_bound</span><span class=p>()</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>f_lb</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=n>isfinite</span><span class=p>(</span><span class=n>f_lb</span><span class=p>)</span> <span class=ow>and</span> \
+                <span class=p>((</span><span class=n>goal_f</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>f_lb</span> <span class=o>></span> <span class=n>goal_f</span><span class=p>)):</span>
+            <span class=n>goal_f</span> <span class=o>=</span> <span class=n>f_lb</span>
+
+        <span class=n>log_all_fes</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_log_all_fes</span>
+        <span class=n>log_improvements</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_log_improvements</span> <span class=ow>or</span> <span class=bp>self</span><span class=o>.</span><span class=n>_log_all_fes</span>
+
+        <span class=n>log_file</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_log_file</span>
+        <span class=k>if</span> <span class=n>log_file</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>log_all_fes</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Log file cannot be None "</span>
+                                 <span class=s2>"if all FEs should be logged."</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>log_improvements</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Log file cannot be None "</span>
+                                 <span class=s2>"if improvements should be logged."</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>log_file</span><span class=o>.</span><span class=n>create_file_or_truncate</span><span class=p>()</span>
+
+        <span class=n>pruner</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>MOArchivePruner</span><span class=p>]</span> <span class=o>=</span> \
+            <span class=bp>self</span><span class=o>.</span><span class=n>_archive_pruner</span> <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>_archive_pruner</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> \
+            <span class=k>else</span> <span class=n>KeepFarthest</span><span class=p>(</span><span class=n>objective</span><span class=p>)</span>
+        <span class=n>dim</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>objective</span><span class=o>.</span><span class=n>f_dimension</span><span class=p>()</span>
+        <span class=n>size</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_archive_max_size</span> <span class=k>if</span> \
+            <span class=bp>self</span><span class=o>.</span><span class=n>_archive_max_size</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=k>else</span> <span class=p>(</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_archive_prune_limit</span> <span class=k>if</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>_archive_prune_limit</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span>
+            <span class=k>else</span> <span class=p>(</span><span class=mi>1</span> <span class=k>if</span> <span class=n>dim</span> <span class=o>==</span> <span class=mi>1</span> <span class=k>else</span> <span class=mi>32</span><span class=p>))</span>
+        <span class=n>limit</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>_archive_prune_limit</span> <span class=k>if</span> \
+            <span class=bp>self</span><span class=o>.</span><span class=n>_archive_prune_limit</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> \
+            <span class=k>else</span> <span class=p>(</span><span class=mi>1</span> <span class=k>if</span> <span class=n>dim</span> <span class=o>==</span> <span class=mi>1</span> <span class=k>else</span> <span class=p>(</span><span class=n>size</span> <span class=o>*</span> <span class=mi>4</span><span class=p>))</span>
+        <span class=n>algorithm</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Algorithm</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_algorithm</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>_algorithm</span><span class=p>)</span>
+
+        <span class=n>process</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>_MOProcessNoSS</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=n>_MOProcessNoSSLog</span><span class=p>(</span>
+            <span class=n>solution_space</span><span class=p>,</span> <span class=n>objective</span><span class=p>,</span> <span class=n>algorithm</span><span class=p>,</span> <span class=n>pruner</span><span class=p>,</span> <span class=n>size</span><span class=p>,</span> <span class=n>limit</span><span class=p>,</span>
+            <span class=n>log_file</span><span class=p>,</span> <span class=n>rand_seed</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>,</span> <span class=n>max_time_millis</span><span class=p>,</span> <span class=n>goal_f</span><span class=p>,</span>
+            <span class=n>log_all_fes</span><span class=p>)</span> <span class=k>if</span> <span class=n>log_improvements</span> <span class=ow>or</span> <span class=n>log_all_fes</span> <span class=k>else</span>
+            <span class=n>_MOProcessNoSS</span><span class=p>(</span><span class=n>solution_space</span><span class=p>,</span> <span class=n>objective</span><span class=p>,</span> <span class=n>algorithm</span><span class=p>,</span> <span class=n>pruner</span><span class=p>,</span>
+                           <span class=n>size</span><span class=p>,</span> <span class=n>limit</span><span class=p>,</span> <span class=n>log_file</span><span class=p>,</span> <span class=n>rand_seed</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>,</span>
+                           <span class=n>max_time_millis</span><span class=p>,</span> <span class=n>goal_f</span><span class=p>))</span> \
+            <span class=k>if</span> <span class=n>search_space</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=p>(</span><span class=n>_MOProcessSSLog</span><span class=p>(</span>
+                <span class=n>solution_space</span><span class=p>,</span> <span class=n>objective</span><span class=p>,</span> <span class=n>algorithm</span><span class=p>,</span> <span class=n>pruner</span><span class=p>,</span> <span class=n>size</span><span class=p>,</span> <span class=n>limit</span><span class=p>,</span>
+                <span class=n>log_file</span><span class=p>,</span> <span class=n>search_space</span><span class=p>,</span> <span class=n>encoding</span><span class=p>,</span> <span class=n>rand_seed</span><span class=p>,</span> <span class=n>max_fes</span><span class=p>,</span>
+                <span class=n>max_time_millis</span><span class=p>,</span> <span class=n>goal_f</span><span class=p>,</span>
+                <span class=n>log_all_fes</span><span class=p>)</span> <span class=k>if</span> <span class=n>log_improvements</span> <span class=ow>or</span> <span class=n>log_all_fes</span> <span class=k>else</span>
+            <span class=n>_MOProcessSS</span><span class=p>(</span><span class=n>solution_space</span><span class=p>,</span> <span class=n>objective</span><span class=p>,</span> <span class=n>algorithm</span><span class=p>,</span> <span class=n>pruner</span><span class=p>,</span> <span class=n>size</span><span class=p>,</span>
+                         <span class=n>limit</span><span class=p>,</span> <span class=n>log_file</span><span class=p>,</span> <span class=n>search_space</span><span class=p>,</span> <span class=n>encoding</span><span class=p>,</span> <span class=n>rand_seed</span><span class=p>,</span>
+                         <span class=n>max_fes</span><span class=p>,</span> <span class=n>max_time_millis</span><span class=p>,</span> <span class=n>goal_f</span><span class=p>))</span>
+
+        <span class=k>try</span><span class=p>:</span>
+            <span class=c1># noinspection PyProtectedMember</span>
+            <span class=n>process</span><span class=o>.</span><span class=n>_after_init</span><span class=p>()</span>  <span class=c1># finalize the created process</span>
+            <span class=n>pruner</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>  <span class=c1># initialize the pruner</span>
+            <span class=n>objective</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>  <span class=c1># initialize the multi-objective problem</span>
+            <span class=k>if</span> <span class=n>encoding</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>encoding</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>   <span class=c1># initialize the encoding</span>
+            <span class=n>solution_space</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>  <span class=c1># initialize the solution space</span>
+            <span class=k>if</span> <span class=n>search_space</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>search_space</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>  <span class=c1># initialize the search space</span>
+            <span class=n>algorithm</span><span class=o>.</span><span class=n>initialize</span><span class=p>()</span>  <span class=c1># initialize the algorithm</span>
+            <span class=n>algorithm</span><span class=o>.</span><span class=n>solve</span><span class=p>(</span><span class=n>process</span><span class=p>)</span>  <span class=c1># apply the algorithm</span>
+        <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>be</span><span class=p>:</span>  <span class=c1># noqa</span>
+            <span class=c1># noinspection PyProtectedMember</span>
+            <span class=n>process</span><span class=o>.</span><span class=n>_caught</span> <span class=o>=</span> <span class=n>be</span>
+        <span class=k>return</span> <span class=n>process</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.mo_execution</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

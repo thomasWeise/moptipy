@@ -1,0 +1,111 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.greedy_2plus1_ea_mod — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/greedy_2plus1_ea_mod.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.greedy_2plus1_ea_mod</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.greedy_2plus1_ea_mod</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The modified Greedy (2+1) EAmod Evolutionary Algorithm.</span>
+
+<span class=sd>The Greedy (2+1) EAmod maintains a population of two individuals. Both</span>
+<span class=sd>solutions, `x0` and `x1`, are intiially sampled independently and at random.</span>
+<span class=sd>Each iteration consists of two steps, a crossover step and a mutation step.</span>
+<span class=sd>The binary operator (crossover) is only applied if `x0` and `x1` have the</span>
+<span class=sd>same objective value to produce offspring `z1`. If `x0` and `x1` have</span>
+<span class=sd>different objective values, then `z1` is set to be the better of the two</span>
+<span class=sd>parents. Then, the final offspring `z2` is derived by applying the unary</span>
+<span class=sd>mutation operator. If `z2` is at least as good as the better one of `x0`</span>
+<span class=sd>and `x1`, then it will be accepted. If `x1` and `x0` are as same as</span>
+<span class=sd>good, one of them is randomly chosen to be replaced by `z2`. Otherwise,</span>
+<span class=sd>the worse one is replaced.</span>
+
+<span class=sd>This is the implementation of a general black-box version of the</span>
+<span class=sd>Greedy (2+1) GAmod by Carvalho Pinto and Doerr. The original algorithm is a</span>
+<span class=sd>genetic algorithm, i.e., an EA with a bit string-based search space and a</span>
+<span class=sd>mutation operator flipping a Binomially distributed number of bits and</span>
+<span class=sd>performing uniform crossover. Here we implement is a general EA where you can</span>
+<span class=sd>plug in any crossover or mutation operator. Furthermore, the algorithm by</span>
+<span class=sd>Carvalho Pinto and Doerr is, in turn, a modified version of Sudhold's</span>
+<span class=sd>Greedy (2+1) GA, with some improvements for efficiency.</span>
+
+<span class=sd>1. Eduardo Carvalho Pinto and Carola Doerr. Towards a More Practice-Aware</span>
+<span class=sd>   Runtime Analysis of Evolutionary Algorithms. 2017. arXiv:1812.00493v1</span>
+<span class=sd>   [cs.NE] 3 Dec 2018. [Online]. http://arxiv.org/pdf/1812.00493.pdf.</span>
+<span class=sd>2. Dirk Sudholt. Crossover Speeds up Building-Block Assembly. In Proceedings</span>
+<span class=sd>   of the 14th Annual Conference on Genetic and Evolutionary Computation</span>
+<span class=sd>   (GECCO'12), July 7-11, 2012, Philadelphia, Pennsylvania, USA,</span>
+<span class=sd>   pages 689-702. ACM, 2012. https://doi.org/10.1145/2330163.2330260.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm2</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>Op1</span><span class=p>,</span> <span class=n>Op2</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+
+
+<div class=viewcode-block id=GreedyTwoPlusOneEAmod>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.greedy_2plus1_ea_mod.GreedyTwoPlusOneEAmod>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>GreedyTwoPlusOneEAmod</span><span class=p>(</span><span class=n>Algorithm2</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The modified Greedy (2+1) Evolutionary Algorithm."""</span>
+
+<div class=viewcode-block id=GreedyTwoPlusOneEAmod.solve>
+<a class=viewcode-back href=../../../../moptipy.algorithms.so.html#moptipy.algorithms.so.greedy_2plus1_ea_mod.GreedyTwoPlusOneEAmod.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the EA to an optimization problem.</span>
+
+<span class=sd>        :param process: the black-box process object</span>
+<span class=sd>        """</span>
+        <span class=c1># Omitted for brevity: store function references in variables</span>
+        <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>()</span>  <span class=c1># random gen</span>
+        <span class=n>create</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span>  <span class=c1># create x container</span>
+        <span class=n>evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>evaluate</span>  <span class=c1># the objective</span>
+        <span class=n>op0</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op0</span><span class=o>.</span><span class=n>op0</span>  <span class=c1># the nullary operator</span>
+        <span class=n>op1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op1</span><span class=o>.</span><span class=n>op1</span>  <span class=c1># the unary operator</span>
+        <span class=n>op2</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op2</span><span class=o>.</span><span class=n>op2</span>  <span class=c1># the binary operator</span>
+        <span class=n>should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>
+        <span class=n>equals</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>is_equal</span>
+        <span class=n>ri</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>random</span><span class=o>.</span><span class=n>integers</span>
+
+        <span class=n>x0</span> <span class=o>=</span> <span class=n>create</span><span class=p>()</span>  <span class=c1># allocate record for first solution</span>
+        <span class=n>op0</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>x0</span><span class=p>)</span>  <span class=c1># randomly initialize first solution</span>
+        <span class=n>f0</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>x0</span><span class=p>)</span>  <span class=c1># evaluate first solution</span>
+        <span class=k>if</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># should we quit?</span>
+            <span class=k>return</span>  <span class=c1># yes.</span>
+
+        <span class=n>x1</span> <span class=o>=</span> <span class=n>create</span><span class=p>()</span>  <span class=c1># allocate record for first solution</span>
+        <span class=n>op0</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>x1</span><span class=p>)</span>  <span class=c1># randomly initialize second solution</span>
+        <span class=n>f1</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>x1</span><span class=p>)</span>  <span class=c1># evaluate 2nd solution</span>
+
+        <span class=n>z1</span> <span class=o>=</span> <span class=n>create</span><span class=p>()</span>  <span class=c1># create record for result of binary operation</span>
+        <span class=n>z2</span> <span class=o>=</span> <span class=n>create</span><span class=p>()</span>  <span class=c1># create record for result of unary operation</span>
+
+        <span class=k>while</span> <span class=ow>not</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># loop until budget is used up</span>
+            <span class=k>if</span> <span class=n>f0</span> <span class=o>==</span> <span class=n>f1</span><span class=p>:</span>  <span class=c1># only perform binary operation if f0 == f1</span>
+                <span class=n>op2</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>z1</span><span class=p>,</span> <span class=n>x0</span><span class=p>,</span> <span class=n>x1</span><span class=p>)</span>  <span class=c1># recombination</span>
+                <span class=n>p</span> <span class=o>=</span> <span class=n>z1</span>  <span class=c1># input of unary operation comes from binary op</span>
+            <span class=k>else</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>f0</span> <span class=o>></span> <span class=n>f1</span><span class=p>:</span>  <span class=c1># swap x0 and x1 if x1 is better</span>
+                    <span class=n>f0</span><span class=p>,</span> <span class=n>f1</span> <span class=o>=</span> <span class=n>f1</span><span class=p>,</span> <span class=n>f0</span>  <span class=c1># swap objective values</span>
+                    <span class=n>x0</span><span class=p>,</span> <span class=n>x1</span> <span class=o>=</span> <span class=n>x1</span><span class=p>,</span> <span class=n>x0</span>  <span class=c1># swap solutions</span>
+                <span class=n>p</span> <span class=o>=</span> <span class=n>x0</span>  <span class=c1># input of unary operation is best-so-far x</span>
+            <span class=n>op1</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>z2</span><span class=p>,</span> <span class=n>p</span><span class=p>)</span>  <span class=c1># apply unary operation</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=n>equals</span><span class=p>(</span><span class=n>z2</span><span class=p>,</span> <span class=n>x0</span><span class=p>)</span> <span class=ow>or</span> <span class=n>equals</span><span class=p>(</span><span class=n>z2</span><span class=p>,</span> <span class=n>x1</span><span class=p>)):</span>  <span class=c1># is z2 new?</span>
+                <span class=n>fnew</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>z2</span><span class=p>)</span>  <span class=c1># only then evaluate it</span>
+                <span class=k>if</span> <span class=n>fnew</span> <span class=o><=</span> <span class=n>f0</span><span class=p>:</span>  <span class=c1># is it better or equal than x1</span>
+                    <span class=k>if</span> <span class=p>(</span><span class=n>f1</span> <span class=o>></span> <span class=n>f0</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>ri</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span> <span class=o>==</span> <span class=mi>0</span><span class=p>):</span>
+                        <span class=n>z2</span><span class=p>,</span> <span class=n>x1</span> <span class=o>=</span> <span class=n>x1</span><span class=p>,</span> <span class=n>z2</span>  <span class=c1># swap z2 with x1 and</span>
+                        <span class=n>f1</span> <span class=o>=</span> <span class=n>fnew</span>  <span class=c1># and remember its quality</span>
+                    <span class=k>else</span><span class=p>:</span>  <span class=c1># f1 == f2 and probability = 0.5</span>
+                        <span class=n>z2</span><span class=p>,</span> <span class=n>x0</span> <span class=o>=</span> <span class=n>x0</span><span class=p>,</span> <span class=n>z2</span>  <span class=c1># swap z2 with x0</span>
+                        <span class=n>f0</span> <span class=o>=</span> <span class=n>fnew</span>  <span class=c1># and remember its quality</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>:</span> <span class=n>Op1</span><span class=p>,</span> <span class=n>op2</span><span class=p>:</span> <span class=n>Op2</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the algorithm with nullary, unary, and binary search operator.</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param op1: the unary search operator</span>
+<span class=sd>        :param op2: the binary search operator</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=s2>"greedy2plus1EAmod"</span><span class=p>,</span> <span class=n>op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>,</span> <span class=n>op2</span><span class=p>)</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.greedy_2plus1_ea_mod</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

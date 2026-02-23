@@ -1,0 +1,196 @@
+<!doctype html><html data-content_root=../../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.so.ffa.fea1plus1 — moptipy 0.9.172 documentation</title><link href="../../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/so/ffa/fea1plus1.html rel=canonical><link href=../../../../../genindex.html rel=index title=Index><link href=../../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.ffa.fea1plus1</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.so.ffa.fea1plus1</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>The FFA-based version of the (1+1)-EA: the (1+1)-FEA.</span>
+
+<span class=sd>This algorithm is based on :class:`~moptipy.algorithms.so.rls.RLS`, i.e., the</span>
+<span class=sd>(1+1)-EA, but uses Frequency Fitness Assignment (FFA) as fitness assignment</span>
+<span class=sd>process. FFA replaces all objective values with their encounter frequencies in</span>
+<span class=sd>the selection decisions. The more often an objective value is encountered, the</span>
+<span class=sd>higher gets its encounter frequency. Therefore, local optima are slowly</span>
+<span class=sd>receiving worse and worse fitness.</span>
+
+<span class=sd>Most of the existing metaheuristic algorithms have in common that they</span>
+<span class=sd>maintain a set `Si` of one or multiple solutions and derive a set `Ni` of one</span>
+<span class=sd>or multiple new solutions in each iteration `i`. From the joint set</span>
+<span class=sd>`Pi = Si + Ni` of old and new solutions, they then select the set `Si+1` of</span>
+<span class=sd>solutions to be propagated to the next iteration, and so on. This selection</span>
+<span class=sd>decision is undertaken based mainly on the objective values `f(x)` of the</span>
+<span class=sd>solutions `x in Pi` and solutions with better objective values tend to be</span>
+<span class=sd>preferred over solutions with worse objective values.</span>
+
+<span class=sd>Frequency Fitness Assignment (FFA) completely breaks with this most</span>
+<span class=sd>fundamental concept of optimization. FFA was first proposed by</span>
+<span class=sd>Weise *et al.* as a "plug-in" for metaheuristics intended to prevent</span>
+<span class=sd>premature convergence. It therefore maintains a frequency table `H` for</span>
+<span class=sd>objective values. Before the metaheuristic chooses the set `Si+1` from `Pi`,</span>
+<span class=sd>it increments the encounter frequencies of the objective value of each</span>
+<span class=sd>solution in `Pi`, i.e., performs `H[yj] &LT- H[yj] + 1` for each `xj in Pi`,</span>
+<span class=sd>where `yj = f(xj)`. In its selection decisions, the algorithm then uses the</span>
+<span class=sd>frequency fitness `H[yj]` instead of the objective values `yj`.</span>
+
+<span class=sd>Here we integrate FFA into the randomized local search algorithm</span>
+<span class=sd>:class:`~moptipy.algorithms.so.rls.RLS`, which is also known as the</span>
+<span class=sd>`(1+1) EA`. In its original form, RLS maintains a single solution and derives</span>
+<span class=sd>a slightly modified copy from it in every iteration. If the modified copy is</span>
+<span class=sd>not worse than the original solution, it replaces it. "Not worse" here means</span>
+<span class=sd>that its objective value needs to be better or equally good, i.e., `<=`, than</span>
+<span class=sd>the maintained current best solution. The RLS with FFA (here called</span>
+<span class=sd>`(1+1) FEA`) now replaces the comparison of objective values with a comparison</span>
+<span class=sd>of the frequencies of the objective values. Of course, following the</span>
+<span class=sd>definition of FFA, the frequencies are first incremented (both of the current</span>
+<span class=sd>and the new solution) and then compared.</span>
+
+<span class=sd>The algorithm is here implemented in two different ways: If the objective</span>
+<span class=sd>function is always integer valued and the difference between its upper and</span>
+<span class=sd>lower bound is not too high, then we count the frequency fitness by using a</span>
+<span class=sd>numpy array. This means that frequency updates and getting frequency values is</span>
+<span class=sd>very fast. If the objective function is not always integer or if the</span>
+<span class=sd>difference between its maximum and minimum is too large, then we will use</span>
+<span class=sd>a :class:`collections.Counter` to back the frequency table instead. This will</span>
+<span class=sd>be slower and probably require more memory, but it may be the only way to</span>
+<span class=sd>accommodate the frequency table. Of course, this will still fail if there are</span>
+<span class=sd>too many different objective values and the memory consumed is simply too</span>
+<span class=sd>high.</span>
+
+<span class=sd>FFA is also implemented as a fitness assignment process</span>
+<span class=sd>(:mod:`~moptipy.algorithms.so.fitness`) in module</span>
+<span class=sd>:mod:`~moptipy.algorithms.so.ffa.ffa_fitness`.</span>
+
+<span class=sd>1. Thomas Weise, Zhize Wu, Xinlu Li, and Yan Chen. Frequency Fitness</span>
+<span class=sd>   Assignment: Making Optimization Algorithms Invariant under Bijective</span>
+<span class=sd>   Transformations of the Objective Function Value. *IEEE Transactions on</span>
+<span class=sd>   Evolutionary Computation* 25(2):307-319. April 2021. Preprint available at</span>
+<span class=sd>   arXiv:2001.01416v5 [cs.NE] 15 Oct 2020.</span>
+<span class=sd>   https://dx.doi.org/10.1109/TEVC.2020.3032090</span>
+<span class=sd>2. Thomas Weise, Zhize Wu, Xinlu Li, Yan Chen, and Jörg Lässig. Frequency</span>
+<span class=sd>   Fitness Assignment: Optimization without Bias for Good Solutions can be</span>
+<span class=sd>   Efficient. *IEEE Transactions on Evolutionary Computation (TEVC)*.</span>
+<span class=sd>   27(4):980-992. August 2023.</span>
+<span class=sd>   doi: https://doi.org/10.1109/TEVC.2022.3191698</span>
+<span class=sd>3. Thomas Weise, Mingxu Wan, Ke Tang, Pu Wang, Alexandre Devert, and Xin</span>
+<span class=sd>   Yao. Frequency Fitness Assignment. *IEEE Transactions on Evolutionary</span>
+<span class=sd>   Computation (IEEE-EC),* 18(2):226-243, April 2014.</span>
+<span class=sd>   https://dx.doi.org/10.1109/TEVC.2013.2251885</span>
+<span class=sd>4. Thomas Weise, Yan Chen, Xinlu Li, and Zhize Wu. Selecting a diverse set of</span>
+<span class=sd>   benchmark instances from a tunable model problem for black-box discrete</span>
+<span class=sd>   optimization algorithms. *Applied Soft Computing Journal (ASOC),*</span>
+<span class=sd>   92:106269, June 2020. https://dx.doi.org/10.1016/j.asoc.2020.106269</span>
+<span class=sd>5. Thomas Weise, Xinlu Li, Yan Chen, and Zhize Wu. Solving Job Shop Scheduling</span>
+<span class=sd>   Problems Without Using a Bias for Good Solutions. In *Genetic and</span>
+<span class=sd>   Evolutionary Computation Conference Companion (GECCO'21 Companion),*</span>
+<span class=sd>   July 10-14, 2021, Lille, France. ACM, New York, NY, USA.</span>
+<span class=sd>   ISBN 978-1-4503-8351-6. https://dx.doi.org/10.1145/3449726.3463124</span>
+<span class=sd>6. Thomas Weise, Mingxu Wan, Ke Tang, and Xin Yao. Evolving Exact Integer</span>
+<span class=sd>   Algorithms with Genetic Programming. In *Proceedings of the IEEE Congress</span>
+<span class=sd>   on Evolutionary Computation (CEC'14), Proceedings of the 2014 World</span>
+<span class=sd>   Congress on Computational Intelligence (WCCI'14),* pages 1816-1823,</span>
+<span class=sd>   July 6-11, 2014, Beijing, China. Los Alamitos, CA, USA: IEEE Computer</span>
+<span class=sd>   Society Press. ISBN: 978-1-4799-1488-3.</span>
+<span class=sd>   https://dx.doi.org/10.1109/CEC.2014.6900292</span>
+<span class=sd>7. Tianyu Liang, Zhize Wu, Jörg Lässig, Daan van den Berg, Sarah Louise</span>
+<span class=sd>   Thomson, and Thomas Weise. Addressing the Traveling Salesperson Problem</span>
+<span class=sd>   with Frequency Fitness Assignment and Hybrid Algorithms. *Soft Computing.*</span>
+<span class=sd>   2024. https://dx.doi.org/10.1007/s00500-024-09718-8</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>collections</span><span class=w> </span><span class=kn>import</span> <span class=n>Counter</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.ffa.ffa_h</span><span class=w> </span><span class=kn>import</span> <span class=n>create_h</span><span class=p>,</span> <span class=n>log_h</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.algorithm</span><span class=w> </span><span class=kn>import</span> <span class=n>Algorithm1</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.operators</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>Op1</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.process</span><span class=w> </span><span class=kn>import</span> <span class=n>Process</span>
+
+
+<div class=viewcode-block id=FEA1plus1>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.ffa.html#moptipy.algorithms.so.ffa.fea1plus1.FEA1plus1>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>FEA1plus1</span><span class=p>(</span><span class=n>Algorithm1</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    The FFA-based version of the (1+1)-EA: the (1+1)-FEA.</span>
+
+<span class=sd>    This algorithm applies Frequency Fitness Assignment (FFA).</span>
+<span class=sd>    This means that it does not select solutions based on whether</span>
+<span class=sd>    they are better or worse. Instead, it selects the solution whose</span>
+<span class=sd>    objective value has been encountered during the search less often.</span>
+<span class=sd>    The word "best" therefore is not used in the traditional sense, i.e.,</span>
+<span class=sd>    that one solution is better than another one terms of its objective</span>
+<span class=sd>    value. Instead, the current best solution is always the one whose</span>
+<span class=sd>    objective value we have seen the least often.</span>
+
+<span class=sd>    In each step, a (1+1)-FEA creates a modified copy `new_x` of the</span>
+<span class=sd>    current best solution `best_x`. It then increments the frequency fitness</span>
+<span class=sd>    of both solutions by 1. If frequency fitness of `new_x` is not bigger</span>
+<span class=sd>    the one of `best_x`, it becomes the new `best_x`.</span>
+<span class=sd>    Otherwise, it is discarded.</span>
+
+<span class=sd>    This algorithm implementation works best if objective values are</span>
+<span class=sd>    integers and have lower and upper bounds that are not too far</span>
+<span class=sd>    away from each other. If there are too many possible different objective</span>
+<span class=sd>    values, the algorithm degenerates to a random walk.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>op0</span><span class=p>:</span> <span class=n>Op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>:</span> <span class=n>Op1</span><span class=p>,</span> <span class=n>log_h_tbl</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the (1+1)-FEA.</span>
+
+<span class=sd>        :param op0: the nullary search operator</span>
+<span class=sd>        :param op1: the unary search operator</span>
+<span class=sd>        :param log_h_tbl: should we log the H table?</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=s2>"fea1p1"</span><span class=p>,</span> <span class=n>op0</span><span class=p>,</span> <span class=n>op1</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>log_h_tbl</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>log_h_tbl</span><span class=p>,</span> <span class=s2>"log_h_tbl"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=c1>#: True if we should log the H table, False otherwise</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__log_h_tbl</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>log_h_tbl</span>
+
+<div class=viewcode-block id=FEA1plus1.solve>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.so.ffa.html#moptipy.algorithms.so.ffa.fea1plus1.FEA1plus1.solve>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>solve</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>process</span><span class=p>:</span> <span class=n>Process</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Apply the (1+1)-FEA to an optimization problem.</span>
+
+<span class=sd>        :param process: the black-box process object</span>
+<span class=sd>        """</span>
+        <span class=c1># Create records for old and new point in the search space.</span>
+        <span class=n>cur_x</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>  <span class=c1># record for current solution</span>
+        <span class=n>new_x</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>  <span class=c1># record for new solution</span>
+
+        <span class=c1># Obtain the random number generator.</span>
+        <span class=n>random</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Generator</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>get_random</span><span class=p>()</span>
+
+        <span class=c1># Put function references in variables to save time.</span>
+        <span class=n>evaluate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>evaluate</span>  <span class=c1># the objective</span>
+        <span class=n>should_terminate</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=n>process</span><span class=o>.</span><span class=n>should_terminate</span>
+        <span class=n>op0</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op0</span><span class=o>.</span><span class=n>op0</span>  <span class=c1># the nullary operator</span>
+        <span class=n>op1</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Callable</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>op1</span><span class=o>.</span><span class=n>op1</span>  <span class=c1># the unary operator</span>
+
+        <span class=n>h</span><span class=p>,</span> <span class=n>ofs</span> <span class=o>=</span> <span class=n>create_h</span><span class=p>(</span><span class=n>process</span><span class=p>)</span>  <span class=c1># Allocate the h-table</span>
+
+        <span class=c1># Start at a random point in the search space and evaluate it.</span>
+        <span class=n>op0</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>cur_x</span><span class=p>)</span>  <span class=c1># Create 1 solution randomly and</span>
+        <span class=n>cur_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>cur_x</span><span class=p>)</span> <span class=o>+</span> <span class=n>ofs</span>  <span class=c1># evaluate it.</span>
+
+        <span class=k>while</span> <span class=ow>not</span> <span class=n>should_terminate</span><span class=p>():</span>  <span class=c1># Until we need to quit...</span>
+            <span class=n>op1</span><span class=p>(</span><span class=n>random</span><span class=p>,</span> <span class=n>new_x</span><span class=p>,</span> <span class=n>cur_x</span><span class=p>)</span>  <span class=c1># new_x = neighbor of cur_x</span>
+            <span class=n>new_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>=</span> <span class=n>evaluate</span><span class=p>(</span><span class=n>new_x</span><span class=p>)</span> <span class=o>+</span> <span class=n>ofs</span>
+
+            <span class=n>h</span><span class=p>[</span><span class=n>new_f</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># type: ignore  # Increase the frequency</span>
+            <span class=n>h</span><span class=p>[</span><span class=n>cur_f</span><span class=p>]</span> <span class=o>+=</span> <span class=mi>1</span>  <span class=c1># type: ignore  # of new_f and cur_f.</span>
+            <span class=k>if</span> <span class=n>h</span><span class=p>[</span><span class=n>new_f</span><span class=p>]</span> <span class=o><=</span> <span class=n>h</span><span class=p>[</span><span class=n>cur_f</span><span class=p>]:</span>  <span class=c1># type: ignore</span>
+                <span class=n>cur_f</span> <span class=o>=</span> <span class=n>new_f</span>  <span class=c1># Store its objective value.</span>
+                <span class=n>cur_x</span><span class=p>,</span> <span class=n>new_x</span> <span class=o>=</span> <span class=n>new_x</span><span class=p>,</span> <span class=n>cur_x</span>  <span class=c1># Swap best and new.</span>
+
+        <span class=k>if</span> <span class=ow>not</span> <span class=bp>self</span><span class=o>.</span><span class=n>__log_h_tbl</span><span class=p>:</span>
+            <span class=k>return</span>  <span class=c1># we are done here</span>
+
+        <span class=c1># After we are done, we want to print the H-table.</span>
+        <span class=k>if</span> <span class=n>h</span><span class=p>[</span><span class=n>cur_f</span><span class=p>]</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>  <span class=c1># type: ignore  # Fix the H-table for the case</span>
+            <span class=n>h</span> <span class=o>=</span> <span class=n>Counter</span><span class=p>()</span>   <span class=c1># that only one FE was performed: In this case,</span>
+            <span class=n>h</span><span class=p>[</span><span class=n>cur_f</span><span class=p>]</span> <span class=o>=</span> <span class=mi>1</span>  <span class=c1># make Counter with only a single 1 value inside.</span>
+
+        <span class=n>log_h</span><span class=p>(</span><span class=n>process</span><span class=p>,</span> <span class=n>h</span><span class=p>,</span> <span class=n>ofs</span><span class=p>)</span>  <span class=c1># log the H-table</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.so.ffa.fea1plus1</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

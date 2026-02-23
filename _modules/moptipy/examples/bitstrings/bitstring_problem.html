@@ -1,0 +1,674 @@
+<!doctype html><html data-content_root=../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.examples.bitstrings.bitstring_problem — moptipy 0.9.172 documentation</title><link href="../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/examples/bitstrings/bitstring_problem.html rel=canonical><link href=../../../../genindex.html rel=index title=Index><link href=../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a accesskey=U href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.bitstring_problem</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.examples.bitstrings.bitstring_problem</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>A base class for bitstring-based problems.</span>
+
+<span class=sd>Many benchmark problems from discrete optimization are simple functions</span>
+<span class=sd>defined over bit strings. We here offer the class :class:`BitStringProblem`,</span>
+<span class=sd>which provides reasonable default behavior and several utilities for</span>
+<span class=sd>implementing such problems.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>itertools</span><span class=w> </span><span class=kn>import</span> <span class=n>takewhile</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>math</span><span class=w> </span><span class=kn>import</span> <span class=n>isqrt</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>Iterator</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.ds.sequences</span><span class=w> </span><span class=kn>import</span> <span class=n>merge_sorted_and_return_unique</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.math.primes</span><span class=w> </span><span class=kn>import</span> <span class=n>primes</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>Objective</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.bitstrings</span><span class=w> </span><span class=kn>import</span> <span class=n>BitStrings</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>KeyValueLogSection</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__powers_of</span><span class=p>(</span><span class=n>base</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=n>Generator</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Yield all powers of the given `base`.</span>
+
+<span class=sd>    :returns: a generator with the powers of `base` greater than 1</span>
+
+<span class=sd>    >>> from itertools import takewhile</span>
+<span class=sd>    >>> list(takewhile(lambda x: x < 100, __powers_of(2)))</span>
+<span class=sd>    [2, 4, 8, 16, 32, 64]</span>
+
+<span class=sd>    >>> list(takewhile(lambda x: x < 10000, __powers_of(10)))</span>
+<span class=sd>    [10, 100, 1000]</span>
+<span class=sd>    """</span>
+    <span class=n>pp</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>base</span>
+    <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+        <span class=k>yield</span> <span class=n>pp</span>
+        <span class=n>pp</span> <span class=o>*=</span> <span class=n>base</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__powers_of_2_div_3</span><span class=p>()</span> <span class=o>-></span> <span class=n>Generator</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Yield all powers of 2 // 3 > 2.</span>
+
+<span class=sd>    :returns: a generator with the powers of 2//3 greater than 1</span>
+
+<span class=sd>    >>> from itertools import takewhile</span>
+<span class=sd>    >>> list(takewhile(lambda x: x < 100, __powers_of_2_div_3()))</span>
+<span class=sd>    [2, 5, 10, 21, 42, 85]</span>
+<span class=sd>    """</span>
+    <span class=n>pp</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>8</span>
+    <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+        <span class=k>yield</span> <span class=n>pp</span> <span class=o>//</span> <span class=mi>3</span>
+        <span class=n>pp</span> <span class=o>*=</span> <span class=mi>2</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__powers_of_2_mul_3</span><span class=p>()</span> <span class=o>-></span> <span class=n>Generator</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Yield all powers of 2 * 3 > 2.</span>
+
+<span class=sd>    :returns: a generator with the powers of 2 * 3 greater than 1</span>
+
+<span class=sd>    >>> from itertools import takewhile</span>
+<span class=sd>    >>> list(takewhile(lambda x: x < 100, __powers_of_2_mul_3()))</span>
+<span class=sd>    [3, 6, 12, 24, 48, 96]</span>
+<span class=sd>    """</span>
+    <span class=n>pp</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span>
+    <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+        <span class=k>yield</span> <span class=n>pp</span> <span class=o>*</span> <span class=mi>3</span>
+        <span class=n>pp</span> <span class=o>*=</span> <span class=mi>2</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__primes_13</span><span class=p>()</span> <span class=o>-></span> <span class=n>Generator</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Yield a sequence of prime numbers which increase by 1/3.</span>
+
+<span class=sd>    :return: the sequence of prime numbers</span>
+
+<span class=sd>    >>> from itertools import takewhile</span>
+<span class=sd>    >>> list(takewhile(lambda x: x < 100, __primes_13()))</span>
+<span class=sd>    [2, 3, 5, 7, 11, 17, 23, 31, 41, 59, 79]</span>
+<span class=sd>    """</span>
+    <span class=n>last</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+    <span class=k>for</span> <span class=n>ret</span> <span class=ow>in</span> <span class=n>primes</span><span class=p>():</span>
+        <span class=k>if</span> <span class=p>((</span><span class=mi>4</span> <span class=o>*</span> <span class=n>last</span><span class=p>)</span> <span class=o>//</span> <span class=mi>3</span><span class=p>)</span> <span class=o><=</span> <span class=n>ret</span><span class=p>:</span>
+            <span class=k>yield</span> <span class=n>ret</span>
+            <span class=n>last</span> <span class=o>=</span> <span class=n>ret</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__1111</span><span class=p>()</span> <span class=o>-></span> <span class=n>Generator</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Yield numbers like 1, 2, ..., 11, 22, 33, ..., 99, 111, 222, 333, ...</span>
+
+<span class=sd>    :returns: yield numbers which are multiples of 1, 11, 111, 1111, etc.</span>
+
+<span class=sd>    >>> from itertools import takewhile</span>
+<span class=sd>    >>> list(takewhile(lambda x: x < 10000, __1111()))</span>
+<span class=sd>    [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 22, 33, 44, 55, 66, 77, 88, 99, 111, 222,\</span>
+<span class=sd> 333, 444, 555, 666, 777, 888, 999, 1111, 2222, 3333, 4444, 5555, 6666, 7777,\</span>
+<span class=sd> 8888, 9999]</span>
+<span class=sd>    """</span>
+    <span class=n>base</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span>
+    <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+        <span class=n>next_base</span> <span class=o>=</span> <span class=mi>10</span> <span class=o>*</span> <span class=n>base</span>
+        <span class=k>yield from</span> <span class=nb>range</span><span class=p>(</span><span class=n>base</span><span class=p>,</span> <span class=n>next_base</span><span class=p>,</span> <span class=n>base</span><span class=p>)</span>
+        <span class=n>base</span> <span class=o>=</span> <span class=n>next_base</span> <span class=o>+</span> <span class=mi>1</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__1000</span><span class=p>()</span> <span class=o>-></span> <span class=n>Generator</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Yield numbers like 1, 2, ..., 10, 20, 30, ..., 90, 100, 200, 300, ...</span>
+
+<span class=sd>    :returns: yield numbers which are multiples of 1, 10, 100, 1000, etc.</span>
+
+<span class=sd>    >>> from itertools import takewhile</span>
+<span class=sd>    >>> list(takewhile(lambda x: x < 10000, __1000()))</span>
+<span class=sd>    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200,\</span>
+<span class=sd> 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000, 6000,\</span>
+<span class=sd> 7000, 8000, 9000]</span>
+<span class=sd>    """</span>
+    <span class=n>base</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span>
+    <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+        <span class=n>next_base</span> <span class=o>=</span> <span class=mi>10</span> <span class=o>*</span> <span class=n>base</span>
+        <span class=k>yield from</span> <span class=nb>range</span><span class=p>(</span><span class=n>base</span><span class=p>,</span> <span class=n>next_base</span><span class=p>,</span> <span class=n>base</span><span class=p>)</span>
+        <span class=n>base</span> <span class=o>=</span> <span class=n>next_base</span>
+
+
+<div class=viewcode-block id=default_square_scale_sequence>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.default_square_scale_sequence>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>default_square_scale_sequence</span><span class=p>(</span><span class=n>minimum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>2</span><span class=p>,</span>
+                                  <span class=n>maximum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>3333</span><span class=p>)</span> <span class=o>-></span> <span class=n>Iterator</span><span class=p>[</span><span class=nb>int</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the default sequence of square numbers.</span>
+
+<span class=sd>    :param minimum: the smallest permitted value, by default `2`</span>
+<span class=sd>    :param maximum: the largest permitted value, by default `3333`</span>
+
+<span class=sd>    >>> list(default_square_scale_sequence())</span>
+<span class=sd>    [4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 225, 256, 289, \</span>
+<span class=sd>324, 361, 400, 441, 484, 529, 576, 625, 676, 729, 784, 841, 900, 961, 1024, \</span>
+<span class=sd>1089, 1156, 1225, 1296, 1369, 1444, 1521, 1600, 1681, 1764, 1849, 1936, \</span>
+<span class=sd>2025, 2116, 2209, 2304, 2401, 2500, 2601, 2704, 2809, 2916, 3025, 3136, 3249]</span>
+
+<span class=sd>    >>> list(default_square_scale_sequence(100, 1000))</span>
+<span class=sd>    [100, 121, 144, 169, 196, 225, 256, 289, 324, 361, 400, 441, 484, 529, \</span>
+<span class=sd>576, 625, 676, 729, 784, 841, 900, 961]</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     default_square_scale_sequence(-1)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    minimum=-1 is invalid, must be in 1..1000000000.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     default_square_scale_sequence("2")</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    minimum should be an instance of int but is str, namely '2'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     default_square_scale_sequence(10, 10)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    maximum=10 is invalid, must be in 11..1000000000.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     default_square_scale_sequence(2, "2")</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    maximum should be an instance of int but is str, namely '2'.</span>
+<span class=sd>    """</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>maximum</span><span class=p>,</span> <span class=s2>"maximum"</span><span class=p>,</span> <span class=n>check_int_range</span><span class=p>(</span>
+        <span class=n>minimum</span><span class=p>,</span> <span class=s2>"minimum"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000</span><span class=p>)</span>
+    <span class=k>return</span> <span class=p>(</span><span class=n>j</span> <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=p>(</span><span class=n>i</span> <span class=o>**</span> <span class=mi>2</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=nb>max</span><span class=p>(</span>
+        <span class=mi>1</span><span class=p>,</span> <span class=n>isqrt</span><span class=p>(</span><span class=n>minimum</span><span class=p>)),</span> <span class=n>isqrt</span><span class=p>(</span><span class=n>maximum</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>))</span> <span class=k>if</span> <span class=n>minimum</span> <span class=o><=</span> <span class=n>j</span> <span class=o><=</span> <span class=n>maximum</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=default_scale_sequence>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.default_scale_sequence>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>default_scale_sequence</span><span class=p>(</span><span class=n>minimum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>2</span><span class=p>,</span>
+                           <span class=n>maximum</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>3333</span><span class=p>)</span> <span class=o>-></span> <span class=n>Iterator</span><span class=p>[</span><span class=nb>int</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the default scales for investigating discrete optimization.</span>
+
+<span class=sd>    :param minimum: the smallest permitted value, by default `2`</span>
+<span class=sd>    :param maximum: the largest permitted value, by default `3333`</span>
+
+<span class=sd>    >>> list(default_scale_sequence())</span>
+<span class=sd>    [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, \</span>
+<span class=sd>22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 36, 40, 41, 42, 44, 48, 49, \</span>
+<span class=sd>50, 55, 59, 60, 64, 66, 70, 77, 79, 80, 81, 85, 88, 90, 96, 99, 100, 107, \</span>
+<span class=sd>111, 121, 125, 128, 144, 149, 169, 170, 192, 196, 199, 200, 222, 225, 243, \</span>
+<span class=sd>256, 269, 289, 300, 324, 333, 341, 343, 359, 361, 384, 400, 441, 444, 479, \</span>
+<span class=sd>484, 500, 512, 529, 555, 576, 600, 625, 641, 666, 676, 682, 700, 729, 768, \</span>
+<span class=sd>777, 784, 800, 841, 857, 888, 900, 961, 999, 1000, 1024, 1089, 1111, 1151, \</span>
+<span class=sd>1156, 1225, 1296, 1365, 1369, 1444, 1521, 1536, 1543, 1600, 1681, 1764, \</span>
+<span class=sd>1849, 1936, 2000, 2025, 2048, 2063, 2116, 2187, 2209, 2222, 2304, 2401, \</span>
+<span class=sd>2500, 2601, 2704, 2730, 2753, 2809, 2916, 3000, 3025, 3072, 3125, 3136, \</span>
+<span class=sd>3249, 3333]</span>
+
+<span class=sd>    >>> list(default_scale_sequence(10, 100))</span>
+<span class=sd>    [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, \</span>
+<span class=sd>28, 29, 30, 31, 32, 33, 36, 40, 41, 42, 44, 48, 49, 50, 55, 59, 60, 64, 66, \</span>
+<span class=sd>70, 77, 79, 80, 81, 85, 88, 90, 96, 99, 100]</span>
+
+<span class=sd>    >>> list(default_scale_sequence(maximum=100))</span>
+<span class=sd>    [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, \</span>
+<span class=sd>22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 36, 40, 41, 42, 44, 48, 49, \</span>
+<span class=sd>50, 55, 59, 60, 64, 66, 70, 77, 79, 80, 81, 85, 88, 90, 96, 99, 100]</span>
+
+<span class=sd>    >>> list(default_scale_sequence(9000, 10000))</span>
+<span class=sd>    [9000, 9025, 9216, 9409, 9604, 9801, 9999, 10000]</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     default_scale_sequence(-1)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    minimum=-1 is invalid, must be in 1..1000000000.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     default_scale_sequence("2")</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    minimum should be an instance of int but is str, namely '2'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     default_scale_sequence(10, 10)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    maximum=10 is invalid, must be in 11..1000000000.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     default_scale_sequence(2, "2")</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    maximum should be an instance of int but is str, namely '2'.</span>
+<span class=sd>    """</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>maximum</span><span class=p>,</span> <span class=s2>"maximum"</span><span class=p>,</span> <span class=n>check_int_range</span><span class=p>(</span>
+        <span class=n>minimum</span><span class=p>,</span> <span class=s2>"minimum"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000</span><span class=p>)</span> <span class=o>+</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000</span><span class=p>)</span>
+    <span class=k>return</span> <span class=nb>filter</span><span class=p>(</span>
+        <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>minimum</span> <span class=o><=</span> <span class=n>x</span> <span class=o><=</span> <span class=n>maximum</span><span class=p>,</span> <span class=n>takewhile</span><span class=p>(</span>
+            <span class=k>lambda</span> <span class=n>x</span><span class=p>:</span> <span class=n>x</span> <span class=o><=</span> <span class=n>maximum</span><span class=p>,</span> <span class=n>merge_sorted_and_return_unique</span><span class=p>(</span>
+                <span class=n>__powers_of</span><span class=p>(</span><span class=mi>2</span><span class=p>),</span> <span class=n>__powers_of</span><span class=p>(</span><span class=mi>3</span><span class=p>),</span> <span class=n>__powers_of</span><span class=p>(</span><span class=mi>5</span><span class=p>),</span> <span class=n>__powers_of</span><span class=p>(</span><span class=mi>7</span><span class=p>),</span>
+                <span class=n>__powers_of</span><span class=p>(</span><span class=mi>10</span><span class=p>),</span> <span class=n>__powers_of_2_div_3</span><span class=p>(),</span> <span class=n>__powers_of_2_mul_3</span><span class=p>(),</span>
+                <span class=n>__primes_13</span><span class=p>(),</span> <span class=n>__1111</span><span class=p>(),</span> <span class=n>__1000</span><span class=p>(),</span> <span class=nb>range</span><span class=p>(</span><span class=mi>32</span><span class=p>),</span> <span class=p>(</span><span class=mi>625</span><span class=p>,</span> <span class=p>),</span>
+                <span class=n>default_square_scale_sequence</span><span class=p>(</span><span class=n>minimum</span><span class=p>,</span> <span class=n>maximum</span><span class=p>))))</span></div>
+
+
+
+<div class=viewcode-block id=BitStringProblem>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.BitStringProblem>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>BitStringProblem</span><span class=p>(</span><span class=n>Objective</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A base class for problems defined over bit strings.</span>
+
+<span class=sd>    This base class has a set of default behaviors. It has an attribute</span>
+<span class=sd>    :attr:`n` denoting the lengths of the accepted bit strings. Its</span>
+<span class=sd>    :meth:`lower_bound` returns `0` and its :meth:`upper_bound` returns</span>
+<span class=sd>    :attr:`n`. :meth:`is_always_integer` returns `True`. If also offers</span>
+<span class=sd>    the method :meth:`space` which returns an instance of</span>
+<span class=sd>    :class:`~moptipy.spaces.bitstrings.BitStrings` for bit strings of</span>
+<span class=sd>    length :attr:`n`.</span>
+
+<span class=sd>    >>> bs = BitStringProblem(1)</span>
+<span class=sd>    >>> bs.n</span>
+<span class=sd>    1</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     bs = BitStringProblem(0)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    n=0 is invalid, must be in 1..1000000000.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     bs = BitStringProblem("a")</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    n should be an instance of int but is str, namely 'a'.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the bitstring objective function.</span>
+
+<span class=sd>        :param n: the dimension of the problem</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=c1>#: the length of the bit strings</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>1</span><span class=p>)</span>
+
+<div class=viewcode-block id=BitStringProblem.lower_bound>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.BitStringProblem.lower_bound>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>lower_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the lower bound of the bit string based problem.</span>
+
+<span class=sd>        By default, this method returns `0`. Problems where the lower bound</span>
+<span class=sd>        differs should override this method.</span>
+
+<span class=sd>        :return: 0</span>
+
+<span class=sd>        >>> print(BitStringProblem(10).lower_bound())</span>
+<span class=sd>        0</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=mi>0</span></div>
+
+
+<div class=viewcode-block id=BitStringProblem.upper_bound>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.BitStringProblem.upper_bound>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>upper_bound</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>int</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the upper bound of the bit string based problem.</span>
+
+<span class=sd>        The default value is the length of the bit string. Problems where the</span>
+<span class=sd>        upper bound differs should overrrite this method.</span>
+
+<span class=sd>        :return: by default, this is the length of the bit string</span>
+
+<span class=sd>        >>> print(BitStringProblem(7).upper_bound())</span>
+<span class=sd>        7</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=bp>self</span><span class=o>.</span><span class=n>n</span></div>
+
+
+<div class=viewcode-block id=BitStringProblem.is_always_integer>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.BitStringProblem.is_always_integer>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>is_always_integer</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>bool</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Return `True` if the `evaluate` function always returns an `int`.</span>
+
+<span class=sd>        This pre-defined function for bit-string based problems will always</span>
+<span class=sd>        return `True`. Problems where this is not the case should overwrite</span>
+<span class=sd>        this method.</span>
+
+<span class=sd>        :retval True: always</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=kc>True</span></div>
+
+
+<div class=viewcode-block id=BitStringProblem.space>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.BitStringProblem.space>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>space</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>BitStrings</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a proper search space for this problem.</span>
+
+<span class=sd>        :returns: an instance of</span>
+<span class=sd>            :class:`~moptipy.spaces.bitstrings.BitStrings` for bit strings of</span>
+<span class=sd>            length :attr:`n`</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>BitStrings</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=BitStringProblem.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.BitStringProblem.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log all parameters of this component as key-value pairs.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.key_values("C") as kv:</span>
+<span class=sd>        ...         BitStringProblem(5).log_parameters_to(kv)</span>
+<span class=sd>        ...     text = l.get_log()</span>
+<span class=sd>        >>> text[1]</span>
+<span class=sd>        'name: bitstringproblem_5'</span>
+<span class=sd>        >>> text[3]</span>
+<span class=sd>        'lowerBound: 0'</span>
+<span class=sd>        >>> text[4]</span>
+<span class=sd>        'upperBound: 5'</span>
+<span class=sd>        >>> text[5]</span>
+<span class=sd>        'n: 5'</span>
+<span class=sd>        >>> len(text)</span>
+<span class=sd>        7</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"n"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the problem.</span>
+
+<span class=sd>        :returns: the name of the problem, which by default is the class name</span>
+<span class=sd>            in lower case, followed by an underscore and the number of bits</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__str__</span><span class=p>()</span><span class=o>.</span><span class=n>lower</span><span class=p>()</span><span class=si>}</span><span class=s2>_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>n</span><span class=si>}</span><span class=s2>"</span>
+
+<div class=viewcode-block id=BitStringProblem.default_instances>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.BitStringProblem.default_instances>[docs]</a>
+    <span class=nd>@classmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>default_instances</span><span class=p>(</span>
+            <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>,</span> <span class=n>scale_min</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>2</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>3333</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=n>Iterator</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=s2>"BitStringProblem"</span><span class=p>]]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the default instances of this problem type.</span>
+
+<span class=sd>        :param scale_min: the minimum scale</span>
+<span class=sd>        :param scale_max: the maximum scale</span>
+<span class=sd>        :return: an :class:`Iterator` with the instances</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[], BitStringProblem]"</span><span class=p>,</span>
+                     <span class=k>lambda</span> <span class=n>__i</span><span class=o>=</span><span class=n>i</span><span class=p>:</span> <span class=bp>cls</span><span class=p>(</span><span class=n>__i</span><span class=p>))</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>default_scale_sequence</span><span class=p>(</span>
+            <span class=n>scale_min</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>))</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=SquareBitStringProblem>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.SquareBitStringProblem>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>SquareBitStringProblem</span><span class=p>(</span><span class=n>BitStringProblem</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A bitstring problem which requires that the string length is square.</span>
+
+<span class=sd>    >>> sb = SquareBitStringProblem(9)</span>
+<span class=sd>    >>> sb.n</span>
+<span class=sd>    9</span>
+<span class=sd>    >>> sb.k</span>
+<span class=sd>    3</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     bs = SquareBitStringProblem(0)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    n=0 is invalid, must be in 4..1000000000.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     bs = SquareBitStringProblem(3)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    n=3 is invalid, must be in 4..1000000000.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     bs = SquareBitStringProblem(21)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    n=21 must be a square number, but isqrt(n)=4 does not satisfy n = k*k.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     bs = SquareBitStringProblem("a")</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    n should be an instance of int but is str, namely 'a'.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the square bitstring problem.</span>
+
+<span class=sd>        :param n: the dimension of the problem (must be a perfect square)</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>4</span><span class=p>))</span>
+        <span class=n>k</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>isqrt</span><span class=p>(</span><span class=n>n</span><span class=p>),</span> <span class=s2>"k"</span><span class=p>,</span> <span class=mi>2</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=n>k</span> <span class=o>*</span> <span class=n>k</span><span class=p>)</span> <span class=o>!=</span> <span class=n>n</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"n=</span><span class=si>{</span><span class=n>n</span><span class=si>}</span><span class=s2> must be a square number, but"</span>
+                             <span class=sa>f</span><span class=s2>" isqrt(n)=</span><span class=si>{</span><span class=n>k</span><span class=si>}</span><span class=s2> does not satisfy n = k*k."</span><span class=p>)</span>
+        <span class=c1>#: the k value, i.e., the number of bits per row and column of</span>
+        <span class=c1>#: the square</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>k</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>k</span>
+
+<div class=viewcode-block id=SquareBitStringProblem.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.SquareBitStringProblem.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log all parameters of this component as key-value pairs.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.key_values("C") as kv:</span>
+<span class=sd>        ...         SquareBitStringProblem(49).log_parameters_to(kv)</span>
+<span class=sd>        ...     text = l.get_log()</span>
+<span class=sd>        >>> text[1]</span>
+<span class=sd>        'name: squarebitstringproblem_49'</span>
+<span class=sd>        >>> text[3]</span>
+<span class=sd>        'lowerBound: 0'</span>
+<span class=sd>        >>> text[4]</span>
+<span class=sd>        'upperBound: 49'</span>
+<span class=sd>        >>> text[5]</span>
+<span class=sd>        'n: 49'</span>
+<span class=sd>        >>> text[6]</span>
+<span class=sd>        'k: 7'</span>
+<span class=sd>        >>> len(text)</span>
+<span class=sd>        8</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"k"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>k</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=SquareBitStringProblem.default_instances>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.SquareBitStringProblem.default_instances>[docs]</a>
+    <span class=nd>@classmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>default_instances</span><span class=p>(</span>
+            <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>,</span> <span class=n>scale_min</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>4</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>3333</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=n>Iterator</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=s2>"SquareBitStringProblem"</span><span class=p>]]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the default instances of this problem type.</span>
+
+<span class=sd>        :return: an :class:`Iterator` with the instances</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[], SquareBitStringProblem]"</span><span class=p>,</span>
+                     <span class=k>lambda</span> <span class=n>__i</span><span class=o>=</span><span class=n>i</span><span class=p>:</span> <span class=bp>cls</span><span class=p>(</span><span class=n>__i</span><span class=p>))</span>
+                <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>default_square_scale_sequence</span><span class=p>(</span><span class=n>scale_min</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>))</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=default_nk_k_sequence>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.default_nk_k_sequence>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>default_nk_k_sequence</span><span class=p>(</span><span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=n>Iterator</span><span class=p>[</span><span class=nb>int</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the default values of `k` for a :class:`BitStringNKProblem`.</span>
+
+<span class=sd>    :param n: the `n` value for the :class:`BitStringNKProblem`.</span>
+<span class=sd>    :return: a sequence of appropriate `k` values</span>
+
+<span class=sd>    >>> list(default_nk_k_sequence(6))</span>
+<span class=sd>    [2]</span>
+
+<span class=sd>    >>> list(default_nk_k_sequence(7))</span>
+<span class=sd>    [2]</span>
+
+<span class=sd>    >>> list(default_nk_k_sequence(8))</span>
+<span class=sd>    [2, 3]</span>
+
+<span class=sd>    >>> list(default_nk_k_sequence(10))</span>
+<span class=sd>    [2, 3, 4]</span>
+
+<span class=sd>    >>> list(default_nk_k_sequence(20))</span>
+<span class=sd>    [2, 3, 4, 5, 7, 9]</span>
+
+<span class=sd>    >>> list(default_nk_k_sequence(32))</span>
+<span class=sd>    [2, 4, 5, 8, 11, 15]</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     default_nk_k_sequence(3)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    n=3 is invalid, must be in 6..1000000000.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     default_nk_k_sequence("6")</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    n should be an instance of int but is str, namely '6'.</span>
+<span class=sd>    """</span>
+    <span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>6</span><span class=p>)</span>
+    <span class=n>nhalf</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>n</span> <span class=o>//</span> <span class=mi>2</span>
+    <span class=n>ofs</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>nhalf</span> <span class=o>-</span> <span class=mi>2</span>
+    <span class=n>base</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>set</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{</span><span class=mi>1</span> <span class=o>+</span> <span class=p>(</span><span class=n>j</span> <span class=o>*</span> <span class=n>ofs</span><span class=p>)</span> <span class=o>//</span> <span class=mi>4</span> <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>5</span><span class=p>)}</span>
+    <span class=n>base</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=mi>2</span><span class=p>)</span>
+    <span class=n>base</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>nhalf</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span>
+    <span class=n>base</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>isqrt</span><span class=p>(</span><span class=n>n</span><span class=p>))</span>
+    <span class=k>return</span> <span class=p>(</span><span class=n>i</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>sorted</span><span class=p>(</span><span class=n>base</span><span class=p>)</span> <span class=k>if</span> <span class=mi>1</span> <span class=o><</span> <span class=n>i</span> <span class=o><</span> <span class=n>nhalf</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=BitStringNKProblem>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.BitStringNKProblem>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>BitStringNKProblem</span><span class=p>(</span><span class=n>BitStringProblem</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A bit string problem with a second parameter `k` with `1 < k < n/2`.</span>
+
+<span class=sd>    >>> sb = BitStringNKProblem(9, 3)</span>
+<span class=sd>    >>> sb.n</span>
+<span class=sd>    9</span>
+<span class=sd>    >>> sb.k</span>
+<span class=sd>    3</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     bs = BitStringNKProblem(0, 3)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    n=0 is invalid, must be in 6..1000000000.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     bs = BitStringNKProblem(5, 2)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    n=5 is invalid, must be in 6..1000000000.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     bs = BitStringNKProblem(21, 20)</span>
+<span class=sd>    ... except ValueError as ve:</span>
+<span class=sd>    ...     print(ve)</span>
+<span class=sd>    k=20 is invalid, must be in 2..9.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     bs = BitStringNKProblem("a", 3)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    n should be an instance of int but is str, namely 'a'.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     bs = BitStringNKProblem(13, "x")</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    k should be an instance of int but is str, namely 'x'.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>k</span><span class=p>:</span> <span class=nb>int</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the n-k objective function.</span>
+
+<span class=sd>        :param n: the dimension of the problem</span>
+<span class=sd>        :param k: the second parameter</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>check_int_range</span><span class=p>(</span><span class=n>n</span><span class=p>,</span> <span class=s2>"n"</span><span class=p>,</span> <span class=mi>6</span><span class=p>))</span>
+        <span class=c1>#: the second parameter, with `1 < k < n/2`</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>k</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>k</span><span class=p>,</span> <span class=s2>"k"</span><span class=p>,</span> <span class=mi>2</span><span class=p>,</span> <span class=p>(</span><span class=n>n</span> <span class=o>>></span> <span class=mi>1</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the objective function.</span>
+
+<span class=sd>        :return: `class_` + length of string + `_` + k</span>
+
+<span class=sd>        >>> BitStringNKProblem(13, 4)</span>
+<span class=sd>        bitstringnkproblem_13_4</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__str__</span><span class=p>()</span><span class=si>}</span><span class=s2>_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>k</span><span class=si>}</span><span class=s2>"</span>
+
+<div class=viewcode-block id=BitStringNKProblem.log_parameters_to>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.BitStringNKProblem.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log all parameters of this component as key-value pairs.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.key_values("C") as kv:</span>
+<span class=sd>        ...         BitStringNKProblem(23, 7).log_parameters_to(kv)</span>
+<span class=sd>        ...     text = l.get_log()</span>
+<span class=sd>        >>> text[1]</span>
+<span class=sd>        'name: bitstringnkproblem_23_7'</span>
+<span class=sd>        >>> text[3]</span>
+<span class=sd>        'lowerBound: 0'</span>
+<span class=sd>        >>> text[4]</span>
+<span class=sd>        'upperBound: 23'</span>
+<span class=sd>        >>> text[5]</span>
+<span class=sd>        'n: 23'</span>
+<span class=sd>        >>> text[6]</span>
+<span class=sd>        'k: 7'</span>
+<span class=sd>        >>> len(text)</span>
+<span class=sd>        8</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=s2>"k"</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>k</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=BitStringNKProblem.default_instances>
+<a class=viewcode-back href=../../../../moptipy.examples.bitstrings.html#moptipy.examples.bitstrings.bitstring_problem.BitStringNKProblem.default_instances>[docs]</a>
+    <span class=nd>@classmethod</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>default_instances</span><span class=p>(</span>
+            <span class=bp>cls</span><span class=p>:</span> <span class=nb>type</span><span class=p>,</span> <span class=n>scale_min</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>6</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>32</span><span class=p>)</span> \
+            <span class=o>-></span> <span class=n>Iterator</span><span class=p>[</span><span class=n>Callable</span><span class=p>[[],</span> <span class=s2>"BitStringNKProblem"</span><span class=p>]]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the default instances of this problem type.</span>
+
+<span class=sd>        :return: an :class:`Iterator` with the instances</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=n>cast</span><span class=p>(</span><span class=s2>"Callable[[], BitStringNKProblem]"</span><span class=p>,</span>
+                     <span class=k>lambda</span> <span class=n>__i</span><span class=o>=</span><span class=n>i</span><span class=p>,</span> <span class=n>__j</span><span class=o>=</span><span class=n>j</span><span class=p>:</span> <span class=bp>cls</span><span class=p>(</span><span class=n>__i</span><span class=p>,</span> <span class=n>__j</span><span class=p>))</span>
+                <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>default_scale_sequence</span><span class=p>(</span><span class=n>scale_min</span><span class=p>,</span> <span class=n>scale_max</span><span class=p>)</span>
+                <span class=k>for</span> <span class=n>j</span> <span class=ow>in</span> <span class=n>default_nk_k_sequence</span><span class=p>(</span><span class=n>i</span><span class=p>))</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../index.html>Module code</a> »<li class="nav-item nav-item-2"><a href=../bitstrings.html>moptipy.examples.bitstrings</a> »<li class="nav-item nav-item-this"><a href>moptipy.examples.bitstrings.bitstring_problem</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

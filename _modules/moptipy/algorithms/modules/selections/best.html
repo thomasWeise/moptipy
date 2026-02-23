@@ -1,0 +1,90 @@
+<!doctype html><html data-content_root=../../../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.algorithms.modules.selections.best — moptipy 0.9.172 documentation</title><link href="../../../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/algorithms/modules/selections/best.html rel=canonical><link href=../../../../../genindex.html rel=index title=Index><link href=../../../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.modules.selections.best</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.algorithms.modules.selections.best</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>Choose the `n` best elements from the source array.</span>
+
+<span class=sd>"Best" selection is the standard way to perform survival selection in a</span>
+<span class=sd>(mu+lambda) Evolutionary Algorithm (:class:`~moptipy.algorithms.so.ea.EA`).</span>
+<span class=sd>It basically sorts the input array based on fitness and then copies the first</span>
+<span class=sd>`n` elements to the output array. The algorithm is not random but</span>
+<span class=sd>deterministic, i.e., it will always select each of the `n` best records</span>
+<span class=sd>exactly once.</span>
+
+<span class=sd>This selection is also often called "mu+lambda," "mu,lambda," or "top-n"</span>
+<span class=sd>selection. It is similar to the selection scheme in Eshelman's CHC algorithm.</span>
+<span class=sd>A randomized version of this algorithm is called "truncation selection" in the</span>
+<span class=sd>paper of Blickle and Thiele.</span>
+
+<span class=sd>1. Peter J. B. Hancock. An Empirical Comparison of Selection Methods in</span>
+<span class=sd>   Evolutionary Algorithms. In Terence Claus Fogarty, editor, *Selected Papers</span>
+<span class=sd>   from the AISB Workshop on Evolutionary Computing (AISB EC'94),* April</span>
+<span class=sd>   11-13, 1994, Leeds, UK, volume 865 of Lecture Notes in Computer Science,</span>
+<span class=sd>   pages 80-94, Berlin/Heidelberg, Germany: Springer, ISBN: 978-3-540-58483-4.</span>
+<span class=sd>   https://dx.doi.org/10.1007/3-540-58483-8_7. Conference organized by the</span>
+<span class=sd>   Society for the Study of Artificial Intelligence and Simulation of</span>
+<span class=sd>   Behaviour (AISB).</span>
+<span class=sd>2. Larry J.Eshelman. The CHC Adaptive Search Algorithm: How to Have Safe</span>
+<span class=sd>   Search When Engaging in Nontraditional Genetic Recombination. In Gregory</span>
+<span class=sd>   J. E. Rawlins, editor, Foundations of Genetic Algorithms, volume 1, 1991,</span>
+<span class=sd>   pages 265-283. San Francisco, CA, USA: Morgan Kaufmann.</span>
+<span class=sd>   https://doi.org/10.1016/B978-0-08-050684-5.50020-3</span>
+<span class=sd>3. Frank Hoffmeister and Thomas Bäck. Genetic Algorithms and Evolution</span>
+<span class=sd>   Strategies: Similarities and Differences. In Hans-Paul Schwefel and</span>
+<span class=sd>   Reinhard Männer, *Proceedings of the International Conference on Parallel</span>
+<span class=sd>   Problem Solving from Nature (PPSN I),* October 1-3, 1990, Dortmund,</span>
+<span class=sd>   Germany, volume 496 of Lecture Notes in Computer Science, pages 455-469,</span>
+<span class=sd>   Berlin/Heidelberg, Germany: Springer. ISBN: 978-3-540-54148-6.</span>
+<span class=sd>   https://doi.org/10.1007/BFb0029787.</span>
+<span class=sd>4. Uday Kumar Chakraborty and Kalyanmoy Deb and Mandira Chakraborty. Analysis</span>
+<span class=sd>   of Selection Algorithms: A Markov Chain Approach. *Evolutionary</span>
+<span class=sd>   Computation,* 4(2):133-167. Summer 1996. Cambridge, MA, USA: MIT Press.</span>
+<span class=sd>   doi:10.1162/evco.1996.4.2.133.</span>
+<span class=sd>   https://dl.acm.org/doi/pdf/10.1162/evco.1996.4.2.133</span>
+<span class=sd>5. Tobias Blickle and Lothar Thiele. A Comparison of Selection Schemes used in</span>
+<span class=sd>   Genetic Algorithms. Second edition, December 1995. TIK-Report 11 from the</span>
+<span class=sd>   Eidgenössische Technische Hochschule (ETH) Zürich, Department of Electrical</span>
+<span class=sd>   Engineering, Computer Engineering and Networks Laboratory (TIK), Zürich,</span>
+<span class=sd>   Switzerland. ftp://ftp.tik.ee.ethz.ch/pub/publications/TIK-Report11.ps</span>
+<span class=sd>"""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>numpy.random</span><span class=w> </span><span class=kn>import</span> <span class=n>Generator</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.modules.selection</span><span class=w> </span><span class=kn>import</span> <span class=n>FitnessRecord</span><span class=p>,</span> <span class=n>Selection</span>
+
+
+<span class=c1># start book</span>
+<div class=viewcode-block id=Best>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.modules.selections.html#moptipy.algorithms.modules.selections.best.Best>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>Best</span><span class=p>(</span><span class=n>Selection</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The best selection: select each of the best `n` elements once."""</span>
+
+<div class=viewcode-block id=Best.select>
+<a class=viewcode-back href=../../../../../moptipy.algorithms.modules.selections.html#moptipy.algorithms.modules.selections.best.Best.select>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>select</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>source</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>FitnessRecord</span><span class=p>],</span>
+               <span class=n>dest</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>FitnessRecord</span><span class=p>],</span> <span class=n>Any</span><span class=p>],</span>
+               <span class=n>n</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>random</span><span class=p>:</span> <span class=n>Generator</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>  <span class=c1># pylint: disable=W0613</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Perform deterministic best selection without replacement.</span>
+
+<span class=sd>        :param source: the list with the records to select from</span>
+<span class=sd>        :param dest: the destination collector to invoke for each selected</span>
+<span class=sd>            record</span>
+<span class=sd>        :param n: the number of records to select</span>
+<span class=sd>        :param random: the random number generator</span>
+<span class=sd>        """</span>
+        <span class=n>source</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>  <span class=c1># sort by fitness, best solutions come first</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>n</span><span class=p>):</span>  <span class=c1># select the n first=best solutions</span>
+            <span class=n>dest</span><span class=p>(</span><span class=n>source</span><span class=p>[</span><span class=n>i</span><span class=p>])</span>  <span class=c1># by sending them to dest</span></div>
+
+<span class=c1># end book</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>):</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of the best selection algorithm.</span>
+
+<span class=sd>        :return: the name of the best selection algorithm</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=s2>"best"</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.algorithms.modules.selections.best</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

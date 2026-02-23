@@ -1,0 +1,173 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.spaces.nparrayspace — moptipy 0.9.172 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=ad8658f5"></script><script src="../../../_static/doctools.js?v=9bcbadda"></script><script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/spaces/nparrayspace.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.spaces.nparrayspace</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.spaces.nparrayspace</h1><div class=highlight><pre>
+<span></span><span class=sd>"""The base class for spaces based on numpy arrays."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>numpy</span><span class=w> </span><span class=k>as</span><span class=w> </span><span class=nn>np</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span><span class=p>,</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=n>KEY_SPACE_NUM_VARS</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.space</span><span class=w> </span><span class=kn>import</span> <span class=n>Space</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>CSV_SEPARATOR</span><span class=p>,</span> <span class=n>KeyValueLogSection</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.nputils</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>KEY_NUMPY_TYPE</span><span class=p>,</span>
+    <span class=n>array_to_str</span><span class=p>,</span>
+    <span class=n>numpy_type_to_str</span><span class=p>,</span>
+<span class=p>)</span>
+
+
+<div class=viewcode-block id=NPArraySpace>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.nparrayspace.NPArraySpace>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>NPArraySpace</span><span class=p>(</span><span class=n>Space</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A space where each element is a one-dimensional :class:`numpy.ndarray`.</span>
+
+<span class=sd>    Such spaces can serve as basis for implementing combinatorial</span>
+<span class=sd>    optimization and can be extended to host permutations.</span>
+
+<span class=sd>    >>> import numpy as npx</span>
+<span class=sd>    >>> s = NPArraySpace(9, npx.dtype(int))</span>
+<span class=sd>    >>> print(s.dimension)</span>
+<span class=sd>    9</span>
+<span class=sd>    >>> print(s.dtype)</span>
+<span class=sd>    int64</span>
+<span class=sd>    >>> print(s.create())</span>
+<span class=sd>    [0 0 0 0 0 0 0 0 0]</span>
+<span class=sd>    >>> print(s.to_str(s.create()))</span>
+<span class=sd>    0;0;0;0;0;0;0;0;0</span>
+<span class=sd>    >>> print(s.from_str(s.to_str(s.create())))</span>
+<span class=sd>    [0 0 0 0 0 0 0 0 0]</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>dimension</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>dtype</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the numpy array-based search space.</span>
+
+<span class=sd>        :param dimension: The dimension of the search space,</span>
+<span class=sd>            i.e., the number of decision variables.</span>
+<span class=sd>        :param dtype: the data type</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dtype</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>dtype</span><span class=p>,</span> <span class=s2>"dtype"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>dtype</span><span class=o>.</span><span class=n>char</span><span class=p>,</span> <span class=nb>str</span><span class=p>))</span> <span class=ow>or</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>dtype</span><span class=o>.</span><span class=n>char</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"dtype.char must be str of length 1, but is </span><span class=si>{</span><span class=n>dtype</span><span class=o>.</span><span class=n>char</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+        <span class=c1>#: The basic data type of the vector space elements.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>]</span> <span class=o>=</span> <span class=n>dtype</span>
+        <span class=c1>#: The dimension, i.e., the number of elements of the vectors.</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=n>check_int_range</span><span class=p>(</span>
+            <span class=n>dimension</span><span class=p>,</span> <span class=s2>"dimension"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>100_000_000</span><span class=p>)</span>
+        <span class=c1># the function forwards</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>copy</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>copyto</span>  <span class=c1># type: ignore</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>is_equal</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array_equal</span>  <span class=c1># type: ignore</span>
+
+<div class=viewcode-block id=NPArraySpace.to_str>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.nparrayspace.NPArraySpace.to_str>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>to_str</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Convert a np-array to a string.</span>
+
+<span class=sd>        :param x: the array</span>
+<span class=sd>        :returns: the string</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>array_to_str</span><span class=p>(</span><span class=n>x</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=NPArraySpace.create>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.nparrayspace.NPArraySpace.create>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a vector with all zeros.</span>
+
+<span class=sd>        :return: the vector</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=n>np</span><span class=o>.</span><span class=n>zeros</span><span class=p>(</span><span class=n>shape</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=NPArraySpace.from_str>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.nparrayspace.NPArraySpace.from_str>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>from_str</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>text</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Convert a string to a vector.</span>
+
+<span class=sd>        :param text: the text</span>
+<span class=sd>        :return: the vector</span>
+<span class=sd>        :raises TypeError: if `text` is not a `str`</span>
+<span class=sd>        :raises ValueError: if `text` cannot be converted to a valid vector</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=p>(</span><span class=nb>isinstance</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=nb>str</span><span class=p>)):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=s2>"text"</span><span class=p>,</span> <span class=nb>str</span><span class=p>)</span>
+        <span class=n>x</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>fromstring</span><span class=p>(</span><span class=n>text</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=p>,</span> <span class=n>sep</span><span class=o>=</span><span class=n>CSV_SEPARATOR</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>validate</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>x</span></div>
+
+
+<div class=viewcode-block id=NPArraySpace.validate>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.nparrayspace.NPArraySpace.validate>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>validate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Validate a numpy nd-array.</span>
+
+<span class=sd>        :param x: the numpy vector</span>
+<span class=sd>        :raises TypeError: if the string is not an :class:`numpy.ndarray`.</span>
+<span class=sd>        :raises ValueError: if the shape or data type of the vector is wrong</span>
+<span class=sd>            or any of its element is not finite.</span>
+<span class=sd>        """</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=s2>"x"</span><span class=p>,</span> <span class=n>np</span><span class=o>.</span><span class=n>ndarray</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>x</span><span class=o>.</span><span class=n>dtype</span> <span class=o>!=</span> <span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"x must be of type </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=si>}</span><span class=s2> but is of type </span><span class=si>{</span><span class=n>x</span><span class=o>.</span><span class=n>dtype</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=nb>len</span><span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>)</span> <span class=ow>or</span> <span class=p>(</span><span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=o>!=</span> <span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"x must be of shape (</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=si>}</span><span class=s2>) but is "</span>
+                             <span class=sa>f</span><span class=s2>"of shape </span><span class=si>{</span><span class=n>x</span><span class=o>.</span><span class=n>shape</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span></div>
+
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the name of this np array space.</span>
+
+<span class=sd>        :return: "ndarray" + dimension + dtype.char</span>
+
+<span class=sd>        >>> import numpy as npx</span>
+<span class=sd>        >>> print(NPArraySpace(4, npx.dtype(int)))</span>
+<span class=sd>        ndarray4l</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=sa>f</span><span class=s2>"ndarray</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=si>}{</span><span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=o>.</span><span class=n>char</span><span class=si>}</span><span class=s2>"</span>
+
+<div class=viewcode-block id=NPArraySpace.log_parameters_to>
+<a class=viewcode-back href=../../../moptipy.spaces.html#moptipy.spaces.nparrayspace.NPArraySpace.log_parameters_to>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_parameters_to</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>logger</span><span class=p>:</span> <span class=n>KeyValueLogSection</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log the parameters of this space to the given logger.</span>
+
+<span class=sd>        :param logger: the logger for the parameters</span>
+
+<span class=sd>        >>> from moptipy.utils.logger import InMemoryLogger</span>
+<span class=sd>        >>> import numpy as npx</span>
+<span class=sd>        >>> dt = npx.dtype(float)</span>
+<span class=sd>        >>> dt.char</span>
+<span class=sd>        'd'</span>
+<span class=sd>        >>> space = NPArraySpace(10, dt)</span>
+<span class=sd>        >>> space.dimension</span>
+<span class=sd>        10</span>
+<span class=sd>        >>> with InMemoryLogger() as l:</span>
+<span class=sd>        ...     with l.key_values("C") as kv:</span>
+<span class=sd>        ...         space.log_parameters_to(kv)</span>
+<span class=sd>        ...     text = l.get_log()</span>
+<span class=sd>        >>> text[-2]</span>
+<span class=sd>        'dtype: d'</span>
+<span class=sd>        >>> text[-3]</span>
+<span class=sd>        'nvars: 10'</span>
+<span class=sd>        >>> text[-4]</span>
+<span class=sd>        'class: moptipy.spaces.nparrayspace.NPArraySpace'</span>
+<span class=sd>        >>> text[-5]</span>
+<span class=sd>        'name: ndarray10d'</span>
+<span class=sd>        >>> len(text)</span>
+<span class=sd>        6</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>log_parameters_to</span><span class=p>(</span><span class=n>logger</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_SPACE_NUM_VARS</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>dimension</span><span class=p>)</span>
+        <span class=n>logger</span><span class=o>.</span><span class=n>key_value</span><span class=p>(</span><span class=n>KEY_NUMPY_TYPE</span><span class=p>,</span> <span class=n>numpy_type_to_str</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>dtype</span><span class=p>))</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.172 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.spaces.nparrayspace</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>
