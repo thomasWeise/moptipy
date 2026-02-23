@@ -683,6 +683,8 @@ class __SameNumberOfRuns(Selector):
                     return None
                 min_set_len = sl
 
+        logger(f"Get {min_set_len} seeds per instance/algorithm/objective/"
+               f"encoding combination.")
         use_seeds: list[list[int]] = [
             sorted(st)[:min_set_len] for st in inst_seeds]
         logger(f"Found {len(use_seeds)} seeds to use.")
