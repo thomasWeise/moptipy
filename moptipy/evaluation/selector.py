@@ -13,7 +13,7 @@ consistent sub-selection or, at least, get close to it.
 Our :func:`select_consistent` tries to find such a consistent dataset using
 different :class:`Selector` methods that are passed to it as second parameter.
 
-In the most basic and defaul setting, :const:`SELECTOR_SAME_RUNS_FOR_ALL`, it
+In the most basic and default setting, :const:`SELECTOR_SAME_RUNS_FOR_ALL`, it
 simply retains the exactly same number of runs for all
 instance/algorithm/objective/encoding combinations, making sure that the same
 seeds are used for a given instance.
@@ -700,6 +700,60 @@ class __SameNumberOfRuns(Selector):
         return "sameNumberOfRuns"
 
 
+class __SameSeedsForAllAlgorithmsPerInstance(Selector):
+    """A selector choosing the same runs for all algorithms."""
+
+    def select(self,
+               dims: tuple[int, int, int, int, int],
+               keys: tuple[tuple[int, int, int, int, int], ...],
+               best_length: int) -> list[tuple[
+            int, int, int, int, int]] | None:
+        """
+        Perform the dataset selection.
+
+        :param dims: the number of different values per key dimension
+        :param keys: the data keys to select from
+        :param best_length: the length of the best-so-far set of runs,
+            will be `-1` if no such best exists
+        :return: the selected data
+        """
+        algos: set[tuple[int, int, int]] = {
+            (key[KEY_ALGORITHM], key[KEY_ENCODING], key[KEY_OBJECTIVE])
+            for key in keys}
+        inst_algo_seeds: list[dict[tuple[int, int, int], set[int]]] = [
+            {algo: set() for algo in algos} for _ in range(
+                dims[KEY_INSTANCE])]
+        n_combos: int = 0
+        for key in keys:
+            n_combos += 1
+            inst_algo_seeds[key[KEY_INSTANCE]][
+                key[KEY_ALGORITHM], key[KEY_ENCODING],
+                key[KEY_OBJECTIVE]].add(key[KEY_SEED])
+
+        if n_combos <= 0:
+            raise ValueError("No runs??")
+
+        result: list[tuple[int, int, int, int, int]] = []
+        for inst in inst_algo_seeds:
+            algo_seeds = next(iter(inst.values()))
+            for seeds in inst.values():
+                algo_seeds.intersection_update(seeds)
+            result.extend(key for key in keys if key[KEY_SEED] in algo_seeds)
+
+        if len(result) == 0:
+            return None
+        logger(f"Got {len(result)} seeds to use.")
+        return result
+
+    def __str__(self) -> str:
+        """
+        Get the text representation of this selector.
+
+        :returns "sameSeedsPerInstance": always
+        """
+        return "sameSeedsPerInstance"
+
+
 def __seed_hash(x: tuple[str, int]) -> tuple[str, int]:
     """
     Compute a hash for instance-random seeds.
@@ -738,6 +792,17 @@ def __seed_hash(x: tuple[str, int]) -> tuple[str, int]:
 #: run sets.
 SELECTOR_SAME_RUNS_FOR_ALL: Final[tuple[Selector, ...]] = (
     __SameNumberOfRuns(), )
+
+#: This selector is different from the others: It may create combinations
+#: where there are more runs on some instances than on others.
+#: It is a selector that chooses the same seeds per instance.
+#: It may select an uneven number of runs, meaning that on some instances,
+#: there may be more runs than on others.
+#: Some instances may be dropped altogether.
+#: However, on all instances that are not dropped, all algorithm/
+#: encoding/objective combinations have performed the same runs.
+SELECTOR_SAME_SEEDS_FOR_ALL: Final[tuple[Selector, ...]] = (
+    __SameSeedsForAllAlgorithmsPerInstance(), )
 
 #: A simple selector set for maximum runs.
 #: This selector first attempts to do the selection given in
@@ -864,6 +929,22 @@ def select_consistent(
     >>> list(map(__p, select_consistent((
     ...     a1i1o1e1s1, a2i1o1e1s2, a2i1o1e1s3))))
     ['a2/i1/o1/e1/2', 'a2/i1/o1/e1/3']
+
+    >>> list(map(__p, select_consistent((
+    ...     a1i1o1e1s1, a1i1o1e1s2, a1i1o1e1s3,
+    ...     a1i2o1e1s1, a1i2o1e1s2, a1i2o1e1s3,
+    ...     a2i1o1e1s1, a2i1o1e1s2,
+    ...     a2i2o1e1s2, a2i2o1e1s3), SELECTOR_SAME_SEEDS_FOR_ALL)))
+    ['a1/i1/o1/e1/1', 'a1/i1/o1/e1/2', 'a1/i2/o1/e1/2', 'a1/i2/o1/e1/3', \
+'a2/i1/o1/e1/1', 'a2/i1/o1/e1/2', 'a2/i2/o1/e1/2', 'a2/i2/o1/e1/3']
+
+    >>> list(map(__p, select_consistent((
+    ...     a1i1o1e1s1, a1i1o1e1s2, a1i1o1e1s3,
+    ...     a1i2o1e1s1, a1i2o1e1s2, a1i2o1e1s3,
+    ...     a2i1o1e1s1, a2i1o1e1s2,
+    ...     a2i2o1e1s2, ), SELECTOR_SAME_SEEDS_FOR_ALL)))
+    ['a1/i1/o1/e1/1', 'a1/i1/o1/e1/2', 'a1/i2/o1/e1/2', \
+'a2/i1/o1/e1/1', 'a2/i1/o1/e1/2', 'a2/i2/o1/e1/2']
 
     >>> try:
     ...     select_consistent((a1i1o1e1s1, a1i1o1e1s2, a1i2o1e1s2, a1i2o1e1s2))

@@ -39,7 +39,7 @@ psutil == 7.2.2
 
 # pycommons offers many of the tools and utilities used in moptipy that are
 # not related to optimization.
-pycommons == 0.8.88
+pycommons == 0.8.89
 
 # scipy provides statistical tests *and* numerical optimization methods that
 # we wrap into our API.
