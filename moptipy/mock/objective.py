@@ -199,8 +199,10 @@ class MockObjective(Objective):
         if is_np_int(dtype):
             params["is_int"] = True
             iix = np.iinfo(cast("Any", dtype))
-            params["lb"] = lbi = max(int(iix.min), -(1 << 58))
-            params["ub"] = ubi = min(int(iix.max), (1 << 58))
+            params["lb"] = lbi = max(int(iix.min), -(1 << 58))\
+                if hasattr(iix, "min") else -4294967295
+            params["ub"] = ubi = min(int(iix.max), (1 << 58))\
+                if hasattr(iix, "max") else 4294967295
             if use_min:
                 params["fmin"] = lbi + 1
             if use_max:
@@ -209,12 +211,15 @@ class MockObjective(Objective):
         if is_np_float(dtype):
             params["is_int"] = False
             fix = np.finfo(dtype)
-            params["lb"] = lbf = max(float(fix.min), -1e300)
-            params["ub"] = ubf = min(float(fix.max), 1e300)
+            params["lb"] = lbf = max(float(fix.min), -1e300)\
+                if hasattr(fix, "min") else -1e100
+            params["ub"] = ubf = min(float(fix.max), 1e300)\
+                if hasattr(fix, "max") else 1e100
+            eps = fix.eps if hasattr(fix, "eps") else 1e-10
             if use_min:
-                params["fmin"] = nextafter(float(lbf + float(fix.eps)), inf)
+                params["fmin"] = nextafter(float(lbf + eps), inf)
             if use_max:
-                params["fmax"] = nextafter(float(ubf - float(fix.eps)), -inf)
+                params["fmax"] = nextafter(float(ubf - eps), -inf)
 
         if len(params) > 0:
             return MockObjective(**params)
