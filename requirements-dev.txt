@@ -8,4 +8,4 @@
 #
 
 # We use the unified build process offered by pycommons.
-pycommons[dev] == 0.8.91
+pycommons[dev] == 0.8.95
