@@ -1,16 +1,17 @@
 """Test the `_mo_process_ss`."""
 
-from os.path import exists, isfile
+from os.path import exists, getsize, isfile
 
 import numpy as np
 from numpy.random import Generator, default_rng
-from pycommons.io.temp import temp_file
+from pycommons.io.temp import temp_dir, temp_file
 from pycommons.types import type_name_of
 
 from moptipy.algorithms.mo.morls import MORLS
 from moptipy.algorithms.mo.nsga2 import NSGA2
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.encoding import Encoding
+from moptipy.api.improvement_logger import FileImprovementLogger
 from moptipy.api.logging import FILE_SUFFIX
 from moptipy.api.mo_archive import MOArchivePruner, MORecord
 from moptipy.api.mo_execution import MOExecution
@@ -85,6 +86,75 @@ def test_mo_process_mo_ss_no_log() -> None:
         fs2 = fs.copy()
         assert problem.f_evaluate(y, fs2) == process.get_best_f()
         assert np.array_equal(fs2, fs)
+
+
+def test_mo_process_mo_ss_no_log_improv() -> None:
+    """Test the `_mo_process_ss` without logging but improvements."""
+    random: Generator = default_rng()
+    instance: Instance = Instance.from_resource("yn4")
+    search_space: Permutations = Permutations.with_repetitions(
+        instance.jobs, instance.machines)
+    solution_space: Space = GanttSpace(instance)
+    encoding: Encoding = OperationBasedEncoding(instance)
+    f0: Objective = Worktime(instance)
+    f1: Objective = Makespan(instance)
+    problem: MOProblem = WeightedSum([f0, f1], [2, 3])
+    pruner: MOArchivePruner = KeepFarthest(problem, [1, 0])
+    algorithm: Algorithm = NSGA2(
+        Op0Shuffle(search_space), Op1Swap2(), Op2OrderBased(search_space),
+        int(random.integers(3, 22)), float(random.uniform(0.2, 0.8)))
+    ams: int = int(random.integers(2, 8))
+    with temp_dir() as td:
+        with MOExecution()\
+                .set_search_space(search_space)\
+                .set_solution_space(solution_space)\
+                .set_encoding(encoding)\
+                .set_objective(problem)\
+                .set_algorithm(algorithm)\
+                .set_archive_pruner(pruner)\
+                .set_max_fes(100)\
+                .set_archive_max_size(ams)\
+                .set_improvement_logger(FileImprovementLogger(td))\
+                .execute() as process:
+            assert process.get_log_basename() is None
+            assert type_name_of(process) \
+                   == "moptipy.api._mo_process_ss._MOProcessSS"
+            assert str(process) == "MOProcessWithSearchSpace"
+            assert process.has_best()
+            assert (2 * f0.lower_bound()) + (3 * f1.lower_bound()) \
+                   <= process.get_best_f() \
+                   <= (2 * f0.upper_bound()) + (3 * f1.upper_bound())
+            assert 0 < process.get_consumed_fes() <= 100
+            assert not process.has_log()
+            archive: list[MORecord] = process.get_archive()
+            for rec in archive:
+                assert f0.lower_bound() <= rec.fs[0] <= f0.upper_bound()
+                assert f1.lower_bound() <= rec.fs[1] <= f1.upper_bound()
+            archive_len = len(archive)
+            assert archive_len <= process.get_consumed_fes()
+            x = search_space.create()
+            process.get_copy_of_best_x(x)
+            search_space.validate(x)
+            y = solution_space.create()
+            process.get_copy_of_best_y(y)
+            solution_space.validate(y)
+            fs = process.f_create()
+            assert isinstance(fs, np.ndarray)
+            assert len(fs) == problem.f_dimension()
+            process.get_copy_of_best_fs(fs)
+            fs2 = fs.copy()
+            assert problem.f_evaluate(y, fs2) == process.get_best_f()
+            assert np.array_equal(fs2, fs)
+
+        count: int = 0
+        for f in td.list_dir(files=True, directories=False):
+            assert isfile(f)
+            assert getsize(f) > 10
+            with open(f, encoding="UTF8") as file:  # noqa: FURB101
+                result = file.read().splitlines()
+            assert len(result) > 5
+            count += 1
+        assert count > 0
 
 
 def test_mo_process_ss_log() -> None:

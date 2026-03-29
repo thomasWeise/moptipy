@@ -127,6 +127,7 @@ def __run_experiment(base_dir: Path,
                         cpy.set_log_file(None)
                         cpy.set_log_improvements(False)
                         cpy.set_log_all_fes(False)
+                        cpy.set_improvement_logger(None)
                         logger(f"{wss} for {filename!r}.", thread_id)
                         with cpy.execute():
                             pass

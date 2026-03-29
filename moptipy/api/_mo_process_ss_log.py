@@ -1,5 +1,5 @@
 """A multi-objective process with solution space and logging."""
-from typing import Final
+from typing import Callable, Final, cast  # pylint: disable=W0611
 
 import numpy as np
 from numpy import copyto
@@ -10,6 +10,7 @@ from moptipy.api._mo_process_ss import _MOProcessSS
 from moptipy.api._process_base import _TIME_IN_NS, _check_log_time
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.encoding import Encoding
+from moptipy.api.improvement_logger import ImprovementLogger
 from moptipy.api.mo_archive import MOArchivePruner
 from moptipy.api.mo_problem import MOProblem
 from moptipy.api.space import Space
@@ -33,7 +34,8 @@ class _MOProcessSSLog(_MOProcessSS):
                  max_fes: int | None = None,
                  max_time_millis: int | None = None,
                  goal_f: int | float | None = None,
-                 log_all_fes: bool = False) -> None:
+                 log_all_fes: bool = False,
+                 improvement_logger: ImprovementLogger | None = None) -> None:
         """
         Perform the internal initialization. Do not call directly.
 
@@ -53,6 +55,9 @@ class _MOProcessSSLog(_MOProcessSS):
         :param goal_f: the goal objective value. if it is reached, the process
             is terminated
         :param log_all_fes: should we log all FEs?
+        :param improvement_logger: an improvement logger, whose
+            :meth:`~ImprovementLogger.log_improvement` method will be invoked
+            whenever the process has registered an improvement
         """
         super().__init__(solution_space=solution_space,
                          objective=objective,
@@ -66,7 +71,8 @@ class _MOProcessSSLog(_MOProcessSS):
                          rand_seed=rand_seed,
                          max_fes=max_fes,
                          max_time_millis=max_time_millis,
-                         goal_f=goal_f)
+                         goal_f=goal_f,
+                         improvement_logger=improvement_logger)
         if not isinstance(log_file, str):
             raise type_error(log_file, "log_file", str)
         if not isinstance(log_all_fes, bool):
@@ -109,6 +115,11 @@ class _MOProcessSSLog(_MOProcessSS):
             self._current_time_nanos = ctn = _TIME_IN_NS()
             self._last_improvement_time_nanos = ctn
             do_log = True
+            if self._log_improvement:
+                self._log_improvement(
+                    cast("Callable[[Logger], None]",
+                         lambda lg, _x=x, _y=current_y, _f=result, _fs=fs:
+                         self._write_improvement(lg, _x, _y, _f, _fs)))
 
         if do_log:
             if ctn <= 0:

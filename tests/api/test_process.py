@@ -8,11 +8,12 @@ import numpy as np
 # noinspection PyPackageRequirements
 import pytest
 from numpy.random import Generator
-from pycommons.io.temp import temp_file
+from pycommons.io.temp import temp_dir, temp_file
 
 from moptipy.api import logging
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.execution import Execution
+from moptipy.api.improvement_logger import FileImprovementLogger
 from moptipy.api.objective import Objective
 from moptipy.api.process import Process
 from moptipy.spaces.vectorspace import VectorSpace
@@ -125,6 +126,43 @@ def test_process_noss_log() -> None:
         with open(path, encoding="UTF8") as file:  # noqa: FURB101
             result = file.read().splitlines()
         assert len(result) > 5
+
+
+def test_process_noss_log_improv() -> None:
+    """Test processes without search space and with log."""
+    v = VectorSpace(10, -1e100, 1e100)
+    x = v.create()
+
+    with temp_file() as path1, temp_dir() as path2:
+        exp = Execution()
+        exp.set_algorithm(MyAlgorithm1())
+        exp.set_solution_space(v)
+        exp.set_objective(MyObjective1())
+        exp.set_log_file(path1)
+        exp.set_max_fes(MAX_FES)
+        exp.set_improvement_logger(FileImprovementLogger(path2))
+        with exp.execute() as p:
+            assert p.has_best()
+            assert p.get_best_f() == BEST_F
+            p.get_copy_of_best_x(x)
+            assert all(x == BEST_F)
+            p.get_copy_of_best_y(x)
+            assert all(x == BEST_F)
+            assert p.has_log()
+        assert isfile(path1)
+        assert getsize(path1) > 10
+        with open(path1, encoding="UTF8") as file:  # noqa: FURB101
+            result = file.read().splitlines()
+        assert len(result) > 5
+        count: int = 0
+        for f in path2.list_dir(files=True, directories=False):
+            assert isfile(f)
+            assert getsize(f) > 10
+            with open(f, encoding="UTF8") as file:  # noqa: FURB101
+                result = file.read().splitlines()
+            assert len(result) > 5
+            count += 1
+        assert count > 0
 
 
 def test_process_noss_timed_log() -> None:

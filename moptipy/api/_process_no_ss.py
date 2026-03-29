@@ -1,12 +1,17 @@
 """Providing a process without explicit logging with a single space."""
-from typing import Final, cast
+from typing import Callable, Final, cast  # pylint: disable=W0611
+
+from pycommons.strings.string_conv import num_to_str
 
 from moptipy.api._process_base import _TIME_IN_NS, _ns_to_ms, _ProcessBase
 from moptipy.api.logging import (
+    KEY_CURRENT_F,
     PROGRESS_CURRENT_F,
     PROGRESS_FES,
     PROGRESS_TIME_MILLIS,
     SECTION_PROGRESS,
+    SECTION_RESULT_X,
+    SECTION_RESULT_Y,
 )
 from moptipy.utils.logger import Logger
 
@@ -37,6 +42,11 @@ class _ProcessNoSS(_ProcessBase):
             self._last_improvement_time_nanos = ctn
             do_term = do_term or (result <= self._end_f)
             self._copy_y(self._current_best_y, x)
+            if self._log_improvement:
+                self._log_improvement(
+                    cast("Callable[[Logger], None]",
+                         lambda lg, _x=x, _f=result:
+                         self._write_improvement(lg, None, _x, _f)))
 
         if do_term:
             self.terminate()
@@ -60,12 +70,34 @@ class _ProcessNoSS(_ProcessBase):
             self._last_improvement_time_nanos = ctn
             do_term = do_term or (f <= self._end_f)
             self._copy_y(self._current_best_y, x)
+            if self._log_improvement:
+                self._log_improvement(
+                    cast("Callable[[Logger], None]",
+                         lambda lg, _x=x, _f=f:
+                         self._write_improvement(lg, None, _x, _f)))
 
         if do_term:
             self.terminate()
 
     def __str__(self) -> str:
         return "ProcessWithoutSearchSpace"
+
+    def _write_improvement(self, logger: Logger, x, y, f: int | float) -> None:
+        """
+        Write an improvement to the logger.
+
+        :param logger: the logger
+        :param x: the point in the search space
+        :param y: the point in the solution space
+        :param f: the objective value
+        """
+        self._write_state_and_setup(
+            logger, ((KEY_CURRENT_F, num_to_str(f)), ))
+        if x is not None:
+            with logger.text(SECTION_RESULT_X) as txt:
+                txt.write(x)
+        with logger.text(SECTION_RESULT_Y) as txt:
+            txt.write(self._solution_space.to_str(y))
 
 
 def _write_log(log: list[list[int | float]],

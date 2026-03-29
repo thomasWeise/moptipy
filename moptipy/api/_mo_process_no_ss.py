@@ -5,17 +5,22 @@ from typing import Any, Callable, Final, cast
 
 import numpy as np
 from numpy import copyto
+from pycommons.io.csv import CSV_SEPARATOR
 from pycommons.io.path import Path
+from pycommons.strings.string_conv import num_to_str
 from pycommons.types import check_int_range, type_error
 
 from moptipy.api._process_base import _TIME_IN_NS, _ns_to_ms, _ProcessBase
 from moptipy.api.algorithm import Algorithm
+from moptipy.api.improvement_logger import ImprovementLogger
 from moptipy.api.logging import (
     KEY_ARCHIVE_F,
     KEY_ARCHIVE_MAX_SIZE,
     KEY_ARCHIVE_PRUNE_LIMIT,
     KEY_ARCHIVE_SIZE,
     KEY_BEST_FS,
+    KEY_CURRENT_F,
+    KEY_CURRENT_FS,
     PREFIX_SECTION_ARCHIVE,
     PROGRESS_CURRENT_F,
     PROGRESS_FES,
@@ -23,6 +28,8 @@ from moptipy.api.logging import (
     SCOPE_PRUNER,
     SECTION_ARCHIVE_QUALITY,
     SECTION_PROGRESS,
+    SECTION_RESULT_X,
+    SECTION_RESULT_Y,
     SUFFIX_SECTION_ARCHIVE_Y,
 )
 from moptipy.api.mo_archive import (
@@ -56,7 +63,8 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
                  rand_seed: int | None = None,
                  max_fes: int | None = None,
                  max_time_millis: int | None = None,
-                 goal_f: int | float | None = None) -> None:
+                 goal_f: int | float | None = None,
+                 improvement_logger: ImprovementLogger | None = None) -> None:
         """
         Perform the internal initialization. Do not call directly.
 
@@ -73,10 +81,21 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
         :param max_time_millis: the maximum runtime in milliseconds
         :param goal_f: the goal objective value. if it is reached, the process
             is terminated
+        :param improvement_logger: an improvement logger, whose
+            :meth:`~ImprovementLogger.log_improvement` method will be invoked
+            whenever the process has registered an improvement
         """
         _ProcessBase.__init__(
-            self, solution_space, objective, algorithm, log_file, rand_seed,
-            max_fes, max_time_millis, goal_f)
+            self,
+            solution_space=solution_space,
+            objective=objective,
+            algorithm=algorithm,
+            log_file=log_file,
+            rand_seed=rand_seed,
+            max_fes=max_fes,
+            max_time_millis=max_time_millis,
+            goal_f=goal_f,
+            improvement_logger=improvement_logger)
         self.f_dimension = objective.f_dimension  # type: ignore
         self.f_create = objective.f_create  # type: ignore
         self.f_validate = objective.f_validate  # type: ignore
@@ -185,6 +204,11 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
             do_term = do_term or (result <= self._end_f)
 
         if self.check_in(x, fs, True) or improved:
+            if self._log_improvement:
+                self._log_improvement(
+                    cast("Callable[[Logger], None]",
+                         lambda lg, _x=x, _f=result, _fs=fs:
+                         self._write_improvement(lg, None, _x, _f, _fs)))
             self._last_improvement_fe = current_fes
             self._current_time_nanos = ctn = _TIME_IN_NS()
             self._last_improvement_time_nanos = ctn
@@ -323,3 +347,24 @@ class _MOProcessNoSS(MOProcess, _ProcessBase):
 
     def __str__(self) -> str:
         return "MOProcessWithoutSearchSpace"
+
+    def _write_improvement(self, logger: Logger, x, y,
+                           f: int | float, fs: np.ndarray) -> None:
+        """
+        Write an improvement to the logger.
+
+        :param logger: the logger
+        :param x: the point in the search space
+        :param y: the point in the solution space
+        :param f: the objective value
+        :param fs: the vector with the objective values
+        """
+        self._write_state_and_setup(
+            logger, ((KEY_CURRENT_F, num_to_str(f)),
+                     (KEY_CURRENT_FS, CSV_SEPARATOR.join(map(
+                         num_to_str, map(np_to_py_number, fs))))))
+        if x is not None:
+            with logger.text(SECTION_RESULT_X) as txt:
+                txt.write(x)
+        with logger.text(SECTION_RESULT_Y) as txt:
+            txt.write(self._solution_space.to_str(y))

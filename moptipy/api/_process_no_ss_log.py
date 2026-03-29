@@ -1,5 +1,5 @@
 """A process with logging, where search and solution space are the same."""
-from typing import Final
+from typing import Callable, Final, cast  # pylint: disable=W0611
 
 from pycommons.io.path import Path
 from pycommons.types import type_error
@@ -7,6 +7,7 @@ from pycommons.types import type_error
 from moptipy.api._process_base import _TIME_IN_NS, _check_log_time
 from moptipy.api._process_no_ss import _ProcessNoSS, _write_log
 from moptipy.api.algorithm import Algorithm
+from moptipy.api.improvement_logger import ImprovementLogger
 from moptipy.api.objective import Objective
 from moptipy.api.space import Space
 from moptipy.utils.logger import Logger
@@ -24,7 +25,8 @@ class _ProcessNoSSLog(_ProcessNoSS):
                  max_fes: int | None = None,
                  max_time_millis: int | None = None,
                  goal_f: int | float | None = None,
-                 log_all_fes: bool = False) -> None:
+                 log_all_fes: bool = False,
+                 improvement_logger: ImprovementLogger | None = None) -> None:
         """
         Perform the internal initialization. Do not call directly.
 
@@ -38,6 +40,9 @@ class _ProcessNoSSLog(_ProcessNoSS):
         :param goal_f: the goal objective value. if it is reached, the process
             is terminated
         :param log_all_fes: should we log all FEs?
+        :param improvement_logger: an improvement logger, whose
+            :meth:`~ImprovementLogger.log_improvement` method will be invoked
+            whenever the process has registered an improvement
         """
         super().__init__(solution_space=solution_space,
                          objective=objective,
@@ -46,7 +51,8 @@ class _ProcessNoSSLog(_ProcessNoSS):
                          rand_seed=rand_seed,
                          max_fes=max_fes,
                          max_time_millis=max_time_millis,
-                         goal_f=goal_f)
+                         goal_f=goal_f,
+                         improvement_logger=improvement_logger)
         if not isinstance(log_file, str):
             raise type_error(log_file, "log_file", str)
         if not isinstance(log_all_fes, bool):
@@ -80,6 +86,11 @@ class _ProcessNoSSLog(_ProcessNoSS):
             do_term = do_term or (result <= self._end_f)
             self._copy_y(self._current_best_y, x)
             do_log = True
+            if self._log_improvement:
+                self._log_improvement(
+                    cast("Callable[[Logger], None]",
+                         lambda lg, _x=x, _f=result:
+                         self._write_improvement(lg, None, _x, _f)))
 
         if do_log:
             if ctn <= 0:
@@ -111,6 +122,11 @@ class _ProcessNoSSLog(_ProcessNoSS):
             do_term = do_term or (f <= self._end_f)
             self._copy_y(self._current_best_y, x)
             do_log = True
+            if self._log_improvement:
+                self._log_improvement(
+                    cast("Callable[[Logger], None]",
+                         lambda lg, _x=x, _f=f:
+                         self._write_improvement(lg, None, _x, _f)))
 
         if do_log:
             if ctn <= 0:

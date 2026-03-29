@@ -61,6 +61,10 @@ KEY_ARCHIVE_SIZE: Final[str] = "archiveSize"
 KEY_LAST_IMPROVEMENT_FE: Final[str] = "lastImprovementFE"
 #: the time in milliseconds when the best objective value was reached
 KEY_LAST_IMPROVEMENT_TIME_MILLIS: Final[str] = "lastImprovementTimeMillis"
+#: the current objective value
+KEY_CURRENT_F: Final[str] = "currentF"
+#: the current objective value vector
+KEY_CURRENT_FS: Final[str] = "currentFs"
 
 #: the archive section prefix
 PREFIX_SECTION_ARCHIVE: Final[str] = "ARCHIVE_"

@@ -1,5 +1,5 @@
 """An implementation of processes with different search and solution spaces."""
-from typing import Callable, Final
+from typing import Callable, Final, cast
 
 from pycommons.io.path import Path
 
@@ -7,6 +7,7 @@ from moptipy.api._process_base import _TIME_IN_NS
 from moptipy.api._process_no_ss import _ProcessNoSS
 from moptipy.api.algorithm import Algorithm
 from moptipy.api.encoding import Encoding, check_encoding
+from moptipy.api.improvement_logger import ImprovementLogger
 from moptipy.api.logging import (
     SCOPE_ENCODING,
     SCOPE_SEARCH_SPACE,
@@ -30,7 +31,8 @@ class _ProcessSS(_ProcessNoSS):
                  rand_seed: int | None = None,
                  max_fes: int | None = None,
                  max_time_millis: int | None = None,
-                 goal_f: int | float | None = None) -> None:
+                 goal_f: int | float | None = None,
+                 improvement_logger: ImprovementLogger | None = None) -> None:
         """
         Perform the internal initialization. Do not call directly.
 
@@ -45,6 +47,9 @@ class _ProcessSS(_ProcessNoSS):
         :param max_time_millis: the maximum runtime in milliseconds
         :param goal_f: the goal objective value. if it is reached, the
             process is terminated
+        :param improvement_logger: an improvement logger, whose
+            :meth:`~ImprovementLogger.log_improvement` method will be invoked
+            whenever the process has registered an improvement
         """
         super().__init__(solution_space=solution_space,
                          objective=objective,
@@ -53,7 +58,8 @@ class _ProcessSS(_ProcessNoSS):
                          rand_seed=rand_seed,
                          max_fes=max_fes,
                          max_time_millis=max_time_millis,
-                         goal_f=goal_f)
+                         goal_f=goal_f,
+                         improvement_logger=improvement_logger)
 
         #: The search space.
         self._search_space: Final[Space] = check_space(search_space)
@@ -96,6 +102,11 @@ class _ProcessSS(_ProcessNoSS):
             self._current_time_nanos = ctn = _TIME_IN_NS()
             self._last_improvement_time_nanos = ctn
             do_term = do_term or (result <= self._end_f)
+            if self._log_improvement:
+                self._log_improvement(
+                    cast("Callable[[Logger], None]",
+                         lambda lg, _x=x, _y=current_y, _f=result:
+                         self._write_improvement(lg, _x, _y, _f)))
 
         if do_term:
             self.terminate()
@@ -123,6 +134,11 @@ class _ProcessSS(_ProcessNoSS):
             self._current_time_nanos = ctn = _TIME_IN_NS()
             self._last_improvement_time_nanos = ctn
             do_term = do_term or (f <= self._end_f)
+            if self._log_improvement:
+                self._log_improvement(
+                    cast("Callable[[Logger], None]",
+                         lambda lg, _x=x, _y=current_y, _f=f:
+                         self._write_improvement(lg, _x, _y, _f)))
 
         if do_term:
             self.terminate()
@@ -155,3 +171,15 @@ class _ProcessSS(_ProcessNoSS):
 
     def __str__(self) -> str:
         return "ProcessWithSearchSpace"
+
+    def _write_improvement(
+            self, logger: Logger, x, y, f: int | float) -> None:
+        """
+        Write an improvement to the logger.
+
+        :param logger: the logger
+        :param x: the point in the search space
+        :param y: the point in the solution space
+        :param f: the objective value
+        """
+        super()._write_improvement(logger, self._search_space.to_str(x), y, f)

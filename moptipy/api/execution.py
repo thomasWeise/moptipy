@@ -12,6 +12,10 @@ from moptipy.api._process_ss import _ProcessSS
 from moptipy.api._process_ss_log import _ProcessSSLog
 from moptipy.api.algorithm import Algorithm, check_algorithm
 from moptipy.api.encoding import Encoding, check_encoding
+from moptipy.api.improvement_logger import (
+    ImprovementLogger,
+    ImprovementLoggerFactory,
+)
 from moptipy.api.objective import Objective, check_objective
 from moptipy.api.process import (
     Process,
@@ -21,6 +25,7 @@ from moptipy.api.process import (
 )
 from moptipy.api.space import Space, check_space
 from moptipy.utils.nputils import rand_seed_check
+from moptipy.utils.strings import sanitize_names
 
 
 def _check_log_file(log_file: Any, none_is_ok: bool = True) -> Path | None:
@@ -90,6 +95,8 @@ class Execution:
         self._log_file: Path | None = None
         self._log_improvements: bool = False
         self._log_all_fes: bool = False
+        self._improvement_logger: (
+            ImprovementLogger | ImprovementLoggerFactory | None) = None
 
     def set_algorithm(self, algorithm: Algorithm) -> Self:
         """
@@ -282,6 +289,42 @@ class Execution:
         self._log_all_fes = log_all_fes
         return self
 
+    def set_improvement_logger(
+            self, improvement_logger: ImprovementLogger
+            | ImprovementLoggerFactory | None) -> Self:
+        """
+        Set the improvement logger.
+
+        :param improvement_logger: the improvement logger or the
+            improvement logger factory
+        """
+        if improvement_logger is None:
+            self._improvement_logger = None
+            return None
+        if not isinstance(improvement_logger,
+                          ImprovementLogger | ImprovementLoggerFactory):
+            raise type_error(improvement_logger, "improvement_logger",
+                             (ImprovementLogger, ImprovementLoggerFactory))
+        self._improvement_logger = improvement_logger
+        return self
+
+    def _logger(self, seed: int, log_file: str | None = None) \
+            -> ImprovementLogger | None:
+        """
+        Get the improvement logger to use.
+
+        :param seed: the random see
+        :param log_file: the log file, if any
+        :returns: the improvement logger or `None`
+        """
+        logger: ImprovementLogger | ImprovementLoggerFactory | None = (
+            self._improvement_logger)
+        if (logger is None) or isinstance(logger, ImprovementLogger):
+            return logger
+
+        return logger.create(log_file, sanitize_names((
+            str(self._algorithm), f"{seed:x}")))
+
     def execute(self) -> Process:
         """
         Execute the experiment and return the process *after* the run.
@@ -342,6 +385,9 @@ class Execution:
         else:
             log_file.create_file_or_truncate()
 
+        logger: Final[ImprovementLogger | None] = self._logger(
+            rand_seed, log_file)
+
         process: Final[_ProcessBase] = \
             (_ProcessNoSSLog(solution_space=solution_space,
                              objective=objective,
@@ -351,7 +397,8 @@ class Execution:
                              max_fes=max_fes,
                              max_time_millis=max_time_millis,
                              goal_f=goal_f,
-                             log_all_fes=log_all_fes)
+                             log_all_fes=log_all_fes,
+                             improvement_logger=logger)
              if log_improvements or log_all_fes else
              _ProcessNoSS(solution_space=solution_space,
                           objective=objective,
@@ -360,29 +407,35 @@ class Execution:
                           rand_seed=rand_seed,
                           max_fes=max_fes,
                           max_time_millis=max_time_millis,
-                          goal_f=goal_f)) if search_space is None else \
-            (_ProcessSSLog(solution_space=solution_space,
-                           objective=objective,
-                           algorithm=algorithm,
-                           search_space=search_space,
-                           encoding=encoding,
-                           log_file=log_file,
-                           rand_seed=rand_seed,
-                           max_fes=max_fes,
-                           max_time_millis=max_time_millis,
-                           goal_f=goal_f,
-                           log_all_fes=log_all_fes)
+                          goal_f=goal_f,
+                          improvement_logger=logger)) \
+            if search_space is None else \
+            (_ProcessSSLog(
+                solution_space=solution_space,
+                objective=objective,
+                algorithm=algorithm,
+                search_space=search_space,
+                encoding=encoding,
+                log_file=log_file,
+                rand_seed=rand_seed,
+                max_fes=max_fes,
+                max_time_millis=max_time_millis,
+                goal_f=goal_f,
+                log_all_fes=log_all_fes,
+                improvement_logger=logger)
              if log_improvements or log_all_fes else
-             _ProcessSS(solution_space=solution_space,
-                        objective=objective,
-                        algorithm=algorithm,
-                        search_space=search_space,
-                        encoding=encoding,
-                        log_file=log_file,
-                        rand_seed=rand_seed,
-                        max_fes=max_fes,
-                        max_time_millis=max_time_millis,
-                        goal_f=goal_f))
+             _ProcessSS(
+                 solution_space=solution_space,
+                 objective=objective,
+                 algorithm=algorithm,
+                 search_space=search_space,
+                 encoding=encoding,
+                 log_file=log_file,
+                 rand_seed=rand_seed,
+                 max_fes=max_fes,
+                 max_time_millis=max_time_millis,
+                 goal_f=goal_f,
+                 improvement_logger=logger))
         try:
             # noinspection PyProtectedMember
             process._after_init()  # finalize the created process

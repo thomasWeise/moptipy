@@ -1,8 +1,8 @@
 """Test the `_process_ss`."""
 
-from os.path import exists, isfile
+from os.path import exists, getsize, isfile
 
-from pycommons.io.temp import temp_file
+from pycommons.io.temp import temp_dir, temp_file
 from pycommons.types import type_name_of
 
 from moptipy.algorithms.random_walk import RandomWalk
@@ -10,6 +10,7 @@ from moptipy.algorithms.single_random_sample import SingleRandomSample
 from moptipy.api.algorithm import Algorithm, Algorithm0
 from moptipy.api.encoding import Encoding
 from moptipy.api.execution import Execution
+from moptipy.api.improvement_logger import FileImprovementLogger
 from moptipy.api.logging import FILE_SUFFIX
 from moptipy.api.objective import Objective
 from moptipy.api.process import Process
@@ -60,6 +61,54 @@ def test_process_ss_no_log() -> None:
         y = solution_space.create()
         process.get_copy_of_best_y(y)
         solution_space.validate(y)
+
+
+def test_process_ss_no_log_improv() -> None:
+    """Test the `_process_ss` without logging but improvements."""
+    instance: Instance = Instance.from_resource("dmu23")
+    search_space: Permutations = Permutations.with_repetitions(
+        instance.jobs, instance.machines)
+    solution_space: Space = GanttSpace(instance)
+    encoding: Encoding = OperationBasedEncoding(instance)
+    objective: Objective = Worktime(instance)
+    algorithm: Algorithm = SingleRandomSample(Op0Shuffle(search_space))
+
+    with temp_dir() as td:
+        with Execution()\
+                .set_search_space(search_space)\
+                .set_solution_space(solution_space)\
+                .set_encoding(encoding)\
+                .set_objective(objective)\
+                .set_algorithm(algorithm)\
+                .set_max_fes(100)\
+                .set_improvement_logger(FileImprovementLogger(td)) \
+                .execute() as process:
+            assert type_name_of(process) \
+                   == "moptipy.api._process_ss._ProcessSS"
+            assert str(process) == "ProcessWithSearchSpace"
+            assert process.has_best()
+            assert process.get_log_basename() is None
+            assert not process.has_log()
+            assert process.get_max_fes() == 100
+            assert process.get_max_time_millis() is None
+            assert objective.lower_bound() <= process.get_best_f() \
+                   <= objective.upper_bound()
+            assert process.get_consumed_fes() == 1
+            x = search_space.create()
+            process.get_copy_of_best_x(x)
+            search_space.validate(x)
+            y = solution_space.create()
+            process.get_copy_of_best_y(y)
+            solution_space.validate(y)
+        count: int = 0
+        for f in td.list_dir(files=True, directories=False):
+            assert isfile(f)
+            assert getsize(f) > 10
+            with open(f, encoding="UTF8") as file:  # noqa: FURB101
+                result = file.read().splitlines()
+            assert len(result) > 5
+            count += 1
+        assert count > 0
 
 
 def test_process_ss_log() -> None:

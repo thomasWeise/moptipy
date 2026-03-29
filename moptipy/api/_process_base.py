@@ -4,13 +4,14 @@ from math import inf, isfinite
 from threading import Lock, Timer
 from time import time_ns
 from traceback import print_tb
-from typing import Any, Callable, Final, cast
+from typing import Any, Callable, Final, Iterable, cast
 
 from numpy.random import Generator
 from pycommons.io.path import Path
 from pycommons.types import type_error, type_name_of
 
 from moptipy.api.algorithm import Algorithm, check_algorithm
+from moptipy.api.improvement_logger import ImprovementLogger
 from moptipy.api.logging import (
     _ALL_SECTIONS,
     ERROR_SECTION_PREFIX,
@@ -188,7 +189,8 @@ class _ProcessBase(Process):
                  rand_seed: int | None = None,
                  max_fes: int | None = None,
                  max_time_millis: int | None = None,
-                 goal_f: int | float | None = None) -> None:
+                 goal_f: int | float | None = None,
+                 improvement_logger: ImprovementLogger | None = None) -> None:
         """
         Perform the internal initialization. Do not call directly.
 
@@ -201,6 +203,9 @@ class _ProcessBase(Process):
         :param max_time_millis: the maximum runtime in milliseconds
         :param goal_f: the goal objective value. if it is reached, the process
             is terminated
+        :param improvement_logger: an improvement logger, whose
+            :meth:`~ImprovementLogger.log_improvement` method will be invoked
+            whenever the process has registered an improvement
         """
         super().__init__()
         #: This will be `True` after :meth:`terminate` has been called.
@@ -293,6 +298,11 @@ class _ProcessBase(Process):
 
         #: an internal base exception caught by the algorithm execution
         self._caught: Exception | None = None
+
+        #: the internal improvement logger
+        self._log_improvement: Final[Callable[[
+            Callable[[Logger], None]], None] | None] = \
+            improvement_logger.log_improvement if improvement_logger else None
 
     def _after_init(self) -> None:
         """
@@ -478,8 +488,15 @@ class _ProcessBase(Process):
         with logger.text(SECTION_RESULT_Y) as txt:
             txt.write(self._solution_space.to_str(self._current_best_y))
 
-    def _write_log(self, logger: Logger) -> None:
-        """Write the information gathered during optimization into the log."""
+    def _write_state_and_setup(
+            self, logger: Logger,
+            more_state: Iterable[tuple[str, str]] | None = None) -> None:
+        """
+        Write the current state and algorithm setup into the log.
+
+        :param logger: the logger
+        :param more_state: additional key-value pairs, or `None`
+        """
         with logger.key_values(SECTION_FINAL_STATE) as kv:
             kv.key_value(KEY_TOTAL_FES, self._current_fes)
             kv.key_value(KEY_TOTAL_TIME_MILLIS,
@@ -487,12 +504,20 @@ class _ProcessBase(Process):
                                    - self._start_time_nanos))
             if self._current_fes > 0:
                 self._log_best(kv)
-
+            if more_state:
+                for key, value in more_state:
+                    kv.key_value(key, value)
         with logger.key_values(SECTION_SETUP) as kv:
             self.log_parameters_to(kv)
-
         log_sys_info(logger)
 
+    def _write_log(self, logger: Logger) -> None:
+        """
+        Write the information gathered during optimization into the log.
+
+        :param logger: the logger
+        """
+        self._write_state_and_setup(logger)
         if self._current_fes > 0:
             self._write_result(logger)
 

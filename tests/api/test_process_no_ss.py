@@ -1,15 +1,16 @@
 """Test the `_process_no_ss`."""
 
-from os.path import exists, isfile
+from os.path import exists, getsize, isfile
 
 from numpy.random import Generator, default_rng
-from pycommons.io.temp import temp_file
+from pycommons.io.temp import temp_dir, temp_file
 from pycommons.types import type_name_of
 
 from moptipy.algorithms.so.ea import EA
 from moptipy.algorithms.so.rls import RLS
 from moptipy.api.algorithm import Algorithm, Algorithm0
 from moptipy.api.execution import Execution
+from moptipy.api.improvement_logger import FileImprovementLogger
 from moptipy.api.objective import Objective
 from moptipy.api.process import Process
 from moptipy.api.space import Space
@@ -53,6 +54,49 @@ def test_process_no_ss_no_log() -> None:
         space.validate(x)
         process.get_copy_of_best_y(x)
         space.validate(x)
+
+
+def test_process_no_ss_no_log_imp() -> None:
+    """Test the `_process_no_ss` without logging but improvements."""
+    random: Generator = default_rng()
+    dim: int = int(random.integers(3, 12))
+    space: Space = BitStrings(dim)
+    objective: Objective = OneMax(dim)
+    algorithm: Algorithm = RLS(
+        Op0Random(),
+        Op1MoverNflip(dim, int(random.integers(1, dim - 1))))
+
+    with temp_dir() as td, Execution()\
+            .set_solution_space(space)\
+            .set_objective(objective)\
+            .set_algorithm(algorithm)\
+            .set_max_fes(100)\
+            .set_improvement_logger(FileImprovementLogger(td))\
+            .execute() as process:
+        assert process.get_log_basename() is None
+        assert type_name_of(process) \
+               == "moptipy.api._process_no_ss._ProcessNoSS"
+        assert str(process) == "ProcessWithoutSearchSpace"
+        assert process.has_best()
+        assert process.get_max_fes() == 100
+        assert not process.has_log()
+        assert process.get_max_time_millis() is None
+        assert 0 <= process.get_best_f() <= dim
+        assert 0 < process.get_consumed_fes() <= 100
+        x = space.create()
+        process.get_copy_of_best_x(x)
+        space.validate(x)
+        process.get_copy_of_best_y(x)
+        space.validate(x)
+        count: int = 0
+        for f in td.list_dir(files=True, directories=False):
+            assert isfile(f)
+            assert getsize(f) > 10
+            with open(f, encoding="UTF8") as file:  # noqa: FURB101
+                result = file.read().splitlines()
+            assert len(result) > 5
+            count += 1
+        assert count > 0
 
 
 def test_process_no_ss_log() -> None:
