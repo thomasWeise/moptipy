@@ -1,0 +1,74 @@
+moptipy.operators.permutations package
+======================================
+
+.. automodule:: moptipy.operators.permutations
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+moptipy.operators.permutations.op0\_shuffle module
+--------------------------------------------------
+
+.. automodule:: moptipy.operators.permutations.op0_shuffle
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.operators.permutations.op1\_insert1 module
+--------------------------------------------------
+
+.. automodule:: moptipy.operators.permutations.op1_insert1
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.operators.permutations.op1\_swap2 module
+------------------------------------------------
+
+.. automodule:: moptipy.operators.permutations.op1_swap2
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.operators.permutations.op1\_swap\_exactly\_n module
+-----------------------------------------------------------
+
+.. automodule:: moptipy.operators.permutations.op1_swap_exactly_n
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.operators.permutations.op1\_swap\_try\_n module
+-------------------------------------------------------
+
+.. automodule:: moptipy.operators.permutations.op1_swap_try_n
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.operators.permutations.op1\_swapn module
+------------------------------------------------
+
+.. automodule:: moptipy.operators.permutations.op1_swapn
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.operators.permutations.op2\_gap module
+----------------------------------------------
+
+.. automodule:: moptipy.operators.permutations.op2_gap
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.operators.permutations.op2\_ox2 module
+----------------------------------------------
+
+.. automodule:: moptipy.operators.permutations.op2_ox2
+   :members:
+   :show-inheritance:
+   :undoc-members:

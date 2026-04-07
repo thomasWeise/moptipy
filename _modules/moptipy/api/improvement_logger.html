@@ -1,0 +1,209 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.api.improvement_logger — moptipy 0.9.179 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=b9ede190"></script><script src="../../../_static/doctools.js?v=fd6eb6e6"></script><script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/api/improvement_logger.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.179 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.improvement_logger</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.api.improvement_logger</h1><div class=highlight><pre>
+<span></span><span class=sd>"""A base class for logging improvements."""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>os</span><span class=w> </span><span class=kn>import</span> <span class=n>remove</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>check_int_range</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=n>FILE_SUFFIX</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>FileLogger</span><span class=p>,</span> <span class=n>Logger</span>
+
+<span class=c1>#: the default base directory for logging</span>
+<span class=n>_DEFAULT_DIR_NAME</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"improvements"</span>
+<span class=c1>#: the default base directory for logging</span>
+<span class=n>_DEFAULT_BASE_DIR</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"./</span><span class=si>{</span><span class=n>_DEFAULT_DIR_NAME</span><span class=si>}</span><span class=s2>"</span>
+<span class=c1>#: the default base name for log files</span>
+<span class=n>_DEFAULT_BASE_NAME</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"improvement"</span>
+
+
+<div class=viewcode-block id=ImprovementLogger>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.improvement_logger.ImprovementLogger>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>ImprovementLogger</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""A improvement logger."""</span>
+
+<div class=viewcode-block id=ImprovementLogger.log_improvement>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.improvement_logger.ImprovementLogger.log_improvement>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_improvement</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>call</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Logger</span><span class=p>],</span> <span class=kc>None</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Provide a logger to the callable to log an improvement.</span>
+
+<span class=sd>        This method is invoked whenever an improvement was discovered during</span>
+<span class=sd>        the optimization process. The method needs to create and provide a</span>
+<span class=sd>        :class:`~moptipy.utils.logger.Logger` to the callable it receives as</span>
+<span class=sd>        input.</span>
+
+<span class=sd>        :param call: A :class:`Callable` to invoke with a logger to write the</span>
+<span class=sd>            improvement information to.</span>
+<span class=sd>        """</span>
+        <span class=k>raise</span> <span class=ne>NotImplementedError</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=ImprovementLoggerFactory>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.improvement_logger.ImprovementLoggerFactory>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>ImprovementLoggerFactory</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""A factory for file improvement loggers."""</span>
+
+<div class=viewcode-block id=ImprovementLoggerFactory.create>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.improvement_logger.ImprovementLoggerFactory.create>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>reference_path</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+               <span class=n>reference_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=n>ImprovementLogger</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a new file improvement logger.</span>
+
+<span class=sd>        :param reference_path: a path to a file used as reference for creating</span>
+<span class=sd>            the logging base directory and file, or `None` if none is</span>
+<span class=sd>            available</span>
+<span class=sd>        :param reference_name: a name that can be used as reference for file</span>
+<span class=sd>            names, or `None` if none is available</span>
+<span class=sd>        :returns: the improvement logger</span>
+<span class=sd>        """</span>
+        <span class=k>raise</span> <span class=ne>NotImplementedError</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=FileImprovementLogger>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.improvement_logger.FileImprovementLogger>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>FileImprovementLogger</span><span class=p>(</span><span class=n>ImprovementLogger</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    A file-based improvement logger.</span>
+
+<span class=sd>    This logger creates a new text file for each improvement.</span>
+<span class=sd>    The improved solution is stored in the text file.</span>
+<span class=sd>    The logger allows you to limit the number of retained files.</span>
+<span class=sd>    If more improvements than the provided limit are created, then it will</span>
+<span class=sd>    delete the oldest log file.</span>
+<span class=sd>    """</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>log_dir</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>log_base_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>max_files</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the file improvement logger.</span>
+
+<span class=sd>        :param log_dir: the directory to store the improvement logs in</span>
+<span class=sd>        :param log_base_name: the base name of the improvement logs</span>
+<span class=sd>        :param max_files: a limit for the number of log files to be retained,</span>
+<span class=sd>            or `None` for unlimited</span>
+<span class=sd>        """</span>
+        <span class=c1>#: the logging directory</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__log_dir</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span>
+            <span class=n>_DEFAULT_BASE_DIR</span> <span class=k>if</span> <span class=n>log_dir</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>log_dir</span><span class=p>)</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__log_dir</span><span class=o>.</span><span class=n>ensure_dir_exists</span><span class=p>()</span>
+
+        <span class=n>log_base_name</span> <span class=o>=</span> <span class=n>_DEFAULT_BASE_NAME</span> <span class=k>if</span> <span class=n>log_base_name</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=p>(</span>
+            <span class=nb>str</span><span class=o>.</span><span class=n>removesuffix</span><span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>log_base_name</span><span class=p>),</span> <span class=s2>"_"</span><span class=p>))</span>
+        <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>log_base_name</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Log base name cannot be empty or just "</span>
+                             <span class=s2>"consist of whitespace."</span><span class=p>)</span>
+        <span class=c1>#: the log file base name</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__log_base_name</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>log_base_name</span>
+        <span class=c1>#: the maximum number of files to keep alive</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__max_files</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=kc>None</span> <span class=k>if</span> <span class=n>max_files</span> <span class=ow>is</span> <span class=kc>None</span> \
+            <span class=k>else</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>max_files</span><span class=p>,</span> <span class=s2>"max_files"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000_000</span><span class=p>)</span>
+        <span class=c1>#: the file history</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__file_history</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> \
+            <span class=kc>None</span> <span class=k>if</span> <span class=n>max_files</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=p>[]</span>
+
+        <span class=c1>#: the file index</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__index</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+
+<div class=viewcode-block id=FileImprovementLogger.log_improvement>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.improvement_logger.FileImprovementLogger.log_improvement>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>log_improvement</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>call</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>Logger</span><span class=p>],</span> <span class=kc>None</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Log an improvement.</span>
+
+<span class=sd>        :param call: the callable to do the logging</span>
+<span class=sd>        """</span>
+        <span class=n>file</span><span class=p>:</span> <span class=n>Path</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__index</span> <span class=o>+=</span> <span class=mi>1</span>
+            <span class=n>file</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__log_dir</span><span class=o>.</span><span class=n>resolve_inside</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__log_base_name</span><span class=si>}</span><span class=s2>_</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>__index</span><span class=si>}{</span><span class=n>FILE_SUFFIX</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=ow>not</span> <span class=n>file</span><span class=o>.</span><span class=n>ensure_file_exists</span><span class=p>():</span>
+                <span class=k>break</span>
+
+        <span class=n>call</span><span class=p>(</span><span class=n>FileLogger</span><span class=p>(</span><span class=n>file</span><span class=p>))</span>
+        <span class=k>if</span> <span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__file_history</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>and</span> <span class=p>(</span>
+                <span class=bp>self</span><span class=o>.</span><span class=n>__max_files</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>):</span>
+            <span class=bp>self</span><span class=o>.</span><span class=n>__file_history</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__file_history</span><span class=p>)</span> <span class=o>></span> <span class=bp>self</span><span class=o>.</span><span class=n>__max_files</span><span class=p>:</span>
+                <span class=n>remove</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__file_history</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=mi>0</span><span class=p>))</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=FileImprovementLoggerFactory>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.improvement_logger.FileImprovementLoggerFactory>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>FileImprovementLoggerFactory</span><span class=p>(</span><span class=n>ImprovementLoggerFactory</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A file-based improvement logger factory."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>base_dir</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>log_base_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>max_files</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the file improvement logger factory.</span>
+
+<span class=sd>        :param base_dir: the base directory to store the improvement</span>
+<span class=sd>            logs in, `None` for default</span>
+<span class=sd>        :param log_base_name: the default base name of the improvement logs,</span>
+<span class=sd>            `None` for default</span>
+<span class=sd>        :param max_files: a limit for the number of log files to be retained,</span>
+<span class=sd>            or `None` for unlimited</span>
+<span class=sd>        """</span>
+        <span class=c1>#: the logging directory</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__base_dir</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span>
+            <span class=n>_DEFAULT_BASE_DIR</span> <span class=k>if</span> <span class=n>base_dir</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>base_dir</span><span class=p>)</span>
+
+        <span class=n>log_base_name</span> <span class=o>=</span> <span class=n>_DEFAULT_BASE_NAME</span> <span class=k>if</span> <span class=n>log_base_name</span> <span class=ow>is</span> <span class=kc>None</span> \
+            <span class=k>else</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>log_base_name</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>log_base_name</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Log base name cannot be empty or just "</span>
+                             <span class=s2>"consist of whitespace."</span><span class=p>)</span>
+        <span class=c1>#: the log file base name</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__log_base_name</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=n>log_base_name</span>
+        <span class=c1>#: the maximum number of files to keep alive</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__max_files</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=kc>None</span> <span class=k>if</span> <span class=n>max_files</span> <span class=ow>is</span> <span class=kc>None</span> \
+            <span class=k>else</span> <span class=n>check_int_range</span><span class=p>(</span><span class=n>max_files</span><span class=p>,</span> <span class=s2>"max_files"</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1_000_000_000_000</span><span class=p>)</span>
+
+<div class=viewcode-block id=FileImprovementLoggerFactory.create>
+<a class=viewcode-back href=../../../moptipy.api.html#moptipy.api.improvement_logger.FileImprovementLoggerFactory.create>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>create</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>reference_path</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+               <span class=n>reference_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=n>ImprovementLogger</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a new file improvement logger.</span>
+
+<span class=sd>        :param reference_path: a path to a file used as reference for creating</span>
+<span class=sd>            the logging base directory and file, or `None` if none is</span>
+<span class=sd>            available</span>
+<span class=sd>        :param reference_name: a name that can be used as reference for file</span>
+<span class=sd>            names, or `None` if none is available</span>
+<span class=sd>        :returns: the improvement logger</span>
+<span class=sd>        """</span>
+        <span class=n>log_dir</span><span class=p>:</span> <span class=n>Path</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+        <span class=n>log_name</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>reference_name</span>
+
+        <span class=k>if</span> <span class=n>reference_path</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>pt</span><span class=p>:</span> <span class=n>Path</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>reference_path</span><span class=p>)</span>
+            <span class=n>log_name</span> <span class=o>=</span> <span class=p>(</span><span class=n>pt</span><span class=o>.</span><span class=n>basename</span><span class=p>()</span><span class=o>.</span><span class=n>removesuffix</span><span class=p>(</span><span class=n>FILE_SUFFIX</span><span class=p>)</span>
+                        <span class=o>.</span><span class=n>removesuffix</span><span class=p>(</span><span class=s2>"_"</span><span class=p>)</span> <span class=o>+</span> <span class=sa>f</span><span class=s2>"_</span><span class=si>{</span><span class=n>_DEFAULT_BASE_NAME</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+            <span class=n>log_dir</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=n>removesuffix</span><span class=p>(</span>
+                <span class=n>pt</span><span class=p>,</span> <span class=n>FILE_SUFFIX</span><span class=p>)</span><span class=o>.</span><span class=n>removesuffix</span><span class=p>(</span><span class=s2>"_"</span><span class=p>)</span> <span class=o>+</span> <span class=sa>f</span><span class=s2>"_</span><span class=si>{</span><span class=n>_DEFAULT_DIR_NAME</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=n>log_dir</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>log_dir</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__base_dir</span>
+            <span class=n>log_dir</span><span class=o>.</span><span class=n>ensure_dir_exists</span><span class=p>()</span>
+            <span class=k>if</span> <span class=n>log_name</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>log_dir</span> <span class=o>=</span> <span class=n>log_dir</span><span class=o>.</span><span class=n>resolve_inside</span><span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=n>removesuffix</span><span class=p>(</span>
+                    <span class=n>log_name</span><span class=p>,</span> <span class=s2>"_"</span><span class=p>))</span>
+        <span class=k>if</span> <span class=n>log_name</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>log_name</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>__log_base_name</span>
+
+        <span class=k>return</span> <span class=n>FileImprovementLogger</span><span class=p>(</span><span class=n>log_dir</span><span class=p>,</span> <span class=n>log_name</span><span class=p>,</span> <span class=bp>self</span><span class=o>.</span><span class=n>__max_files</span><span class=p>)</span></div>
+</div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.179 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.api.improvement_logger</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>
