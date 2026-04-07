@@ -36,11 +36,14 @@ def __cpu_affinity(proc: psutil.Process | None = None) -> str | None:
         proc = psutil.Process()
     if proc is None:
         return None
-    cpua = proc.cpu_affinity()
-    if cpua is not None:
-        cpua = CSV_SEPARATOR.join(map(str, cpua))
-        if len(cpua) > 0:
-            return cpua
+    try:
+        cpua = proc.cpu_affinity()
+        if cpua is not None:
+            cpua = CSV_SEPARATOR.join(map(str, cpua))
+            if len(cpua) > 0:
+                return cpua
+    except Exception:  # noqa # nosec
+        pass  # noqa # nosec
     return None
 
 

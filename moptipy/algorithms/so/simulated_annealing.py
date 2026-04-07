@@ -61,6 +61,11 @@ from moptipy.api.operators import Op0, Op1
 from moptipy.api.process import Process
 from moptipy.utils.logger import KeyValueLogSection
 
+#: The minimal temperature (about 1.262177448353619e-29) is used to
+#: prevent the algorithm from crashing because the temperature reaches
+#: zero.
+MIN_TEMPERATURE: Final[float] = float.fromhex("0x1.0000000000000p-96")
+
 
 # start book
 class SimulatedAnnealing(Algorithm1):
@@ -94,7 +99,8 @@ class SimulatedAnnealing(Algorithm1):
             op1(random, new_x, best_x)  # new_x = neighbor of best_x
             new_f: int | float = evaluate(new_x)
             if (new_f <= best_f) or (  # Accept if <= or if SA criterion
-                    r01() < exp((best_f - new_f) / temperature(tau))):
+                    r01() < exp((best_f - new_f) / max(
+                    MIN_TEMPERATURE, temperature(tau)))):
                 best_f = new_f  # Store its objective value.
                 best_x, new_x = new_x, best_x  # Swap best and new.
             tau += 1  # Step the iteration index.
