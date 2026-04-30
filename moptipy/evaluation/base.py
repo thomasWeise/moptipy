@@ -914,7 +914,7 @@ def motipy_footer_bottom_comments(
            f"{moptipy_version}.")
     if (additional is not None) and (str.__len__(additional) > 0):
         yield additional
-    yield "You can find moptipy at https://thomasweise.github.io/mopitpy."
+    yield "You can find moptipy at https://thomasweise.github.io/moptipy."
 
 
 #: a description of the algorithm field
