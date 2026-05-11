@@ -16,7 +16,7 @@ directly as objective function. Others who define LABS as a maximization
 problem try to maximize the merit factor `F` instead, which is equivalent to
 minimizing the energy:
 
-`F(x) = n² / (n * E(X))`
+`F(x) = n² / (2 * E(X))`
 
 This problem is different from the other bit-string based problems, because we
 only know the optimal solutions for few, smaller instances. For larger
