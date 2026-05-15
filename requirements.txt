@@ -22,17 +22,17 @@
 # We will need numpy for several reasons:
 #  - it provides the random number generators
 #  - it provides efficient arrays as backends of vector-based search spaces
-numpy == 2.4.3
+numpy == 2.4.4
 
 # numba provides JIT compilers useful making vector/numpy operations efficient
-numba == 0.64.0
+numba == 0.65.1
 
 # numba uses intel-cmplr-lib-rt to generate faster compiled code, see
 # https://numba.readthedocs.io/en/stable/user/performance-tips.html
-intel-cmplr-lib-rt == 2025.3.2
+intel-cmplr-lib-rt == 2026.0.0
 
 # matplotlib is used to create plots in the evaluation procedures.
-matplotlib == 3.10.8
+matplotlib == 3.10.9
 
 # psutil is used for getting information about the system configuration which
 # is stored in the log files (see moptipy.utils.sys_info.py).
@@ -40,7 +40,7 @@ psutil == 7.2.2
 
 # pycommons offers many of the tools and utilities used in moptipy that are
 # not related to optimization.
-pycommons == 0.8.96
+pycommons == 0.8.97
 
 # scipy provides statistical tests *and* numerical optimization methods that
 # we wrap into our API.
@@ -48,4 +48,4 @@ scipy == 1.17.1
 
 # These are packages that provide more numerical optimization methods that we
 # wrap into our API as well.
-cmaes == 0.12.0  # for, well, CMA-ES
+cmaes == 0.13.0  # for, well, CMA-ES
