@@ -436,7 +436,7 @@ class Execution:
                  max_time_millis=max_time_millis,
                  goal_f=goal_f,
                  improvement_logger=logger))
-        try:
+        try:  # noqa: PLW0717
             # noinspection PyProtectedMember
             process._after_init()  # finalize the created process
             objective.initialize()  # initialize the objective function

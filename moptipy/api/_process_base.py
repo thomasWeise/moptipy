@@ -122,7 +122,7 @@ def _error_2(logger: Logger, title: str, exception: Exception) -> None:
     >>> from moptipy.utils.logger import Logger
     >>> def __do_print(s: str) -> None:
     ...     s = str.strip(s)
-    ...     if "~~^~~" not in s:
+    ...     if ("~~^~~" not in s) and ("~^^" not in s):
     ...         print(s)
     >>> ime = Logger("pl", __do_print)
     >>> def k():

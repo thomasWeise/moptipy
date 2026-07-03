@@ -586,7 +586,7 @@ def get_axes(figure: Axes | Figure) -> Axes:
         return figure.add_axes((0.005, 0.005, 0.99, 0.99))
     if hasattr(figure, "axes") \
             or isinstance(getattr(type(figure), "axes", None), property):
-        try:
+        try:  # noqa: PLW0717
             if isinstance(figure.axes, Axes):
                 return cast("Axes", figure.axes)
             if isinstance(figure.axes, Sequence):

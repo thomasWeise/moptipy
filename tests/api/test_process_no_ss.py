@@ -178,7 +178,7 @@ def test_process_no_ss_log_with_immediate_error() -> None:
         assert isfile(tf)
 
         got_error: bool = False
-        try:
+        try:  # noqa: PLW0717
             with Execution()\
                     .set_solution_space(space)\
                     .set_objective(objective)\
@@ -247,7 +247,7 @@ def test_process_no_ss_log_with_error_after_evaluation() -> None:
         assert isfile(tf)
 
         got_error: bool = False
-        try:
+        try:  # noqa: PLW0717
             with Execution() \
                     .set_solution_space(space) \
                     .set_objective(objective) \
