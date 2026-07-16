@@ -1031,7 +1031,7 @@ def select_consistent(
                seeds.index((item.instance, item.rand_seed)))
         if key in data_map:
             raise ValueError(f"Found two records of type {item},"
-                             f"the second one at index {i}.")
+                             f" the second one at index {i}.")
         data_map[key] = item
 
     source: tuple[tuple[int, int, int, int, int], ...] = tuple(sorted(
