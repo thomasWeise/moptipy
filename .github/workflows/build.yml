@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 # check out the github repository
-    - uses: actions/checkout@v4.1.6
+    - uses: actions/checkout@v7.0.0
 # set up python
     - name: set up python "3.12"
-      uses: actions/setup-python@v5.1.0
+      uses: actions/setup-python@v6.3.0
       with:
         python-version: "3.12"
 # clean-up
@@ -43,7 +43,7 @@ jobs:
         touch /home/runner/work/moptipy/moptipy/docs/build/.nojekyll
 # deploy to github pages
     - name: deploy documentation
-      uses: JamesIves/github-pages-deploy-action@65b5dfd4f5bcd3a7403bbc2959c144256167464e
+      uses: JamesIves/github-pages-deploy-action@v4.8.0
       with:
         branch: gh-pages
         folder: /home/runner/work/moptipy/moptipy/docs/build/

@@ -134,7 +134,7 @@ def compute_single_ert(source: Iterable[Progress],
         if idx >= 0:
             n_success += 1
         else:
-            idx = cast("np.integer", -1)
+            idx = -1
         time_sum += int(progress.time[idx])
     if time_sum <= 0:
         raise ValueError(f"Time sum cannot be {time_sum}.")

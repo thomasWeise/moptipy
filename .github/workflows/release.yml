@@ -13,10 +13,10 @@ jobs:
       id-token: write
     steps:
 # check out the github repository
-    - uses: actions/checkout@v4.1.6
+    - uses: actions/checkout@v7.0.0
 # set up python
     - name: set up python "3.12"
-      uses: actions/setup-python@v5.1.0
+      uses: actions/setup-python@v6.3.0
       with:
         python-version: "3.12"
 # clean-up
@@ -33,4 +33,4 @@ jobs:
         rm -rf /home/runner/work/moptipy/moptipy/dist/*.tar.xz
 # deploy to pypi
     - name: Publish package distributions to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
+      uses: pypa/gh-action-pypi-publish@v1.14.0

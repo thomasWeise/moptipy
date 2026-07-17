@@ -77,7 +77,8 @@ def test_operator_components() -> None:
                         f"differences instead of {lmv}.")
 
             xcpy = x.copy()
-            apply_move(x, dest, mv, random, 0 if (ri(3) <= 0) else ri(1, 1000))
+            apply_move(x, dest, mv, random, int(0 if (
+                ri(3) <= 0) else ri(1, 1000)))
             if not perm.is_equal(xcpy, x):
                 raise ValueError("applying move destroyed source")
             perm.validate(dest)

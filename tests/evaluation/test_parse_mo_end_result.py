@@ -1,10 +1,11 @@
 """Test parsing the multi-objective end results."""
 
 
-from typing import Final
+from typing import Final, cast
 
 from pycommons.io.path import Path
 from pycommons.io.temp import temp_dir
+from pycommons.strings.string_conv import str_to_bool
 
 from moptipy.algorithms.mo.nsga2 import NSGA2
 from moptipy.api.experiment import run_experiment
@@ -45,6 +46,16 @@ def test_parse_mo_end_result() -> None:
 
         results: list[EndResult] = list(from_logs(td))
         assert list.__len__(results) >= n_runs
+
+        for row in results:
+            assert row.x is None
+            assert row.y is not None
+            x = [str_to_bool(xx) for xx in row.y]
+            xn = len(x)
+            f = sum(x)
+            assert f == cast("MOEndResult", row).fs[1]
+            assert (xn - f) == cast("MOEndResult", row).fs[0]
+
         seeds: set[int] = set()
         for res in results:
             assert isinstance(res, MOEndResult)
@@ -61,3 +72,11 @@ def test_parse_mo_end_result() -> None:
         results_2 = list(from_csv(csv_file))
         results_2.sort()
         assert results_2 == results
+        for i, a in enumerate(results):
+            b = results_2[i]
+            assert ((a.x is None) and (b.x is None)) or (a.x == b.x)
+            assert a.x is None
+            assert b.x is None
+            assert a.y is not None
+            assert b.y is not None
+            assert ((a.y is None) and (b.y is None)) or (a.y == b.y)

@@ -33,6 +33,7 @@ from pycommons.io.csv import (
 from pycommons.io.csv import CsvReader as CsvReaderBase
 from pycommons.io.csv import CsvWriter as CsvWriterBase
 from pycommons.io.path import Path, file_path, write_lines
+from pycommons.strings.chars import NEWLINE
 from pycommons.strings.string_conv import (
     int_or_none_to_str,
     num_or_none_to_str,
@@ -60,6 +61,8 @@ from moptipy.api.logging import (
     PROGRESS_CURRENT_F,
     PROGRESS_FES,
     PROGRESS_TIME_MILLIS,
+    SCOPE_SEARCH_SPACE,
+    SCOPE_SOLUTION_SPACE,
     SECTION_PROGRESS,
 )
 from moptipy.evaluation._utils import (
@@ -138,6 +141,22 @@ DESC_MAX_TIME_MILLIS: Final[str] = (
     "algorithm gets told to stop (via should_terminate() becoming True) as "
     f"soon as this time has elapsed. But generally, {KEY_TOTAL_TIME_MILLIS}<="
     f"{KEY_MAX_TIME_MILLIS} approximately holds.")
+#: the CSV separator replacement
+__REPLACE_CSVSEP: Final[str] = "[SEP]"
+#: the newline replacement
+__REPLACE_NEWLINE: Final[str] = "[NEWLINE]"
+#: a description of the point in the search space
+DESC_SEARCH_SPACE: Final[str] = (
+    "the point in the search space corresponding to the result, if any."
+    " Here, any newline character or line break is replaced with "
+    f"{__REPLACE_NEWLINE!r} and any occurrence of {CSV_SEPARATOR!r} is "
+    f"replaced with {__REPLACE_CSVSEP!r}.")
+#: a description of the point in the solution space
+DESC_SOLUTION_SPACE: Final[str] = (
+    "the point in the candidate solution corresponding to the result, if any."
+    " Here, any newline character or line break is replaced with "
+    f"{__REPLACE_NEWLINE!r} and any occurrence of {CSV_SEPARATOR!r} is "
+    f"replaced with {__REPLACE_CSVSEP!r}.")
 
 
 @dataclass(frozen=True, init=False, order=False, eq=False)
@@ -173,6 +192,11 @@ class EndResult(PerRunData):
     #: The (optional) maximum runtime.
     max_time_millis: int | None
 
+    #: The (optional) point in the search space
+    x: str | None
+    #: The (optional) point in the solution space
+    y: str | None
+
     def __init__(self,
                  algorithm: str,
                  instance: str,
@@ -184,9 +208,11 @@ class EndResult(PerRunData):
                  last_improvement_time_millis: int,
                  total_fes: int,
                  total_time_millis: int,
-                 goal_f: int | float | None,
-                 max_fes: int | None,
-                 max_time_millis: int | None):
+                 goal_f: int | float | None = None,
+                 max_fes: int | None = None,
+                 max_time_millis: int | None = None,
+                 x: str | None = None,
+                 y: str | None = None):
         """
         Create a consistent instance of :class:`EndResult`.
 
@@ -204,6 +230,8 @@ class EndResult(PerRunData):
         :param goal_f: the goal objective value, if provide
         :param max_fes: the optional maximum FEs
         :param max_time_millis: the optional maximum runtime
+        :param x: the point in the search space, if any
+        :param y: the point in the solution space, if any
 
         :raises TypeError: if any parameter has a wrong type
         :raises ValueError: if the parameter values are inconsistent
@@ -243,6 +271,20 @@ class EndResult(PerRunData):
                                    total_fes,
                                    total_time_millis)
         object.__setattr__(self, "max_time_millis", max_time_millis)
+
+        use_x = x
+        if use_x is not None:
+            use_x = str.strip(use_x)
+            if str.__len__(use_x) <= 0:
+                raise ValueError(f"x cannot be {x!r}.")
+        object.__setattr__(self, "x", use_x)
+
+        use_y = y
+        if use_y is not None:
+            use_y = str.strip(use_y)
+            if str.__len__(use_y) <= 0:
+                raise ValueError(f"y cannot be {y!r}.")
+        object.__setattr__(self, "y", use_y)
 
     def _tuple(self) -> tuple[Any, ...]:
         """
@@ -482,6 +524,44 @@ def from_csv(file: str,
     logger(f"Done reading CSV file {path!r}.")
 
 
+def _point_to_csv(s: str | None) -> str:
+    """
+    Convert a solution or search space point to CSV.
+
+    :param s: the solution or point in the search space
+    :return: the CSV string
+    :raises ValueError: if the original string contains a character sequence
+        that cannot be converted to a CSV string
+    """
+    if s is None:
+        return ""
+    if __REPLACE_CSVSEP in s:
+        raise ValueError(f"Cannot serialize {s!r} to CSV because "
+                         f"it contains {__REPLACE_CSVSEP!r}.")
+    if __REPLACE_NEWLINE in s:
+        raise ValueError(f"Cannot serialize {s!r} to CSV because "
+                         f"it contains {__REPLACE_NEWLINE!r}.")
+    for nl in NEWLINE:
+        s = str.replace(s, nl, __REPLACE_NEWLINE)
+    return str.replace(s, CSV_SEPARATOR, __REPLACE_CSVSEP)
+
+
+def _csv_to_point(s: str | None) -> str | None:
+    """
+    Convert a CSV string to a solution or search space point.
+
+    :param s: the CSV string
+    :return: the CSV string
+    """
+    if s is None:
+        return None
+    s = str.strip(s)
+    if str.__len__(s) <= 0:
+        return None
+    return str.replace(str.replace(s, __REPLACE_NEWLINE, "\n"),
+                       __REPLACE_CSVSEP, CSV_SEPARATOR)
+
+
 class CsvWriter(CsvWriterBase):
     """A class for CSV writing of :class:`EndResult`."""
 
@@ -499,7 +579,9 @@ class CsvWriter(CsvWriterBase):
         no_max_fes: bool = True
         no_max_ms: bool = True
         no_goal_f: bool = True
-        check: int = 4
+        no_x: bool = True
+        no_y: bool = True
+        check: int = 6
         for er in data:
             if no_encoding and (er.encoding is not None):
                 no_encoding = False
@@ -522,6 +604,17 @@ class CsvWriter(CsvWriterBase):
                 check -= 1
                 if check <= 0:
                     break
+            if no_x and (er.x is not None):
+                no_x = False
+                check -= 1
+                if check <= 0:
+                    break
+            if no_y and (er.y is not None):
+                no_y = False
+                check -= 1
+                if check <= 0:
+                    break
+
         #: do we need the encoding?
         self.__needs_encoding: Final[bool] = not no_encoding
         #: do we need the max FEs?
@@ -530,6 +623,10 @@ class CsvWriter(CsvWriterBase):
         self.__needs_max_ms: Final[bool] = not no_max_ms
         #: do we need the goal F?
         self.__needs_goal_f: Final[bool] = not no_goal_f
+        #: do we need an `x` column?
+        self.__needs_x: Final[bool] = not no_x
+        #: do we need an `y` column?
+        self.__needs_y: Final[bool] = not no_y
 
     def get_column_titles(self) -> Iterable[str]:
         """
@@ -552,6 +649,10 @@ class CsvWriter(CsvWriterBase):
             data.append(KEY_MAX_FES)
         if self.__needs_max_ms:
             data.append(KEY_MAX_TIME_MILLIS)
+        if self.__needs_x:
+            data.append(SCOPE_SEARCH_SPACE)
+        if self.__needs_y:
+            data.append(SCOPE_SOLUTION_SPACE)
         return (csv_scope(p, q) for q in data)
 
     def get_row(self, data: EndResult) -> Iterable[str]:
@@ -578,6 +679,10 @@ class CsvWriter(CsvWriterBase):
             yield int_or_none_to_str(data.max_fes)
         if self.__needs_max_ms:
             yield int_or_none_to_str(data.max_time_millis)
+        if self.__needs_x:
+            yield _point_to_csv(data.x)
+        if self.__needs_y:
+            yield _point_to_csv(data.y)
 
     def get_header_comments(self) -> Iterable[str]:
         """
@@ -626,6 +731,12 @@ class CsvWriter(CsvWriterBase):
         if self.__needs_max_ms:
             yield (f"{csv_scope(scope, KEY_MAX_TIME_MILLIS)}: "
                    f"{DESC_MAX_TIME_MILLIS}")
+        if self.__needs_x:
+            yield (f"{csv_scope(scope, SCOPE_SEARCH_SPACE)}: "
+                   f"{DESC_SEARCH_SPACE}")
+        if self.__needs_y:
+            yield (f"{csv_scope(scope, SCOPE_SOLUTION_SPACE)}: "
+                   f"{SCOPE_SOLUTION_SPACE}")
 
     def get_footer_bottom_comments(self) -> Iterable[str]:
         """
@@ -686,6 +797,12 @@ class CsvReader(CsvReaderBase):
         #: budget constraint was defined
         self.__idx_max_ms: Final[int | None] = csv_column_or_none(
             columns, KEY_MAX_TIME_MILLIS)
+        #: the column with the search space element
+        self.__idx_x: Final[int | None] = csv_column_or_none(
+            columns, SCOPE_SEARCH_SPACE)
+        #: the column with the solution space element
+        self.__idx_y: Final[int | None] = csv_column_or_none(
+            columns, SCOPE_SOLUTION_SPACE)
 
     def parse_row(self, data: list[str]) -> EndResult:
         """
@@ -707,7 +824,9 @@ class CsvReader(CsvReaderBase):
             int(data[self.__idx_tt_ms]),  # total_time_millis
             csv_val_or_none(data, self.__idx_goal_f, str_to_num),
             csv_val_or_none(data, self.__idx_max_fes, int),  # max_fes
-            csv_val_or_none(data, self.__idx_max_ms, int))  # max_time_ms
+            csv_val_or_none(data, self.__idx_max_ms, int),  # max_time_ms
+            csv_val_or_none(data, self.__idx_x, _csv_to_point),  # x
+            csv_val_or_none(data, self.__idx_y, _csv_to_point))  # y
 
 
 #: the type variable for data to be read from the directories

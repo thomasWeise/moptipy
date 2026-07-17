@@ -370,7 +370,7 @@ def plot_end_statistics_over_param(
             algorithms.add_to_legend(handles.append)
 
         if len(handles) > 0:
-            axes.legend(loc=legend_pos,
+            axes.legend(loc=legend_pos,  # type: ignore
                         handles=handles,
                         labelcolor=[art.color if hasattr(art, "color")
                                     else pd.COLOR_BLACK for art in handles],

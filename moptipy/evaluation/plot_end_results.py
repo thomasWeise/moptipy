@@ -385,7 +385,7 @@ def plot_end_results(
             handles.append(Line2D(**linestyle))  # type: ignore
         z_order += 1
 
-        axes.legend(handles=handles, loc=legend_pos,
+        axes.legend(handles=handles, loc=legend_pos,  # type: ignore
                     labelcolor=pu.get_label_colors(handles),
                     fontsize=font_size_0).set_zorder(z_order)
 

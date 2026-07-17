@@ -22,8 +22,11 @@ from pycommons.strings.string_conv import (
 from pycommons.types import type_error
 
 from moptipy.api.logging import (
+    PREFIX_SECTION_ARCHIVE,
     SECTION_ARCHIVE_QUALITY,
     SECTION_PROGRESS,
+    SUFFIX_SECTION_ARCHIVE_X,
+    SUFFIX_SECTION_ARCHIVE_Y,
 )
 from moptipy.evaluation.end_results import CsvReader as CsvReaderBase
 from moptipy.evaluation.end_results import CsvWriter as CsvWriterBase
@@ -58,7 +61,9 @@ class MOEndResult(EndResult):
                  goal_f: int | float | None,
                  max_fes: int | None,
                  max_time_millis: int | None,
-                 fs: tuple[int | float, ...]) -> None:
+                 fs: tuple[int | float, ...],
+                 x: str | None = None,
+                 y: str | None = None) -> None:
         """
         Create the multi-objective end result record.
 
@@ -76,7 +81,9 @@ class MOEndResult(EndResult):
         :param goal_f: the goal objective value, if provide
         :param max_fes: the optional maximum FEs
         :param max_time_millis: the optional maximum runtime
-        :param fs: the objective value vectors
+        :param fs: the objective value vector
+        :param x: the optional point in the search space
+        :param y: the optional point in the solution space
 
         :raises TypeError: if any parameter has a wrong type
         :raises ValueError: if the parameter values are inconsistent
@@ -94,7 +101,9 @@ class MOEndResult(EndResult):
             total_time_millis=total_time_millis,
             goal_f=goal_f,
             max_fes=max_fes,
-            max_time_millis=max_time_millis)
+            max_time_millis=max_time_millis,
+            x=x,
+            y=y)
         fsc = tuple.__len__(fs)
         if fsc <= 0:
             raise ValueError("Number of objectives must be greater than 0.")
@@ -154,7 +163,8 @@ def from_csv(file: str,
     logger(f"Done reading CSV file {path!r}.")
 
 
-def from_logs(path: str) -> Generator[EndResult | MOEndResult, None, None]:
+def from_logs(path: str, parse_x: bool = True, parse_y: bool = True) \
+        -> Generator[EndResult | MOEndResult, None, None]:
     """
     Parse a given path and yield all (multi-objective) end results found.
 
@@ -165,8 +175,10 @@ def from_logs(path: str) -> Generator[EndResult | MOEndResult, None, None]:
     recursively for each log file found, one record is yielded.
 
     :param path: the path to parse
+    :param parse_x: should we parse the points in the search space, too?
+    :param parse_y: should we parse the points in the solution space, too?
     """
-    for group in __MOEndResultLogParser().parse(path):
+    for group in __MOEndResultLogParser(parse_x, parse_y).parse(path):
         yield from group
 
 
@@ -284,11 +296,30 @@ class CsvReader(CsvReaderBase):
             goal_f=res.goal_f,
             max_fes=res.max_fes,
             max_time_millis=res.max_time_millis,
-            fs=tuple(vals))
+            fs=tuple(vals),
+            x=res.x,
+            y=res.y)
 
 
 class __MOEndResultLogParser(Parser[Iterable[EndResult]]):
     """The internal log parser class."""
+
+    def __init__(self, parse_x: bool = True, parse_y: bool = True) -> None:
+        """
+        Parse the log files.
+
+        :param parse_x: whether to parse the x values
+        :param parse_y: whether to parse the y values
+        """
+        super().__init__()
+        if not isinstance(parse_x, bool):
+            raise type_error(parse_x, "parse_x", bool)
+        if not isinstance(parse_y, bool):
+            raise type_error(parse_y, "parse_y", bool)
+        #: shall we parse the points in the search space?
+        self.__parse_x: Final[bool] = parse_x
+        #: shall we parse the points in the solution space?
+        self.__parse_y: Final[bool] = parse_y
 
     def _parse_file(self, file: Path) -> Iterable[EndResult]:
         """
@@ -310,7 +341,7 @@ class __MOEndResultLogParser(Parser[Iterable[EndResult]]):
             raise ValueError(
                 f"Inconsistent number {count} of lines in file {file!r}")
 
-        # process the archive
+        # first, we process the archive to find all the retained points
         archive: Final[list[tuple[int | float, ...]]] = []
         begin: str = f"{SECTION_START}{SECTION_ARCHIVE_QUALITY}"
         end: str = f"{SECTION_END}{SECTION_ARCHIVE_QUALITY}"
@@ -345,7 +376,7 @@ class __MOEndResultLogParser(Parser[Iterable[EndResult]]):
         if state != 3:
             return (o, )
 
-        # first, we find the progress
+        # now, we find the progress to find out when the solutions emerged
         progress: Final[list[tuple[int | float, ...]]] = []
         begin = f"{SECTION_START}{SECTION_PROGRESS}"
         end = f"{SECTION_END}{SECTION_PROGRESS}"
@@ -385,6 +416,57 @@ class __MOEndResultLogParser(Parser[Iterable[EndResult]]):
         if count < 1:
             raise ValueError(f"No solution archived in file {file!r}.")
 
+        # Now we try to find the solutions and points matching them
+        x: dict[int, str] = {}
+        y: dict[int, str] = {}
+        if self.__parse_x or self.__parse_y:
+            current: list[str] = []
+            current_id: int = 0
+            state = 0
+            arc_start: Final[str] = f"{SECTION_START}{PREFIX_SECTION_ARCHIVE}"
+            arc_end: Final[str] = f"{SECTION_END}{PREFIX_SECTION_ARCHIVE}"
+
+            for line in lines:
+                if str.startswith(line, arc_start):
+                    if state != 0:
+                        raise ValueError(
+                            f"Inconsistent start state in {file!r}, "
+                            f"encountered {line!r}.")
+                    if str.endswith(line, SUFFIX_SECTION_ARCHIVE_X):
+                        current_id = int(line[len(arc_start):-len(
+                            SUFFIX_SECTION_ARCHIVE_X)])
+                        if current_id in x:
+                            raise ValueError(
+                                f"Encountered archive X {current_id} twice "
+                                f"in {file!r}.")
+                        state = 1
+                        current.clear()
+                        continue
+                    if str.endswith(line, SUFFIX_SECTION_ARCHIVE_Y):
+                        current_id = int(line[len(arc_start):-len(
+                            SUFFIX_SECTION_ARCHIVE_Y)])
+                        if current_id in x:
+                            raise ValueError(
+                                f"Encountered archive Y {current_id} twice "
+                                f"in {file!r}.")
+                        state = 2
+                        current.clear()
+                        continue
+                if state in {1, 2}:
+                    if str.startswith(line, arc_end):
+                        if state == 1:
+                            if self.__parse_x:
+                                x[current_id] = "\n".join(current)
+                        elif (state == 2) and self.__parse_y:
+                            y[current_id] = "\n".join(current)
+                        current.clear()
+                        state = 0
+                        continue
+                    current.append(line)
+
+            if state != 0:
+                raise ValueError(f"Inconsistent state in file {file!r}.")
+
         dim: Final[int] = tuple.__len__(archive[0])
         for solution in archive:
             if tuple.__len__(solution) != dim:
@@ -399,7 +481,7 @@ class __MOEndResultLogParser(Parser[Iterable[EndResult]]):
                     f"{time} in {file!r}, should be {dim + 2}.")
 
         out: list[MOEndResult] = []
-        for solution in archive:
+        for i, solution in enumerate(archive):
             found: tuple[int | float, ...] | None = None
             for time in progress:
                 if time[-dim:] == solution:
@@ -421,7 +503,9 @@ class __MOEndResultLogParser(Parser[Iterable[EndResult]]):
                 goal_f=o.goal_f,
                 max_fes=o.max_fes,
                 max_time_millis=o.max_time_millis,
-                fs=solution[1:]))
+                fs=solution[1:],
+                x=x.get(i),
+                y=y.get(i)))
         self._progress_logger(f"Done parsing file {file!r} multi-objectively.")
         return out
 

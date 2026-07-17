@@ -1,7 +1,7 @@
 """Statistic runs are time-depending statistics over several runs."""
 from dataclasses import dataclass
 from math import erf, sqrt
-from typing import Any, Callable, Final, Iterable
+from typing import Any, Callable, Final, Iterable, cast
 
 import numba  # type: ignore
 import numpy as np
@@ -319,18 +319,18 @@ STAT_Q841: Final[str] = "q841"
 
 #: The internal function map.
 _FUNC_MAP: Final[dict[str, Callable[[np.ndarray], float]]] = {
-    STAT_MINIMUM: __stat_min,
-    STAT_MEDIAN: __stat_median,
-    STAT_MEAN_ARITH: __stat_arith_mean,
-    STAT_MEAN_GEOM: __stat_geo_mean,
-    STAT_MAXIMUM: __stat_max,
-    STAT_STDDEV: __stat_sd,
-    STAT_MEAN_MINUS_STDDEV: __stat_mean_minus_sd,
-    STAT_MEAN_PLUS_STDDEV: __stat_mean_plus_sd,
-    STAT_Q10: __stat_quantile_10,
-    STAT_Q90: __stat_quantile_90,
-    STAT_Q159: __stat_quantile_159,
-    STAT_Q841: __stat_quantile_841,
+    STAT_MINIMUM: cast("Any", __stat_min),
+    STAT_MEDIAN: cast("Any", __stat_median),
+    STAT_MEAN_ARITH: cast("Any", __stat_arith_mean),
+    STAT_MEAN_GEOM: cast("Any", __stat_geo_mean),
+    STAT_MAXIMUM: cast("Any", __stat_max),
+    STAT_STDDEV: cast("Any", __stat_sd),
+    STAT_MEAN_MINUS_STDDEV: cast("Any", __stat_mean_minus_sd),
+    STAT_MEAN_PLUS_STDDEV: cast("Any", __stat_mean_plus_sd),
+    STAT_Q10: cast("Any", __stat_quantile_10),
+    STAT_Q90: cast("Any", __stat_quantile_90),
+    STAT_Q159: cast("Any", __stat_quantile_159),
+    STAT_Q841: cast("Any", __stat_quantile_841),
 }
 
 

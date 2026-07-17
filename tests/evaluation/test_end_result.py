@@ -3,16 +3,41 @@
 from typing import Final
 
 from numpy.random import Generator, default_rng
+from pycommons.io.csv import CSV_SEPARATOR
 from pycommons.io.temp import temp_file
 
 from moptipy.evaluation.end_results import EndResult, from_csv, to_csv
 
 
+def __fake_str(random: Generator, has_already: bool) -> str | None:
+    """
+    Make a fake string.
+
+    :param random: Generator instance.
+    :param has_already: did we already have an end result?
+    :returns: the fake string
+    """
+    if has_already and (random.integers(3) <= 0):
+        return None
+    s = ""
+    while True:
+        if str.__len__(s) > 0:
+            s += "\n" if random.integers(2) <= 0 else CSV_SEPARATOR
+        s += str(int(random.integers(1, 1_000_000)))
+        if random.integers(3) <= 0:
+            break
+    return s
+
+
 def __test_write_read_end_result(
+        min_len: int,
+        max_len: int,
         has_encoding: bool,
         has_goal_f: bool,
         has_max_fes: bool,
-        has_max_ms: bool) -> None:
+        has_max_ms: bool,
+        has_x: bool = False,
+        has_y: bool = False) -> None:
     """Test writing and reading end results."""
     random: Final[Generator] = default_rng()
     results: list[EndResult] = []
@@ -23,9 +48,13 @@ def __test_write_read_end_result(
     fake_encodings: Final[list[str | None]] = ["e1", "e2", "e3", "e4", None] \
         if has_encoding else [None]
 
+    already_x: bool = False
+    already_y: bool = False
     while True:
         length = len(results)
-        if (length > 10) and (random.integers(10) <= 0):
+        if length >= max_len:
+            break
+        if (length > min_len) and (random.integers(10) <= 0):
             break
 
         best_f = int(random.integers(1_000)) \
@@ -34,6 +63,10 @@ def __test_write_read_end_result(
         li_ms = int(random.integers(1, 1_000_000))
         total_fe = int(random.integers(li_fe, li_fe + 1_000_000))
         total_ms = int(random.integers(li_ms, li_ms + 1_000_000))
+        x: str | None = __fake_str(random, already_x) if has_x else None
+        already_x = already_x or x is not None
+        y: str | None = __fake_str(random, already_y) if has_y else None
+        already_y = already_y or y is not None
 
         goal_f = None
         if has_goal_f:
@@ -56,7 +89,7 @@ def __test_write_read_end_result(
                       random.choice(fake_encodings),
                       int(random.integers(0, 1_000_000_000_000)),
                       best_f, li_fe, li_ms, total_fe, total_ms, goal_f,
-                      max_fes, max_ms))
+                      max_fes, max_ms, x, y))
 
     assert len(results) > 0
     loaded: list[EndResult] = []
@@ -68,14 +101,25 @@ def __test_write_read_end_result(
     results.sort()
     loaded.sort()
     assert results == loaded
+    for i, a in enumerate(results):
+        b = loaded[i]
+        assert (a.x is None and b.x is None) or (a.x == b.x)
+        assert (a.y is None and b.y is None) or (a.y == b.y)
 
 
 def test_write_read_end_result() -> None:
     """Test writing and reading end results."""
     choices: Final[tuple[bool, bool]] = True, False
-    for has_encoding in choices:
-        for has_goal_f in choices:
-            for has_max_fes in choices:
-                for has_max_ms in choices:
-                    __test_write_read_end_result(
-                        has_encoding, has_goal_f, has_max_fes, has_max_ms)
+    for min_len in (1, 2, 3, 10):
+        for max_len in (min_len, min_len + 1, min_len + 100000):
+            for has_encoding in choices:
+                for has_goal_f in choices:
+                    for has_max_fes in choices:
+                        for has_max_ms in choices:
+                            for has_x in choices:
+                                for has_y in choices:
+                                    __test_write_read_end_result(
+                                        min_len, max_len,
+                                        has_encoding, has_goal_f,
+                                        has_max_fes, has_max_ms,
+                                        has_x, has_y)

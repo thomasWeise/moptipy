@@ -103,10 +103,11 @@ def gantt_min_feasible(jobs: int, machines: int) \
         lst = [[0, 1]] * (jobs - (jobs // 2))
         lst.extend([[1, 0]] * (jobs // 2))
         dest = np.array(lst, dtype=np.uint8)
-        res = __enumerate_feasible_for(jobs, machines, dest)
+        res = int(__enumerate_feasible_for(  # type: ignore
+            jobs, machines, dest))  # type: ignore
     else:  # more than two machines: need to enumerate
         dest = np.ndarray(shape=(jobs, machines), dtype=np.uint8)
-        res = int(__find_min_feasible(np.int64(jobs),
+        res = int(__find_min_feasible(np.int64(jobs),  # type: ignore
                                       np.int64(machines), dest))
 
     # turn the result into a tuple
@@ -164,7 +165,7 @@ def __find_min_feasible(jobs: np.int64, machines: np.int64,
     upper_bound: np.int64 = np.int64(9223372036854775807)
 
     for i in range(jobs):
-        __first_perm(instance[i], inst_index, i, machines)
+        __first_perm(instance[i], inst_index, i, machines)  # type: ignore
 
     while True:
         if __check_sorted(instance, jobs, machines):
@@ -180,7 +181,7 @@ def __find_min_feasible(jobs: np.int64, machines: np.int64,
             if k < 0:
                 return upper_bound
         for j in range(k + 1, jobs):
-            __first_perm(instance[j], inst_index, j, machines)
+            __first_perm(instance[j], inst_index, j, machines)  # type: ignore
 
 
 @numba.njit(nogil=True)
@@ -375,7 +376,7 @@ def __enumerate_feasible(instance: np.ndarray,
     """
     counter: np.int64 = np.int64(0)
     for z in range(machines):
-        __first_perm(gantt[z], index, z, jobs)
+        __first_perm(gantt[z], index, z, jobs)  # type: ignore
 
     while True:
         if __is_feasible(instance, gantt, job_state, gantt_state,
@@ -392,7 +393,7 @@ def __enumerate_feasible(instance: np.ndarray,
                 if __is_feasible(instance, gantt, job_state, gantt_state,
                                  jobs, machines, i + 1):
                     for j in range(i + 1, machines):
-                        __first_perm(gantt[j], index, j, jobs)
+                        __first_perm(gantt[j], index, j, jobs)  # type: ignore
                     break
             else:
                 i -= 1
