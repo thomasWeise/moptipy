@@ -1,0 +1,98 @@
+moptipy.algorithms.so.ffa package
+=================================
+
+.. automodule:: moptipy.algorithms.so.ffa
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+moptipy.algorithms.so.ffa.eafea module
+--------------------------------------
+
+.. automodule:: moptipy.algorithms.so.ffa.eafea
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.so.ffa.eafea\_a module
+-----------------------------------------
+
+.. automodule:: moptipy.algorithms.so.ffa.eafea_a
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.so.ffa.eafea\_b module
+-----------------------------------------
+
+.. automodule:: moptipy.algorithms.so.ffa.eafea_b
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.so.ffa.eafea\_n module
+-----------------------------------------
+
+.. automodule:: moptipy.algorithms.so.ffa.eafea_n
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.so.ffa.fea1plus1 module
+------------------------------------------
+
+.. automodule:: moptipy.algorithms.so.ffa.fea1plus1
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.so.ffa.ffa\_fitness module
+---------------------------------------------
+
+.. automodule:: moptipy.algorithms.so.ffa.ffa_fitness
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.so.ffa.ffa\_h module
+---------------------------------------
+
+.. automodule:: moptipy.algorithms.so.ffa.ffa_h
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.so.ffa.ffa\_hill\_climber module
+---------------------------------------------------
+
+.. automodule:: moptipy.algorithms.so.ffa.ffa_hill_climber
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.so.ffa.safea\_a module
+-----------------------------------------
+
+.. automodule:: moptipy.algorithms.so.ffa.safea_a
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.so.ffa.safea\_b module
+-----------------------------------------
+
+.. automodule:: moptipy.algorithms.so.ffa.safea_b
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.so.ffa.safea\_n module
+-----------------------------------------
+
+.. automodule:: moptipy.algorithms.so.ffa.safea_n
+   :members:
+   :show-inheritance:
+   :undoc-members:

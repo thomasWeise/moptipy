@@ -1,0 +1,60 @@
+moptipy.algorithms package
+==========================
+
+.. automodule:: moptipy.algorithms
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   moptipy.algorithms.mo
+   moptipy.algorithms.modules
+   moptipy.algorithms.so
+
+Submodules
+----------
+
+moptipy.algorithms.luby\_restarts module
+----------------------------------------
+
+.. automodule:: moptipy.algorithms.luby_restarts
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.random\_sampling module
+------------------------------------------
+
+.. automodule:: moptipy.algorithms.random_sampling
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.random\_walk module
+--------------------------------------
+
+.. automodule:: moptipy.algorithms.random_walk
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.restarts module
+----------------------------------
+
+.. automodule:: moptipy.algorithms.restarts
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.single\_random\_sample module
+------------------------------------------------
+
+.. automodule:: moptipy.algorithms.single_random_sample
+   :members:
+   :show-inheritance:
+   :undoc-members:

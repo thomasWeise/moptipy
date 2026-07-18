@@ -1,0 +1,177 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.mo_selector — moptipy 0.9.185 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=138d7107"></script><script src="../../../_static/doctools.js?v=fd6eb6e6"></script><script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/mo_selector.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.185 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.mo_selector</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.mo_selector</h1><div class=highlight><pre>
+<span></span><span class=sd>"""</span>
+<span class=sd>A tool for selecting multi-objective data.</span>
+
+<span class=sd>Different from :func:`~moptipy.evaluation.selector.select_consistent`, the</span>
+<span class=sd>function :func:`~moptipy.evaluation.mo_selector.mo_select_consistent` can</span>
+<span class=sd>deal with multi-objective data.</span>
+<span class=sd>The difference is that such data may contain multiple results per run.</span>
+<span class=sd>"""</span>
+
+
+<span class=kn>from</span><span class=w> </span><span class=nn>operator</span><span class=w> </span><span class=kn>import</span> <span class=n>itemgetter</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>TypeVar</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.base</span><span class=w> </span><span class=kn>import</span> <span class=n>PerRunData</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.selector</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>SELECTOR_MAX_RUNS</span><span class=p>,</span>
+    <span class=n>Selector</span><span class=p>,</span>
+    <span class=n>select_consistent</span><span class=p>,</span>
+<span class=p>)</span>
+
+<span class=c1>#: the type variable for the selector routine</span>
+<span class=n>T</span> <span class=o>=</span> <span class=n>TypeVar</span><span class=p>(</span><span class=s2>"T"</span><span class=p>,</span> <span class=n>bound</span><span class=o>=</span><span class=n>PerRunData</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=mo_select_consistent>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.mo_selector.mo_select_consistent>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>mo_select_consistent</span><span class=p>(</span>
+        <span class=n>data</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>T</span><span class=p>],</span>
+        <span class=n>selectors</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>Selector</span><span class=p>]</span> <span class=o>=</span> <span class=n>SELECTOR_MAX_RUNS</span><span class=p>)</span> <span class=o>-></span> <span class=nb>list</span><span class=p>[</span><span class=n>T</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Select a consistent subset of data which may be multi-objective.</span>
+
+<span class=sd>    :param data: The input data stream</span>
+<span class=sd>    :param selectors: the selectors that should be used</span>
+<span class=sd>    :return: the selected data</span>
+
+<span class=sd>    >>> def __p(x) -> str:</span>
+<span class=sd>    ...     return (f"{x.algorithm}/{x.instance}/{x.objective}/{x.encoding}/"</span>
+<span class=sd>    ...             f"{x.rand_seed}")</span>
+
+<span class=sd>    >>> from moptipy.evaluation.selector import SELECTOR_SAME_SEEDS_FOR_ALL</span>
+
+<span class=sd>    >>> a1i1o1e1s1 = PerRunData("a1", "i1", "o1", "e1", 1)</span>
+<span class=sd>    >>> a1i1o1e1s2 = PerRunData("a1", "i1", "o1", "e1", 2)</span>
+<span class=sd>    >>> a1i1o1e1s3 = PerRunData("a1", "i1", "o1", "e1", 3)</span>
+<span class=sd>    >>> a1i2o1e1s1 = PerRunData("a1", "i2", "o1", "e1", 1)</span>
+<span class=sd>    >>> a1i2o1e1s2 = PerRunData("a1", "i2", "o1", "e1", 2)</span>
+<span class=sd>    >>> a1i2o1e1s3 = PerRunData("a1", "i2", "o1", "e1", 3)</span>
+<span class=sd>    >>> a2i1o1e1s1 = PerRunData("a2", "i1", "o1", "e1", 1)</span>
+<span class=sd>    >>> a2i1o1e1s2 = PerRunData("a2", "i1", "o1", "e1", 2)</span>
+<span class=sd>    >>> a2i1o1e1s3 = PerRunData("a2", "i1", "o1", "e1", 3)</span>
+<span class=sd>    >>> a2i2o1e1s1 = PerRunData("a1", "i2", "o1", "e1", 1)</span>
+<span class=sd>    >>> a2i2o1e1s2 = PerRunData("a2", "i2", "o1", "e1", 2)</span>
+<span class=sd>    >>> a2i2o1e1s3 = PerRunData("a2", "i2", "o1", "e1", 3)</span>
+
+<span class=sd>    >>> list(map(__p, mo_select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s1, a1i1o1e1s2, a1i1o1e1s3, a1i2o1e1s2,</span>
+<span class=sd>    ...     a1i2o1e1s1, a1i2o1e1s2, a1i2o1e1s3,</span>
+<span class=sd>    ...     a2i1o1e1s1, a2i1o1e1s2, a1i1o1e1s1,</span>
+<span class=sd>    ...     a2i2o1e1s2, a2i2o1e1s3))))</span>
+<span class=sd>    ['a1/i1/o1/e1/1', 'a1/i1/o1/e1/1', 'a1/i1/o1/e1/2', 'a1/i2/o1/e1/2', \</span>
+<span class=sd>'a1/i2/o1/e1/2', 'a1/i2/o1/e1/3', 'a2/i1/o1/e1/1', 'a2/i1/o1/e1/2', \</span>
+<span class=sd>'a2/i2/o1/e1/2', 'a2/i2/o1/e1/3']</span>
+
+<span class=sd>    >>> list(map(__p, mo_select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s2, a1i1o1e1s3, a1i1o1e1s3, a1i2o1e1s1,</span>
+<span class=sd>    ...     a1i2o1e1s1, a1i2o1e1s2, a1i2o1e1s3, a1i2o1e1s1,</span>
+<span class=sd>    ...     a2i1o1e1s1, a2i1o1e1s2,</span>
+<span class=sd>    ...     a2i2o1e1s2, a2i2o1e1s3))))</span>
+<span class=sd>    ['a1/i1/o1/e1/2', 'a1/i2/o1/e1/3', 'a2/i1/o1/e1/2', 'a2/i2/o1/e1/3']</span>
+
+<span class=sd>    >>> list(map(__p, mo_select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s2, a1i1o1e1s3, a1i1o1e1s3, a1i1o1e1s3,</span>
+<span class=sd>    ...     a1i2o1e1s1, a1i2o1e1s2, a1i2o1e1s3,</span>
+<span class=sd>    ...     a2i1o1e1s1, a2i1o1e1s2, a1i1o1e1s3,</span>
+<span class=sd>    ...     a2i2o1e1s2))))</span>
+<span class=sd>    ['a1/i1/o1/e1/2', 'a1/i2/o1/e1/2', 'a2/i1/o1/e1/2', 'a2/i2/o1/e1/2']</span>
+
+<span class=sd>    >>> list(map(__p, mo_select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s1, a1i1o1e1s2, a1i1o1e1s3, a1i1o1e1s2, a1i1o1e1s2,</span>
+<span class=sd>    ...     a2i2o1e1s1, a2i2o1e1s2, a2i2o1e1s3))))</span>
+<span class=sd>    ['a1/i1/o1/e1/1', 'a1/i1/o1/e1/2', 'a1/i1/o1/e1/2', 'a1/i1/o1/e1/2', \</span>
+<span class=sd>'a1/i1/o1/e1/3']</span>
+
+<span class=sd>    >>> list(map(__p, mo_select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s1, a1i1o1e1s2, a1i1o1e1s3, a2i1o1e1s2, a2i1o1e1s2,</span>
+<span class=sd>    ...     a2i1o1e1s1, a2i1o1e1s2, a2i1o1e1s3))))</span>
+<span class=sd>    ['a1/i1/o1/e1/1', 'a1/i1/o1/e1/2', 'a1/i1/o1/e1/3', 'a2/i1/o1/e1/1', \</span>
+<span class=sd>'a2/i1/o1/e1/2', 'a2/i1/o1/e1/2', 'a2/i1/o1/e1/2', 'a2/i1/o1/e1/3']</span>
+
+<span class=sd>    >>> list(map(__p, mo_select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s1, a1i1o1e1s1, a1i1o1e1s2, a1i2o1e1s2, a1i2o1e1s3))))</span>
+<span class=sd>    ['a1/i1/o1/e1/1', 'a1/i1/o1/e1/1', 'a1/i1/o1/e1/2', 'a1/i2/o1/e1/2', \</span>
+<span class=sd>'a1/i2/o1/e1/3']</span>
+
+<span class=sd>    >>> list(map(__p, mo_select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s1, a1i1o1e1s2, a1i1o1e1s2, a1i2o1e1s2))))</span>
+<span class=sd>    ['a1/i1/o1/e1/1', 'a1/i2/o1/e1/2']</span>
+
+<span class=sd>    >>> list(map(__p, mo_select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s1, a1i1o1e1s1, a1i1o1e1s1, a1i1o1e1s1, a2i1o1e1s2))))</span>
+<span class=sd>    ['a1/i1/o1/e1/1', 'a1/i1/o1/e1/1', 'a1/i1/o1/e1/1', 'a1/i1/o1/e1/1']</span>
+
+<span class=sd>    >>> list(map(__p, mo_select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s1, a2i1o1e1s2, a2i1o1e1s3))))</span>
+<span class=sd>    ['a2/i1/o1/e1/2', 'a2/i1/o1/e1/3']</span>
+
+<span class=sd>    >>> list(map(__p, mo_select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s1, a1i1o1e1s2, a1i1o1e1s3,</span>
+<span class=sd>    ...     a1i2o1e1s1, a1i2o1e1s2, a1i2o1e1s3,</span>
+<span class=sd>    ...     a2i1o1e1s1, a2i1o1e1s2,</span>
+<span class=sd>    ...     a2i2o1e1s2, a2i2o1e1s3), SELECTOR_SAME_SEEDS_FOR_ALL)))</span>
+<span class=sd>    ['a1/i1/o1/e1/1', 'a1/i1/o1/e1/2', 'a1/i2/o1/e1/2', 'a1/i2/o1/e1/3', \</span>
+<span class=sd>'a2/i1/o1/e1/1', 'a2/i1/o1/e1/2', 'a2/i2/o1/e1/2', 'a2/i2/o1/e1/3']</span>
+
+<span class=sd>    >>> list(map(__p, mo_select_consistent((</span>
+<span class=sd>    ...     a1i1o1e1s1, a1i1o1e1s2, a1i1o1e1s3,</span>
+<span class=sd>    ...     a1i2o1e1s1, a1i2o1e1s2, a1i2o1e1s3,</span>
+<span class=sd>    ...     a2i1o1e1s1, a2i1o1e1s2,</span>
+<span class=sd>    ...     a2i2o1e1s2, ), SELECTOR_SAME_SEEDS_FOR_ALL)))</span>
+<span class=sd>    ['a1/i1/o1/e1/1', 'a1/i1/o1/e1/2', 'a1/i2/o1/e1/2', \</span>
+<span class=sd>'a2/i1/o1/e1/1', 'a2/i1/o1/e1/2', 'a2/i2/o1/e1/2']</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     mo_select_consistent(1)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(te)</span>
+<span class=sd>    data should be an instance of typing.Iterable but is int, namely 1.</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     mo_select_consistent({234})</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(str(te)[:20])</span>
+<span class=sd>    data[0] should be an</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     mo_select_consistent((a1i1o1e1s1, a1i1o1e1s2, a1i2o1e1s2), 1)</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(str(te)[:19])</span>
+<span class=sd>    selectors should be</span>
+
+<span class=sd>    >>> try:</span>
+<span class=sd>    ...     mo_select_consistent((a1i1o1e1s1, a1i1o1e1s2, a1i2o1e1s2), (1, ))</span>
+<span class=sd>    ... except TypeError as te:</span>
+<span class=sd>    ...     print(str(te)[:21])</span>
+<span class=sd>    selectors[0] should b</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=s2>"data"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>selectors</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>selectors</span><span class=p>,</span> <span class=s2>"selectors"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+
+    <span class=n>mo_map</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>,</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span> <span class=nb>int</span><span class=p>],</span> <span class=nb>list</span><span class=p>[</span><span class=n>T</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{}</span>
+    <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>item</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>data</span><span class=p>):</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>item</span><span class=p>,</span> <span class=n>PerRunData</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>item</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"data[</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>]"</span><span class=p>,</span> <span class=n>PerRunData</span><span class=p>)</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=p>(</span><span class=n>item</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span> <span class=n>item</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>item</span><span class=o>.</span><span class=n>objective</span><span class=p>,</span> <span class=n>item</span><span class=o>.</span><span class=n>encoding</span><span class=p>,</span>
+               <span class=n>item</span><span class=o>.</span><span class=n>rand_seed</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>key</span> <span class=ow>in</span> <span class=n>mo_map</span><span class=p>:</span>
+            <span class=n>mo_map</span><span class=p>[</span><span class=n>key</span><span class=p>]</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>item</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+            <span class=n>mo_map</span><span class=p>[</span><span class=n>key</span><span class=p>]</span> <span class=o>=</span> <span class=p>[</span><span class=n>item</span><span class=p>]</span>
+
+    <span class=n>raw</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>T</span><span class=p>]</span> <span class=o>=</span> <span class=n>select_consistent</span><span class=p>(</span><span class=nb>map</span><span class=p>(</span>
+        <span class=n>itemgetter</span><span class=p>(</span><span class=mi>0</span><span class=p>),</span> <span class=n>mo_map</span><span class=o>.</span><span class=n>values</span><span class=p>()),</span> <span class=n>selectors</span><span class=p>)</span>
+    <span class=n>result</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>T</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+    <span class=k>for</span> <span class=n>item</span> <span class=ow>in</span> <span class=n>raw</span><span class=p>:</span>
+        <span class=n>key</span> <span class=o>=</span> <span class=p>(</span><span class=n>item</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span> <span class=n>item</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span> <span class=n>item</span><span class=o>.</span><span class=n>objective</span><span class=p>,</span> <span class=n>item</span><span class=o>.</span><span class=n>encoding</span><span class=p>,</span>
+               <span class=n>item</span><span class=o>.</span><span class=n>rand_seed</span><span class=p>)</span>
+        <span class=n>result</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>mo_map</span><span class=p>[</span><span class=n>key</span><span class=p>])</span>
+    <span class=n>result</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+    <span class=k>return</span> <span class=n>result</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.185 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.mo_selector</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

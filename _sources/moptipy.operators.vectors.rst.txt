@@ -1,0 +1,18 @@
+moptipy.operators.vectors package
+=================================
+
+.. automodule:: moptipy.operators.vectors
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+moptipy.operators.vectors.op0\_uniform module
+---------------------------------------------
+
+.. automodule:: moptipy.operators.vectors.op0_uniform
+   :members:
+   :show-inheritance:
+   :undoc-members:

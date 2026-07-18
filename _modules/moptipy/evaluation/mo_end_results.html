@@ -1,0 +1,579 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.mo_end_results — moptipy 0.9.185 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=138d7107"></script><script src="../../../_static/doctools.js?v=fd6eb6e6"></script><script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/mo_end_results.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.185 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.mo_end_results</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.mo_end_results</h1><div class=highlight><pre>
+<span></span><span class=sd>"""A set of end results from a multi-objective run."""</span>
+
+<span class=kn>import</span><span class=w> </span><span class=nn>argparse</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>dataclasses</span><span class=w> </span><span class=kn>import</span> <span class=n>dataclass</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>itertools</span><span class=w> </span><span class=kn>import</span> <span class=n>chain</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span><span class=p>,</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Generator</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>,</span> <span class=n>cast</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.ds.sequences</span><span class=w> </span><span class=kn>import</span> <span class=n>reiterable</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.console</span><span class=w> </span><span class=kn>import</span> <span class=n>logger</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.csv</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>CSV_SEPARATOR</span><span class=p>,</span>
+    <span class=n>csv_column</span><span class=p>,</span>
+    <span class=n>csv_scope</span><span class=p>,</span>
+    <span class=n>csv_val_or_none</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.parser</span><span class=w> </span><span class=kn>import</span> <span class=n>Parser</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span><span class=p>,</span> <span class=n>file_path</span><span class=p>,</span> <span class=n>write_lines</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.strings.string_conv</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>num_to_str</span><span class=p>,</span>
+    <span class=n>str_to_num</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>PREFIX_SECTION_ARCHIVE</span><span class=p>,</span>
+    <span class=n>SECTION_ARCHIVE_QUALITY</span><span class=p>,</span>
+    <span class=n>SECTION_PROGRESS</span><span class=p>,</span>
+    <span class=n>SUFFIX_SECTION_ARCHIVE_X</span><span class=p>,</span>
+    <span class=n>SUFFIX_SECTION_ARCHIVE_Y</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_results</span><span class=w> </span><span class=kn>import</span> <span class=n>CsvReader</span> <span class=k>as</span> <span class=n>CsvReaderBase</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_results</span><span class=w> </span><span class=kn>import</span> <span class=n>CsvWriter</span> <span class=k>as</span> <span class=n>CsvWriterBase</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_results</span><span class=w> </span><span class=kn>import</span> <span class=n>EndResult</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_results</span><span class=w> </span><span class=kn>import</span> <span class=n>EndResultLogParser</span> <span class=k>as</span> <span class=n>_Erlp</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.help</span><span class=w> </span><span class=kn>import</span> <span class=n>moptipy_argparser</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>SECTION_END</span><span class=p>,</span>
+    <span class=n>SECTION_START</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.math</span><span class=w> </span><span class=kn>import</span> <span class=n>try_int</span>
+
+
+<div class=viewcode-block id=MOEndResult>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.mo_end_results.MOEndResult>[docs]</a>
+<span class=nd>@dataclass</span><span class=p>(</span><span class=n>frozen</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>init</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>order</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span> <span class=n>eq</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span>
+<span class=k>class</span><span class=w> </span><span class=nc>MOEndResult</span><span class=p>(</span><span class=n>EndResult</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A multi-objective end result record."""</span>
+
+    <span class=c1>#: The objective values for the subordinate objective functions.</span>
+    <span class=n>fs</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span>
+                 <span class=n>algorithm</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>instance</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>objective</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                 <span class=n>encoding</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>rand_seed</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>best_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span>
+                 <span class=n>last_improvement_fe</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>last_improvement_time_millis</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>total_fes</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>total_time_millis</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span>
+                 <span class=n>goal_f</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>max_fes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>max_time_millis</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>fs</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>],</span>
+                 <span class=n>x</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+                 <span class=n>y</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create the multi-objective end result record.</span>
+
+<span class=sd>        :param algorithm: the algorithm name</span>
+<span class=sd>        :param instance: the instance name</span>
+<span class=sd>        :param objective: the name of the objective function</span>
+<span class=sd>        :param encoding: the name of the encoding that was used, if any, or</span>
+<span class=sd>            `None` if no encoding was used</span>
+<span class=sd>        :param rand_seed: the random seed</span>
+<span class=sd>        :param best_f: the best reached objective value</span>
+<span class=sd>        :param last_improvement_fe: the FE when best_f was reached</span>
+<span class=sd>        :param last_improvement_time_millis: the time when best_f was reached</span>
+<span class=sd>        :param total_fes: the total FEs</span>
+<span class=sd>        :param total_time_millis: the total runtime</span>
+<span class=sd>        :param goal_f: the goal objective value, if provide</span>
+<span class=sd>        :param max_fes: the optional maximum FEs</span>
+<span class=sd>        :param max_time_millis: the optional maximum runtime</span>
+<span class=sd>        :param fs: the objective value vector</span>
+<span class=sd>        :param x: the optional point in the search space</span>
+<span class=sd>        :param y: the optional point in the solution space</span>
+
+<span class=sd>        :raises TypeError: if any parameter has a wrong type</span>
+<span class=sd>        :raises ValueError: if the parameter values are inconsistent</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span>
+            <span class=n>algorithm</span><span class=o>=</span><span class=n>algorithm</span><span class=p>,</span>
+            <span class=n>instance</span><span class=o>=</span><span class=n>instance</span><span class=p>,</span>
+            <span class=n>objective</span><span class=o>=</span><span class=n>objective</span><span class=p>,</span>
+            <span class=n>encoding</span><span class=o>=</span><span class=n>encoding</span><span class=p>,</span>
+            <span class=n>rand_seed</span><span class=o>=</span><span class=n>rand_seed</span><span class=p>,</span>
+            <span class=n>best_f</span><span class=o>=</span><span class=n>best_f</span><span class=p>,</span>
+            <span class=n>last_improvement_fe</span><span class=o>=</span><span class=n>last_improvement_fe</span><span class=p>,</span>
+            <span class=n>last_improvement_time_millis</span><span class=o>=</span><span class=n>last_improvement_time_millis</span><span class=p>,</span>
+            <span class=n>total_fes</span><span class=o>=</span><span class=n>total_fes</span><span class=p>,</span>
+            <span class=n>total_time_millis</span><span class=o>=</span><span class=n>total_time_millis</span><span class=p>,</span>
+            <span class=n>goal_f</span><span class=o>=</span><span class=n>goal_f</span><span class=p>,</span>
+            <span class=n>max_fes</span><span class=o>=</span><span class=n>max_fes</span><span class=p>,</span>
+            <span class=n>max_time_millis</span><span class=o>=</span><span class=n>max_time_millis</span><span class=p>,</span>
+            <span class=n>x</span><span class=o>=</span><span class=n>x</span><span class=p>,</span>
+            <span class=n>y</span><span class=o>=</span><span class=n>y</span><span class=p>)</span>
+        <span class=n>fsc</span> <span class=o>=</span> <span class=nb>tuple</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>fs</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>fsc</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Number of objectives must be greater than 0."</span><span class=p>)</span>
+        <span class=n>fsu</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>changed</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
+        <span class=k>for</span> <span class=n>val</span> <span class=ow>in</span> <span class=n>fs</span><span class=p>:</span>
+            <span class=n>val2</span> <span class=o>=</span> <span class=n>try_int</span><span class=p>(</span><span class=n>val</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>val2</span> <span class=ow>is</span> <span class=ow>not</span> <span class=n>val</span><span class=p>:</span>
+                <span class=n>changed</span> <span class=o>=</span> <span class=kc>True</span>
+            <span class=n>fsu</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>val2</span><span class=p>)</span>
+        <span class=nb>object</span><span class=o>.</span><span class=fm>__setattr__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=s2>"fs"</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>fsu</span><span class=p>)</span> <span class=k>if</span> <span class=n>changed</span> <span class=k>else</span> <span class=n>fs</span><span class=p>)</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_tuple</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>tuple</span><span class=p>[</span><span class=n>Any</span><span class=p>,</span> <span class=o>...</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the comparison tuple.</span>
+
+<span class=sd>        :return: the comparison tuple</span>
+<span class=sd>        """</span>
+        <span class=n>cr</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>_tuple</span><span class=p>())</span>
+        <span class=n>cr</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>fs</span><span class=p>)</span>
+        <span class=k>return</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>cr</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=to_csv>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.mo_end_results.to_csv>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>to_csv</span><span class=p>(</span><span class=n>results</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>EndResult</span><span class=p>],</span> <span class=n>file</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-></span> <span class=n>Path</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Write a sequence of end results to a file in CSV format.</span>
+
+<span class=sd>    :param results: the end results</span>
+<span class=sd>    :param file: the path</span>
+<span class=sd>    :return: the path of the file that was written</span>
+<span class=sd>    """</span>
+    <span class=n>path</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Writing end results to CSV file </span><span class=si>{</span><span class=n>path</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=n>path</span><span class=o>.</span><span class=n>ensure_parent_dir_exists</span><span class=p>()</span>
+    <span class=k>with</span> <span class=n>path</span><span class=o>.</span><span class=n>open_for_write</span><span class=p>()</span> <span class=k>as</span> <span class=n>wt</span><span class=p>:</span>
+        <span class=n>write_lines</span><span class=p>(</span><span class=n>CsvWriter</span><span class=o>.</span><span class=n>write</span><span class=p>(</span><span class=n>results</span><span class=p>),</span> <span class=n>wt</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Done writing end results to CSV file </span><span class=si>{</span><span class=n>path</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>path</span></div>
+
+
+
+<div class=viewcode-block id=from_csv>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.mo_end_results.from_csv>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>from_csv</span><span class=p>(</span><span class=n>file</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+             <span class=n>filterer</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=n>EndResult</span><span class=p>],</span> <span class=nb>bool</span><span class=p>]</span>
+             <span class=o>=</span> <span class=k>lambda</span> <span class=n>_</span><span class=p>:</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-></span> <span class=n>Generator</span><span class=p>[</span>
+        <span class=n>EndResult</span> <span class=o>|</span> <span class=n>MOEndResult</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Parse a given CSV file to get :class:`MOEndResult` Records.</span>
+
+<span class=sd>    :param file: the path to parse</span>
+<span class=sd>    :param filterer: an optional filter function</span>
+<span class=sd>    """</span>
+    <span class=n>path</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>file_path</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Now reading CSV file </span><span class=si>{</span><span class=n>path</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+    <span class=k>with</span> <span class=n>path</span><span class=o>.</span><span class=n>open_for_read</span><span class=p>()</span> <span class=k>as</span> <span class=n>rd</span><span class=p>:</span>
+        <span class=k>for</span> <span class=n>r</span> <span class=ow>in</span> <span class=n>CsvReader</span><span class=o>.</span><span class=n>read</span><span class=p>(</span><span class=n>rd</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>filterer</span><span class=p>(</span><span class=n>r</span><span class=p>):</span>
+                <span class=k>yield</span> <span class=n>r</span>
+    <span class=n>logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Done reading CSV file </span><span class=si>{</span><span class=n>path</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=from_logs>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.mo_end_results.from_logs>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>from_logs</span><span class=p>(</span><span class=n>path</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span> <span class=n>parse_x</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span> <span class=n>parse_y</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>)</span> \
+        <span class=o>-></span> <span class=n>Generator</span><span class=p>[</span><span class=n>EndResult</span> <span class=o>|</span> <span class=n>MOEndResult</span><span class=p>,</span> <span class=kc>None</span><span class=p>,</span> <span class=kc>None</span><span class=p>]:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Parse a given path and yield all (multi-objective) end results found.</span>
+
+<span class=sd>    If `path` identifies a file with suffix `.txt`, then this file is</span>
+<span class=sd>    parsed. The appropriate :class:`moptipy.evaluation.end_results.EndResult`</span>
+<span class=sd>    or :class:`MOEndResult` is created and yielded.</span>
+<span class=sd>    If `path` identifies a directory, then this directory is parsed</span>
+<span class=sd>    recursively for each log file found, one record is yielded.</span>
+
+<span class=sd>    :param path: the path to parse</span>
+<span class=sd>    :param parse_x: should we parse the points in the search space, too?</span>
+<span class=sd>    :param parse_y: should we parse the points in the solution space, too?</span>
+<span class=sd>    """</span>
+    <span class=k>for</span> <span class=n>group</span> <span class=ow>in</span> <span class=n>__MOEndResultLogParser</span><span class=p>(</span><span class=n>parse_x</span><span class=p>,</span> <span class=n>parse_y</span><span class=p>)</span><span class=o>.</span><span class=n>parse</span><span class=p>(</span><span class=n>path</span><span class=p>):</span>
+        <span class=k>yield from</span> <span class=n>group</span></div>
+
+
+
+<div class=viewcode-block id=CsvWriter>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.mo_end_results.CsvWriter>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>CsvWriter</span><span class=p>(</span><span class=n>CsvWriterBase</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A class for CSV writing of `EndResult` records."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>data</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=n>EndResult</span><span class=p>],</span>
+                 <span class=n>scope</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Initialize the csv writer.</span>
+
+<span class=sd>        :param data: the data</span>
+<span class=sd>        :param scope: the prefix to be pre-pended to all columns</span>
+<span class=sd>        """</span>
+        <span class=n>data</span> <span class=o>=</span> <span class=n>reiterable</span><span class=p>(</span><span class=n>data</span><span class=p>)</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=n>scope</span><span class=p>)</span>
+
+        <span class=c1>#: do we need the encoding?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__fcols</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span>
+            <span class=nb>tuple</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>er</span><span class=o>.</span><span class=n>fs</span><span class=p>)</span> <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span>
+                <span class=n>er</span><span class=p>,</span> <span class=n>MOEndResult</span><span class=p>)</span> <span class=k>else</span> <span class=mi>0</span> <span class=k>for</span> <span class=n>er</span> <span class=ow>in</span> <span class=n>data</span><span class=p>)</span>
+
+<div class=viewcode-block id=CsvWriter.get_column_titles>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.mo_end_results.CsvWriter.get_column_titles>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_column_titles</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the column titles.</span>
+
+<span class=sd>        :returns: the column titles</span>
+<span class=sd>        """</span>
+        <span class=n>p</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=bp>self</span><span class=o>.</span><span class=n>scope</span>
+        <span class=k>return</span> <span class=n>chain</span><span class=p>(</span><span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>get_column_titles</span><span class=p>(),</span> <span class=p>(</span>
+            <span class=n>csv_scope</span><span class=p>(</span><span class=n>p</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=k>for</span> <span class=n>x</span> <span class=ow>in</span> <span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"f</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>"</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__fcols</span><span class=p>))))</span></div>
+
+
+<div class=viewcode-block id=CsvWriter.get_row>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.mo_end_results.CsvWriter.get_row>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_row</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>data</span><span class=p>:</span> <span class=n>EndResult</span><span class=p>)</span> <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Render a single end result record to a CSV row.</span>
+
+<span class=sd>        :param data: the end result record</span>
+<span class=sd>        :returns: the row iterator</span>
+<span class=sd>        """</span>
+        <span class=k>yield from</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>get_row</span><span class=p>(</span><span class=n>data</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=n>MOEndResult</span><span class=p>):</span>
+            <span class=k>yield from</span> <span class=nb>map</span><span class=p>(</span><span class=n>num_to_str</span><span class=p>,</span> <span class=n>data</span><span class=o>.</span><span class=n>fs</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=CsvWriter.get_header_comments>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.mo_end_results.CsvWriter.get_header_comments>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_header_comments</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get any possible header comments.</span>
+
+<span class=sd>        :returns: the header comments</span>
+<span class=sd>        """</span>
+        <span class=k>return</span> <span class=p>(</span><span class=s2>"Multi-Objective Experiment End Results"</span><span class=p>,</span>
+                <span class=s2>"See the description at the bottom of the file."</span><span class=p>)</span></div>
+
+
+<div class=viewcode-block id=CsvWriter.get_footer_comments>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.mo_end_results.CsvWriter.get_footer_comments>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>get_footer_comments</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get any possible footer comments.</span>
+
+<span class=sd>        :returns: the footer comments</span>
+<span class=sd>        """</span>
+        <span class=k>yield from</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>get_footer_comments</span><span class=p>()</span>
+        <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>__fcols</span><span class=p>):</span>
+            <span class=k>yield</span> <span class=p>(</span><span class=sa>f</span><span class=s2>"f</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>: the objective value computed with "</span>
+                   <span class=sa>f</span><span class=s2>"the </span><span class=si>{</span><span class=n>i</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=mi>1</span><span class=si>}</span><span class=s2>-th objective function."</span><span class=p>)</span></div>
+</div>
+
+
+
+<div class=viewcode-block id=CsvReader>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.mo_end_results.CsvReader>[docs]</a>
+<span class=k>class</span><span class=w> </span><span class=nc>CsvReader</span><span class=p>(</span><span class=n>CsvReaderBase</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""A csv parser for end results."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>columns</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>int</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Create a CSV parser for `EndResult` records.</span>
+
+<span class=sd>        :param columns: the columns</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>(</span><span class=n>columns</span><span class=p>)</span>
+        <span class=n>i</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=n>fcols</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=k>while</span> <span class=kc>True</span><span class=p>:</span>
+            <span class=n>colname</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"f</span><span class=si>{</span><span class=n>i</span><span class=si>}</span><span class=s2>"</span>
+            <span class=k>try</span><span class=p>:</span>
+                <span class=n>fcols</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>csv_column</span><span class=p>(</span><span class=n>columns</span><span class=p>,</span> <span class=n>colname</span><span class=p>))</span>
+            <span class=k>except</span> <span class=ne>KeyError</span><span class=p>:</span>
+                <span class=k>break</span>
+            <span class=n>i</span> <span class=o>+=</span> <span class=mi>1</span>
+        <span class=c1>#: the objective value columns</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__fcols</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=n>fcols</span><span class=p>)</span>
+
+<div class=viewcode-block id=CsvReader.parse_row>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.mo_end_results.CsvReader.parse_row>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>parse_row</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>data</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>])</span> <span class=o>-></span> <span class=n>EndResult</span> <span class=o>|</span> <span class=n>MOEndResult</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Parse a row of data.</span>
+
+<span class=sd>        :param data: the data row</span>
+<span class=sd>        :return: the end result statistics</span>
+<span class=sd>        """</span>
+        <span class=n>res</span> <span class=o>=</span> <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=n>parse_row</span><span class=p>(</span><span class=n>data</span><span class=p>)</span>
+        <span class=n>vals</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=k>for</span> <span class=n>col</span> <span class=ow>in</span> <span class=bp>self</span><span class=o>.</span><span class=n>__fcols</span><span class=p>:</span>
+            <span class=n>v</span> <span class=o>=</span> <span class=n>csv_val_or_none</span><span class=p>(</span><span class=n>data</span><span class=p>,</span> <span class=n>col</span><span class=p>,</span> <span class=n>str_to_num</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>v</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=k>break</span>
+            <span class=n>vals</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>v</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>vals</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>:</span>
+            <span class=k>return</span> <span class=n>res</span>
+        <span class=k>return</span> <span class=n>MOEndResult</span><span class=p>(</span>
+            <span class=n>algorithm</span><span class=o>=</span><span class=n>res</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span>
+            <span class=n>instance</span><span class=o>=</span><span class=n>res</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span>
+            <span class=n>objective</span><span class=o>=</span><span class=n>res</span><span class=o>.</span><span class=n>objective</span><span class=p>,</span>
+            <span class=n>encoding</span><span class=o>=</span><span class=n>res</span><span class=o>.</span><span class=n>encoding</span><span class=p>,</span>
+            <span class=n>rand_seed</span><span class=o>=</span><span class=n>res</span><span class=o>.</span><span class=n>rand_seed</span><span class=p>,</span>
+            <span class=n>best_f</span><span class=o>=</span><span class=n>res</span><span class=o>.</span><span class=n>best_f</span><span class=p>,</span>
+            <span class=n>last_improvement_fe</span><span class=o>=</span><span class=n>res</span><span class=o>.</span><span class=n>last_improvement_fe</span><span class=p>,</span>
+            <span class=n>last_improvement_time_millis</span><span class=o>=</span><span class=n>res</span><span class=o>.</span><span class=n>last_improvement_time_millis</span><span class=p>,</span>
+            <span class=n>total_fes</span><span class=o>=</span><span class=n>res</span><span class=o>.</span><span class=n>total_fes</span><span class=p>,</span>
+            <span class=n>total_time_millis</span><span class=o>=</span><span class=n>res</span><span class=o>.</span><span class=n>total_time_millis</span><span class=p>,</span>
+            <span class=n>goal_f</span><span class=o>=</span><span class=n>res</span><span class=o>.</span><span class=n>goal_f</span><span class=p>,</span>
+            <span class=n>max_fes</span><span class=o>=</span><span class=n>res</span><span class=o>.</span><span class=n>max_fes</span><span class=p>,</span>
+            <span class=n>max_time_millis</span><span class=o>=</span><span class=n>res</span><span class=o>.</span><span class=n>max_time_millis</span><span class=p>,</span>
+            <span class=n>fs</span><span class=o>=</span><span class=nb>tuple</span><span class=p>(</span><span class=n>vals</span><span class=p>),</span>
+            <span class=n>x</span><span class=o>=</span><span class=n>res</span><span class=o>.</span><span class=n>x</span><span class=p>,</span>
+            <span class=n>y</span><span class=o>=</span><span class=n>res</span><span class=o>.</span><span class=n>y</span><span class=p>)</span></div>
+</div>
+
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>__MOEndResultLogParser</span><span class=p>(</span><span class=n>Parser</span><span class=p>[</span><span class=n>Iterable</span><span class=p>[</span><span class=n>EndResult</span><span class=p>]]):</span>
+<span class=w>    </span><span class=sd>"""The internal log parser class."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__init__</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>parse_x</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span> <span class=n>parse_y</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Parse the log files.</span>
+
+<span class=sd>        :param parse_x: whether to parse the x values</span>
+<span class=sd>        :param parse_y: whether to parse the y values</span>
+<span class=sd>        """</span>
+        <span class=nb>super</span><span class=p>()</span><span class=o>.</span><span class=fm>__init__</span><span class=p>()</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>parse_x</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>parse_x</span><span class=p>,</span> <span class=s2>"parse_x"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>parse_y</span><span class=p>,</span> <span class=nb>bool</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>parse_y</span><span class=p>,</span> <span class=s2>"parse_y"</span><span class=p>,</span> <span class=nb>bool</span><span class=p>)</span>
+        <span class=c1>#: shall we parse the points in the search space?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__parse_x</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>parse_x</span>
+        <span class=c1>#: shall we parse the points in the solution space?</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>__parse_y</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=n>parse_y</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>_parse_file</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-></span> <span class=n>Iterable</span><span class=p>[</span><span class=n>EndResult</span><span class=p>]:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the parsing result.</span>
+
+<span class=sd>        :returns: the `EndResult` instance</span>
+<span class=sd>        """</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_progress_logger</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"Beginning multi-objective parsing of file </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+        <span class=n>o</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>EndResult</span><span class=p>]</span> <span class=o>=</span> <span class=n>_Erlp</span><span class=p>()</span><span class=o>.</span><span class=n>parse_file</span><span class=p>(</span><span class=n>file</span><span class=p>)</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>o</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>):</span>
+            <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>o</span><span class=p>,</span> <span class=sa>f</span><span class=s2>"parse(</span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2>)"</span><span class=p>,</span> <span class=n>EndResult</span><span class=p>)</span>
+
+        <span class=k>with</span> <span class=n>file</span><span class=o>.</span><span class=n>open_for_read</span><span class=p>()</span> <span class=k>as</span> <span class=n>reader</span><span class=p>:</span>
+            <span class=n>lines</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=p>(</span><span class=nb>map</span><span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>,</span> <span class=nb>str</span><span class=o>.</span><span class=n>splitlines</span><span class=p>(</span>
+                <span class=n>reader</span><span class=o>.</span><span class=n>read</span><span class=p>())))</span>
+        <span class=n>count</span> <span class=o>=</span> <span class=nb>tuple</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>lines</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>count</span> <span class=o><=</span> <span class=mi>2</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                <span class=sa>f</span><span class=s2>"Inconsistent number </span><span class=si>{</span><span class=n>count</span><span class=si>}</span><span class=s2> of lines in file </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2>"</span><span class=p>)</span>
+
+        <span class=c1># first, we process the archive to find all the retained points</span>
+        <span class=n>archive</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>begin</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SECTION_START</span><span class=si>}{</span><span class=n>SECTION_ARCHIVE_QUALITY</span><span class=si>}</span><span class=s2>"</span>
+        <span class=n>end</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SECTION_END</span><span class=si>}{</span><span class=n>SECTION_ARCHIVE_QUALITY</span><span class=si>}</span><span class=s2>"</span>
+        <span class=n>state</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>for</span> <span class=n>line</span> <span class=ow>in</span> <span class=n>lines</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>line</span> <span class=o>==</span> <span class=n>begin</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>state</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Inconsistent begin state in "</span>
+                                     <span class=sa>f</span><span class=s2>"file </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2> vs. </span><span class=si>{</span><span class=n>begin</span><span class=si>!r}</span><span class=s2>/</span><span class=si>{</span><span class=n>end</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=n>state</span> <span class=o>=</span> <span class=mi>1</span>
+                <span class=k>continue</span>
+            <span class=k>if</span> <span class=n>line</span> <span class=o>==</span> <span class=n>end</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>state</span> <span class=o>!=</span> <span class=mi>2</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Inconsistent end state in "</span>
+                                     <span class=sa>f</span><span class=s2>"file </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2> vs. </span><span class=si>{</span><span class=n>begin</span><span class=si>!r}</span><span class=s2>/</span><span class=si>{</span><span class=n>end</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=n>state</span> <span class=o>=</span> <span class=mi>3</span>
+                <span class=k>break</span>
+            <span class=k>if</span> <span class=n>state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>line</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=s2>"f"</span><span class=p>):</span>
+                    <span class=n>state</span> <span class=o>=</span> <span class=mi>2</span>
+                    <span class=k>continue</span>
+                <span class=n>state</span> <span class=o>=</span> <span class=mi>2</span>
+            <span class=k>if</span> <span class=n>state</span> <span class=o>!=</span> <span class=mi>2</span><span class=p>:</span>
+                <span class=k>continue</span>
+            <span class=k>try</span><span class=p>:</span>
+                <span class=n>archive</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=nb>tuple</span><span class=p>(</span><span class=nb>map</span><span class=p>(</span><span class=n>str_to_num</span><span class=p>,</span> <span class=nb>map</span><span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>,</span> <span class=nb>str</span><span class=o>.</span><span class=n>split</span><span class=p>(</span>
+                    <span class=n>line</span><span class=p>,</span> <span class=n>CSV_SEPARATOR</span><span class=p>)))))</span>
+            <span class=k>except</span> <span class=ne>ValueError</span> <span class=k>as</span> <span class=n>ve</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Error when parsing line </span><span class=si>{</span><span class=n>line</span><span class=si>!r}</span><span class=s2> of file </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2> in "</span>
+                    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SECTION_ARCHIVE_QUALITY</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span> <span class=kn>from</span><span class=w> </span><span class=nn>ve</span>
+        <span class=k>if</span> <span class=n>state</span> <span class=o>!=</span> <span class=mi>3</span><span class=p>:</span>
+            <span class=k>return</span> <span class=p>(</span><span class=n>o</span><span class=p>,</span> <span class=p>)</span>
+
+        <span class=c1># now, we find the progress to find out when the solutions emerged</span>
+        <span class=n>progress</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]]]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>begin</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SECTION_START</span><span class=si>}{</span><span class=n>SECTION_PROGRESS</span><span class=si>}</span><span class=s2>"</span>
+        <span class=n>end</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SECTION_END</span><span class=si>}{</span><span class=n>SECTION_PROGRESS</span><span class=si>}</span><span class=s2>"</span>
+        <span class=n>state</span> <span class=o>=</span> <span class=mi>0</span>
+        <span class=k>for</span> <span class=n>line</span> <span class=ow>in</span> <span class=n>lines</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>line</span> <span class=o>==</span> <span class=n>begin</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>state</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Inconsistent begin state in "</span>
+                                     <span class=sa>f</span><span class=s2>"file </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2> vs. </span><span class=si>{</span><span class=n>begin</span><span class=si>!r}</span><span class=s2>/</span><span class=si>{</span><span class=n>end</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=n>state</span> <span class=o>=</span> <span class=mi>1</span>
+                <span class=k>continue</span>
+            <span class=k>if</span> <span class=n>line</span> <span class=o>==</span> <span class=n>end</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>state</span> <span class=o>!=</span> <span class=mi>2</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Inconsistent end state in "</span>
+                                     <span class=sa>f</span><span class=s2>"file </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2> vs. </span><span class=si>{</span><span class=n>begin</span><span class=si>!r}</span><span class=s2>/</span><span class=si>{</span><span class=n>end</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+                <span class=n>state</span> <span class=o>=</span> <span class=mi>3</span>
+                <span class=k>break</span>
+            <span class=k>if</span> <span class=n>state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>line</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=s2>"fes"</span><span class=p>):</span>
+                    <span class=n>state</span> <span class=o>=</span> <span class=mi>2</span>
+                    <span class=k>continue</span>
+                <span class=n>state</span> <span class=o>=</span> <span class=mi>2</span>
+            <span class=k>if</span> <span class=n>state</span> <span class=o>!=</span> <span class=mi>2</span><span class=p>:</span>
+                <span class=k>continue</span>
+            <span class=k>try</span><span class=p>:</span>
+                <span class=n>progress</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=nb>tuple</span><span class=p>(</span><span class=nb>map</span><span class=p>(</span><span class=n>str_to_num</span><span class=p>,</span> <span class=nb>map</span><span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>,</span> <span class=nb>str</span><span class=o>.</span><span class=n>split</span><span class=p>(</span>
+                    <span class=n>line</span><span class=p>,</span> <span class=n>CSV_SEPARATOR</span><span class=p>)))))</span>
+            <span class=k>except</span> <span class=ne>ValueError</span> <span class=k>as</span> <span class=n>ve</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Error when parsing line </span><span class=si>{</span><span class=n>line</span><span class=si>!r}</span><span class=s2> of file </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2> "</span>
+                    <span class=sa>f</span><span class=s2>"in </span><span class=si>{</span><span class=n>SECTION_PROGRESS</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span> <span class=kn>from</span><span class=w> </span><span class=nn>ve</span>
+        <span class=k>if</span> <span class=n>state</span> <span class=ow>not</span> <span class=ow>in</span> <span class=p>{</span><span class=mi>0</span><span class=p>,</span> <span class=mi>3</span><span class=p>}:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Inconsistent state </span><span class=si>{</span><span class=n>state</span><span class=si>}</span><span class=s2> in "</span>
+                             <span class=sa>f</span><span class=s2>"file </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2> vs. </span><span class=si>{</span><span class=n>begin</span><span class=si>!r}</span><span class=s2>/</span><span class=si>{</span><span class=n>end</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=n>count</span> <span class=o>=</span> <span class=nb>list</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>archive</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>count</span> <span class=o><</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"No solution archived in file </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=c1># Now we try to find the solutions and points matching them</span>
+        <span class=n>x</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=n>y</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>{}</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__parse_x</span> <span class=ow>or</span> <span class=bp>self</span><span class=o>.</span><span class=n>__parse_y</span><span class=p>:</span>
+            <span class=n>current</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+            <span class=n>current_id</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+            <span class=n>state</span> <span class=o>=</span> <span class=mi>0</span>
+            <span class=n>arc_start</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SECTION_START</span><span class=si>}{</span><span class=n>PREFIX_SECTION_ARCHIVE</span><span class=si>}</span><span class=s2>"</span>
+            <span class=n>arc_end</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SECTION_END</span><span class=si>}{</span><span class=n>PREFIX_SECTION_ARCHIVE</span><span class=si>}</span><span class=s2>"</span>
+
+            <span class=k>for</span> <span class=n>line</span> <span class=ow>in</span> <span class=n>lines</span><span class=p>:</span>
+                <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=n>line</span><span class=p>,</span> <span class=n>arc_start</span><span class=p>):</span>
+                    <span class=k>if</span> <span class=n>state</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
+                        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                            <span class=sa>f</span><span class=s2>"Inconsistent start state in </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2>, "</span>
+                            <span class=sa>f</span><span class=s2>"encountered </span><span class=si>{</span><span class=n>line</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+                    <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=n>endswith</span><span class=p>(</span><span class=n>line</span><span class=p>,</span> <span class=n>SUFFIX_SECTION_ARCHIVE_X</span><span class=p>):</span>
+                        <span class=n>current_id</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>line</span><span class=p>[</span><span class=nb>len</span><span class=p>(</span><span class=n>arc_start</span><span class=p>):</span><span class=o>-</span><span class=nb>len</span><span class=p>(</span>
+                            <span class=n>SUFFIX_SECTION_ARCHIVE_X</span><span class=p>)])</span>
+                        <span class=k>if</span> <span class=n>current_id</span> <span class=ow>in</span> <span class=n>x</span><span class=p>:</span>
+                            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                                <span class=sa>f</span><span class=s2>"Encountered archive X </span><span class=si>{</span><span class=n>current_id</span><span class=si>}</span><span class=s2> twice "</span>
+                                <span class=sa>f</span><span class=s2>"in </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+                        <span class=n>state</span> <span class=o>=</span> <span class=mi>1</span>
+                        <span class=n>current</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+                        <span class=k>continue</span>
+                    <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=n>endswith</span><span class=p>(</span><span class=n>line</span><span class=p>,</span> <span class=n>SUFFIX_SECTION_ARCHIVE_Y</span><span class=p>):</span>
+                        <span class=n>current_id</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>line</span><span class=p>[</span><span class=nb>len</span><span class=p>(</span><span class=n>arc_start</span><span class=p>):</span><span class=o>-</span><span class=nb>len</span><span class=p>(</span>
+                            <span class=n>SUFFIX_SECTION_ARCHIVE_Y</span><span class=p>)])</span>
+                        <span class=k>if</span> <span class=n>current_id</span> <span class=ow>in</span> <span class=n>y</span><span class=p>:</span>
+                            <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                                <span class=sa>f</span><span class=s2>"Encountered archive Y </span><span class=si>{</span><span class=n>current_id</span><span class=si>}</span><span class=s2> twice "</span>
+                                <span class=sa>f</span><span class=s2>"in </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+                        <span class=n>state</span> <span class=o>=</span> <span class=mi>2</span>
+                        <span class=n>current</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+                        <span class=k>continue</span>
+                <span class=k>if</span> <span class=n>state</span> <span class=ow>in</span> <span class=p>{</span><span class=mi>1</span><span class=p>,</span> <span class=mi>2</span><span class=p>}:</span>
+                    <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=n>line</span><span class=p>,</span> <span class=n>arc_end</span><span class=p>):</span>
+                        <span class=k>if</span> <span class=n>state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>__parse_x</span><span class=p>:</span>
+                                <span class=n>x</span><span class=p>[</span><span class=n>current_id</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"</span><span class=se>\n</span><span class=s2>"</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>current</span><span class=p>)</span>
+                        <span class=k>elif</span> <span class=p>(</span><span class=n>state</span> <span class=o>==</span> <span class=mi>2</span><span class=p>)</span> <span class=ow>and</span> <span class=bp>self</span><span class=o>.</span><span class=n>__parse_y</span><span class=p>:</span>
+                            <span class=n>y</span><span class=p>[</span><span class=n>current_id</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"</span><span class=se>\n</span><span class=s2>"</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>current</span><span class=p>)</span>
+                        <span class=n>current</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
+                        <span class=n>state</span> <span class=o>=</span> <span class=mi>0</span>
+                        <span class=k>continue</span>
+                    <span class=n>current</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>line</span><span class=p>)</span>
+
+            <span class=k>if</span> <span class=n>state</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Inconsistent state in file </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=n>dim</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>int</span><span class=p>]</span> <span class=o>=</span> <span class=nb>tuple</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>archive</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span>
+        <span class=k>for</span> <span class=n>solution</span> <span class=ow>in</span> <span class=n>archive</span><span class=p>:</span>
+            <span class=k>if</span> <span class=nb>tuple</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>solution</span><span class=p>)</span> <span class=o>!=</span> <span class=n>dim</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=sa>f</span><span class=s2>"Inconsistent archive dimension of </span><span class=si>{</span><span class=n>solution</span><span class=si>}</span><span class=s2> in file "</span>
+                    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2>, should be </span><span class=si>{</span><span class=n>dim</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=k>for</span> <span class=n>time</span> <span class=ow>in</span> <span class=n>progress</span><span class=p>:</span>
+            <span class=k>if</span> <span class=nb>tuple</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>time</span><span class=p>)</span> <span class=o>!=</span> <span class=n>dim</span> <span class=o>+</span> <span class=mi>2</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+                    <span class=s2>"Inconsistent progress dimension of record "</span>
+                    <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>time</span><span class=si>}</span><span class=s2> in </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2>, should be </span><span class=si>{</span><span class=n>dim</span><span class=w> </span><span class=o>+</span><span class=w> </span><span class=mi>2</span><span class=si>}</span><span class=s2>."</span><span class=p>)</span>
+
+        <span class=n>out</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>MOEndResult</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=k>for</span> <span class=n>i</span><span class=p>,</span> <span class=n>solution</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>archive</span><span class=p>):</span>
+            <span class=n>found</span><span class=p>:</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span> <span class=o>|</span> <span class=nb>float</span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+            <span class=k>for</span> <span class=n>time</span> <span class=ow>in</span> <span class=n>progress</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>time</span><span class=p>[</span><span class=o>-</span><span class=n>dim</span><span class=p>:]</span> <span class=o>==</span> <span class=n>solution</span><span class=p>:</span>
+                    <span class=n>found</span> <span class=o>=</span> <span class=n>time</span>
+                    <span class=k>break</span>
+            <span class=n>out</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>MOEndResult</span><span class=p>(</span>
+                <span class=n>algorithm</span><span class=o>=</span><span class=n>o</span><span class=o>.</span><span class=n>algorithm</span><span class=p>,</span>
+                <span class=n>instance</span><span class=o>=</span><span class=n>o</span><span class=o>.</span><span class=n>instance</span><span class=p>,</span>
+                <span class=n>objective</span><span class=o>=</span><span class=n>o</span><span class=o>.</span><span class=n>objective</span><span class=p>,</span>
+                <span class=n>encoding</span><span class=o>=</span><span class=n>o</span><span class=o>.</span><span class=n>encoding</span><span class=p>,</span>
+                <span class=n>rand_seed</span><span class=o>=</span><span class=n>o</span><span class=o>.</span><span class=n>rand_seed</span><span class=p>,</span>
+                <span class=n>best_f</span><span class=o>=</span><span class=n>solution</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span>
+                <span class=n>last_improvement_fe</span><span class=o>=</span><span class=n>o</span><span class=o>.</span><span class=n>last_improvement_fe</span>
+                <span class=k>if</span> <span class=n>found</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"int"</span><span class=p>,</span> <span class=n>found</span><span class=p>[</span><span class=mi>0</span><span class=p>]),</span>
+                <span class=n>last_improvement_time_millis</span><span class=o>=</span><span class=n>o</span><span class=o>.</span><span class=n>last_improvement_time_millis</span>
+                <span class=k>if</span> <span class=n>found</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=n>cast</span><span class=p>(</span><span class=s2>"int"</span><span class=p>,</span> <span class=n>found</span><span class=p>[</span><span class=mi>1</span><span class=p>]),</span>
+                <span class=n>total_fes</span><span class=o>=</span><span class=n>o</span><span class=o>.</span><span class=n>total_fes</span><span class=p>,</span>
+                <span class=n>total_time_millis</span><span class=o>=</span><span class=n>o</span><span class=o>.</span><span class=n>total_time_millis</span><span class=p>,</span>
+                <span class=n>goal_f</span><span class=o>=</span><span class=n>o</span><span class=o>.</span><span class=n>goal_f</span><span class=p>,</span>
+                <span class=n>max_fes</span><span class=o>=</span><span class=n>o</span><span class=o>.</span><span class=n>max_fes</span><span class=p>,</span>
+                <span class=n>max_time_millis</span><span class=o>=</span><span class=n>o</span><span class=o>.</span><span class=n>max_time_millis</span><span class=p>,</span>
+                <span class=n>fs</span><span class=o>=</span><span class=n>solution</span><span class=p>[</span><span class=mi>1</span><span class=p>:],</span>
+                <span class=n>x</span><span class=o>=</span><span class=n>x</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>i</span><span class=p>),</span>
+                <span class=n>y</span><span class=o>=</span><span class=n>y</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>i</span><span class=p>)))</span>
+        <span class=bp>self</span><span class=o>.</span><span class=n>_progress_logger</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Done parsing file </span><span class=si>{</span><span class=n>file</span><span class=si>!r}</span><span class=s2> multi-objectively."</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>out</span>
+
+
+<span class=c1># Run log files to end results if executed as script</span>
+<span class=k>if</span> <span class=vm>__name__</span> <span class=o>==</span> <span class=s2>"__main__"</span><span class=p>:</span>
+    <span class=n>parser</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>argparse</span><span class=o>.</span><span class=n>ArgumentParser</span><span class=p>]</span> <span class=o>=</span> <span class=n>moptipy_argparser</span><span class=p>(</span>
+        <span class=vm>__file__</span><span class=p>,</span>
+        <span class=s2>"Convert multi-objective log files obtained with moptipy to the "</span>
+        <span class=s2>"end results CSV format that can be post-processed or exported to "</span>
+        <span class=s2>"other tools."</span><span class=p>,</span>
+        <span class=s2>"This program recursively parses a folder hierarchy created by"</span>
+        <span class=s2>" the moptipy multi-objective experiment execution facility. "</span>
+        <span class=s2>"This folder structure follows the scheme of algorithm/instance/"</span>
+        <span class=s2>"log_file and has one log file per run. As result of the parsing, "</span>
+        <span class=s2>"one CSV file (where columns are separated by ';') is created with"</span>
+        <span class=s2>" one row per log file. This row contains the end-of-run state"</span>
+        <span class=s2>" loaded from the log file. Whereas the log files may store "</span>
+        <span class=s2>"the complete progress of one run of one algorithm on one "</span>
+        <span class=s2>"problem instance as well as the algorithm configuration "</span>
+        <span class=s2>"parameters, instance features, system settings, and the final"</span>
+        <span class=s2>" results, the end results CSV file will only represent the "</span>
+        <span class=s2>"final result quality, when it was obtained, how long the runs"</span>
+        <span class=s2>" took, etc. This information is much denser and smaller and "</span>
+        <span class=s2>"suitable for importing into other tools such as Excel or for "</span>
+        <span class=s2>"postprocessing."</span><span class=p>)</span>
+    <span class=n>parser</span><span class=o>.</span><span class=n>add_argument</span><span class=p>(</span>
+        <span class=s2>"source"</span><span class=p>,</span> <span class=n>nargs</span><span class=o>=</span><span class=s2>"?"</span><span class=p>,</span> <span class=n>default</span><span class=o>=</span><span class=s2>"./results"</span><span class=p>,</span>
+        <span class=n>help</span><span class=o>=</span><span class=s2>"the location of the experimental results, i.e., the root folder "</span>
+             <span class=s2>"under which to search for log files"</span><span class=p>,</span> <span class=nb>type</span><span class=o>=</span><span class=n>Path</span><span class=p>)</span>
+    <span class=n>parser</span><span class=o>.</span><span class=n>add_argument</span><span class=p>(</span>
+        <span class=s2>"dest"</span><span class=p>,</span> <span class=n>help</span><span class=o>=</span><span class=s2>"the path to the end results CSV file to be created"</span><span class=p>,</span>
+        <span class=nb>type</span><span class=o>=</span><span class=n>Path</span><span class=p>,</span> <span class=n>nargs</span><span class=o>=</span><span class=s2>"?"</span><span class=p>,</span> <span class=n>default</span><span class=o>=</span><span class=s2>"./evaluation/end_results.txt"</span><span class=p>)</span>
+    <span class=n>args</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>argparse</span><span class=o>.</span><span class=n>Namespace</span><span class=p>]</span> <span class=o>=</span> <span class=n>parser</span><span class=o>.</span><span class=n>parse_args</span><span class=p>()</span>
+
+    <span class=n>to_csv</span><span class=p>(</span><span class=n>from_logs</span><span class=p>(</span><span class=n>args</span><span class=o>.</span><span class=n>source</span><span class=p>),</span> <span class=n>args</span><span class=o>.</span><span class=n>dest</span><span class=p>)</span>
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.185 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.mo_end_results</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

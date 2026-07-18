@@ -1,0 +1,26 @@
+moptipy.mo.problem package
+==========================
+
+.. automodule:: moptipy.mo.problem
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+moptipy.mo.problem.basic\_mo\_problem module
+--------------------------------------------
+
+.. automodule:: moptipy.mo.problem.basic_mo_problem
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.mo.problem.weighted\_sum module
+---------------------------------------
+
+.. automodule:: moptipy.mo.problem.weighted_sum
+   :members:
+   :show-inheritance:
+   :undoc-members:

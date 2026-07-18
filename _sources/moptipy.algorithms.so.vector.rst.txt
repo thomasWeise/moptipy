@@ -1,0 +1,26 @@
+moptipy.algorithms.so.vector package
+====================================
+
+.. automodule:: moptipy.algorithms.so.vector
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+moptipy.algorithms.so.vector.cmaes\_lib module
+----------------------------------------------
+
+.. automodule:: moptipy.algorithms.so.vector.cmaes_lib
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.so.vector.scipy module
+-----------------------------------------
+
+.. automodule:: moptipy.algorithms.so.vector.scipy
+   :members:
+   :show-inheritance:
+   :undoc-members:
