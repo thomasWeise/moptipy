@@ -445,7 +445,7 @@ class __MOEndResultLogParser(Parser[Iterable[EndResult]]):
                     if str.endswith(line, SUFFIX_SECTION_ARCHIVE_Y):
                         current_id = int(line[len(arc_start):-len(
                             SUFFIX_SECTION_ARCHIVE_Y)])
-                        if current_id in x:
+                        if current_id in y:
                             raise ValueError(
                                 f"Encountered archive Y {current_id} twice "
                                 f"in {file!r}.")
