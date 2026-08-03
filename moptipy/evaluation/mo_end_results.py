@@ -15,6 +15,7 @@ from pycommons.io.csv import (
 )
 from pycommons.io.parser import Parser
 from pycommons.io.path import Path, file_path, write_lines
+from pycommons.math.int_math import try_int
 from pycommons.strings.string_conv import (
     num_to_str,
     str_to_num,
@@ -37,7 +38,6 @@ from moptipy.utils.logger import (
     SECTION_END,
     SECTION_START,
 )
-from moptipy.utils.math import try_int
 
 
 @dataclass(frozen=True, init=False, order=False, eq=False)

@@ -4,6 +4,7 @@ from typing import Any, Callable, Final, Iterable
 
 import numpy as np
 from numpy import empty
+from pycommons.math.int_math import try_int
 from pycommons.types import type_error
 
 from moptipy.api.logging import KEY_SPACE_NUM_VARS, SCOPE_OBJECTIVE_FUNCTION
@@ -11,7 +12,6 @@ from moptipy.api.mo_problem import MOProblem
 from moptipy.api.mo_utils import dominates
 from moptipy.api.objective import Objective
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.math import try_int
 from moptipy.utils.nputils import (
     KEY_NUMPY_TYPE,
     dtype_for_data,

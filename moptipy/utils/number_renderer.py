@@ -3,11 +3,11 @@
 from math import inf, isfinite
 from typing import Callable, Final, Iterable, cast
 
+from pycommons.math.int_math import try_int
 from pycommons.types import check_int_range, type_error
 
 from moptipy.utils.formatted_string import FormattedStr
 from moptipy.utils.lang import Lang
-from moptipy.utils.math import try_int
 
 
 def default_get_int_renderer() -> Callable[[int], str]:

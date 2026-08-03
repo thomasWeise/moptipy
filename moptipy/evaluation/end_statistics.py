@@ -30,6 +30,7 @@ from pycommons.io.csv import (
 from pycommons.io.csv import CsvReader as CsvReaderBase
 from pycommons.io.csv import CsvWriter as CsvWriterBase
 from pycommons.io.path import Path, file_path, write_lines
+from pycommons.math.int_math import try_int, try_int_div
 from pycommons.math.sample_statistics import (
     KEY_MEAN_ARITH,
     KEY_STDDEV,
@@ -89,7 +90,6 @@ from moptipy.evaluation.end_results import (
 from moptipy.evaluation.end_results import from_csv as end_results_from_csv
 from moptipy.evaluation.end_results import from_logs as end_results_from_logs
 from moptipy.utils.help import moptipy_argparser
-from moptipy.utils.math import try_int, try_int_div
 
 #: The key for the best F.
 KEY_BEST_F_SCALED: Final[str] = KEY_BEST_F + "scaled"

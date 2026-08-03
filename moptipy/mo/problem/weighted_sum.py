@@ -16,6 +16,7 @@ from typing import Any, Callable, Final, Iterable, cast
 
 import numpy as np
 from numpy import sum as npsum
+from pycommons.math.int_math import try_int
 from pycommons.strings.string_conv import num_to_str
 from pycommons.types import type_error
 
@@ -23,7 +24,6 @@ from moptipy.api.mo_utils import dominates
 from moptipy.api.objective import Objective
 from moptipy.mo.problem.basic_mo_problem import BasicMOProblem
 from moptipy.utils.logger import KeyValueLogSection
-from moptipy.utils.math import try_int
 from moptipy.utils.nputils import dtype_for_data
 
 

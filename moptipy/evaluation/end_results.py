@@ -33,6 +33,7 @@ from pycommons.io.csv import (
 from pycommons.io.csv import CsvReader as CsvReaderBase
 from pycommons.io.csv import CsvWriter as CsvWriterBase
 from pycommons.io.path import Path, file_path, write_lines
+from pycommons.math.int_math import try_div, try_int, try_int_div
 from pycommons.strings.chars import NEWLINE
 from pycommons.strings.string_conv import (
     int_or_none_to_str,
@@ -83,7 +84,6 @@ from moptipy.evaluation.base import (
 )
 from moptipy.evaluation.log_parser import SetupAndStateParser
 from moptipy.utils.help import moptipy_argparser
-from moptipy.utils.math import try_float_div, try_int, try_int_div
 
 #: a description of the random seed
 DESC_RAND_SEED: Final[str] = (
@@ -406,7 +406,7 @@ class EndResult(PerRunData):
         g: Final[int | float | None] = EndResult.get_goal_f(self)
         if (g is None) or (g <= 0):
             return None
-        return try_float_div(self.best_f - g, g)
+        return try_div(self.best_f - g, g)
 
     def get_scaled_best_f(self) -> int | float | None:
         """
@@ -417,7 +417,7 @@ class EndResult(PerRunData):
         g: Final[int | float | None] = EndResult.get_goal_f(self)
         if (g is None) or (g <= 0):
             return None
-        return try_float_div(self.best_f, g)
+        return try_div(self.best_f, g)
 
     def get_fes_per_time_milli(self) -> int | float:
         """
