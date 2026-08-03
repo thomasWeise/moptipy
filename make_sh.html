@@ -1,0 +1,87 @@
+<!doctype html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd"><title></title><meta content="text/html; charset=utf-8"http-equiv=content-type><style>pre{line-height:125%}td.linenos .normal,span.linenos{color:inherit;background-color:#0000;padding-left:5px;padding-right:5px}td.linenos .special,span.linenos.special{color:#000;background-color:#ffffc0;padding-left:5px;padding-right:5px}body .hll{background-color:#ffc}body{background:#f8f8f8}body .c{color:#3d7b7b;font-style:italic}body .err{border:1px solid red}body .k{color:green;font-weight:700}body .o{color:#666}body .ch,body .cm{color:#3d7b7b;font-style:italic}body .cp{color:#9c6500}body .cpf,body .c1,body .cs{color:#3d7b7b;font-style:italic}body .gd{color:#a00000}body .ge{font-style:italic}body .ges{font-style:italic;font-weight:700}body .gr{color:#e40000}body .gh{color:navy;font-weight:700}body .gi{color:#008400}body .go{color:#717171}body .gp{color:navy;font-weight:700}body .gs{font-weight:700}body .gu{color:purple;font-weight:700}body .gt{color:#04d}body .kc,body .kd,body .kn{color:green;font-weight:700}body .kp{color:green}body .kr{color:green;font-weight:700}body .kt{color:#b00040}body .m{color:#666}body .s{color:#ba2121}body .na{color:#687822}body .nb{color:green}body .nc{color:#00f;font-weight:700}body .no{color:#800}body .nd{color:#a2f}body .ni{color:#717171;font-weight:700}body .ne{color:#cb3f38;font-weight:700}body .nf{color:#00f}body .nl{color:#767600}body .nn{color:#00f;font-weight:700}body .nt{color:green;font-weight:700}body .nv{color:#19177c}body .ow{color:#a2f;font-weight:700}body .w{color:#bbb}body .mb,body .mf,body .mh,body .mi,body .mo{color:#666}body .sa,body .sb,body .sc,body .dl{color:#ba2121}body .sd{color:#ba2121;font-style:italic}body .s2{color:#ba2121}body .se{color:#aa5d1f;font-weight:700}body .sh{color:#ba2121}body .si{color:#a45a77;font-weight:700}body .sx{color:green}body .sr{color:#a45a77}body .s1{color:#ba2121}body .ss{color:#19177c}body .bp{color:green}body .fm{color:#00f}body .vc,body .vg,body .vi,body .vm{color:#19177c}body .il{color:#666}</style><body><h2></h2><div class=highlight><pre><span></span><span class=ch>#!/bin/bash</span>
+
+<span class=c1># Make the moptipy package.</span>
+
+<span class=c1># strict error handling</span>
+<span class=nb>set</span><span class=w> </span>-o<span class=w> </span>pipefail<span class=w>  </span><span class=c1># trace ERR through pipes</span>
+<span class=nb>set</span><span class=w> </span>-o<span class=w> </span>errtrace<span class=w>  </span><span class=c1># trace ERR through 'time command' and other functions</span>
+<span class=nb>set</span><span class=w> </span>-o<span class=w> </span>nounset<span class=w>   </span><span class=c1># set -u : exit the script if you try to use an uninitialized variable</span>
+<span class=nb>set</span><span class=w> </span>-o<span class=w> </span>errexit<span class=w>   </span><span class=c1># set -e : exit the script if any statement returns a non-true return value</span>
+
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Welcome to the build script."</span>
+
+<span class=nb>export</span><span class=w> </span><span class=nv>BUILD_SCRIPT</span><span class=o>=</span><span class=s2>"</span><span class=si>${</span><span class=nv>BASH_SOURCE</span><span class=p>[0]</span><span class=si>}</span><span class=s2>"</span>
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: We set the environment variable BUILD_SCRIPT='</span><span class=nv>$BUILD_SCRIPT</span><span class=s2>'."</span>
+
+<span class=nv>currentDir</span><span class=o>=</span><span class=s2>"</span><span class=k>$(</span><span class=nb>pwd</span><span class=k>)</span><span class=s2>"</span>
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: We are working in directory: '</span><span class=nv>$currentDir</span><span class=s2>'."</span>
+
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Cleaning up old files."</span>
+rm<span class=w> </span>-rf<span class=w> </span>*.whl
+find<span class=w> </span>-type<span class=w> </span>d<span class=w> </span>-name<span class=w> </span><span class=s2>"__pycache__"</span><span class=w> </span>-prune<span class=w> </span>-exec<span class=w> </span>rm<span class=w> </span>-rf<span class=w> </span><span class=o>{}</span><span class=w> </span><span class=se>\;</span>
+find<span class=w> </span>-type<span class=w> </span>d<span class=w> </span>-name<span class=w> </span><span class=s2>".ruff_cache"</span><span class=w> </span>-prune<span class=w> </span>-exec<span class=w> </span>rm<span class=w> </span>-rf<span class=w> </span><span class=o>{}</span><span class=w> </span><span class=se>\;</span>
+rm<span class=w> </span>-rf<span class=w> </span>.mypy_cache
+rm<span class=w> </span>-rf<span class=w> </span>.ruff_cache
+rm<span class=w> </span>-rf<span class=w> </span>.pytest_cache
+rm<span class=w> </span>-rf<span class=w> </span>build
+rm<span class=w> </span>-rf<span class=w> </span>dist
+rm<span class=w> </span>-rf<span class=w> </span>docs/build
+rm<span class=w> </span>-rf<span class=w> </span>docs/source/*.rst
+rm<span class=w> </span>-rf<span class=w> </span>moptipy.egg-info
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Done cleaning up old files."</span>
+
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: We setup a virtual environment in a temp directory."</span>
+<span class=nv>venvDir</span><span class=o>=</span><span class=s2>"</span><span class=k>$(</span>mktemp<span class=w> </span>-d<span class=k>)</span><span class=s2>"</span>
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Got temp dir '</span><span class=nv>$venvDir</span><span class=s2>', now creating environment in it."</span>
+python3<span class=w> </span>-m<span class=w> </span>venv<span class=w> </span>--upgrade-deps<span class=w> </span>--copies<span class=w> </span><span class=s2>"</span><span class=nv>$venvDir</span><span class=s2>"</span>
+
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Activating virtual environment in '</span><span class=nv>$venvDir</span><span class=s2>'."</span>
+<span class=nb>source</span><span class=w> </span><span class=s2>"</span><span class=nv>$venvDir</span><span class=s2>/bin/activate"</span>
+
+<span class=nb>export</span><span class=w> </span><span class=nv>PYTHON_INTERPRETER</span><span class=o>=</span><span class=s2>"</span><span class=nv>$venvDir</span><span class=s2>/bin/python3"</span>
+<span class=nv>oldPythonPath</span><span class=o>=</span><span class=s2>"</span><span class=si>${</span><span class=nv>PYTHONPATH</span><span class=k>:-</span><span class=si>}</span><span class=s2>"</span>
+<span class=k>if</span><span class=w> </span><span class=o>[</span><span class=w> </span>-n<span class=w> </span><span class=s2>"</span><span class=nv>$oldPythonPath</span><span class=s2>"</span><span class=w> </span><span class=o>]</span><span class=p>;</span><span class=w> </span><span class=k>then</span>
+<span class=w>  </span><span class=nb>export</span><span class=w> </span><span class=nv>PYTHONPATH</span><span class=o>=</span><span class=s2>"</span><span class=nv>$currentDir</span><span class=s2>:</span><span class=nv>$oldPythonPath</span><span class=s2>"</span>
+<span class=k>else</span>
+<span class=w>  </span><span class=nb>export</span><span class=w> </span><span class=nv>PYTHONPATH</span><span class=o>=</span><span class=s2>"</span><span class=nv>$currentDir</span><span class=s2>"</span>
+<span class=k>fi</span>
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: PYTHONPATH='</span><span class=nv>$PYTHONPATH</span><span class=s2>', PYTHON_INTERPRETER='</span><span class=nv>$PYTHON_INTERPRETER</span><span class=s2>'."</span>
+
+<span class=nv>cycle</span><span class=o>=</span><span class=m>1</span>
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Installing requirements."</span>
+<span class=k>while</span><span class=w> </span>!<span class=w> </span><span class=o>(</span>timeout<span class=w> </span>--kill-after<span class=o>=</span>60m<span class=w> </span>58m<span class=w> </span><span class=s2>"</span><span class=nv>$PYTHON_INTERPRETER</span><span class=s2>"</span><span class=w> </span>-m<span class=w> </span>pip<span class=w> </span>install<span class=w> </span>--no-input<span class=w> </span>--default-timeout<span class=o>=</span><span class=m>300</span><span class=w> </span>--timeout<span class=o>=</span><span class=m>300</span><span class=w> </span>--retries<span class=o>=</span><span class=m>100</span><span class=w> </span>-r<span class=w> </span>requirements.txt<span class=w> </span><span class=o>&&</span><span class=w> </span>timeout<span class=w> </span>--kill-after<span class=o>=</span>60m<span class=w> </span>58m<span class=w> </span><span class=s2>"</span><span class=nv>$PYTHON_INTERPRETER</span><span class=s2>"</span><span class=w> </span>-m<span class=w> </span>pip<span class=w> </span>install<span class=w> </span>--no-input<span class=w> </span>--default-timeout<span class=o>=</span><span class=m>300</span><span class=w> </span>--timeout<span class=o>=</span><span class=m>300</span><span class=w> </span>--retries<span class=o>=</span><span class=m>100</span><span class=w> </span>-r<span class=w> </span>requirements-dev.txt<span class=o>)</span><span class=w> </span><span class=p>;</span><span class=w> </span><span class=k>do</span>
+<span class=w>    </span><span class=nv>cycle</span><span class=o>=</span><span class=k>$((</span><span class=nv>cycle</span><span class=o>+</span><span class=m>1</span><span class=k>))</span>
+<span class=w>    </span><span class=k>if</span><span class=w> </span><span class=o>((</span><span class=s2>"</span><span class=nv>$cycle</span><span class=s2>"</span><span class=w> </span>><span class=w> </span><span class=m>100</span><span class=o>))</span><span class=w> </span><span class=p>;</span><span class=w> </span><span class=k>then</span>
+<span class=w>        </span><span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Something odd is happening: We have performed </span><span class=nv>$cycle</span><span class=s2> cycles of pip install and all failed. That's too many. Let's quit."</span>
+<span class=w>        </span><span class=nb>exit</span><span class=w> </span><span class=m>2</span><span class=w>  </span><span class=c1># A non-zero exit code indicates failure.</span>
+<span class=w>    </span><span class=k>fi</span>
+<span class=w>    </span><span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: pip install failed, we will try again."</span>
+<span class=k>done</span>
+
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Printing the list of installed packages."</span>
+<span class=s2>"</span><span class=nv>$PYTHON_INTERPRETER</span><span class=s2>"</span><span class=w> </span>-m<span class=w> </span>pip<span class=w> </span>freeze
+
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Now performing unit tests."</span>
+<span class=s2>"</span><span class=nv>$PYTHON_INTERPRETER</span><span class=s2>"</span><span class=w> </span>-m<span class=w> </span>pycommons.dev.building.run_tests<span class=w> </span>--package<span class=w> </span>moptipy
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Finished running unit tests."</span>
+
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Now performing static analysis."</span>
+<span class=s2>"</span><span class=nv>$PYTHON_INTERPRETER</span><span class=s2>"</span><span class=w> </span>-m<span class=w> </span>pycommons.dev.building.static_analysis<span class=w> </span>--package<span class=w> </span>moptipy
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Done: All static checks passed."</span>
+
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Now building documentation."</span>
+<span class=s2>"</span><span class=nv>$PYTHON_INTERPRETER</span><span class=s2>"</span><span class=w> </span>-m<span class=w> </span>pycommons.dev.building.make_documentation<span class=w> </span>--root<span class=w> </span><span class=s2>"</span><span class=nv>$currentDir</span><span class=s2>"</span><span class=w> </span>--package<span class=w> </span>moptipy
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Done building documentation."</span>
+
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Now building source distribution file."</span>
+<span class=s2>"</span><span class=nv>$PYTHON_INTERPRETER</span><span class=s2>"</span><span class=w> </span>-m<span class=w> </span>pycommons.dev.building.make_dist<span class=w> </span>--root<span class=w> </span><span class=s2>"</span><span class=nv>$currentDir</span><span class=s2>"</span><span class=w> </span>--package<span class=w> </span>moptipy
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Successfully finished building source distribution."</span>
+
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Now trying to install moptipy."</span>
+<span class=s2>"</span><span class=nv>$PYTHON_INTERPRETER</span><span class=s2>"</span><span class=w> </span>-m<span class=w> </span>pip<span class=w> </span>install<span class=w> </span>--no-input<span class=w> </span>--timeout<span class=w> </span><span class=m>360</span><span class=w> </span>--retries<span class=w> </span><span class=m>100</span><span class=w> </span>-v<span class=w> </span><span class=s2>"</span><span class=nv>$currentDir</span><span class=s2>"</span>
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: Successfully installed moptipy."</span>
+
+
+<span class=nb>echo</span><span class=w> </span><span class=s2>"</span><span class=k>$(</span>date<span class=w> </span>+<span class=s1>'%0Y-%0m-%0d %0R:%0S'</span><span class=k>)</span><span class=s2>: We have finished the build process."</span>
+</pre></div>

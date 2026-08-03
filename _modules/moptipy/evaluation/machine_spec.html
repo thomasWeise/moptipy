@@ -1,0 +1,466 @@
+<!doctype html><html data-content_root=../../../ lang=en><meta charset=utf-8><meta content="width=device-width,initial-scale=1.0"name=viewport><title>moptipy.evaluation.machine_spec — moptipy 0.9.187 documentation</title><link href="../../../_static/pygments.css?v=b86133f3"rel=stylesheet><link href="../../../_static/bizstyle.css?v=5283bb3d"rel=stylesheet><script src="../../../_static/documentation_options.js?v=800d7f74"></script><script src="../../../_static/doctools.js?v=fd6eb6e6"></script><script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script><script src=../../../_static/bizstyle.js></script><link href=https://thomasweise.github.io/moptipy/_modules/moptipy/evaluation/machine_spec.html rel=canonical><link href=../../../genindex.html rel=index title=Index><link href=../../../search.html rel=search title=Search><meta content="width=device-width,initial-scale=1.0"name=viewport><body><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"accesskey=I href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.187 documentation</a> »<li class="nav-item nav-item-1"><a accesskey=U href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.machine_spec</a></ul></div><div class=document><div class=documentwrapper><div class=bodywrapper><div class=body role=main><h1>Source code for moptipy.evaluation.machine_spec</h1><div class=highlight><pre>
+<span></span><span class=sd>"""Load machine specs from log files."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>contextlib</span><span class=w> </span><span class=kn>import</span> <span class=n>suppress</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>dataclasses</span><span class=w> </span><span class=kn>import</span> <span class=n>dataclass</span><span class=p>,</span> <span class=n>field</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Callable</span><span class=p>,</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Iterable</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.csv</span><span class=w> </span><span class=kn>import</span> <span class=n>COMMENT_START</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.path</span><span class=w> </span><span class=kn>import</span> <span class=n>Path</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.types</span><span class=w> </span><span class=kn>import</span> <span class=n>type_error</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.logging</span><span class=w> </span><span class=kn>import</span> <span class=n>SECTION_SYS_INFO</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.logger</span><span class=w> </span><span class=kn>import</span> <span class=n>SECTION_END</span><span class=p>,</span> <span class=n>SECTION_START</span><span class=p>,</span> <span class=n>InMemoryLogger</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.sys_info</span><span class=w> </span><span class=kn>import</span> <span class=n>log_sys_info</span>
+
+
+<div class=viewcode-block id=Machine>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.machine_spec.Machine>[docs]</a>
+<span class=nd>@dataclass</span><span class=p>(</span><span class=n>frozen</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>init</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>order</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span> <span class=n>eq</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+<span class=k>class</span><span class=w> </span><span class=nc>Machine</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    An immutable record of machine information.</span>
+
+<span class=sd>    >>> m = Machine(</span>
+<span class=sd>    ...     machine_id="A",</span>
+<span class=sd>    ...     ram_bytes=16853479424,</span>
+<span class=sd>    ...     os="Ubuntu Linux",</span>
+<span class=sd>    ...     cpu="Intel64 Family 6 Model 151",</span>
+<span class=sd>    ...     cpu_mhz=2100,</span>
+<span class=sd>    ...     python="3.12.13")</span>
+<span class=sd>    >>> m.setup_str()</span>
+<span class=sd>    'Python 3.12.13 on an Intel64 Family 6 Model 151 CPU at 2.1 GHz with \</span>
+<span class=sd>15.7 GiB RAM and Ubuntu Linux'</span>
+<span class=sd>    """</span>
+
+    <span class=c1>#: The machine id</span>
+    <span class=n>machine_id</span><span class=p>:</span> <span class=nb>str</span>
+
+    <span class=c1>#: the amount of memory</span>
+    <span class=n>ram_bytes</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>field</span><span class=p>(</span><span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span>
+
+    <span class=c1>#: the operating system</span>
+    <span class=n>os</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>field</span><span class=p>(</span><span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span>
+
+    <span class=c1>#: the CPU</span>
+    <span class=n>cpu</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>field</span><span class=p>(</span><span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span>
+
+    <span class=c1>#: the mhz</span>
+    <span class=n>cpu_mhz</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>field</span><span class=p>(</span><span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span>
+
+    <span class=c1>#: the python version</span>
+    <span class=n>python</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>field</span><span class=p>(</span><span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>)</span>
+
+<div class=viewcode-block id=Machine.setup_str>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.machine_spec.Machine.setup_str>[docs]</a>
+    <span class=k>def</span><span class=w> </span><span class=nf>setup_str</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""</span>
+<span class=sd>        Get the system setup as string.</span>
+
+<span class=sd>        :return: the setup string</span>
+<span class=sd>        """</span>
+        <span class=n>result</span> <span class=o>=</span> <span class=s2>""</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>python</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>result</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"Python </span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>python</span><span class=si>}</span><span class=s2>"</span>
+
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>cpu</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>result</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                <span class=n>schr</span> <span class=o>=</span> <span class=s2>"an"</span> <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=n>lower</span><span class=p>(</span><span class=bp>self</span><span class=o>.</span><span class=n>cpu</span><span class=p>[</span><span class=mi>0</span><span class=p>])</span> <span class=ow>in</span> <span class=s2>"aeiou"</span> <span class=k>else</span> <span class=s2>"a"</span>
+                <span class=n>result</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>result</span><span class=si>}</span><span class=s2> on </span><span class=si>{</span><span class=n>schr</span><span class=si>}</span><span class=s2> "</span>
+            <span class=n>result</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>result</span><span class=si>}{</span><span class=bp>self</span><span class=o>.</span><span class=n>cpu</span><span class=si>}</span><span class=s2> CPU"</span>
+            <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>cpu_mhz</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>speed</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>cpu_mhz</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1000</span><span class=si>:</span><span class=s2>.1f</span><span class=si>}</span><span class=s2>"</span><span class=o>.</span><span class=n>removesuffix</span><span class=p>(</span><span class=s2>".0"</span><span class=p>)</span>
+                <span class=n>result</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>result</span><span class=si>}</span><span class=s2> at </span><span class=si>{</span><span class=n>speed</span><span class=si>}</span><span class=s2> GHz"</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>ram_bytes</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>ram</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=bp>self</span><span class=o>.</span><span class=n>ram_bytes</span><span class=w> </span><span class=o>/</span><span class=w> </span><span class=mi>1073741824</span><span class=si>:</span><span class=s2>.1f</span><span class=si>}</span><span class=s2>"</span><span class=o>.</span><span class=n>removesuffix</span><span class=p>(</span><span class=s2>".0"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>result</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                <span class=n>result</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>result</span><span class=si>}</span><span class=s2> with "</span>
+            <span class=n>result</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>result</span><span class=si>}{</span><span class=n>ram</span><span class=si>}</span><span class=s2> GiB RAM"</span>
+        <span class=k>if</span> <span class=bp>self</span><span class=o>.</span><span class=n>os</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>result</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                <span class=n>result</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>result</span><span class=si>}</span><span class=s2> and "</span>
+            <span class=n>result</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>result</span><span class=si>}{</span><span class=bp>self</span><span class=o>.</span><span class=n>os</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>return</span> <span class=n>result</span></div>
+</div>
+
+
+
+<span class=c1>#: the architecture key</span>
+<span class=n>__ARCH_KEY</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"hardware.machine"</span>
+<span class=c1>#: the machine key</span>
+<span class=n>__MACHINE_KEY</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"session.node"</span>
+<span class=c1>#: the CPU key</span>
+<span class=n>__CPU_KEY</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"hardware.cpu"</span>
+<span class=c1>#: the MHz key</span>
+<span class=n>__MHZ_KEY</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"hardware.cpuMhz"</span>
+<span class=c1>#: the ram key</span>
+<span class=n>__RAM_KEY</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"hardware.memSize"</span>
+<span class=c1>#: the os name</span>
+<span class=n>__PYTHON_KEY</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"python.version"</span>
+<span class=c1>#: the os name key</span>
+<span class=n>__OS_NAME_KEY</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"os.name"</span>
+<span class=c1>#: the os release key</span>
+<span class=n>__OS_RELEASE_KEY</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"os.release"</span>
+<span class=c1>#: the os version key</span>
+<span class=n>__OS_VERSION_KEY</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"os.version"</span>
+
+<span class=c1>#: the keys</span>
+<span class=n>__KEYS</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>set</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>{</span>
+    <span class=n>__ARCH_KEY</span><span class=p>,</span> <span class=n>__MACHINE_KEY</span><span class=p>,</span> <span class=n>__CPU_KEY</span><span class=p>,</span> <span class=n>__MHZ_KEY</span><span class=p>,</span> <span class=n>__RAM_KEY</span><span class=p>,</span> <span class=n>__PYTHON_KEY</span><span class=p>,</span>
+    <span class=n>__OS_NAME_KEY</span><span class=p>,</span> <span class=n>__OS_RELEASE_KEY</span><span class=p>,</span> <span class=n>__OS_VERSION_KEY</span><span class=p>}</span>
+
+<span class=c1>#: the section start</span>
+<span class=n>__SEC_START</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SECTION_START</span><span class=si>}{</span><span class=n>SECTION_SYS_INFO</span><span class=si>}</span><span class=s2>"</span>
+<span class=c1>#: the section end</span>
+<span class=n>__SEC_END</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>SECTION_END</span><span class=si>}{</span><span class=n>SECTION_SYS_INFO</span><span class=si>}</span><span class=s2>"</span>
+
+<span class=c1>#: drop this text</span>
+<span class=n>__CPU_DROP</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span>
+    <span class=s2>"genuineintel"</span><span class=p>,</span> <span class=s2>"stepping"</span><span class=p>,</span> <span class=s2>"authenticamd"</span><span class=p>)</span>
+<span class=c1>#: drop this text</span>
+<span class=n>__CPU_DROP_CORES</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>tuple</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=o>...</span><span class=p>]]</span> <span class=o>=</span> <span class=p>(</span><span class=s2>"-core processor"</span><span class=p>,</span> <span class=p>)</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>__load_machine</span><span class=p>(</span><span class=n>file</span><span class=p>:</span> <span class=n>Path</span><span class=p>,</span> <span class=n>result</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Machine</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Load a machine record from a log file.</span>
+
+<span class=sd>    :param file: the path to load from</span>
+<span class=sd>    """</span>
+    <span class=n>state</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>data</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>{}</span>
+    <span class=k>with</span> <span class=n>file</span><span class=o>.</span><span class=n>open_for_read</span><span class=p>()</span> <span class=k>as</span> <span class=n>stream</span><span class=p>:</span>
+        <span class=k>for</span> <span class=n>srow</span> <span class=ow>in</span> <span class=n>stream</span><span class=p>:</span>
+            <span class=n>row</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>srow</span><span class=p>)</span>
+            <span class=k>if</span> <span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>row</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=n>row</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=n>COMMENT_START</span><span class=p>):</span>
+                <span class=k>continue</span>
+            <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__eq__</span><span class=p>(</span><span class=n>row</span><span class=p>,</span> <span class=n>__SEC_START</span><span class=p>):</span>
+                <span class=k>if</span> <span class=n>state</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>__SEC_START</span><span class=si>!r}</span><span class=s2> appears twice?"</span><span class=p>)</span>
+                <span class=n>state</span> <span class=o>=</span> <span class=mi>1</span>
+                <span class=k>continue</span>
+            <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__eq__</span><span class=p>(</span><span class=n>row</span><span class=p>,</span> <span class=n>__SEC_END</span><span class=p>):</span>
+                <span class=k>if</span> <span class=n>state</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+                    <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>__SEC_END</span><span class=si>!r}</span><span class=s2> before </span><span class=si>{</span><span class=n>__SEC_START</span><span class=si>!r}</span><span class=s2>?"</span><span class=p>)</span>
+                <span class=n>state</span> <span class=o>=</span> <span class=mi>2</span>
+                <span class=k>continue</span>
+
+            <span class=k>if</span> <span class=n>state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=n>dot</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>row</span><span class=p>,</span> <span class=s2>":"</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>dot</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>key</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>row</span><span class=p>[:</span><span class=n>dot</span><span class=p>])</span>
+                    <span class=k>if</span> <span class=n>key</span> <span class=ow>in</span> <span class=n>__KEYS</span><span class=p>:</span>
+                        <span class=n>val</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>row</span><span class=p>[</span><span class=n>dot</span> <span class=o>+</span> <span class=mi>1</span><span class=p>:])</span>
+                        <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>val</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                            <span class=n>data</span><span class=p>[</span><span class=n>key</span><span class=p>]</span> <span class=o>=</span> <span class=n>val</span>
+
+    <span class=k>if</span> <span class=n>__MACHINE_KEY</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>data</span><span class=p>:</span>
+        <span class=k>return</span>
+    <span class=n>machine_id</span> <span class=o>=</span> <span class=n>data</span><span class=p>[</span><span class=n>__MACHINE_KEY</span><span class=p>]</span>
+    <span class=k>if</span> <span class=n>machine_id</span> <span class=ow>in</span> <span class=n>result</span><span class=p>:</span>
+        <span class=k>return</span>
+
+    <span class=k>try</span><span class=p>:</span>
+        <span class=n>ram</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>data</span><span class=p>[</span><span class=n>__RAM_KEY</span><span class=p>])</span>
+    <span class=k>except</span> <span class=p>(</span><span class=ne>KeyError</span><span class=p>,</span> <span class=ne>ValueError</span><span class=p>):</span>
+        <span class=n>ram</span> <span class=o>=</span> <span class=kc>None</span>
+
+    <span class=n>cpu</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>__CPU_KEY</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>cpu</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>cpu</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>__ARCH_KEY</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>cpu</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>ncpu</span> <span class=o>=</span> <span class=n>cpu</span>
+        <span class=n>new_len</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>ncpu</span><span class=p>)</span>
+        <span class=n>old_len</span> <span class=o>=</span> <span class=n>new_len</span> <span class=o>+</span> <span class=mi>1</span>
+        <span class=k>while</span> <span class=n>old_len</span> <span class=o>></span> <span class=n>new_len</span><span class=p>:</span>
+            <span class=n>old_len</span> <span class=o>=</span> <span class=n>new_len</span>
+            <span class=n>ncpu_l</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>lower</span><span class=p>(</span><span class=n>ncpu</span><span class=p>)</span>
+            <span class=k>for</span> <span class=n>d</span> <span class=ow>in</span> <span class=n>__CPU_DROP</span><span class=p>:</span>
+                <span class=n>di</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>rfind</span><span class=p>(</span><span class=n>ncpu_l</span><span class=p>,</span> <span class=n>d</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>di</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>ncpu</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>ncpu</span><span class=p>[:</span><span class=n>di</span><span class=p>])</span>
+                    <span class=n>ncpu_l</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>lower</span><span class=p>(</span><span class=n>ncpu</span><span class=p>)</span>
+
+            <span class=k>for</span> <span class=n>d</span> <span class=ow>in</span> <span class=n>__CPU_DROP_CORES</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>ncpu_l</span><span class=o>.</span><span class=n>endswith</span><span class=p>(</span><span class=n>d</span><span class=p>):</span>
+                    <span class=n>ncpux</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>ncpu</span><span class=p>[:</span><span class=o>-</span><span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>d</span><span class=p>)])</span>
+                    <span class=n>v</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>rfind</span><span class=p>(</span><span class=n>ncpux</span><span class=p>,</span> <span class=s2>" "</span><span class=p>)</span>
+                    <span class=k>if</span> <span class=mi>0</span> <span class=o><</span> <span class=n>v</span> <span class=o><</span> <span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>ncpux</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span><span class=p>):</span>
+                        <span class=n>ncpu</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>ncpu</span><span class=p>[:</span><span class=n>v</span><span class=p>])</span>
+
+            <span class=n>ncpu</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>removesuffix</span><span class=p>(</span><span class=n>ncpu</span><span class=p>,</span> <span class=s2>","</span><span class=p>)</span>
+            <span class=n>new_len</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>ncpu</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>ncpu</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>cpu</span> <span class=o>=</span> <span class=n>ncpu</span>
+
+    <span class=n>mhz</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>mhz_str</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>__MHZ_KEY</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>mhz_str</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>di</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>rfind</span><span class=p>(</span><span class=n>mhz_str</span><span class=p>,</span> <span class=s2>"*"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=mi>0</span> <span class=o><</span> <span class=n>di</span> <span class=o><</span> <span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>mhz_str</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=n>mhz_str</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>mhz_str</span><span class=p>[:</span><span class=n>di</span><span class=p>])</span>
+        <span class=n>mhz_str</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=n>removesuffix</span><span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=n>removeprefix</span><span class=p>(</span>
+            <span class=n>mhz_str</span><span class=p>,</span> <span class=s2>"("</span><span class=p>),</span> <span class=s2>")"</span><span class=p>))</span>
+        <span class=n>di</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>rfind</span><span class=p>(</span><span class=n>mhz_str</span><span class=p>,</span> <span class=s2>"."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=mi>0</span> <span class=o><</span> <span class=n>di</span> <span class=o><</span> <span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>mhz_str</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=n>mhz_str</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>mhz_str</span><span class=p>[</span><span class=n>di</span> <span class=o>+</span> <span class=mi>1</span><span class=p>:])</span>
+        <span class=n>mhz_str</span> <span class=o>=</span> <span class=n>mhz_str</span><span class=o>.</span><span class=n>removesuffix</span><span class=p>(</span><span class=s2>"MHz"</span><span class=p>)</span>
+        <span class=k>with</span> <span class=n>suppress</span><span class=p>(</span><span class=ne>ValueError</span><span class=p>):</span>
+            <span class=n>mhz</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>mhz_str</span><span class=p>)</span>
+
+    <span class=n>python</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>__PYTHON_KEY</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>python</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>di</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>python</span><span class=p>,</span> <span class=s2>"|"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>di</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>python</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>python</span><span class=p>[:</span><span class=n>di</span><span class=p>])</span>
+        <span class=n>di</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>python</span><span class=p>,</span> <span class=s2>" "</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>di</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>python</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>python</span><span class=p>[:</span><span class=n>di</span><span class=p>])</span>
+        <span class=n>di</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>python</span><span class=p>,</span> <span class=s2>"."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>di</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>si</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>python</span><span class=p>,</span> <span class=s2>"."</span><span class=p>,</span> <span class=n>di</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>si</span> <span class=o>></span> <span class=n>di</span><span class=p>:</span>
+                <span class=n>python</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>python</span><span class=p>[:</span><span class=n>si</span><span class=p>])</span>
+
+    <span class=n>os</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>__OS_NAME_KEY</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>os</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>os_release</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>__OS_RELEASE_KEY</span><span class=p>)</span>
+        <span class=n>os_version</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>__OS_VERSION_KEY</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=n>lower</span><span class=p>(</span><span class=n>os</span><span class=p>)</span> <span class=o>==</span> <span class=s2>"linux"</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>os_version</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>di</span> <span class=o>=</span> <span class=n>os_version</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>" "</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>di</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>os_version</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>os_version</span><span class=p>[:</span><span class=n>di</span><span class=p>])</span>
+                <span class=n>os</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>os_version</span><span class=si>}</span><span class=s2> Linux"</span>
+            <span class=k>if</span> <span class=n>os_release</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>di</span> <span class=o>=</span> <span class=n>os_release</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>"-"</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>di</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>os_release</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>os_release</span><span class=p>[:</span><span class=n>di</span><span class=p>])</span>
+                <span class=n>os</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>os</span><span class=si>}</span><span class=s2>, </span><span class=si>{</span><span class=n>os_release</span><span class=si>}</span><span class=s2> Kernel"</span>
+        <span class=k>elif</span> <span class=n>os_release</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>os</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>os</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>os_release</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>elif</span> <span class=n>os_version</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>os</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>os</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>os_version</span><span class=si>}</span><span class=s2>"</span>
+
+    <span class=n>result</span><span class=p>[</span><span class=n>machine_id</span><span class=p>]</span> <span class=o>=</span> <span class=n>Machine</span><span class=p>(</span>
+        <span class=n>machine_id</span><span class=o>=</span><span class=n>machine_id</span><span class=p>,</span>
+        <span class=n>ram_bytes</span><span class=o>=</span><span class=n>ram</span><span class=p>,</span>
+        <span class=n>os</span><span class=o>=</span><span class=n>os</span><span class=p>,</span>
+        <span class=n>cpu</span><span class=o>=</span><span class=n>cpu</span><span class=p>,</span>
+        <span class=n>cpu_mhz</span><span class=o>=</span><span class=n>mhz</span><span class=p>,</span>
+        <span class=n>python</span><span class=o>=</span><span class=n>python</span><span class=p>)</span>
+
+
+<div class=viewcode-block id=load_machines>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.machine_spec.load_machines>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>load_machines</span><span class=p>(</span><span class=n>source</span><span class=p>:</span> <span class=nb>str</span><span class=p>,</span>
+                  <span class=n>result</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Machine</span><span class=p>])</span> <span class=o>-></span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Load the machine data from logs and store them under the given dictionary.</span>
+
+<span class=sd>    :param source: the path to load from</span>
+<span class=sd>    :param result: the dictionary of machine-IDs and machine records.</span>
+<span class=sd>    """</span>
+    <span class=n>path</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Path</span><span class=p>]</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>source</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>result</span><span class=p>,</span> <span class=nb>dict</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>result</span><span class=p>,</span> <span class=s2>"result"</span><span class=p>,</span> <span class=nb>dict</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>path</span><span class=o>.</span><span class=n>is_dir</span><span class=p>():</span>
+        <span class=k>for</span> <span class=n>sub</span> <span class=ow>in</span> <span class=n>path</span><span class=o>.</span><span class=n>list_dir</span><span class=p>():</span>
+            <span class=n>load_machines</span><span class=p>(</span><span class=n>sub</span><span class=p>,</span> <span class=n>result</span><span class=p>)</span>
+    <span class=k>elif</span> <span class=n>path</span><span class=o>.</span><span class=n>is_file</span><span class=p>():</span>
+        <span class=k>with</span> <span class=n>path</span><span class=o>.</span><span class=n>open_for_read</span><span class=p>()</span> <span class=k>as</span> <span class=n>stream</span><span class=p>:</span>
+            <span class=n>machine</span> <span class=o>=</span> <span class=n>get_machine</span><span class=p>(</span><span class=n>stream</span><span class=p>,</span> <span class=n>result</span><span class=o>.</span><span class=fm>__contains__</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>machine</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>result</span><span class=p>[</span><span class=n>machine</span><span class=o>.</span><span class=n>machine_id</span><span class=p>]</span> <span class=o>=</span> <span class=n>machine</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span>
+            <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>path</span><span class=si>!r}</span><span class=s2> identifies neither a file nor a directory."</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=get_machine>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.machine_spec.get_machine>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>get_machine</span><span class=p>(</span>
+        <span class=n>stream</span><span class=p>:</span> <span class=n>Iterable</span><span class=p>[</span><span class=nb>str</span><span class=p>],</span>
+        <span class=n>can_skip</span><span class=p>:</span> <span class=n>Callable</span><span class=p>[[</span><span class=nb>str</span><span class=p>],</span> <span class=nb>bool</span><span class=p>]</span> <span class=o>=</span> <span class=k>lambda</span> <span class=n>_</span><span class=p>:</span> <span class=kc>False</span><span class=p>)</span> <span class=o>-></span> <span class=n>Machine</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Load a machine data record from a stream of strings.</span>
+
+<span class=sd>    This function parses a `stream` of strings, which could be from a log</span>
+<span class=sd>    file, and extracts the core data of a machine.</span>
+<span class=sd>    It then returns this data as a machine record.</span>
+
+<span class=sd>    Optionally, a function `can_skip` can be provided.</span>
+<span class=sd>    Each machine record has as ID usually the session node, i.e., the name of</span>
+<span class=sd>    the corresponding computer.</span>
+<span class=sd>    The function `can_skip` receives this as parameter and is called once.</span>
+<span class=sd>    It can then decide whether the data should be fully parsed and a record</span>
+<span class=sd>    should be returned (by returning `False`) or whether parsing can be</span>
+<span class=sd>    aborted and `None` shall be returned.</span>
+
+<span class=sd>    :param stream: the stream of strings</span>
+<span class=sd>    :param can_skip: a function receiving a machine ID and returning `True` if</span>
+<span class=sd>        `None` should be returned for this machine ID, i.e., if the record does</span>
+<span class=sd>        not need to be parsed, and `False` otherwise</span>
+<span class=sd>    """</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>callable</span><span class=p>(</span><span class=n>can_skip</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>can_skip</span><span class=p>,</span> <span class=s2>"can_skip"</span><span class=p>,</span> <span class=n>call</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>stream</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>):</span>
+        <span class=k>raise</span> <span class=n>type_error</span><span class=p>(</span><span class=n>stream</span><span class=p>,</span> <span class=s2>"stream"</span><span class=p>,</span> <span class=n>Iterable</span><span class=p>)</span>
+
+    <span class=n>state</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span>
+    <span class=n>data</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>{}</span>
+    <span class=k>for</span> <span class=n>srow</span> <span class=ow>in</span> <span class=n>stream</span><span class=p>:</span>
+        <span class=n>row</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>srow</span><span class=p>)</span>
+        <span class=k>if</span> <span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>row</span><span class=p>)</span> <span class=o><=</span> <span class=mi>0</span><span class=p>)</span> <span class=ow>or</span> <span class=n>row</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=n>COMMENT_START</span><span class=p>):</span>
+            <span class=k>continue</span>
+        <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__eq__</span><span class=p>(</span><span class=n>row</span><span class=p>,</span> <span class=n>__SEC_START</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>state</span> <span class=o>!=</span> <span class=mi>0</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>__SEC_START</span><span class=si>!r}</span><span class=s2> appears twice?"</span><span class=p>)</span>
+            <span class=n>state</span> <span class=o>=</span> <span class=mi>1</span>
+            <span class=k>continue</span>
+        <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__eq__</span><span class=p>(</span><span class=n>row</span><span class=p>,</span> <span class=n>__SEC_END</span><span class=p>):</span>
+            <span class=k>if</span> <span class=n>state</span> <span class=o>!=</span> <span class=mi>1</span><span class=p>:</span>
+                <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>__SEC_END</span><span class=si>!r}</span><span class=s2> before </span><span class=si>{</span><span class=n>__SEC_START</span><span class=si>!r}</span><span class=s2>?"</span><span class=p>)</span>
+            <span class=n>state</span> <span class=o>=</span> <span class=mi>2</span>
+            <span class=k>continue</span>
+
+        <span class=k>if</span> <span class=n>state</span> <span class=o>==</span> <span class=mi>1</span><span class=p>:</span>
+            <span class=n>dot</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>row</span><span class=p>,</span> <span class=s2>":"</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>dot</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                <span class=n>key</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>row</span><span class=p>[:</span><span class=n>dot</span><span class=p>])</span>
+                <span class=k>if</span> <span class=n>key</span> <span class=ow>in</span> <span class=n>__KEYS</span><span class=p>:</span>
+                    <span class=n>val</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>row</span><span class=p>[</span><span class=n>dot</span> <span class=o>+</span> <span class=mi>1</span><span class=p>:])</span>
+                    <span class=k>if</span> <span class=p>(</span><span class=n>key</span> <span class=o>==</span> <span class=n>__MACHINE_KEY</span><span class=p>)</span> <span class=ow>and</span> <span class=n>can_skip</span><span class=p>(</span><span class=n>__MACHINE_KEY</span><span class=p>):</span>
+                        <span class=k>return</span> <span class=kc>None</span>
+                    <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>val</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                        <span class=n>data</span><span class=p>[</span><span class=n>key</span><span class=p>]</span> <span class=o>=</span> <span class=n>val</span>
+
+    <span class=n>machine_id</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>__MACHINE_KEY</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>machine_id</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>return</span> <span class=kc>None</span>
+
+    <span class=k>try</span><span class=p>:</span>
+        <span class=n>ram</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>data</span><span class=p>[</span><span class=n>__RAM_KEY</span><span class=p>])</span>
+    <span class=k>except</span> <span class=p>(</span><span class=ne>KeyError</span><span class=p>,</span> <span class=ne>ValueError</span><span class=p>):</span>
+        <span class=n>ram</span> <span class=o>=</span> <span class=kc>None</span>
+
+    <span class=n>cpu</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>__CPU_KEY</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>cpu</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>cpu</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>__ARCH_KEY</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>cpu</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>ncpu</span> <span class=o>=</span> <span class=n>cpu</span>
+        <span class=n>new_len</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>ncpu</span><span class=p>)</span>
+        <span class=n>old_len</span> <span class=o>=</span> <span class=n>new_len</span> <span class=o>+</span> <span class=mi>1</span>
+        <span class=k>while</span> <span class=n>old_len</span> <span class=o>></span> <span class=n>new_len</span><span class=p>:</span>
+            <span class=n>old_len</span> <span class=o>=</span> <span class=n>new_len</span>
+            <span class=n>ncpu_l</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>lower</span><span class=p>(</span><span class=n>ncpu</span><span class=p>)</span>
+            <span class=k>for</span> <span class=n>d</span> <span class=ow>in</span> <span class=n>__CPU_DROP</span><span class=p>:</span>
+                <span class=n>di</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>rfind</span><span class=p>(</span><span class=n>ncpu_l</span><span class=p>,</span> <span class=n>d</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>di</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>ncpu</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>ncpu</span><span class=p>[:</span><span class=n>di</span><span class=p>])</span>
+                    <span class=n>ncpu_l</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>lower</span><span class=p>(</span><span class=n>ncpu</span><span class=p>)</span>
+
+            <span class=k>for</span> <span class=n>d</span> <span class=ow>in</span> <span class=n>__CPU_DROP_CORES</span><span class=p>:</span>
+                <span class=k>if</span> <span class=n>ncpu_l</span><span class=o>.</span><span class=n>endswith</span><span class=p>(</span><span class=n>d</span><span class=p>):</span>
+                    <span class=n>ncpux</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>ncpu</span><span class=p>[:</span><span class=o>-</span><span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>d</span><span class=p>)])</span>
+                    <span class=n>v</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>rfind</span><span class=p>(</span><span class=n>ncpux</span><span class=p>,</span> <span class=s2>" "</span><span class=p>)</span>
+                    <span class=k>if</span> <span class=mi>0</span> <span class=o><</span> <span class=n>v</span> <span class=o><</span> <span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>ncpux</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span><span class=p>):</span>
+                        <span class=n>ncpu</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>ncpu</span><span class=p>[:</span><span class=n>v</span><span class=p>])</span>
+
+            <span class=n>ncpu</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>removesuffix</span><span class=p>(</span><span class=n>ncpu</span><span class=p>,</span> <span class=s2>","</span><span class=p>)</span>
+            <span class=n>new_len</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>ncpu</span><span class=p>)</span>
+        <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>ncpu</span><span class=p>)</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>cpu</span> <span class=o>=</span> <span class=n>ncpu</span>
+
+    <span class=n>mhz</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>mhz_str</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>__MHZ_KEY</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>mhz_str</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>di</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>rfind</span><span class=p>(</span><span class=n>mhz_str</span><span class=p>,</span> <span class=s2>"*"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=mi>0</span> <span class=o><</span> <span class=n>di</span> <span class=o><</span> <span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>mhz_str</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=n>mhz_str</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>mhz_str</span><span class=p>[:</span><span class=n>di</span><span class=p>])</span>
+        <span class=n>mhz_str</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=n>removesuffix</span><span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=n>removeprefix</span><span class=p>(</span>
+            <span class=n>mhz_str</span><span class=p>,</span> <span class=s2>"("</span><span class=p>),</span> <span class=s2>")"</span><span class=p>))</span>
+        <span class=n>di</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>rfind</span><span class=p>(</span><span class=n>mhz_str</span><span class=p>,</span> <span class=s2>"."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=mi>0</span> <span class=o><</span> <span class=n>di</span> <span class=o><</span> <span class=p>(</span><span class=nb>str</span><span class=o>.</span><span class=fm>__len__</span><span class=p>(</span><span class=n>mhz_str</span><span class=p>)</span> <span class=o>-</span> <span class=mi>1</span><span class=p>):</span>
+            <span class=n>mhz_str</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>mhz_str</span><span class=p>[</span><span class=n>di</span> <span class=o>+</span> <span class=mi>1</span><span class=p>:])</span>
+        <span class=n>mhz_str</span> <span class=o>=</span> <span class=n>mhz_str</span><span class=o>.</span><span class=n>removesuffix</span><span class=p>(</span><span class=s2>"MHz"</span><span class=p>)</span>
+        <span class=k>with</span> <span class=n>suppress</span><span class=p>(</span><span class=ne>ValueError</span><span class=p>):</span>
+            <span class=n>mhz</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>mhz_str</span><span class=p>)</span>
+
+    <span class=n>python</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>__PYTHON_KEY</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>python</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>di</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>python</span><span class=p>,</span> <span class=s2>"|"</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>di</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>python</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>python</span><span class=p>[:</span><span class=n>di</span><span class=p>])</span>
+        <span class=n>di</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>python</span><span class=p>,</span> <span class=s2>" "</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>di</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>python</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>python</span><span class=p>[:</span><span class=n>di</span><span class=p>])</span>
+        <span class=n>di</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>python</span><span class=p>,</span> <span class=s2>"."</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>di</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+            <span class=n>si</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=n>python</span><span class=p>,</span> <span class=s2>"."</span><span class=p>,</span> <span class=n>di</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span>
+            <span class=k>if</span> <span class=n>si</span> <span class=o>></span> <span class=n>di</span><span class=p>:</span>
+                <span class=n>python</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>python</span><span class=p>[:</span><span class=n>si</span><span class=p>])</span>
+
+    <span class=n>os</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>__OS_NAME_KEY</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>os</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>os_release</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>__OS_RELEASE_KEY</span><span class=p>)</span>
+        <span class=n>os_version</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>data</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>__OS_VERSION_KEY</span><span class=p>)</span>
+
+        <span class=k>if</span> <span class=nb>str</span><span class=o>.</span><span class=n>lower</span><span class=p>(</span><span class=n>os</span><span class=p>)</span> <span class=o>==</span> <span class=s2>"linux"</span><span class=p>:</span>
+            <span class=k>if</span> <span class=n>os_version</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>di</span> <span class=o>=</span> <span class=n>os_version</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>" "</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>di</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>os_version</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>os_version</span><span class=p>[:</span><span class=n>di</span><span class=p>])</span>
+                <span class=n>os</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>os_version</span><span class=si>}</span><span class=s2> Linux"</span>
+            <span class=k>if</span> <span class=n>os_release</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+                <span class=n>di</span> <span class=o>=</span> <span class=n>os_release</span><span class=o>.</span><span class=n>find</span><span class=p>(</span><span class=s2>"-"</span><span class=p>)</span>
+                <span class=k>if</span> <span class=n>di</span> <span class=o>></span> <span class=mi>0</span><span class=p>:</span>
+                    <span class=n>os_release</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>strip</span><span class=p>(</span><span class=n>os_release</span><span class=p>[:</span><span class=n>di</span><span class=p>])</span>
+                <span class=n>os</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>os</span><span class=si>}</span><span class=s2>, </span><span class=si>{</span><span class=n>os_release</span><span class=si>}</span><span class=s2> Kernel"</span>
+        <span class=k>elif</span> <span class=n>os_release</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>os</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>os</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>os_release</span><span class=si>}</span><span class=s2>"</span>
+        <span class=k>elif</span> <span class=n>os_version</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>os</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>os</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>os_version</span><span class=si>}</span><span class=s2>"</span>
+
+    <span class=k>return</span> <span class=n>Machine</span><span class=p>(</span>
+        <span class=n>machine_id</span><span class=o>=</span><span class=n>machine_id</span><span class=p>,</span>
+        <span class=n>ram_bytes</span><span class=o>=</span><span class=n>ram</span><span class=p>,</span>
+        <span class=n>os</span><span class=o>=</span><span class=n>os</span><span class=p>,</span>
+        <span class=n>cpu</span><span class=o>=</span><span class=n>cpu</span><span class=p>,</span>
+        <span class=n>cpu_mhz</span><span class=o>=</span><span class=n>mhz</span><span class=p>,</span>
+        <span class=n>python</span><span class=o>=</span><span class=n>python</span><span class=p>)</span></div>
+
+
+
+<div class=viewcode-block id=current_machine_spec>
+<a class=viewcode-back href=../../../moptipy.evaluation.html#moptipy.evaluation.machine_spec.current_machine_spec>[docs]</a>
+<span class=k>def</span><span class=w> </span><span class=nf>current_machine_spec</span><span class=p>()</span> <span class=o>-></span> <span class=n>Machine</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Get the current machine specification.</span>
+
+<span class=sd>    :returns: the specification of the current machine</span>
+
+<span class=sd>    >>> a = current_machine_spec()</span>
+<span class=sd>    >>> a is not None</span>
+<span class=sd>    True</span>
+<span class=sd>    >>> a is current_machine_spec()</span>
+<span class=sd>    True</span>
+<span class=sd>    """</span>
+    <span class=n>the_object</span> <span class=o>=</span> <span class=n>current_machine_spec</span>
+    <span class=n>the_property</span> <span class=o>=</span> <span class=s2>"_machine_spec"</span>
+    <span class=k>if</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>the_object</span><span class=p>,</span> <span class=n>the_property</span><span class=p>):</span>
+        <span class=k>return</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>the_object</span><span class=p>,</span> <span class=n>the_property</span><span class=p>)</span>
+
+    <span class=k>with</span> <span class=n>InMemoryLogger</span><span class=p>()</span> <span class=k>as</span> <span class=n>ml</span><span class=p>:</span>
+        <span class=n>log_sys_info</span><span class=p>(</span><span class=n>ml</span><span class=p>)</span>
+        <span class=n>result</span> <span class=o>=</span> <span class=n>get_machine</span><span class=p>(</span><span class=n>ml</span><span class=o>.</span><span class=n>get_log</span><span class=p>())</span>
+
+    <span class=k>if</span> <span class=n>result</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>ValueError</span><span class=p>(</span><span class=s2>"Did not get machine?"</span><span class=p>)</span>
+
+    <span class=nb>setattr</span><span class=p>(</span><span class=n>the_object</span><span class=p>,</span> <span class=n>the_property</span><span class=p>,</span> <span class=n>result</span><span class=p>)</span>
+    <span class=k>return</span> <span class=n>result</span></div>
+
+</pre></div><div class=clearer></div></div></div></div><div aria-label=Main class=sphinxsidebar role=navigation><div class=sphinxsidebarwrapper><search id=searchbox role=search style=display:none> <h3 id=searchlabel>Quick search</h3> <div class=searchformwrapper><form action=../../../search.html class=search><input aria-labelledby=searchlabel autocapitalize=off autocomplete=off autocorrect=off name=q spellcheck=false><input type=submit value=Go></form></div> </search><script>document.getElementById(`searchbox`).style.display=`block`;</script></div></div><div class=clearer></div></div><div aria-label=Related class=related role=navigation><h3>Navigation</h3><ul><li class=right style=margin-right:10px><a title="General Index"href=../../../genindex.html>index</a><li class=right><a title="Python Module Index"href=../../../py-modindex.html>modules</a> |<li class="nav-item nav-item-0"><a href=../../../index.html>moptipy 0.9.187 documentation</a> »<li class="nav-item nav-item-1"><a href=../../index.html>Module code</a> »<li class="nav-item nav-item-this"><a href>moptipy.evaluation.machine_spec</a></ul></div><div class=footer role=contentinfo>© Copyright 2022-2026, Thomas Weise.</div>

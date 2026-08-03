@@ -1,0 +1,83 @@
+<!doctype html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd"><title></title><meta content="text/html; charset=utf-8"http-equiv=content-type><style>pre{line-height:125%}td.linenos .normal,span.linenos{color:inherit;background-color:#0000;padding-left:5px;padding-right:5px}td.linenos .special,span.linenos.special{color:#000;background-color:#ffffc0;padding-left:5px;padding-right:5px}body .hll{background-color:#ffc}body{background:#f8f8f8}body .c{color:#3d7b7b;font-style:italic}body .err{border:1px solid red}body .k{color:green;font-weight:700}body .o{color:#666}body .ch,body .cm{color:#3d7b7b;font-style:italic}body .cp{color:#9c6500}body .cpf,body .c1,body .cs{color:#3d7b7b;font-style:italic}body .gd{color:#a00000}body .ge{font-style:italic}body .ges{font-style:italic;font-weight:700}body .gr{color:#e40000}body .gh{color:navy;font-weight:700}body .gi{color:#008400}body .go{color:#717171}body .gp{color:navy;font-weight:700}body .gs{font-weight:700}body .gu{color:purple;font-weight:700}body .gt{color:#04d}body .kc,body .kd,body .kn{color:green;font-weight:700}body .kp{color:green}body .kr{color:green;font-weight:700}body .kt{color:#b00040}body .m{color:#666}body .s{color:#ba2121}body .na{color:#687822}body .nb{color:green}body .nc{color:#00f;font-weight:700}body .no{color:#800}body .nd{color:#a2f}body .ni{color:#717171;font-weight:700}body .ne{color:#cb3f38;font-weight:700}body .nf{color:#00f}body .nl{color:#767600}body .nn{color:#00f;font-weight:700}body .nt{color:green;font-weight:700}body .nv{color:#19177c}body .ow{color:#a2f;font-weight:700}body .w{color:#bbb}body .mb,body .mf,body .mh,body .mi,body .mo{color:#666}body .sa,body .sb,body .sc,body .dl{color:#ba2121}body .sd{color:#ba2121;font-style:italic}body .s2{color:#ba2121}body .se{color:#aa5d1f;font-weight:700}body .sh{color:#ba2121}body .si{color:#a45a77;font-weight:700}body .sx{color:green}body .sr{color:#a45a77}body .s1{color:#ba2121}body .ss{color:#19177c}body .bp{color:green}body .fm{color:#00f}body .vc,body .vg,body .vi,body .vm{color:#19177c}body .il{color:#666}</style><body><h2></h2><div class=highlight><pre><span></span><span class=sd>"""</span>
+<span class=sd>Solve a Continuous Problem with various Numerical Optimization Algorithms.</span>
+
+<span class=sd>In this example, we try to solve the well-known Rosenbrock function. This</span>
+<span class=sd>function is non-separable and has its optimum at the vector with all "1"</span>
+<span class=sd>values. [1, 2]</span>
+
+<span class=sd>We apply several numerical optimization methods that are included from</span>
+<span class=sd>well-tested and established standard packages and wrapped into the `moptipy`</span>
+<span class=sd>API. If you want to see the exactly same example, but with logging of the</span>
+<span class=sd>progress of the algorithms enabled, check</span>
+<span class=sd>`continuous_optimization_with_logging.py`.</span>
+<span class=sd>If you want to look at the structured experiment execution API, you may want</span>
+<span class=sd>to read `experiment_2_algorithms_4_problems.py`.</span>
+
+<span class=sd>1. https://www.sfu.ca/%7Essurjano/rosen.html</span>
+<span class=sd>2. http://www-optima.amp.i.kyoto-u.ac.jp/member/student/hedar/Hedar_files\</span>
+<span class=sd>/TestGO_files/Page2537.htm</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.vector.cmaes_lib</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>CMAES</span><span class=p>,</span>  <span class=c1># the covariance matrix adaptation evolution strategy (CMA-ES)</span>
+    <span class=n>BiPopCMAES</span><span class=p>,</span>  <span class=c1># the Bi-Population CMA-ES</span>
+    <span class=n>SepCMAES</span><span class=p>,</span>  <span class=c1># the separable CMA-ES</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.vector.scipy</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>BGFS</span><span class=p>,</span>  <span class=c1># Broyden/Fletcher/Goldfarb/Shanno from SciPy</span>
+    <span class=n>CG</span><span class=p>,</span>  <span class=c1># conjugate gradient method from SciPy</span>
+    <span class=n>DE</span><span class=p>,</span>  <span class=c1># differential evolution method from SciPy</span>
+    <span class=n>SLSQP</span><span class=p>,</span>  <span class=c1># Sequential Least Squares Programming from SciPy</span>
+    <span class=n>TNC</span><span class=p>,</span>  <span class=c1># Truncated Newton Method from SciPy</span>
+    <span class=n>NelderMead</span><span class=p>,</span>  <span class=c1># Downhill Simplex from SciPy</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.execution</span><span class=w> </span><span class=kn>import</span> <span class=n>Execution</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.objective</span><span class=w> </span><span class=kn>import</span> <span class=n>Objective</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.operators.vectors.op0_uniform</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0Uniform</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.vectorspace</span><span class=w> </span><span class=kn>import</span> <span class=n>VectorSpace</span>
+
+
+<span class=k>class</span><span class=w> </span><span class=nc>Rosenbrock</span><span class=p>(</span><span class=n>Objective</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>"""The Rosenbrock function with optimum [1, 1, ..., 1]."""</span>
+
+    <span class=k>def</span><span class=w> </span><span class=nf>evaluate</span><span class=p>(</span><span class=bp>self</span><span class=p>,</span> <span class=n>x</span><span class=p>)</span> <span class=o>-></span> <span class=nb>float</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Compute the value of the Rosenbrock function."""</span>
+        <span class=k>return</span> <span class=nb>float</span><span class=p>((</span><span class=mf>100.0</span> <span class=o>*</span> <span class=nb>sum</span><span class=p>((</span><span class=n>x</span><span class=p>[</span><span class=mi>1</span><span class=p>:]</span> <span class=o>-</span> <span class=p>(</span><span class=n>x</span><span class=p>[:</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>**</span> <span class=mi>2</span><span class=p>))</span> <span class=o>**</span> <span class=mi>2</span><span class=p>))</span>
+                     <span class=o>+</span> <span class=nb>sum</span><span class=p>((</span><span class=n>x</span> <span class=o>-</span> <span class=mf>1.0</span><span class=p>)</span> <span class=o>**</span> <span class=mi>2</span><span class=p>))</span>
+
+    <span class=k>def</span><span class=w> </span><span class=fm>__str__</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-></span> <span class=nb>str</span><span class=p>:</span>
+<span class=w>        </span><span class=sd>"""Get the name of this problem."""</span>
+        <span class=k>return</span> <span class=s2>"rosenbrock"</span>
+
+
+<span class=c1># the setup of the problems and search space</span>
+<span class=n>space</span> <span class=o>=</span> <span class=n>VectorSpace</span><span class=p>(</span><span class=mi>4</span><span class=p>,</span> <span class=o>-</span><span class=mf>10.0</span><span class=p>,</span> <span class=mf>10.0</span><span class=p>)</span>  <span class=c1># 4-D space with bounds [-10, 10]</span>
+<span class=n>f</span> <span class=o>=</span> <span class=n>Rosenbrock</span><span class=p>()</span>  <span class=c1># the instance of the optimization problem</span>
+<span class=n>op0</span> <span class=o>=</span> <span class=n>Op0Uniform</span><span class=p>(</span><span class=n>space</span><span class=p>)</span>  <span class=c1># the nullary search operator: random uniform</span>
+<span class=n>b</span> <span class=o>=</span> <span class=n>space</span><span class=o>.</span><span class=n>create</span><span class=p>()</span>  <span class=c1># a variable to store the best solution</span>
+
+<span class=c1># Perform one single run for a variety of different optimization algorithms.</span>
+<span class=k>for</span> <span class=n>algorithm</span> <span class=ow>in</span> <span class=p>[</span><span class=n>BGFS</span><span class=p>(</span><span class=n>op0</span><span class=p>,</span> <span class=n>space</span><span class=p>),</span>  <span class=c1># Broyden/Fletcher/Goldfarb/Shanno</span>
+                  <span class=n>BiPopCMAES</span><span class=p>(</span><span class=n>space</span><span class=p>),</span>  <span class=c1># the bi-population CMA-ES</span>
+                  <span class=n>CG</span><span class=p>(</span><span class=n>op0</span><span class=p>,</span> <span class=n>space</span><span class=p>),</span>  <span class=c1># conjugate gradient method</span>
+                  <span class=n>CMAES</span><span class=p>(</span><span class=n>space</span><span class=p>),</span>  <span class=c1># covariance matrix adaptation ES</span>
+                  <span class=n>DE</span><span class=p>(</span><span class=n>space</span><span class=p>),</span>  <span class=c1># differential evolution</span>
+                  <span class=n>NelderMead</span><span class=p>(</span><span class=n>op0</span><span class=p>,</span> <span class=n>space</span><span class=p>),</span>  <span class=c1># downhill simplex</span>
+                  <span class=n>SepCMAES</span><span class=p>(</span><span class=n>space</span><span class=p>),</span>  <span class=c1># the separable CMA-ES</span>
+                  <span class=n>SLSQP</span><span class=p>(</span><span class=n>op0</span><span class=p>,</span> <span class=n>space</span><span class=p>),</span>  <span class=c1># Sequential Least Squares Programming</span>
+                  <span class=n>TNC</span><span class=p>(</span><span class=n>op0</span><span class=p>,</span> <span class=n>space</span><span class=p>)]:</span>  <span class=c1># Truncated Newton Method</span>
+    <span class=c1># For each algorithm, first configure and then execute one run.</span>
+    <span class=k>with</span> <span class=n>Execution</span><span class=p>()</span><span class=o>.</span><span class=n>set_objective</span><span class=p>(</span><span class=n>f</span><span class=p>)</span>\
+            <span class=o>.</span><span class=n>set_solution_space</span><span class=p>(</span><span class=n>space</span><span class=p>)</span>\
+            <span class=o>.</span><span class=n>set_max_fes</span><span class=p>(</span><span class=mi>1000</span><span class=p>)</span>\
+            <span class=o>.</span><span class=n>set_rand_seed</span><span class=p>(</span><span class=mi>1234</span><span class=p>)</span>\
+            <span class=o>.</span><span class=n>set_algorithm</span><span class=p>(</span><span class=n>algorithm</span><span class=p>)</span>\
+            <span class=o>.</span><span class=n>execute</span><span class=p>()</span> <span class=k>as</span> <span class=n>p</span><span class=p>:</span>  <span class=c1># Execute the algorithm and get result.</span>
+        <span class=n>p</span><span class=o>.</span><span class=n>get_copy_of_best_x</span><span class=p>(</span><span class=n>b</span><span class=p>)</span>  <span class=c1># Get a copy of the best solution.</span>
+        <span class=nb>print</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>algorithm</span><span class=si>}</span><span class=s2> reaches </span><span class=si>{</span><span class=n>p</span><span class=o>.</span><span class=n>get_best_f</span><span class=p>()</span><span class=si>}</span><span class=s2> with </span><span class=si>{</span><span class=n>space</span><span class=o>.</span><span class=n>to_str</span><span class=p>(</span><span class=n>b</span><span class=p>)</span><span class=si>}</span><span class=s2>"</span>
+              <span class=sa>f</span><span class=s2>" at FE </span><span class=si>{</span><span class=n>p</span><span class=o>.</span><span class=n>get_last_improvement_fe</span><span class=p>()</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+
+<span class=c1># If you want to do more runs and get more detailed log information, check</span>
+<span class=c1># examples log_file_jssp.py, experiment_own_algorithm_and_problem.py,</span>
+<span class=c1># progress_plot.py, or experiment_2_algorithms_4_problems.py.</span>
+</pre></div>

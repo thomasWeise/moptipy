@@ -1,0 +1,7 @@
+moptipy
+=======
+
+.. toctree::
+   :maxdepth: 4
+
+   moptipy
