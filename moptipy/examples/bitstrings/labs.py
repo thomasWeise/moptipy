@@ -2245,7 +2245,7 @@ __RELATED_WORKS: Final[dict[tuple[str, str], dict[int, int]]] = {
     ("M1996ESFLABS",
      ("Stephan Mertens. Exhaustive search for low-autocorrelation binary "
       "sequences. Journal of Physics A: Mathematical and General. "
-      "29(18):L473. September 1996. doi:10.1088/0305-4470/29/18/00.")): {
+      "29(18):L473. September 1996. doi:10.1088/0305-4470/29/18/005.")): {
         3: 1, 4: 2, 5: 2, 6: 7, 7: 3, 8: 8, 9: 12, 10: 13, 11: 5, 12: 10,
         13: 6, 14: 19, 15: 15, 16: 24, 17: 32, 18: 25, 19: 29, 20: 26,
         21: 26, 22: 39, 23: 47, 24: 36, 25: 36, 26: 45, 27: 37, 28: 50,

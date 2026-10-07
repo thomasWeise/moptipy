@@ -33,6 +33,7 @@ test routine :func:`~moptipy.tests.op2.validate_op2` can and should be used to
 test all the binary operators that are implemented.
 """
 from typing import Any
+from typing import Generator as ItGen
 
 from numpy.random import Generator
 from pycommons.types import type_error
@@ -40,7 +41,6 @@ from pycommons.types import type_error
 from moptipy.api.component import Component
 
 
-# start op0
 class Op0(Component):
     """A base class to implement a nullary search operator."""
 
@@ -57,7 +57,6 @@ class Op0(Component):
         :param dest: the destination data structure
         """
         raise ValueError("Method not implemented!")
-# end op0
 
 
 def check_op0(op0: Any) -> Op0:
@@ -88,7 +87,6 @@ str, namely 'A'.
     raise type_error(op0, "op0", Op0)
 
 
-# start op1
 class Op1(Component):
     """A base class to implement a unary search operator."""
 
@@ -101,7 +99,35 @@ class Op1(Component):
         :param x: the source point in the search space
         """
         raise ValueError("Method not implemented!")
-# end op1
+
+    def iterate(self, random: Generator, dest, x) -> ItGen[Any, None, None]:
+        """
+        Iterate possible moves.
+
+        This function returns a generator which iterates over a subset or the
+        whole of the neighborhood spanned by :meth:`~op1`.
+        In each step the parameter `dest` is modified.
+
+        The value yielded is implementation-specific.
+        For some operator implementations, it may be the index of a decision
+        variable that was changed.
+        For other implementations, it may be `dest` itself.
+        Don't rely on it unless you know what you are doing.
+
+        In ideal implementations, the order in which neighborhood is sampled
+        should be randomized.
+        This would allow you to draw a random sample of at most a pre-defined
+        size from the neighborhood.
+
+        The default implementation here just applies :meth:`~op1` once and
+        yields `dest`.
+
+        :param random: the random number generator
+        :param dest: the destination data structure
+        :param x: the source point in the search space
+        """
+        self.op1(random, dest, x)
+        yield dest
 
 
 def check_op1(op1: Any) -> Op1:
@@ -132,7 +158,6 @@ namely 'A'.
     raise type_error(op1, "op1", Op1)
 
 
-# start op2
 class Op2(Component):
     """A base class to implement a binary search operator."""
 
@@ -146,7 +171,6 @@ class Op2(Component):
         :param x1: the second source point in the search space
         """
         raise ValueError("Method not implemented!")
-# end op2
 
 
 def check_op2(op2: Any) -> Op2:
@@ -177,7 +201,6 @@ namely 'A'.
     raise type_error(op2, "op2", Op2)
 
 
-# start op1WithStepSize
 class Op1WithStepSize(Op1):
     """A unary search operator with a step size."""
 
@@ -225,7 +248,6 @@ class Op1WithStepSize(Op1):
         :param step_size: the step size parameter for the unary operator
         """
         raise ValueError("Method not implemented!")
-# end op1WithStepSize
 
 
 def check_op1_with_step_size(op1: Any) -> Op1WithStepSize:

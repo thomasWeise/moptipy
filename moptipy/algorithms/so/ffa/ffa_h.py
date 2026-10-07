@@ -130,7 +130,8 @@ def h_to_str(
             use_index: int | float = i - offset  # subtract the offset
             if isinstance(use_index, float):  # if it's float, try to convert
                 use_index = try_int(use_index)
-            if (use_index - 1) != old_index:  # we skip if current = old + 1
+            # we skip if current = old + 1
+            if (use_index - 1) != old_index:  # pylint: disable=W0177
                 write(str(use_index))
             old_index = use_index  # step the index
             write(csep)  # write separator to frequency counter
