@@ -1,0 +1,51 @@
+<!doctype html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd"><title></title><meta content="text/html; charset=utf-8"http-equiv=content-type><style>pre{line-height:125%}td.linenos .normal,span.linenos{color:inherit;background-color:#0000;padding-left:5px;padding-right:5px}td.linenos .special,span.linenos.special{color:#000;background-color:#ffffc0;padding-left:5px;padding-right:5px}body .hll{background-color:#ffc}body{background:#f8f8f8}body .c{color:#3d7b7b;font-style:italic}body .err{border:1px solid red}body .k{color:green;font-weight:700}body .o{color:#666}body .ch,body .cm{color:#3d7b7b;font-style:italic}body .cp{color:#9c6500}body .cpf,body .c1,body .cs{color:#3d7b7b;font-style:italic}body .gd{color:#a00000}body .ge{font-style:italic}body .ges{font-style:italic;font-weight:700}body .gr{color:#e40000}body .gh{color:navy;font-weight:700}body .gi{color:#008400}body .go{color:#717171}body .gp{color:navy;font-weight:700}body .gs{font-weight:700}body .gu{color:purple;font-weight:700}body .gt{color:#04d}body .kc,body .kd,body .kn{color:green;font-weight:700}body .kp{color:green}body .kr{color:green;font-weight:700}body .kt{color:#b00040}body .m{color:#666}body .s{color:#ba2121}body .na{color:#687822}body .nb{color:green}body .nc{color:#00f;font-weight:700}body .no{color:#800}body .nd{color:#a2f}body .ni{color:#717171;font-weight:700}body .ne{color:#cb3f38;font-weight:700}body .nf{color:#00f}body .nl{color:#767600}body .nn{color:#00f;font-weight:700}body .nt{color:green;font-weight:700}body .nv{color:#19177c}body .ow{color:#a2f;font-weight:700}body .w{color:#bbb}body .mb,body .mf,body .mh,body .mi,body .mo{color:#666}body .sa,body .sb,body .sc,body .dl{color:#ba2121}body .sd{color:#ba2121;font-style:italic}body .s2{color:#ba2121}body .se{color:#aa5d1f;font-weight:700}body .sh{color:#ba2121}body .si{color:#a45a77;font-weight:700}body .sx{color:green}body .sr{color:#a45a77}body .s1{color:#ba2121}body .ss{color:#19177c}body .bp{color:green}body .fm{color:#00f}body .vc,body .vg,body .vi,body .vm{color:#19177c}body .il{color:#666}</style><body><h2></h2><div class=highlight><pre><span></span><span class=sd>"""The setup and installation script."""</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>re</span><span class=w> </span><span class=kn>import</span> <span class=nb>compile</span> <span class=k>as</span> <span class=n>re_compile</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>re</span><span class=w> </span><span class=kn>import</span> <span class=n>sub</span> <span class=k>as</span> <span class=n>re_sub</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Final</span><span class=p>,</span> <span class=n>Pattern</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>setuptools</span><span class=w> </span><span class=kn>import</span> <span class=n>setup</span>
+
+<span class=c1># We want to use our README.md as project description.</span>
+<span class=c1># However, we must fix all the references inside.</span>
+<span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=s2>"README.md"</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s2>"utf-8-sig"</span><span class=p>)</span> <span class=k>as</span> <span class=n>reader</span><span class=p>:</span>
+    <span class=n>old_lines</span> <span class=o>=</span> <span class=n>reader</span><span class=o>.</span><span class=n>readlines</span><span class=p>()</span>
+
+<span class=c1># It seems that the markdown parser does not auto-generate anchors. This means</span>
+<span class=c1># that we need to fix all references following the pattern `[xxx](#12-hello)`</span>
+<span class=c1># to `[xxx]({docu_url#hello)`, where `docu_url` is the url of our</span>
+<span class=c1># documentation. We do this with a regular expression `regex_search`.</span>
+<span class=n>new_lines</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]]</span> <span class=o>=</span> <span class=p>[]</span>
+<span class=n>in_code</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>  <span class=c1># we only process non-code lines</span>
+
+<span class=c1># the base url where the documentation will land</span>
+<span class=n>doc_url</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"https://thomasweise.github.io/moptipy"</span>
+<span class=c1># the url of our repository</span>
+<span class=n>repo_url</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"https://github.com/thomasWeise/moptipy"</span>
+
+<span class=c1># detects strings of the form [xyz](#123-bla) and gives \1=xyz and \2=bla</span>
+<span class=n>regex_search</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=n>Pattern</span><span class=p>]</span> <span class=o>=</span> <span class=n>re_compile</span><span class=p>(</span><span class=s2>"(</span><span class=se>\\</span><span class=s2>[.+?])</span><span class=se>\\</span><span class=s2>(#</span><span class=se>\\</span><span class=s2>d+-(.+?)</span><span class=se>\\</span><span class=s2>)"</span><span class=p>)</span>
+<span class=n>regex_repl</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=se>\\</span><span class=s2>1(</span><span class=si>{</span><span class=n>doc_url</span><span class=si>}</span><span class=s2>#</span><span class=se>\\</span><span class=s2>2)"</span>
+
+<span class=c1># other replacements</span>
+<span class=n>license_old</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>repo_url</span><span class=si>}</span><span class=s2>/blob/main/LICENSE"</span>
+<span class=n>license_new</span><span class=p>:</span> <span class=n>Final</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>doc_url</span><span class=si>}</span><span class=s2>/LICENSE.html"</span>
+
+<span class=k>for</span> <span class=n>full_line</span> <span class=ow>in</span> <span class=n>old_lines</span><span class=p>:</span>
+    <span class=n>line</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>rstrip</span><span class=p>(</span><span class=n>full_line</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>in_code</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>line</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=s2>"```"</span><span class=p>):</span>
+            <span class=n>in_code</span> <span class=o>=</span> <span class=kc>False</span>  <span class=c1># toggle to non-code</span>
+    <span class=k>elif</span> <span class=n>line</span><span class=o>.</span><span class=n>startswith</span><span class=p>(</span><span class=s2>"```"</span><span class=p>):</span>
+        <span class=n>in_code</span> <span class=o>=</span> <span class=kc>True</span>  <span class=c1># toggle to code</span>
+    <span class=k>else</span><span class=p>:</span>  <span class=c1># fix all internal urls</span>
+        <span class=c1># replace links of the form "#12-bla" to "#bla"</span>
+        <span class=n>line</span> <span class=o>=</span> <span class=n>re_sub</span><span class=p>(</span><span class=n>regex_search</span><span class=p>,</span> <span class=n>regex_repl</span><span class=p>,</span> <span class=n>line</span><span class=p>)</span>
+        <span class=n>line</span> <span class=o>=</span> <span class=nb>str</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=n>line</span><span class=p>,</span> <span class=n>license_old</span><span class=p>,</span> <span class=n>license_new</span><span class=p>)</span>
+    <span class=n>new_lines</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>line</span><span class=p>)</span>
+
+<span class=c1># Now we can use the code in the setup.</span>
+<span class=n>setup</span><span class=p>(</span><span class=n>long_description</span><span class=o>=</span><span class=s2>"</span><span class=se>\n</span><span class=s2>"</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>new_lines</span><span class=p>),</span>
+      <span class=n>long_description_content_type</span><span class=o>=</span><span class=s2>"text/markdown"</span><span class=p>)</span>
+</pre></div>

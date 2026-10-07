@@ -1,0 +1,17 @@
+moptipy.examples package
+========================
+
+.. automodule:: moptipy.examples
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   moptipy.examples.bitstrings
+   moptipy.examples.jssp
+   moptipy.examples.vectors

@@ -1,0 +1,112 @@
+<!doctype html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd"><title></title><meta content="text/html; charset=utf-8"http-equiv=content-type><style>pre{line-height:125%}td.linenos .normal,span.linenos{color:inherit;background-color:#0000;padding-left:5px;padding-right:5px}td.linenos .special,span.linenos.special{color:#000;background-color:#ffffc0;padding-left:5px;padding-right:5px}body .hll{background-color:#ffc}body{background:#f8f8f8}body .c{color:#3d7b7b;font-style:italic}body .err{border:1px solid red}body .k{color:green;font-weight:700}body .o{color:#666}body .ch,body .cm{color:#3d7b7b;font-style:italic}body .cp{color:#9c6500}body .cpf,body .c1,body .cs{color:#3d7b7b;font-style:italic}body .gd{color:#a00000}body .ge{font-style:italic}body .ges{font-style:italic;font-weight:700}body .gr{color:#e40000}body .gh{color:navy;font-weight:700}body .gi{color:#008400}body .go{color:#717171}body .gp{color:navy;font-weight:700}body .gs{font-weight:700}body .gu{color:purple;font-weight:700}body .gt{color:#04d}body .kc,body .kd,body .kn{color:green;font-weight:700}body .kp{color:green}body .kr{color:green;font-weight:700}body .kt{color:#b00040}body .m{color:#666}body .s{color:#ba2121}body .na{color:#687822}body .nb{color:green}body .nc{color:#00f;font-weight:700}body .no{color:#800}body .nd{color:#a2f}body .ni{color:#717171;font-weight:700}body .ne{color:#cb3f38;font-weight:700}body .nf{color:#00f}body .nl{color:#767600}body .nn{color:#00f;font-weight:700}body .nt{color:green;font-weight:700}body .nv{color:#19177c}body .ow{color:#a2f;font-weight:700}body .w{color:#bbb}body .mb,body .mf,body .mh,body .mi,body .mo{color:#666}body .sa,body .sb,body .sc,body .dl{color:#ba2121}body .sd{color:#ba2121;font-style:italic}body .s2{color:#ba2121}body .se{color:#aa5d1f;font-weight:700}body .sh{color:#ba2121}body .si{color:#a45a77;font-weight:700}body .sx{color:green}body .sr{color:#a45a77}body .s1{color:#ba2121}body .ss{color:#19177c}body .bp{color:green}body .fm{color:#00f}body .vc,body .vg,body .vi,body .vm{color:#19177c}body .il{color:#666}</style><body><h2></h2><div class=highlight><pre><span></span><span class=sd>"""</span>
+<span class=sd>We plot the performance of values of a problem feature for one algorithm.</span>
+
+<span class=sd>Many benchmark problems have features, such as the problem scale. Sometimes</span>
+<span class=sd>we want to understand how these features influence the algorithm performance.</span>
+<span class=sd>With the function :func:`~moptipy.evaluation.\</span>
+<span class=sd>plot_end_statistics_over_parameter_impl.plot_end_statistics_over_param`, we</span>
+<span class=sd>can plot one statistic versus the value of a feature (or even algorithm</span>
+<span class=sd>parameter). In this example, we do this for the number `n` of bits of the</span>
+<span class=sd>well-known OneMax problem.</span>
+
+<span class=sd>Let us say we apply the randomized local search</span>
+<span class=sd>(:class:`moptipy.algorithms.so.rls.RLS`) with single-bit flip operator to the</span>
+<span class=sd>well-known :class:`moptipy.examples.bitstrings.onemax.OneMax` problem. The</span>
+<span class=sd>OneMax is defined over the bit strings of the length `n`.</span>
+
+<span class=sd>What influence does this feature `n` have on the time that we need to solve</span>
+<span class=sd>the problem?</span>
+
+<span class=sd>In this example, we test 20 values (`1..20`) for `n` on the minimization</span>
+<span class=sd>version of the OneMax problem. We apply our RLS to each instance 7 times</span>
+<span class=sd>and approximate the expected running time (ERT). On the horizontal axis we</span>
+<span class=sd>put the values of `n`, on the vertical axis, we put the `ERT`.</span>
+
+<span class=sd>All what we have to do is tell our system how it can determine the value of</span>
+<span class=sd>the feature from an "instance setup name" and how to obtain the base name</span>
+<span class=sd>of the instance. Now that is rather simply: our system names instances</span>
+<span class=sd>automatically, here according to the form `onemax_n` where `n` is the</span>
+<span class=sd>feature value. E.g., `onemax_10` means `n=10`. So we can get the value</span>
+<span class=sd>of `n` as `int(name[7:])` and the base name of the instance as `name[6:]`,</span>
+<span class=sd>i.e., `onemax` in our example.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>time</span><span class=w> </span><span class=kn>import</span> <span class=n>sleep</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>webbrowser</span><span class=w> </span><span class=kn>import</span> <span class=n>open_new_tab</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.io.temp</span><span class=w> </span><span class=kn>import</span> <span class=n>temp_dir</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>pycommons.processes.caller</span><span class=w> </span><span class=kn>import</span> <span class=n>is_build</span>
+
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.algorithms.so.rls</span><span class=w> </span><span class=kn>import</span> <span class=n>RLS</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.execution</span><span class=w> </span><span class=kn>import</span> <span class=n>Execution</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.api.experiment</span><span class=w> </span><span class=kn>import</span> <span class=n>run_experiment</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.axis_ranger</span><span class=w> </span><span class=kn>import</span> <span class=n>AxisRanger</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_results</span><span class=w> </span><span class=kn>import</span> <span class=n>from_logs</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.end_statistics</span><span class=w> </span><span class=kn>import</span> <span class=n>from_end_results</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.evaluation.plot_end_statistics_over_parameter</span><span class=w> </span><span class=kn>import</span> <span class=p>(</span>
+    <span class=n>plot_end_statistics_over_param</span><span class=p>,</span>
+<span class=p>)</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.examples.bitstrings.onemax</span><span class=w> </span><span class=kn>import</span> <span class=n>OneMax</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.operators.bitstrings.op0_random</span><span class=w> </span><span class=kn>import</span> <span class=n>Op0Random</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.operators.bitstrings.op1_flip1</span><span class=w> </span><span class=kn>import</span> <span class=n>Op1Flip1</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.spaces.bitstrings</span><span class=w> </span><span class=kn>import</span> <span class=n>BitStrings</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>moptipy.utils.plot_utils</span><span class=w> </span><span class=kn>import</span> <span class=n>create_figure</span><span class=p>,</span> <span class=n>save_figure</span>
+
+<span class=c1># We try to solve 20 onemax instances.</span>
+<span class=n>problems</span> <span class=o>=</span> <span class=p>[</span><span class=k>lambda</span> <span class=n>nn</span><span class=o>=</span><span class=n>n</span><span class=p>:</span> <span class=n>OneMax</span><span class=p>(</span><span class=n>nn</span><span class=p>)</span> <span class=k>for</span> <span class=n>n</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>21</span><span class=p>)]</span>
+
+
+<span class=k>def</span><span class=w> </span><span class=nf>make_rls</span><span class=p>(</span><span class=n>problem</span><span class=p>)</span> <span class=o>-></span> <span class=n>Execution</span><span class=p>:</span>
+<span class=w>    </span><span class=sd>"""</span>
+<span class=sd>    Create an RLS Execution with 1 bit flip mutation.</span>
+
+<span class=sd>    :param problem: the (OneMax) problem</span>
+<span class=sd>    :returns: the execution</span>
+<span class=sd>    """</span>
+    <span class=n>ex</span> <span class=o>=</span> <span class=n>Execution</span><span class=p>()</span>
+    <span class=n>ex</span><span class=o>.</span><span class=n>set_solution_space</span><span class=p>(</span><span class=n>BitStrings</span><span class=p>(</span><span class=n>problem</span><span class=o>.</span><span class=n>n</span><span class=p>))</span>
+    <span class=n>ex</span><span class=o>.</span><span class=n>set_objective</span><span class=p>(</span><span class=n>problem</span><span class=p>)</span>
+    <span class=n>ex</span><span class=o>.</span><span class=n>set_algorithm</span><span class=p>(</span><span class=n>RLS</span><span class=p>(</span><span class=n>Op0Random</span><span class=p>(),</span> <span class=n>Op1Flip1</span><span class=p>()))</span>
+    <span class=k>return</span> <span class=n>ex</span>
+
+
+<span class=c1># We execute the whole experiment in a temp directory.</span>
+<span class=c1># For a real experiment, you would put an existing directory path into `td` by</span>
+<span class=c1># doing `from pycommons.io.path import Path; td = Path("mydir")` and not use</span>
+<span class=c1># the `with` block.</span>
+<span class=k>with</span> <span class=n>temp_dir</span><span class=p>()</span> <span class=k>as</span> <span class=n>td</span><span class=p>:</span>  <span class=c1># create temporary directory `td`</span>
+    <span class=n>run_experiment</span><span class=p>(</span><span class=n>base_dir</span><span class=o>=</span><span class=n>td</span><span class=p>,</span>  <span class=c1># set the base directory for log files</span>
+                   <span class=n>instances</span><span class=o>=</span><span class=n>problems</span><span class=p>,</span>  <span class=c1># define the problem instances</span>
+                   <span class=n>setups</span><span class=o>=</span><span class=p>[</span><span class=n>make_rls</span><span class=p>],</span>  <span class=c1># provide RLS run creator</span>
+                   <span class=n>n_runs</span><span class=o>=</span><span class=mi>7</span><span class=p>)</span>  <span class=c1># we will execute 7 runs per setup</span>
+    <span class=c1># Once we arrived here, the 20*7 = 140 runs have completed.</span>
+
+    <span class=c1># Compute the end statistics from end results loaded from log files.</span>
+    <span class=n>end_stats</span> <span class=o>=</span> <span class=nb>list</span><span class=p>(</span><span class=n>from_end_results</span><span class=p>(</span><span class=n>from_logs</span><span class=p>(</span><span class=n>td</span><span class=p>)))</span>
+
+    <span class=n>files</span> <span class=o>=</span> <span class=p>[]</span>  <span class=c1># the collection of files</span>
+
+    <span class=c1># Plot the ERT over the feature `n`.</span>
+    <span class=n>fig</span> <span class=o>=</span> <span class=n>create_figure</span><span class=p>(</span><span class=n>width</span><span class=o>=</span><span class=mi>4</span><span class=p>)</span>  <span class=c1># create an empty, 4"-wide figure</span>
+    <span class=n>plot_end_statistics_over_param</span><span class=p>(</span>
+        <span class=n>data</span><span class=o>=</span><span class=n>end_stats</span><span class=p>,</span> <span class=n>figure</span><span class=o>=</span><span class=n>fig</span><span class=p>,</span> <span class=n>y_dim</span><span class=o>=</span><span class=s2>"ertFEs"</span><span class=p>,</span>
+        <span class=n>x_getter</span><span class=o>=</span><span class=k>lambda</span> <span class=n>es</span><span class=p>:</span> <span class=nb>int</span><span class=p>(</span><span class=n>es</span><span class=o>.</span><span class=n>instance</span><span class=p>[</span><span class=mi>7</span><span class=p>:]),</span>  <span class=c1># => n</span>
+        <span class=n>instance_getter</span><span class=o>=</span><span class=k>lambda</span> <span class=n>es</span><span class=p>:</span> <span class=n>es</span><span class=o>.</span><span class=n>instance</span><span class=p>[:</span><span class=mi>6</span><span class=p>],</span>  <span class=c1># => onemax</span>
+        <span class=n>x_label</span><span class=o>=</span><span class=s2>"n"</span><span class=p>,</span> <span class=n>y_axis</span><span class=o>=</span><span class=n>AxisRanger</span><span class=p>())</span>
+    <span class=c1># Save the image only as svg.</span>
+    <span class=n>files</span><span class=o>.</span><span class=n>extend</span><span class=p>(</span><span class=n>save_figure</span><span class=p>(</span><span class=n>fig</span><span class=o>=</span><span class=n>fig</span><span class=p>,</span>  <span class=c1># store fig to a file</span>
+                             <span class=n>file_name</span><span class=o>=</span><span class=s2>"ert_over_onemax_n"</span><span class=p>,</span>  <span class=c1># base name</span>
+                             <span class=n>dir_name</span><span class=o>=</span><span class=n>td</span><span class=p>,</span>  <span class=c1># store graphic in temp directory</span>
+                             <span class=n>formats</span><span class=o>=</span><span class=s2>"svg"</span><span class=p>))</span>  <span class=c1># file types: only svg</span>
+    <span class=k>del</span> <span class=n>fig</span>  <span class=c1># dispose figure</span>
+
+    <span class=c1># OK, we have now generated and saved the plot in a file.</span>
+    <span class=c1># We will open it in the web browser if we are not in a make build.</span>
+    <span class=k>if</span> <span class=ow>not</span> <span class=n>is_build</span><span class=p>():</span>
+        <span class=k>for</span> <span class=n>file</span> <span class=ow>in</span> <span class=n>files</span><span class=p>:</span>  <span class=c1># for each file we generated</span>
+            <span class=n>open_new_tab</span><span class=p>(</span><span class=sa>f</span><span class=s2>"file://</span><span class=si>{</span><span class=n>file</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>  <span class=c1># open a browser tab</span>
+        <span class=n>sleep</span><span class=p>(</span><span class=mi>10</span><span class=p>)</span>  <span class=c1># sleep 10 seconds (enough time for the browser to load)</span>
+<span class=c1># The temp directory is deleted as soon as we leave the `with` block.</span>
+<span class=c1># Hence, all the figures generated above as well as the experimental results</span>
+<span class=c1># now have disappeared.</span>
+</pre></div>

@@ -1,0 +1,178 @@
+moptipy.tests package
+=====================
+
+.. automodule:: moptipy.tests
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+moptipy.tests.algorithm module
+------------------------------
+
+.. automodule:: moptipy.tests.algorithm
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.component module
+------------------------------
+
+.. automodule:: moptipy.tests.component
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.encoding module
+-----------------------------
+
+.. automodule:: moptipy.tests.encoding
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.fitness module
+----------------------------
+
+.. automodule:: moptipy.tests.fitness
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.mo\_algorithm module
+----------------------------------
+
+.. automodule:: moptipy.tests.mo_algorithm
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.mo\_archive\_pruner module
+----------------------------------------
+
+.. automodule:: moptipy.tests.mo_archive_pruner
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.mo\_problem module
+--------------------------------
+
+.. automodule:: moptipy.tests.mo_problem
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.objective module
+------------------------------
+
+.. automodule:: moptipy.tests.objective
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.on\_bitstrings module
+-----------------------------------
+
+.. automodule:: moptipy.tests.on_bitstrings
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.on\_intspaces module
+----------------------------------
+
+.. automodule:: moptipy.tests.on_intspaces
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.on\_jssp module
+-----------------------------
+
+.. automodule:: moptipy.tests.on_jssp
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.on\_ordered\_choices module
+-----------------------------------------
+
+.. automodule:: moptipy.tests.on_ordered_choices
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.on\_permutations module
+-------------------------------------
+
+.. automodule:: moptipy.tests.on_permutations
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.on\_signed\_permutations module
+---------------------------------------------
+
+.. automodule:: moptipy.tests.on_signed_permutations
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.on\_vectors module
+--------------------------------
+
+.. automodule:: moptipy.tests.on_vectors
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.op0 module
+------------------------
+
+.. automodule:: moptipy.tests.op0
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.op1 module
+------------------------
+
+.. automodule:: moptipy.tests.op1
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.op1\_with\_step\_size module
+------------------------------------------
+
+.. automodule:: moptipy.tests.op1_with_step_size
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.op2 module
+------------------------
+
+.. automodule:: moptipy.tests.op2
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.selection module
+------------------------------
+
+.. automodule:: moptipy.tests.selection
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.tests.space module
+--------------------------
+
+.. automodule:: moptipy.tests.space
+   :members:
+   :show-inheritance:
+   :undoc-members:

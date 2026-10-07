@@ -1,0 +1,50 @@
+moptipy.algorithms.modules.selections package
+=============================================
+
+.. automodule:: moptipy.algorithms.modules.selections
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+moptipy.algorithms.modules.selections.best module
+-------------------------------------------------
+
+.. automodule:: moptipy.algorithms.modules.selections.best
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.modules.selections.fitness\_proportionate\_sus module
+------------------------------------------------------------------------
+
+.. automodule:: moptipy.algorithms.modules.selections.fitness_proportionate_sus
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.modules.selections.random\_without\_repl module
+------------------------------------------------------------------
+
+.. automodule:: moptipy.algorithms.modules.selections.random_without_repl
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.modules.selections.tournament\_with\_repl module
+-------------------------------------------------------------------
+
+.. automodule:: moptipy.algorithms.modules.selections.tournament_with_repl
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.algorithms.modules.selections.tournament\_without\_repl module
+----------------------------------------------------------------------
+
+.. automodule:: moptipy.algorithms.modules.selections.tournament_without_repl
+   :members:
+   :show-inheritance:
+   :undoc-members:

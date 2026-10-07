@@ -1,0 +1,66 @@
+moptipy.spaces package
+======================
+
+.. automodule:: moptipy.spaces
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+moptipy.spaces.bitstrings module
+--------------------------------
+
+.. automodule:: moptipy.spaces.bitstrings
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.spaces.intspace module
+------------------------------
+
+.. automodule:: moptipy.spaces.intspace
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.spaces.nparrayspace module
+----------------------------------
+
+.. automodule:: moptipy.spaces.nparrayspace
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.spaces.ordered\_choices module
+--------------------------------------
+
+.. automodule:: moptipy.spaces.ordered_choices
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.spaces.permutations module
+----------------------------------
+
+.. automodule:: moptipy.spaces.permutations
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.spaces.signed\_permutations module
+------------------------------------------
+
+.. automodule:: moptipy.spaces.signed_permutations
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+moptipy.spaces.vectorspace module
+---------------------------------
+
+.. automodule:: moptipy.spaces.vectorspace
+   :members:
+   :show-inheritance:
+   :undoc-members:
