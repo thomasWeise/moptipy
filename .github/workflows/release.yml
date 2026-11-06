@@ -33,4 +33,4 @@ jobs:
         rm -rf /home/runner/work/moptipy/moptipy/dist/*.tar.xz
 # deploy to pypi
     - name: Publish package distributions to PyPI
-      uses: pypa/gh-action-pypi-publish@v1.14.0
+      uses: pypa/gh-action-pypi-publish@v1.14.3
